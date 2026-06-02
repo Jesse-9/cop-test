@@ -1,0 +1,13 @@
+[project]
+name = "factory-sim"
+version = "0.1.0"
+description = "CoppeliaSim 工厂仿真 — ZeroMQ Remote API 控制"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "coppeliasim-zmqremoteapi-client>=2.0.4",
+]
+
+[project.scripts]
+build-scene = "build_scene:main"
+run-simulation = "run_simulation:main"
