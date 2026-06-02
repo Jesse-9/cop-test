@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p .claude/skills/coppeliasim-factory-sim/references .claude/skills/coppeliasim-factory-sim/scripts)",
+      "Edit(/.claude/skills/coppeliasim-factory-sim/**)"
+    ],
+    "additionalDirectories": [
+      "e:\\Work\\paper\\cop-test\\.claude\\skills\\coppeliasim-factory-sim"
+    ]
+  }
+}

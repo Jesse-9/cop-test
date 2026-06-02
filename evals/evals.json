@@ -1,0 +1,23 @@
+{
+  "skill_name": "coppeliasim-factory-sim",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a new factory simulation in CoppeliaSim 4.10. I have 5 work islands (Assembly, Preprocess, Processing, QC, FinalAssembly) and 2 warehouses. I need to set up the scene with proper hierarchical naming like /Island/A_Assembly/Robot_A. Can you help me create the scene build script that places all objects, conveyors, and AGV paths with the right naming convention and color coding?",
+      "expected_output": "A Python build script that creates all scene objects with hierarchical slash-separated paths (/Warehouse/S1_Main, /Island/A_Assembly, /Conveyor/S1_to_A, /Mobile/AGV_Shared, etc.), proper color coding per element type, conveyor belts with roller markers, AGV path waypoints, and island pillar labels. The script should use sim.setObjectParent() for hierarchy and sim.setObjectAlias() for canonical naming.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My CoppeliaSim factory simulation keeps crashing when the ZMQ connection drops. I need to add robust exception handling — reconnection logic, deadlock detection for the AGV, and workstation timeout detection. The islands each have a TAKT_TIME: A=5s, B=3s, C=4s, D=6s, E=8s. Can you refactor my simulation controller to handle all these exceptions gracefully?",
+      "expected_output": "A refactored simulation controller that includes: (1) ZMQ connection monitor with auto-reconnect (3 retries, 3s timeout), (2) Congestion monitor detecting AGV path blockage >5s, (3) BeatTracker validating each island's processing time against TAKT_TIME with auto-degrade (1.5x factor) and auto-restore (3 normal cycles), (4) Overflow monitor checking queue length >5 items, (5) Emergency stop with state dump to JSON, (6) Structured logging at DEBUG/INFO/WARNING/ERROR levels.",
+      "files": ["run_simulation.py", "factory_config.py"]
+    },
+    {
+      "id": 3,
+      "prompt": "I have a working factory simulation but the naming is flat (WorkIsland_A, Conveyor_conv_S1A, etc.) and there's no flexible scheduling — materials just flow in a fixed sequence. I want to refactor it to use: (1) hierarchical naming like /Island/A_Assembly, (2) a shared AGV with a proper state machine (IDLE, MOVING_B_TO_A, MOVING_D_TO_E, BLOCKED) and priority-based scheduling where B→A takes priority over D→E but D→E escalates after 15s starvation, and (3) beat tracking per island. The scene is already built in CoppeliaSim.",
+      "expected_output": "A refactored codebase that: (1) Updates scene object naming to hierarchical paths, (2) Implements AGVScheduler class with the 4-state machine, hybrid priority (B→A base priority 0, D→E base priority 1, D→E escalates to 0 after 15s), preemption support, and BLOCKED recovery, (3) Adds BeatTracker with per-island TAKT_TIME monitoring, deviation warnings, timeout detection, and auto-degrade/recovery, (4) Integrates IslandController state machine (IDLE→PROCESSING→COMPLETE→IDLE) with queue management, (5) Updates factory_config.py with all new threshold parameters.",
+      "files": ["run_simulation.py", "factory_config.py", "build_scene.py"]
+    }
+  ]
+}
