@@ -1,52 +1,97 @@
 # Factory Simulation — CoppeliaSim ZeroMQ Remote API
 
-基于 CoppeliaSim 4.10+ 的工厂仿真系统，使用 Python + ZeroMQ Remote API 实现场景构建与实时控制。
+基于 CoppeliaSim 4.10+ 的岛式车间柔性生产仿真系统，使用 Python + ZeroMQ Remote API
+实现分层场景构建与实时控制。
+
+## 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| **分层命名** | `/Warehouse/S1_Main`, `/Island/A_Assembly`, `/Conveyor/S1_to_A`, `/Mobile/AGV_Shared` |
+| **共享 AGV 柔性调度** | 单 AGV 双路径 (B→A 优先, D→E 弹性), 支持抢占 + 饥饿升级 |
+| **工业节拍对齐** | TAKT_TIME 实时追踪, 偏差预警, 超时自动降级/恢复 |
+| **四类异常处理** | ZMQ 断连重试, 物流拥堵检测, 工位超时, 物料溢出控制 |
+| **结构化日志** | DEBUG/INFO/WARNING/ERROR 四级输出到 `factory_sim.log` |
+| **步进式仿真** | `sim.setStepping(True)`, Python 端主导 `sim.step()` |
 
 ## 场景拓扑
 
 ```
                         ┌─────────────┐
-                        │   conv_CE   │
+                        │  C_to_E     │
               ┌─────────┤  (传送带)   ├─────────┐
               │         └──────┬──────┘         │
               │                │                │
               ▼                ▼                ▼
-┌──────┐  conv_S1A  ┌──────┐  agv_AC  ┌──────┐  conv_CE  ┌──────┐
+┌──────┐  S1_to_A    ┌──────┐  A→C刚性  ┌──────┐  C_to_E   ┌──────┐
 │  S1  ├───────────►│  A   ├─────────►│  C   ├──────────►│  E   │
 │ 仓库 │            │工作岛│           │工作岛│           │工作岛│
 └──┬───┘            └──▲───┘           └──────┘           └──▲───┘
    │                   │                                     │
-   │ conv_S1B   ┌──────┤  agv_BA                             │
-   ├───────────►│  B   │◄────────┐                           │
-   │            │工作岛│          │                           │
-   │            └──────┘          │                           │
-   │                              │      agv_DE (特殊路径)    │
-   │            ┌──────┐  conv_S2D│                           │
-   │            │  D   │◄─────────┤                           │
-   └───────────►│工作岛├──────────┼───────────────────────────┘
+   │ S1_to_B    ┌──────┤  AGV B→A (优先)                     │
+   ├───────────►│  B   │◄────────┐                          │
+   │            │工作岛│          │                          │
+   │            └──────┘          │                          │
+   │                              │   AGV D→E (弹性路径)     │
+   │            ┌──────┐  S2_to_D │                          │
+   │            │  D   │◄─────────┤                          │
+   └───────────►│工作岛├──────────┼──────────────────────────┘
                 └──────┘          │
                                   │
 ┌──────┐                          │
 │  S2  ├──────────────────────────┘
-│ 仓库 │         conv_S2D
+│ 仓库 │         S2_to_D
 └──────┘
 ```
 
 ### 物料流向
 
-| 路径 | 运输方式 | 说明 |
-|------|---------|------|
-| S1 → A | conv_S1A 传送带 | 主原料供应前端工序 A |
-| S1 → B | conv_S1B 传送带 | 主原料供应前端工序 B |
-| S2 → D | conv_S2D 传送带 | 辅助原料/零部件供应 D |
-| B → A | AGV agv_BA | 跨工位物料转运，柔性衔接 |
-| A → C | AGV agv_AC | 半成品送入中间工序 C |
-| C → E | conv_CE 传送带 | 半成品连续输送至最终工位 |
-| D → E | AGV agv_DE (曲线路径) | 专用件输送链路 |
+| 路径 | 运输方式 | 类型 | 说明 |
+|------|---------|------|------|
+| S1 → A | conv_S1A 传送带 | 刚性 | 主原料供应前端工序 A |
+| S1 → B | conv_S1B 传送带 | 刚性 | 主原料供应前端工序 B |
+| S2 → D | conv_S2D 传送带 | 刚性 | 辅助原料/零部件供应 D |
+| B → A | AGV_Shared (B→A) | **柔性** | 跨工位补料, 高优先级可抢占 |
+| A → C | 刚性直线传输 | 刚性 | 半成品送入中间工序 C |
+| C → E | conv_CE 传送带 | 刚性 | 半成品连续输送至最终工位 |
+| D → E | AGV_Shared (D→E) | **弹性** | 专用件输送, 饥饿 15s 后升级 |
 
 ### 装配逻辑
 
-E 工作岛收到来自 C 线（SEMI_CE）和 D 线（PART_DE）的物料后，**配对消耗**两个半成品，生成一个金色成品（FINAL）。
+E 工作岛收到来自 C 线（SEMI_CE）和 D 线（PART_DE）的物料后，
+**配对消耗**两个半成品，生成一个金色成品（FINAL）。
+
+## AGV 调度策略
+
+```
+                    ┌──────────┐
+                    │   IDLE   │
+                    └────┬─────┘
+                         │ 任务请求
+                    ┌────▼─────┐
+              ┌─────│ MOVING_  │─────┐
+              │     │ B_TO_A   │     │ (D→E 被抢占)
+              │     └────┬─────┘     │
+              │          │ 到达      │
+              │     ┌────▼─────┐     │
+              │     │ MOVING_  │     │
+              │     │ D_TO_E   │     │
+              │     └────┬─────┘     │
+              │          │           │
+         ┌────▼──────────▼───────────▼────┐
+         │           BLOCKED              │
+         │  (路径占用 > 5s 超时)           │
+         └────────────┬──────────────────┘
+                      │ 路径清除 / 重新规划
+                 ┌────▼─────┐
+                 │   IDLE    │  (恢复)
+                 └──────────┘
+```
+
+- **B→A**: 基础优先级 0（最高），不可抢占
+- **D→E**: 基础优先级 1（较低），可抢占
+- **饥饿升级**: D→E 等待 > 15s 自动升级至优先级 0
+- **拥堵处理**: 路径阻塞 > 5s → BLOCKED → 重规划/等待恢复
 
 ## 坐标系
 
@@ -64,6 +109,50 @@ Y ↑
    └──────────────────────────────────────────→ X
   -8   -6    -4    -2     0     2     4     6     8
 ```
+
+## 场景命名规范
+
+所有对象遵循分层路径命名 (`/Group/Item_Description`):
+
+```
+/Warehouse/S1_Main             — 主原料库
+/Warehouse/S2_Auxiliary        — 辅料库
+/Conveyor/S1_to_A              — S1→A 传送带
+/Conveyor/S1_to_B              — S1→B 传送带
+/Conveyor/S2_to_D              — S2→D 传送带
+/Conveyor/C_to_E               — C→E 传送带
+/Island/A_Assembly             — 装配加工岛 A
+/Island/B_Preprocess           — 预处理岛 B
+/Island/C_Processing           — 处理岛 C
+/Island/D_QC_Assembly          — 质检装配岛 D
+/Island/E_FinalAssembly        — 最终装配线 E
+/Mobile/AGV_Shared             — 共享柔性 AGV
+```
+
+## 工业节拍配置
+
+```python
+TAKT_TIME = {
+    'A': 5.0,   # Assembly Island A
+    'B': 3.0,   # Preprocess Island B
+    'C': 4.0,   # Processing Island C
+    'D': 6.0,   # QC/Assembly Island D
+    'E': 8.0,   # Final Assembly Line E
+}
+```
+
+- 偏差 > 1.0s → WARNING
+- 实际耗时 > TAKT_TIME × 1.5 → TIMEOUT → 自动降级 (延长 50%)
+- 连续 3 个正常周期 → 自动恢复原始节拍
+
+## 异常处理机制
+
+| 异常类型 | 检测方式 | 恢复策略 |
+|---------|---------|---------|
+| **ZMQ 通信中断** | 3s 无响应 | 自动重连 (3次), 暂停新指令 |
+| **AGV 路径拥堵** | 目标路径占用 > 5s | BLOCKED → 重规划/等待 → 自动恢复 |
+| **工位超时** | 加工时间 > TAKT_TIME × 1.5 | 暂停上游供料 → 节拍降级 → 自动恢复 |
+| **物料溢出** | 工作岛队列 ≥ 5 | 暂停上游供料 → 队列降至 2 后恢复 |
 
 ## 环境要求
 
@@ -86,7 +175,7 @@ uv sync
 # 4. 构建场景（首次运行，只需执行一次）
 uv run python build_scene.py
 
-# 5. 运行仿真
+# 5. 运行仿真（柔性调度 + 节拍追踪 + 异常处理）
 uv run python run_simulation.py --time 60
 
 # 6. 或使用交互菜单
@@ -107,42 +196,36 @@ uv run python run_simulation.py --host 192.168.1.100 --port 23000
 ```
 cop-test/
 ├── pyproject.toml              # uv 项目配置 + 依赖
-├── factory_config.py           # 工厂布局参数（坐标、尺寸、颜色、速度）
-├── build_scene.py              # 场景构建器 — 在 CoppeliaSim 中生成 3D 模型
-├── run_simulation.py           # 仿真控制器 — 传送带/AGV/物料流实时控制
+├── factory_config.py           # 集中配置（布局/节拍/阈值/路径）
+├── build_scene.py              # 场景构建器（分层命名 + 内置模型）
+├── run_simulation.py           # 柔性仿真控制器（完整框架）
 ├── main.py                     # 交互入口菜单
 ├── README.md                   # 本文档
+├── factory_sim.log             # 仿真运行日志 (自动生成)
+├── emergency_dump_*.json       # 紧急停止状态转储 (按需生成)
+├── .claude/skills/             # Claude Code skill 定义
+│   └── coppeliasim-factory-sim/
 └── .venv/                      # uv 虚拟环境
 ```
 
-## 配置参数
+## 关键配置参数
 
 所有可调参数集中在 [factory_config.py](factory_config.py)：
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `FLOOR_SIZE` | (16, 8, 0.05) m | 地板长宽高 |
-| `Z_BASE` | 0.6 m | 设备工作高度 |
+| `TAKT_TIME` | `{A:5, B:3, C:4, D:6, E:8}` s | 各工位工业节拍 |
+| `TAKT_DEVIATION_THRESHOLD` | 1.0 s | 节拍偏差警告阈值 |
+| `TAKT_TIMEOUT_FACTOR` | 1.5 | 超时因子 |
+| `ZMQ_TIMEOUT` | 3.0 s | ZMQ 无响应超时 |
+| `ZMQ_MAX_RETRIES` | 3 | ZMQ 最大重连次数 |
+| `CONGESTION_TIMEOUT` | 5.0 s | AGV 路径拥堵判定 |
+| `D_E_STARVATION_THRESHOLD` | 15.0 s | D→E 饥饿升级阈值 |
+| `MAX_QUEUE_LENGTH` | 5 | 工作岛队列溢出阈值 |
+| `SIM_STEP` | 0.05 s | 仿真步长 |
 | `CONVEYOR_SPEED` | 0.5 m/s | 传送带速度 |
 | `AGV_SPEED` | 0.8 m/s | AGV 移动速度 |
 | `MATERIAL_INTERVAL` | 3.0 s | 物料产出间隔 |
-| `PROCESS_TIME` | 2.0 s | 工作岛处理时间 |
-| `SIM_STEP` | 0.05 s | 仿真步长 |
-| `TOTAL_SIM_TIME` | 60.0 s | 默认仿真时长 |
 
-修改配置后无需重新构建场景——直接运行 `run_simulation.py` 即可生效。若修改了坐标/尺寸，则需重新运行 `build_scene.py`。
-
-## 场景对象命名
-
-所有场景对象通过 `sim.setObjectAlias` 进行了规范命名，可在 CoppeliaSim 场景浏览器中按名称查找：
-
-| 命名模式 | 示例 |
-|---------|------|
-| `Floor` | 地板 |
-| `Warehouse_S1`, `Warehouse_S2` | 仓库 |
-| `WorkIsland_A` ~ `WorkIsland_E` | 工作岛主体 |
-| `WorkIsland_*_Pillar` | 工作岛标签柱 |
-| `Conveyor_conv_S1A` 等 | 传送带主体 |
-| `Conveyor_*_RollerStart/End` | 传送带滚轮 |
-| `AGV_agv_BA`, `AGV_agv_AC`, `AGV_agv_DE` | AGV 小车 |
-| `Waypoint_*_Start/End/N` | 路径标记点 |
+修改配置后无需重新构建场景 — 直接运行 `run_simulation.py` 即可生效。
+若修改了坐标/尺寸，则需重新运行 `build_scene.py`。

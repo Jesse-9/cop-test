@@ -11,15 +11,16 @@ import sys
 
 def main():
     print("=" * 50)
-    print("  工厂仿真系统 — Factory Simulation")
+    print("  岛式车间柔性生产仿真系统")
+    print("  Island-Style Flexible Factory Simulation")
     print("=" * 50)
     print()
     print("  请先启动 CoppeliaSim 4.10+")
     print("  确保 ZMQ Remote API 服务端已激活")
     print("  (菜单: Add-ons > ZMQ remote API server)")
     print()
-    print("  1) 构建场景 (build_scene)")
-    print("  2) 运行仿真 (run_simulation)")
+    print("  1) 构建场景 (分层命名 + 共享AGV)")
+    print("  2) 运行仿真 (柔性调度 + 节拍追踪 + 异常处理)")
     print("  3) 退出")
     print()
 
