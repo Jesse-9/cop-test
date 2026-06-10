@@ -245,21 +245,13 @@ def create_shared_agv(sim, parent_handle: int) -> int:
         )
         sim.setObjectAlias(agv_handle, alias)
 
-    # 为每条路径创建标记点
-    route_colors = {
-        "B_TO_A": (0.9, 0.9, 0.3),   # 黄色路点
-        "D_TO_E": (0.6, 0.3, 0.9),   # 紫色路点
-    }
-
+    # 为每条路径创建路点标记 (使用不可见 dummy)
     for route_key, waypoints in cfg.AGV_ROUTES.items():
-        r, g, b = route_colors[route_key]
         for i, (wx, wy) in enumerate(waypoints):
-            dot = sim.createPrimitiveShape(
-                sim.primitiveshape_spheroid, [0.1, 0.1, 0.1]
-            )
+            # 路点使用 dummy 作为不可见的逻辑标记，而非可见几何体
+            dot = sim.createDummy(0.05)
             sim.setObjectParent(dot, parent_handle, True)
             sim.setObjectPosition(dot, [wx, wy, cfg.Z_BASE + 0.05], sim.handle_world)
-            sim.setObjectColor(dot, 0, sim.colorcomponent_ambient_diffuse, [r, g, b])
             if i == 0:
                 dot_alias = f"{alias}/Waypoint_{route_key}_Start"
             elif i == len(waypoints) - 1:
