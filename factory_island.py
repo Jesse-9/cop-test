@@ -71,6 +71,8 @@ class IslandController:
           - 岛处于 TIMEOUT 状态 (节拍超时，上游供料暂停)
           - 岛处于 OFFLINE 状态 (手动或紧急停止)
           - 队列已满 (≥ max_queue) — unlimited_capacity=True 时跳过此检查
+        
+        注意：WAITING_FOR_AGV 状态可以接受新物料，因为岛只是在等待AGV取货。
 
         Returns:
             True 表示可以接受新物料.
@@ -116,7 +118,8 @@ class IslandController:
     def release_material(self) -> Optional[int]:
         """释放已完成的物料 — Release completed material for downstream transport.
 
-        若队列中有等待的物料，自动开始处理下一个。
+        修改：物料完成后进入 WAITING_FOR_AGV 状态，等待AGV取货确认。
+        只有确认取货后才开始处理下一个物料。
 
         Returns:
             已完成的物料 UID, 若岛不在 COMPLETE 状态则返回 None.
@@ -124,17 +127,26 @@ class IslandController:
         if self.state != IslandState.COMPLETE:
             return None
         released = self.current_material_uid
-        if self.queue:
-            # 队列中有等待物料: 立即开始处理下一个
-            self.current_material_uid = self.queue.pop(0)
-            self.processing_remaining = cfg.PROCESS_TIME
-            self.state = IslandState.PROCESSING
-            self.timeout_notified = False
-        else:
-            # 队列为空: 回到 IDLE
-            self.current_material_uid = -1
-            self.state = IslandState.IDLE
+        # 进入等待AGV状态，不立即开始处理下一个
+        self.state = IslandState.WAITING_FOR_AGV
         return released
+
+    def confirm_pickup(self):
+        """确认物料已被AGV取走 — Confirm material has been picked up by AGV.
+        
+        当AGV实际取走物料后调用此方法，开始处理队列中的下一个物料。
+        """
+        if self.state == IslandState.WAITING_FOR_AGV:
+            if self.queue:
+                # 队列中有等待物料: 开始处理下一个
+                self.current_material_uid = self.queue.pop(0)
+                self.processing_remaining = cfg.PROCESS_TIME
+                self.state = IslandState.PROCESSING
+                self.timeout_notified = False
+            else:
+                # 队列为空: 回到 IDLE
+                self.current_material_uid = -1
+                self.state = IslandState.IDLE
 
     def enter_timeout(self):
         """进入超时状态 — Enter TIMEOUT state, pausing upstream supply."""

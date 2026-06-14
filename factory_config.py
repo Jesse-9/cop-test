@@ -23,9 +23,9 @@ Z_BASE     = 0.6                         # 所有设备和传送带的工作高�
 SIM_STEP           = 0.05               # 仿真步长 (s)
 CONVEYOR_SPEED     = 0.5                # 传送带速度 (m/s)
 AGV_SPEED          = 0.8                # AGV 移动速度 (m/s)
-MATERIAL_INTERVAL  = 3.0                # 每个仓库产出物料的时间间隔 (s)
+MATERIAL_INTERVAL  = 5.0                # 每个仓库产出物料的时间间隔 (s) - 从3.0增加到5.0
 TOTAL_SIM_TIME     = 60.0               # 仿真总时长 (s)，0 表示无限运行
-PROCESS_TIME       = 2.0                # 工作岛处理时间 (s)
+PROCESS_TIME       = 1.5                # 工作岛处理时间 (s) - 从2.0减少到1.5
 
 # ═══════════════════════════════════════════════════════════════
 # 工业节拍字典 — Industrial Beat Dictionary

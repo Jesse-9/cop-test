@@ -438,7 +438,8 @@ class FactoryController:
           B 岛 COMPLETE → AGVTask.B_TO_A (高优先级, 不可抢占)
           D 岛 COMPLETE → AGVTask.D_TO_E (低优先级, 可抢占)
 
-        物料从岛上释放后, at_island 被清除, 等待 AGV pickup.
+        修改：B岛物料完成后进入 WAITING_FOR_AGV 状态，等待AGV取货。
+             只有AGV到达B岛后才确认取货并开始处理下一个物料。
 
         Args:
             dt: 本步进的时间增量 (秒) — 本方法中未直接使用但保留接口一致性.
@@ -446,6 +447,7 @@ class FactoryController:
         # B → A: B 岛完成的物料需要 AGV 转运到 A 岛
         b_ctrl = self.islands.get("B")
         if b_ctrl and b_ctrl.state == IslandState.COMPLETE:
+            # 释放物料并进入等待AGV状态
             released = b_ctrl.release_material()
             if released is not None:
                 mat = self._find_mat(released)
@@ -500,6 +502,17 @@ class FactoryController:
                     (self.sim_time,
                      f"LOADED on AGV ({job.task.name})")
                 )
+                # 确认B岛或D岛物料已被取走，开始处理下一个
+                if job.task == AGVTask.B_TO_A:
+                    b_island = self.islands.get("B")
+                    if b_island and b_island.state == IslandState.WAITING_FOR_AGV:
+                        b_island.confirm_pickup()
+                        self.logger.info(f"B岛确认取货，开始处理下一个物料")
+                elif job.task == AGVTask.D_TO_E:
+                    d_island = self.islands.get("D")
+                    if d_island and d_island.state == IslandState.WAITING_FOR_AGV:
+                        d_island.confirm_pickup()
+                        self.logger.info(f"D岛确认取货，开始处理下一个物料")
 
         # ── 2. 推进 AGV 状态机 ──
         delivered_uid = self.agv_scheduler.update(dt, self.sim_time)

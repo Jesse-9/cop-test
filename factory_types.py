@@ -72,15 +72,16 @@ class AGVTask(Enum):
 class IslandState(Enum):
     """工作岛状态机 — Work Island State Machine.
 
-    Normal flow: IDLE → PROCESSING → COMPLETE → (release) → IDLE
+    Normal flow: IDLE → PROCESSING → COMPLETE → WAITING_FOR_AGV → (pickup) → IDLE
     Anomaly:     PROCESSING → TIMEOUT → (recovery) → IDLE
     Emergency:   any → OFFLINE
     """
-    IDLE       = auto()   # 空闲，等待物料到达
-    PROCESSING = auto()   # 正在加工中
-    COMPLETE   = auto()   # 加工完成，等待下游取料
-    TIMEOUT    = auto()   # 节拍超时 — 上游供料暂停，自动降级
-    OFFLINE    = auto()   # 手动或紧急停止，不接受任何物料
+    IDLE             = auto()   # 空闲，等待物料到达
+    PROCESSING       = auto()   # 正在加工中
+    COMPLETE         = auto()   # 加工完成，等待下游取料
+    WAITING_FOR_AGV  = auto()   # 加工完成，等待AGV取货（新增状态）
+    TIMEOUT          = auto()   # 节拍超时 — 上游供料暂停，自动降级
+    OFFLINE          = auto()   # 手动或紧急停止，不接受任何物料
 
 
 # ═══════════════════════════════════════════════════════════════
