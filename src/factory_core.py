@@ -116,8 +116,12 @@ class CoppeliaConnector:
             try:
                 self.client = RemoteAPIClient(host=self.host, port=self.port)
                 self.sim = self.client.require("sim")
-                version = self.sim.getStringSignal("coppeliaSimVersion")
-                print(f"[OK] 已连接 CoppeliaSim {version} (attempt {attempt})")
+                version = self._read_version()
+                if version:
+                    print(f"[OK] 已连接 CoppeliaSim {version} (attempt {attempt})")
+                else:
+                    print(f"[OK] 已连接 CoppeliaSim @ {self.host}:{self.port} "
+                          f"(attempt {attempt}, 版本信号未设置)")
                 return True
             except Exception as e:
                 print(f"[WARN] 连接尝试 {attempt}/{self.max_retries} 失败: {e}")
@@ -126,14 +130,34 @@ class CoppeliaConnector:
         print(f"[FATAL] 无法连接 CoppeliaSim (共 {self.max_retries} 次尝试)")
         return False
 
+    def _read_version(self) -> Optional[str]:
+        """读取 CoppeliaSim 版本字符串 — Read version string, tolerant of None.
+
+        部分 CoppeliaSim 实例/配置下 coppeliaSimVersion 信号未设置
+        (getStringSignal 返回 None), 此时不影响连接有效性, 仅返回空串。
+        """
+        try:
+            v = self.sim.getStringSignal("coppeliaSimVersion")
+            return v if isinstance(v, str) and v else ""
+        except Exception:
+            return ""
+
     def check_alive(self) -> bool:
-        """快速健康检查 — Quick liveness check via version signal.
+        """快速健康检查 — Quick liveness check.
+
+        首选读取 coppeliaSimVersion 信号; 该信号在部分实例未设置 (返回 None)
+        时回退到 getSimulationState()——后者调用成功不抛异常即证明 ZMQ 通路
+        健康。任一探针成功即判定连接存活。
 
         Returns:
             True 表示连接正常, False 表示连接已断开.
         """
         try:
-            self.sim.getStringSignal("coppeliaSimVersion")
+            v = self.sim.getStringSignal("coppeliaSimVersion")
+            if isinstance(v, str) and v:
+                return True
+            # 版本信号未设置 → 回退探针: 仿真状态码调用成功即活
+            self.sim.getSimulationState()
             return True
         except Exception:
             return False

@@ -87,7 +87,7 @@ class AGVScheduler:
         """提交新的运输请求 — Queue a new AGV transport task.
 
         新任务根据其类型分配基础优先级 (B_TO_A=0, D_TO_E=1)，
-        加入队列后自动排序。D→E 任务标记为可抢占。
+        加入队列后自动排序。
 
         Args:
             task:         任务类型.
@@ -100,7 +100,6 @@ class AGVScheduler:
             priority=base_priority,
             material_uid=material_uid,
             wait_start=sim_time,
-            preemptable=(task == AGVTask.D_TO_E),
         )
         self.job_queue.append(job)
         self._sort_queue(sim_time)
@@ -110,10 +109,12 @@ class AGVScheduler:
         """推进 AGV 状态机一步 — Advance AGV state machine by dt seconds.
 
         处理顺序:
-          1. 抢占检查: 若正在执行 D→E 且有 B→A 等待，则抢占
-          2. BLOCKED 恢复: 若路径清除则自动恢复
-          3. IDLE → 取新任务: 从队列中取优先级最高的任务
-          4. MOVING → 沿路径前进: 更新 progress, 到达后返回物料 UID
+          1. BLOCKED 恢复: 若路径清除则自动恢复
+          2. IDLE → 取新任务: 从队列中取优先级最高的任务
+          3. MOVING → 沿路径前进: 更新 progress, 到达后返回物料 UID
+
+        重要修改: 移除了抢占逻辑，AGV在运行过程中不能被中断。
+                一旦开始执行任务，必须完成才能接受新任务。
 
         Args:
             dt:           本步进的时间增量 (秒).
@@ -123,24 +124,7 @@ class AGVScheduler:
         Returns:
             已完成交付的物料 UID, 未完成时返回 None.
         """
-        # ── 1. 抢占检查 — Preemption: D→E 可被 B→A 抢占 ──
-        if self.state == AGVState.MOVING_D_TO_E:
-            waiting_b_to_a = [
-                j for j in self.job_queue
-                if j.task == AGVTask.B_TO_A
-            ]
-            if waiting_b_to_a and self.current_job and self.current_job.preemptable:
-                self.logger.info(
-                    f"[PREEMPT] AGV D→E 被 B→A 抢占 "
-                    f"(mat#{self.current_job.material_uid} 重新入队)"
-                )
-                # 将被抢占的任务放回队列头部
-                self.job_queue.append(self.current_job)
-                self.current_job = None
-                self.state = AGVState.IDLE
-                self.progress = 0.0
-
-        # ── 2. BLOCKED 恢复 — Recovery from blockage ──
+        # ── 1. BLOCKED 恢复 — Recovery from blockage ──
         if self.state == AGVState.BLOCKED:
             if not path_blocked:
                 self.logger.info("[RECOVER] AGV 路径已清除，恢复运行")
@@ -152,7 +136,7 @@ class AGVScheduler:
                     )
             return None
 
-        # ── 3. IDLE → 取新任务 — Pick up next job ──
+        # ── 2. IDLE → 取新任务 — Pick up next job ──
         if self.state == AGVState.IDLE:
             self._sort_queue(sim_time)
             if self.job_queue:
@@ -168,7 +152,7 @@ class AGVScheduler:
                     f"mat#{self.current_job.material_uid}"
                 )
 
-        # ── 4. MOVING → 沿路径前进 ──
+        # ── 3. MOVING → 沿路径前进 ──
         if self.state in (AGVState.MOVING_B_TO_A, AGVState.MOVING_D_TO_E):
             if path_blocked:
                 self.state = AGVState.BLOCKED
@@ -217,20 +201,35 @@ class AGVScheduler:
     def _sort_queue(self, sim_time: float):
         """按优先级排序任务队列 — Sort queue, escalating starved D→E jobs.
 
-        饥饿升级规则:
-          若 D→E 任务的等待时间超过 starvation_threshold (默认 15s),
-          将其优先级提升至 0 (与 B→A 同等), 并标记为不可抢占.
+        改进的饥饿升级规则:
+          1. 若 D→E 任务的等待时间超过 starvation_threshold (默认 15s),
+             将其优先级提升至 0 (与 B→A 同等)
+          2. 公平调度: 如果队列中有多个优先级为0的任务，交替选择B→A和D→E任务
+             避免D→E任务升级后仍然得不到执行
 
         Args:
             sim_time: 当前仿真时间 (用于计算等待时长).
         """
+        # 1. 饥饿升级
         for job in self.job_queue:
             if (job.task == AGVTask.D_TO_E and
                     sim_time - job.wait_start > self.starvation_threshold):
                 job.priority = 0  # 升级至与 B→A 同等
-                job.preemptable = False
-        # 稳定排序: 先按优先级，再按等待时间
+        
+        # 2. 公平调度: 如果队列中有多个优先级为0的任务，确保D→E任务有机会执行
+        # 先按优先级排序
         self.job_queue.sort(key=lambda j: (j.priority, j.wait_start))
+        
+        # 检查是否有多个优先级为0的任务
+        priority_zero_jobs = [j for j in self.job_queue if j.priority == 0]
+        if len(priority_zero_jobs) >= 2:
+            # 检查是否有B→A和D→E任务交替出现
+            b_to_a_count = sum(1 for j in priority_zero_jobs if j.task == AGVTask.B_TO_A)
+            d_to_e_count = sum(1 for j in priority_zero_jobs if j.task == AGVTask.D_TO_E)
+            
+            if b_to_a_count > 0 and d_to_e_count > 0:
+                # 重新排序，确保交替执行
+                self._fair_sort_priority_zero()
 
     @staticmethod
     def _interpolate(waypoints, t):
@@ -286,3 +285,43 @@ class AGVScheduler:
                 waypoints[i + 1][1] - waypoints[i][1],
             )
         return total
+
+    def _fair_sort_priority_zero(self):
+        """公平调度: 对优先级为0的任务进行交替排序.
+        
+        确保B→A和D→E任务交替执行，避免D→E任务升级后仍然得不到执行。
+        例如: [B→A, D→E, B→A, D→E] 而不是 [B→A, B→A, D→E, D→E]
+        """
+        # 分离优先级为0的任务和其他任务
+        priority_zero = [j for j in self.job_queue if j.priority == 0]
+        other_jobs = [j for j in self.job_queue if j.priority != 0]
+        
+        if len(priority_zero) < 2:
+            return  # 不需要重新排序
+        
+        # 分离B→A和D→E任务
+        b_to_a_jobs = [j for j in priority_zero if j.task == AGVTask.B_TO_A]
+        d_to_e_jobs = [j for j in priority_zero if j.task == AGVTask.D_TO_E]
+        
+        # 交替合并
+        merged = []
+        i, j = 0, 0
+        while i < len(b_to_a_jobs) or j < len(d_to_e_jobs):
+            # 优先选择等待时间更长的任务
+            if i < len(b_to_a_jobs) and j < len(d_to_e_jobs):
+                # 比较等待时间，选择等待时间更长的任务
+                if b_to_a_jobs[i].wait_start <= d_to_e_jobs[j].wait_start:
+                    merged.append(b_to_a_jobs[i])
+                    i += 1
+                else:
+                    merged.append(d_to_e_jobs[j])
+                    j += 1
+            elif i < len(b_to_a_jobs):
+                merged.append(b_to_a_jobs[i])
+                i += 1
+            else:
+                merged.append(d_to_e_jobs[j])
+                j += 1
+        
+        # 更新队列: 交替排序的优先级0任务 + 其他优先级任务
+        self.job_queue = merged + other_jobs

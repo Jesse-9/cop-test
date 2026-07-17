@@ -1,7 +1,7 @@
 """
 main.py — 工厂仿真入口菜单
 ===========================
-uv run python main.py
+uv run python src/main.py
 
 选择 (1) 构建场景 或 (2) 运行仿真控制。
 """

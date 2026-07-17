@@ -136,13 +136,11 @@ class AGVJob:
         priority: 优先级 (0=最高), 数值越大优先级越低.
         material_uid: 待运输的物料 UID.
         wait_start: 任务排队的仿真时间 (用于饥饿升级判断).
-        preemptable: True 表示该任务可被更高优先级任务抢占.
     """
     task: AGVTask
     priority: int              # 0=最高, 越大越低
     material_uid: int
     wait_start: float = 0.0    # 排队开始时间 (simTime)
-    preemptable: bool = True
 
 
 @dataclass

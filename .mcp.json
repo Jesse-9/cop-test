@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "factory-sim": {
+      "command": "e:\\Work\\paper\\cop-test\\.venv\\Scripts\\python.exe",
+      "args": ["e:\\Work\\paper\\cop-test\\src\\factory_mcp_server.py"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

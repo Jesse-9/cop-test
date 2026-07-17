@@ -38,6 +38,7 @@ from factory_core import (
 from factory_agv import AGVScheduler
 from factory_island import IslandController, BeatTracker, SupplyController
 from factory_exceptions import ExceptionHandler
+from factory_robot import RobotArmAnimator
 
 
 class FactoryController:
@@ -147,6 +148,10 @@ class FactoryController:
         # ── A→C 刚性传输追踪 — Non-AGV rigid transfer progress ──
         self.ac_transfer_progress: dict[int, float] = {}
 
+        # ── 机械臂动画器 — Robot arm visual animator (视觉增强层) ──
+        # 纯视觉叠加，不影响调度/节拍/异常逻辑。机械臂句柄缺失时静默跳过。
+        self.robot_animator: Optional[RobotArmAnimator] = None
+
     # ═══════════════════════════════════════════════════════════
     # 初始化 — Initialization
     # ═══════════════════════════════════════════════════════════
@@ -154,37 +159,56 @@ class FactoryController:
     def _setup_agv_visual(self):
         """获取 AGV 可视化句柄 — Acquire AGV visual handle for runtime updates.
 
-        优先使用场景中已有的 AGV 对象 (由 build_scene.py 创建)，
-        避免创建重复物体。若场景中不存在则创建一个新的。
+        优先使用场景中已有的 AGV 对象 (由 build_scene.py 加载的 pioneer p3dx)，
+        避免创建重复物体。若场景中不存在则创建一个新的几何体 AGV。
 
-        注意: build_scene.py 已在 /Mobile/AGV_Shared 别名下创建 AGV，
-        本方法获取该对象的句柄供运行时位置同步使用，不创建新几何体。
+        注意: CoppeliaSim 4.10 的 setObjectAlias 把含 '/' 的路径别名转为下划线
+        (如 /Mobile/AGV_Shared → _Mobile_AGV_Shared)，导致 getObject(斜杠路径)
+        查询失败。因此这里用别名匹配方式定位 AGV 根句柄，确保复用 pioneer 模型。
         """
-        try:
-            # 尝试获取场景中已有的 AGV 对象
-            existing = self.sim.getObject(cfg.AGV_ALIAS)
-            self.agv_handle = existing
-            self.logger.info("AGV 可视化: 复用场景中已有的 AGV 对象")
-            return
-        except Exception:
-            pass
+        sim = self.sim
+        agv_leaf = cfg.AGV_ALIAS.rsplit("/", 1)[-1]  # "AGV_Shared"
+        agv_norm = cfg.AGV_ALIAS.replace("/", "_")     # "_Mobile_AGV_Shared"
+
+        # 遍历所有 shape/dummy 对象，按别名匹配 AGV 根
+        for tval in (sim.object_shape_type, sim.object_dummy_type):
+            i = 0
+            while i < 5000:
+                try:
+                    h = sim.getObjects(i, tval)
+                    try:
+                        a = sim.getObjectAlias(h)
+                    except Exception:
+                        a = ""
+                    if a and (a == agv_norm or a == agv_leaf
+                              or a.endswith("_" + agv_leaf)):
+                        # 确认是 AGV 根: 其父对象别名含 Mobile
+                        self.agv_handle = h
+                        self.logger.info(
+                            "AGV 可视化: 复用场景中已有的 AGV 对象"
+                            f" (alias={a})"
+                        )
+                        return
+                    i += 1
+                except Exception:
+                    break
 
         # 回退: 场景中无 AGV 对象，创建一个
         sx, sy, sz = cfg.AGV_SIZE
         pos = cfg.AGV_ROUTES["B_TO_A"][0]
-        handle = self.sim.createPrimitiveShape(
-            self.sim.primitiveshape_cuboid, [sx, sy, sz]
+        handle = sim.createPrimitiveShape(
+            sim.primitiveshape_cuboid, [sx, sy, sz]
         )
-        self.sim.setObjectPosition(
+        sim.setObjectPosition(
             handle,
             [pos[0], pos[1], cfg.Z_BASE + sz / 2],
-            self.sim.handle_world,
+            sim.handle_world,
         )
-        self.sim.setObjectColor(
-            handle, 0, self.sim.colorcomponent_ambient_diffuse,
+        sim.setObjectColor(
+            handle, 0, sim.colorcomponent_ambient_diffuse,
             list(cfg.AGV_COLOR)
         )
-        self.sim.setObjectAlias(handle, cfg.AGV_ALIAS)
+        sim.setObjectAlias(handle, cfg.AGV_ALIAS)
         self.agv_handle = handle
         self.logger.info("AGV 可视化已创建 (场景中无已有对象)")
 
@@ -209,10 +233,30 @@ class FactoryController:
         每个步进的 dt 固定为 cfg.SIM_STEP (默认 0.05s)。
         """
         sim = self.sim
+        # 幂等清场: 若实例残留 paused/stopped 之外的态 (如手动暂停 state=16),
+        # startSimulation 不会清除暂停, 后续 sim.step() 会永久挂起。
+        # 先 stopSimulation 让引擎回到 stopped 态 (state=0), 再启动。
+        try:
+            sim.stopSimulation()
+            # 等待引擎真正回到停止态, 否则紧接的 start 可能仍带残留
+            import time as _t
+            for _ in range(40):
+                if sim.getSimulationState() == 0:
+                    break
+                _t.sleep(0.05)
+        except Exception as e:
+            self.logger.debug(f"run() 预清理 stopSimulation 忽略: {e}")
         sim.setStepping(True)
         sim.startSimulation()
 
         self._setup_agv_visual()
+
+        # ── 机械臂动画器初始化 — 采集各岛机械臂关节句柄 ──
+        try:
+            self.robot_animator = RobotArmAnimator(sim, self.logger)
+        except Exception as e:
+            self.logger.warning(f"[ROBOT] 机械臂动画器初始化失败: {e}")
+            self.robot_animator = None
 
         # ── dt 对齐检查 — Verify Python SIM_STEP matches CoppeliaSim physics dt ──
         sim_dt = sim.getSimulationTimeStep()
@@ -262,6 +306,7 @@ class FactoryController:
                 self._handle_ac_transfer(dt)           # A→C 刚性传输
                 self._handle_ce_transfer(dt)           # C→E 传送带传输
                 self._update_scene_positions()          # 场景位置同步
+                self._update_robot_animations(dt)        # 机械臂动画 (视觉增强)
                 self._log_periodic()                   # 定期状态摘要
 
                 # ── 4. 推进物理引擎 — Advance simulation ──
@@ -720,6 +765,13 @@ class FactoryController:
         d_mat.at_island = None
         self.assembled_count += 1
 
+        # 触发 E 岛双臂协同装配动画 (视觉增强，不影响逻辑)
+        if self.robot_animator is not None:
+            try:
+                self.robot_animator.on_assembly()
+            except Exception:
+                pass
+
         e_pos = list(cfg.WORK_ISLANDS["E"]["pos"])
         final = spawn_material(self.sim, ItemType.FINAL, e_pos, self.sim_time)
         final.delivered = True  # 成品直接标记为已交付 (展示用)
@@ -792,6 +844,22 @@ class FactoryController:
                  cfg.Z_BASE + cfg.AGV_SIZE[2] / 2],
                 sim.handle_world,
             )
+
+    def _update_robot_animations(self, dt: float):
+        """推进机械臂动画 — Advance robot arm animations (visual layer).
+
+        纯视觉增强：驱动各工作岛机械臂的关节动画。不影响任何调度、
+        节拍或异常逻辑。动画器未初始化或机械臂缺失时静默跳过。
+
+        Args:
+            dt: 时间增量 (秒).
+        """
+        if self.robot_animator is None:
+            return
+        try:
+            self.robot_animator.update(dt, self.islands, self.agv_scheduler)
+        except Exception as e:
+            self.logger.debug(f"[ROBOT] 动画更新异常 (已忽略): {e}")
 
     # ═══════════════════════════════════════════════════════════
     # 辅助方法 — Utilities

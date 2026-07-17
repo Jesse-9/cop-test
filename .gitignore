@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# CoppeliaSim 场景文件 (体积大, 仅显式跟踪 factory-sim.ttt)
+*.ttt
+!factory-sim.ttt
+
+# 运行日志与紧急转储 (每次运行重新生成, 不纳入版本控制)
+factory_sim.log
+emergency_dump_*.json
+
+# 文档库的 Obsidian 本地状态与插件 (不入库)
+docs/.obsidian/
+docs/.claudian/

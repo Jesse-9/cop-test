@@ -203,9 +203,134 @@ HIERARCHY_ROOTS = [
     "/Part",
 ]
 
-# 检索路径下文件夹内文件
 # ═══════════════════════════════════════════════════════════════
 # CoppeliaSim 内置模型路径 — Built-in Model Base
 # ═══════════════════════════════════════════════════════════════
 # 优先使用内置模型；若文件不存在则回退到基本几何体
 MODEL_BASE = r"C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models"
+
+# ═══════════════════════════════════════════════════════════════
+# 内置模型相对路径 — Built-in Model Relative Paths
+# ═══════════════════════════════════════════════════════════════
+# 这些路径相对 MODEL_BASE。若某文件在本机不存在，加载函数会
+# 自动回退到基本几何体，不会中断场景构建。
+BUILTIN_MODELS = {
+    # 机械臂 — 工作岛上的真实工业机器人
+    "robot_arm_ur5":      "robots/non-mobile/UR5.ttm",
+    "robot_arm_iiwa":     "robots/non-mobile/KUKA LBR iiwa 7 R800.ttm",
+    "robot_arm_franka":  "robots/non-mobile/FrankaEmikaPanda.ttm",
+
+    # 夹爪 — 挂载到机械臂末端
+    "gripper_robotiq":   "components/grippers/ROBOTIQ 85.ttm",
+    "gripper_rg2":       "components/grippers/RG2.ttm",
+    "gripper_suction":   "components/grippers/suction pad.ttm",
+
+    # 传送带 — 替代手绘长方体
+    "conveyor_belt":     "equipment/conveyors/generic conveyor (belt).ttm",
+    "conveyor_rollers":  "equipment/conveyors/generic conveyor (rollers).ttm",
+    "conveyor_efficient": "equipment/conveyors/generic conveyor (efficient).ttm",
+
+    # 移动 AGV — pioneer p3dx (已在使用)
+    "agv_pioneer":       "robots/mobile/pioneer p3dx.ttm",
+
+    # 工业地板 — 替代纯色方块
+    "floor_concrete":    "infrastructure/floors/5mX5m concrete floor.ttm",
+    "floor_metallic":    "infrastructure/floors/5mX5m metallic floor.ttm",
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 工作岛机械臂配置 — Per-Island Robot Arm Configuration
+# ═══════════════════════════════════════════════════════════════
+# 每个工作岛可挂载一只机械臂（E 岛挂两只：C 线臂 + D 线臂）。
+# 机械臂作为对应岛底座的子对象，alias 遵循 /Island/<X>/Robot_X 规范。
+#
+# model_key:    BUILTIN_MODELS 中的键，决定用哪种机械臂
+# offset:       机械臂基座相对岛中心的 [x, y, z] 偏移（岛局部坐标）
+# euler:        机械臂基座姿态 [alpha, beta, gamma] (弧度)，绕 Z 轴旋转
+# gripper:      夹爪模型键，None 表示不挂夹爪
+ISLAND_ROBOTS = {
+    "A": {
+        "alias":   "/Island/A_Assembly/Robot_A",
+        "model_key": "robot_arm_ur5",
+        "offset":  [0.0, 0.35, 0.45],   # 装配臂靠岛后侧
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_robotiq",
+    },
+    "B": {
+        "alias":   "/Island/B_Preprocess/Robot_B",
+        "model_key": "robot_arm_iiwa",
+        "offset":  [0.0, 0.35, 0.45],
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_rg2",
+    },
+    "C": {
+        "alias":   "/Island/C_Processing/Robot_C",
+        "model_key": "robot_arm_franka",
+        "offset":  [0.0, 0.35, 0.45],
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_robotiq",
+    },
+    "D": {
+        "alias":   "/Island/D_QC_Assembly/Robot_D",
+        "model_key": "robot_arm_ur5",
+        "offset":  [0.0, 0.35, 0.45],
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_robotiq",
+    },
+    # E 岛为最终装配线，配双臂：C 线臂 + D 线臂协同装配
+    "E_C": {
+        "alias":   "/Island/E_FinalAssembly/Robot_E_C",
+        "model_key": "robot_arm_ur5",
+        "offset":  [-0.5, 0.35, 0.55],   # C 线（左侧）装配臂
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_robotiq",
+    },
+    "E_D": {
+        "alias":   "/Island/E_FinalAssembly/Robot_E_D",
+        "model_key": "robot_arm_ur5",
+        "offset":  [0.5, 0.35, 0.55],    # D 线（右侧）装配臂
+        "euler":   [0.0, 0.0, 0.0],
+        "gripper": "gripper_robotiq",
+    },
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 机械臂关键帧动画参数 — Robot Arm Animation Keyframes
+# ═══════════════════════════════════════════════════════════════
+# 用于 factory_robot.py 的关节角度插值动画。每个动作序列由一组
+# 关键帧组成，每个关键帧是各关节角度（弧度）列表。动画在两帧
+# 间线性插值，单帧时长由 ARM_FRAME_DURATION 控制。
+#
+# 关节角度采用"通用 6 轴机械臂"近似姿态，UR5/iiwa/Franka 关节数
+# 略有差异，运行时按实际关节数截断或补零。
+ARM_FRAME_DURATION = 0.6   # 单帧插值时长 (秒)
+ARM_IDLE_PERIOD    = 4.0    # IDLE 循环抖动周期 (秒)
+
+# 动作序列定义: 每个序列是一组关键帧 [joint_angles...]
+ARM_ANIMATIONS = {
+    # 入位: 从 HOME 到抓取点上方 → 抓取 → 抬起 → 回 HOME
+    "pick_and_place": [
+        [0.0,  0.3,  0.0, -1.2, 0.0, 0.0],   # HOME
+        [0.0,  0.6,  0.0, -1.5, 0.0, 0.0],   # 接近抓取点
+        [0.0,  0.7,  0.0, -1.6, 0.0, 0.0],   # 下探抓取
+        [0.0,  0.5,  0.0, -1.3, 0.0, 0.0],   # 抬起
+        [0.5,  0.5,  0.0, -1.3, 0.0, 0.0],   # 旋转到放置点
+        [0.5,  0.7,  0.0, -1.6, 0.0, 0.0],   # 下探放置
+        [0.5,  0.6,  0.0, -1.5, 0.0, 0.0],   # 释放回退
+        [0.0,  0.3,  0.0, -1.2, 0.0, 0.0],   # 回 HOME
+    ],
+    # 装配: 双臂对中合并动作（E 岛专用）
+    "assemble": [
+        [ 0.0, 0.3, 0.0, -1.2, 0.0, 0.0],   # HOME
+        [ 0.3, 0.6, 0.0, -1.5, 0.0, 0.0],   # 向中心靠拢
+        [ 0.5, 0.7, 0.0, -1.6, 0.0, 0.0],   # 合并接触
+        [ 0.3, 0.5, 0.0, -1.3, 0.0, 0.0],   # 合并完成抬起
+        [ 0.0, 0.3, 0.0, -1.2, 0.0, 0.0],   # 回 HOME
+    ],
+    # 空闲微动: 处理过程中机械臂轻微活动，避免完全静止
+    "idle_wiggle": [
+        [0.0, 0.3, 0.0, -1.2, 0.0, 0.0],
+        [0.0, 0.35, 0.0, -1.25, 0.0, 0.05],
+        [0.0, 0.3, 0.0, -1.2, 0.0, 0.0],
+    ],
+}

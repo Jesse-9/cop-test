@@ -3,6 +3,9 @@
 基于 CoppeliaSim 4.10+ 的岛式车间柔性生产仿真系统，使用 Python + ZeroMQ Remote API
 实现分层场景构建与实时控制。
 
+> 📖 **使用指南**：从安装到运行的完整流程见 [docs/USAGE.md](docs/USAGE.md)。
+> 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
+
 ## 核心特性
 
 | 特性 | 说明 |
@@ -173,13 +176,15 @@ uv sync
 #    菜单: Add-ons → ZMQ remote API server → 确认运行在 23000 端口
 
 # 4. 构建场景（首次运行，只需执行一次）
-uv run python build_scene.py
+uv run python src/build_scene.py
+#    或用入口脚本: uv run build-scene
 
 # 5. 运行仿真（柔性调度 + 节拍追踪 + 异常处理）
-uv run python run_simulation.py --time 60
+uv run python src/run_simulation.py --time 60
+#    或用入口脚本: uv run run-simulation --time 60
 
 # 6. 或使用交互菜单
-uv run python main.py
+uv run python src/main.py
 ```
 
 ### 远程连接
@@ -187,30 +192,54 @@ uv run python main.py
 如果 CoppeliaSim 运行在另一台机器上：
 
 ```bash
-uv run python build_scene.py --host 192.168.1.100 --port 23000
-uv run python run_simulation.py --host 192.168.1.100 --port 23000
+uv run python src/build_scene.py --host 192.168.1.100 --port 23000
+uv run python src/run_simulation.py --host 192.168.1.100 --port 23000
 ```
 
 ## 项目结构
 
 ```
 cop-test/
-├── pyproject.toml              # uv 项目配置 + 依赖
-├── factory_config.py           # 集中配置（布局/节拍/阈值/路径）
-├── build_scene.py              # 场景构建器（分层命名 + 内置模型）
-├── run_simulation.py           # 柔性仿真控制器（完整框架）
-├── main.py                     # 交互入口菜单
+├── pyproject.toml              # uv 项目配置 + 依赖 + 入口脚本 + src 布局声明
+├── .mcp.json                   # MCP 服务器注册 (Claude Code 自动加载, 指向 src/factory_mcp_server.py)
+├── CLAUDE.md                   # 项目说明 + 架构 + 已知坑 (Claude Code 上下文)
 ├── README.md                   # 本文档
-├── factory_sim.log             # 仿真运行日志 (自动生成)
-├── emergency_dump_*.json       # 紧急停止状态转储 (按需生成)
-├── .claude/skills/             # Claude Code skill 定义
-│   └── coppeliasim-factory-sim/
-└── .venv/                      # uv 虚拟环境
+├── src/                        # ── 全部源码 (平铺顶层模块, 见下方分类) ──
+│   │  # 基础层
+│   ├── factory_config.py          # 集中配置 (布局/节拍/阈值/路径/机械臂/内置模型)
+│   ├── factory_core.py            # ZMQ 连接+重连/健康监控/步进循环/句柄映射/日志
+│   ├── factory_types.py           # 枚举/数据类/物料生成 (ItemType/AGVState/Material…)
+│   │  # 控制层
+│   ├── factory_controller.py      # 顶层编排器 (13 步固定顺序步进)
+│   ├── factory_island.py          # 工作岛状态机 + 节拍追踪 + 供料门控
+│   ├── factory_agv.py             # 共享 AGV 柔性调度器 (优先级/饥饿升级/阻塞恢复)
+│   ├── factory_exceptions.py      # 统一异常轮询与紧急停止
+│   │  # 视觉层
+│   ├── factory_robot.py           # 机械臂关键帧动画 (纯视觉层, 不影响调度)
+│   │  # 接入层
+│   ├── factory_mcp_server.py      # MCP 服务器 (10 个工具, 仿真跑守护线程)
+│   │  # 场景 / CLI 入口
+│   ├── build_scene.py             # 场景构建器 (分层命名 + 内置模型回退)
+│   ├── run_simulation.py          # 柔性仿真 CLI 入口
+│   └── main.py                    # 交互菜单入口
+├── factory-sim.ttt              # 构建好的 CoppeliaSim 场景 (按需跟踪)
+├── docs/                        # LLM 知识库 (CoppeliaSim wiki / raw 源材料 / outputs)
+│   ├── CLAUDE.md                # 知识库 Schema 与维护规范
+│   ├── MCP_USAGE.md             # MCP 服务器使用文档
+│   ├── raw/                     # 官方手册原始资料 (只读, 不修改)
+│   ├── wiki/                    # 整理后的 CoppeliaSim 维基 (00~99 分类)
+│   └── outputs/                 # 研究报告 / QA / 分析
+├── evals/                       # skill 评测集 (evals.json)
+├── .claude/skills/             # Claude Code skill 定义 (coppeliasim-factory-sim)
+└── .venv/                       # uv 虚拟环境 (不入库)
 ```
+
+> 运行产物 `factory_sim.log` 与 `emergency_dump_*.json` 每次运行重新生成，
+> 已在 `.gitignore` 中忽略，不纳入版本控制。
 
 ## 关键配置参数
 
-所有可调参数集中在 [factory_config.py](factory_config.py)：
+所有可调参数集中在 [factory_config.py](src/factory_config.py)：
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -227,5 +256,5 @@ cop-test/
 | `AGV_SPEED` | 0.8 m/s | AGV 移动速度 |
 | `MATERIAL_INTERVAL` | 3.0 s | 物料产出间隔 |
 
-修改配置后无需重新构建场景 — 直接运行 `run_simulation.py` 即可生效。
-若修改了坐标/尺寸，则需重新运行 `build_scene.py`。
+修改配置后无需重新构建场景 — 直接运行 `uv run python src/run_simulation.py` 即可生效。
+若修改了坐标/尺寸，则需重新运行 `uv run python src/build_scene.py`。

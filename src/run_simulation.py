@@ -23,7 +23,8 @@ run_simulation.py — 岛式车间柔性生产仿真入口
   2. ZMQ Remote API 服务已激活
 
 用法:
-  uv run python run_simulation.py [--host HOST] [--port PORT] [--time TOTAL_TIME]
+  uv run python src/run_simulation.py [--host HOST] [--port PORT] [--time TOTAL_TIME]
+  或: uv run run-simulation [--host HOST] [--port PORT] [--time TOTAL_TIME]
 """
 
 import argparse

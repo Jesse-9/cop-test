@@ -6,8 +6,30 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "coppeliasim-zmqremoteapi-client>=2.0.4",
+    "mcp>=1.2.0",
 ]
 
 [project.scripts]
 build-scene = "build_scene:main"
 run-simulation = "run_simulation:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = [
+    "build_scene",
+    "run_simulation",
+    "main",
+    "factory_config",
+    "factory_core",
+    "factory_types",
+    "factory_island",
+    "factory_agv",
+    "factory_exceptions",
+    "factory_robot",
+    "factory_controller",
+    "factory_mcp_server",
+]
+
+[tool.uv]
+# src/ 布局：所有顶层模块在 src/ 下，脚本入口与直接运行均依赖此目录。
+package = true
