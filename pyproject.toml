@@ -33,3 +33,8 @@ py-modules = [
 [tool.uv]
 # src/ 布局：所有顶层模块在 src/ 下，脚本入口与直接运行均依赖此目录。
 package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
