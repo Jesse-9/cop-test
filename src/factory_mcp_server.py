@@ -36,6 +36,7 @@ factory_mcp_server.py — CoppeliaSim 工厂仿真 MCP 服务器
 from __future__ import annotations
 
 import os
+import re
 import sys
 import threading
 import time as wall_time
@@ -346,6 +347,33 @@ _STATE_CODE_NAMES = {
     # 若在其他子版本观察到 8, 可补回 "advancing_running" 条目并将 17 重标为 lastbeforestop。
 }
 # 兜底: 未在表中的码返回 "unknown(<code>)"
+
+
+# run_lua 护栏 — 危险 Lua 调用正则 (软护栏, 靠 confirm 拦手滑)
+_LUA_DANGEROUS_PATTERNS = [
+    re.compile(r"\bos\.execute\b"),
+    re.compile(r"\bio\.popen\b"),
+    re.compile(r"\bos\.exit\b"),
+    re.compile(r"\bsim\.removeObject\b"),
+    re.compile(r"\bsim\.deleteModel\b"),
+    re.compile(r"\bloadstring\b"),   # 沙箱已禁用, 命中即拒
+]
+_LUA_MAX_CHARS = 8000
+
+
+def _audit_lua_code(code: str, confirm: bool = False) -> tuple[bool, str]:
+    """软护栏审计 — audit user Lua before execution.
+
+    Returns: (ok, message). ok=False 时 message 说明拒绝原因。
+    """
+    if len(code) > _LUA_MAX_CHARS:
+        return False, f"代码过长({len(code)}>{_LUA_MAX_CHARS}), 拒绝执行"
+    for pat in _LUA_DANGEROUS_PATTERNS:
+        if pat.search(code):
+            if not confirm:
+                return False, (f"检测到危险调用 {pat.pattern}; "
+                              "需显式 confirm=True 才放行")
+    return True, "ok"
 
 
 # ═══════════════════════════════════════════════════════════════
