@@ -497,6 +497,66 @@ def get_simulation_state() -> str:
 
 
 @mcp.tool()
+def inspect_scene_state(summary: bool = True) -> str:
+    """一次性场景快照 — One-shot snapshot of sim state + object poses.
+
+    用于冻结排查:一次拿到状态码、sim_time、dt、物体真实位姿。
+    summary=True 只给计数;summary=False 给全量位姿(可能很大)。
+
+    Args:
+        summary: True 只给计数; False 给全量物体位姿。
+    Returns:
+        JSON {state_code, state_name, sim_time, dt, object_count,
+              poses?: [{alias, pose}]}。
+    """
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    try:
+        code = sim.getSimulationState()
+        sim_t = sim.getSimulationTime()
+        dt = sim.getSimulationTimeStep()
+        # 枚举所有 shape+dummy
+        objs = []
+        for tval in (sim.object_shape_type, sim.object_dummy_type):
+            i = 0
+            while i < 5000:
+                try:
+                    h = sim.getObjects(i, tval)
+                except Exception:
+                    break
+                objs.append(h)
+                i += 1
+        out = {
+            "state_code": code,
+            "state_name": _STATE_CODE_NAMES.get(code, f"unknown({code})"),
+            "sim_time": round(sim_t, 3),
+            "dt": round(dt, 4),
+            "object_count": len(objs),
+        }
+        if not summary:
+            poses = []
+            for h in objs:
+                try:
+                    alias = sim.getObjectAlias(h)
+                except Exception:
+                    alias = ""
+                try:
+                    pose = sim.getObjectPose(h, sim.handle_world)
+                except Exception:
+                    pose = None
+                poses.append({"alias": alias, "handle": h, "pose": pose})
+            out["poses"] = poses
+        return json.dumps(out, ensure_ascii=False, indent=2)
+    except Exception as e:
+        server.last_error = f"inspect_scene_state 失败: {e}"
+        return f"失败: {e}"
+
+
+@mcp.tool()
 def get_config() -> str:
     """读取当前仿真配置 (factory_config)。
 
