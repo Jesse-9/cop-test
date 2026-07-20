@@ -50,3 +50,24 @@ class TestListObjects:
         d = json.loads(r)
         for obj in d["objects"]:
             assert "Island_" in obj["alias"] or obj["alias"].startswith("_Island_")
+
+
+class TestReadSignal:
+    def test_read_string_signal(self, mcp_server):
+        from factory_mcp_server import read_signal
+        server = mcp_server
+        server.ensure_ro_connected()
+        sim = server.ro_sim
+        sim.setIntegerSignal("mcp_test_sig", 123)
+        r = read_signal(name="mcp_test_sig")
+        d = json.loads(r)
+        assert d["name"] == "mcp_test_sig"
+        assert d["type"] == "integer"
+        assert d["value"] == 123
+
+    def test_read_missing_signal(self, mcp_server):
+        from factory_mcp_server import read_signal
+        r = read_signal(name="definitely_no_such_signal_xyz")
+        d = json.loads(r)
+        assert d["value"] is None
+        assert d["type"] == "none"

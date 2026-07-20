@@ -616,6 +616,47 @@ def list_objects(filter: str = "*", object_type: str = "all") -> str:
 
 
 @mcp.tool()
+def read_signal(name: str) -> str:
+    """读取 CoppeliaSim 信号 — Read a named signal (string/float/integer/double).
+
+    这是 Q1(读取软件内命令行内容)的正路:Lua 脚本里用
+    sim.setStringSignal("console_xxx", text) 暴露的控制台/状态文本,
+    可通过本工具读回。自动探测信号类型。
+
+    Args:
+        name: 信号名。
+    Returns:
+        JSON {name, type, value}, 不存在则 type="none", value=null。
+    """
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    try:
+        # 按类型依次探测: string → integer → float → double
+        v = sim.getStringSignal(name)
+        if isinstance(v, str) and v:
+            return json.dumps({"name": name, "type": "string", "value": v},
+                              ensure_ascii=False)
+        v = sim.getIntegerSignal(name)
+        if v is not None:
+            return json.dumps({"name": name, "type": "integer", "value": v},
+                              ensure_ascii=False)
+        v = sim.getFloatSignal(name)
+        if v is not None:
+            return json.dumps({"name": name, "type": "float", "value": v})
+        v = sim.getDoubleSignal(name)
+        if v is not None:
+            return json.dumps({"name": name, "type": "double", "value": v})
+        return json.dumps({"name": name, "type": "none", "value": None})
+    except Exception as e:
+        server.last_error = f"read_signal 失败: {e}"
+        return f"失败: {e}"
+
+
+@mcp.tool()
 def tail_log(lines: int = 50) -> str:
     """读取仿真日志文件末尾若干行。
 
