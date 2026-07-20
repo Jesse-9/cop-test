@@ -327,6 +327,27 @@ class FactoryMCPServer:
 server = FactoryMCPServer()
 
 
+# 仿真状态码 → 中文/英文释义 — simulation state code → readable name
+# 校准来源: 本机 CoppeliaSim 4.10.x 实测 (2026-07-20, sim.getSimulationState 轮询)
+# 校准发现 (实测 vs brief 文档):
+#   - brief 文档标 8 = "advancing_running"; 此版未现 8 (从表中移除)
+#   - brief 文档标 17 = "advancing_lastbeforestop"; 实测 17 是稳态运行码
+#     (state=17 时 sim_time 稳定推进 ~0.050s/步, 持续 1s+ 不变, 实为 advancing_running)
+#   - 22 = stopSimulation 后过渡态 (0.3-0.5s 内回 0), brief 文档未列, 已补入
+#   - 0 / 16 / 19 与 brief 文档一致
+# 备注: 不同 4.10.x 子版本码值可能微调, 此表反映本机实测结果。
+_STATE_CODE_NAMES = {
+    0:  "stopped",                # sim_simulation_stopped (实测 ✓, 与 brief 一致)
+    16: "advancing_first",        # sim_simulation_advancing_firstafterstart (实测 ✓, 与 brief 一致)
+    17: "advancing_running",      # 实测稳态运行码 (brief 标 17=lastbeforestop, 此版 17 实为 running)
+    19: "paused",                 # sim_simulation_paused (实测 ✓, 与 brief 一致)
+    22: "advancing_stopping",     # 实测: stopSimulation 后过渡态 (0.5s 内回 0, brief 未列)
+    # brief 文档另列: 8 = sim_simulation_advancing_running; 此 4.10.x 版未现 8。
+    # 若在其他子版本观察到 8, 可补回 "advancing_running" 条目并将 17 重标为 lastbeforestop。
+}
+# 兜底: 未在表中的码返回 "unknown(<code>)"
+
+
 # ═══════════════════════════════════════════════════════════════
 # MCP 工具 — Tools exposed to Claude Code
 # ═══════════════════════════════════════════════════════════════
@@ -445,6 +466,34 @@ def status() -> str:
     """
     import json
     return json.dumps(server.status(), ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def get_simulation_state() -> str:
+    """读取仿真状态码 — Lightweight sim state probe for freeze diagnosis.
+
+    轻量探针: 只返回 getSimulationState() 码 + 释义 + sim_time。
+    用于冻结排查时频繁探活(inspect_scene_state 的廉价子集)。
+
+    Returns:
+        JSON {state_code, state_name, sim_time}。
+    """
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    try:
+        code = sim.getSimulationState()
+        sim_t = sim.getSimulationTime()
+        name = _STATE_CODE_NAMES.get(code, f"unknown({code})")
+        return json.dumps({"state_code": code, "state_name": name,
+                           "sim_time": round(sim_t, 3)},
+                          ensure_ascii=False)
+    except Exception as e:
+        server.last_error = f"get_simulation_state 失败: {e}"
+        return f"失败: {e}"
 
 
 @mcp.tool()
