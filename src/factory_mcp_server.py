@@ -714,6 +714,8 @@ def list_objects(filter: str = "*", object_type: str = "all") -> str:
                 h = sim.getObjects(i, tval)
             except Exception:
                 break  # 越界即结束
+            if h == -1:
+                break  # 越界哨兵 — ZMQ 绑定返回 -1 不抛异常, 防止 5000 次空转 + junk 条目
             if h in seen:
                 i += 1
                 continue
