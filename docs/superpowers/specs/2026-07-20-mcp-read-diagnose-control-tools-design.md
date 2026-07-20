@@ -102,15 +102,21 @@ FactoryMCPServer
 
 ## run_lua 护栏设计(关键安全边界)
 
-`sim.executeScriptCode(code, handle)` 能执行任意 Lua,四层护栏:
+**执行机制(实测验证,2026-07-20)**: ZMQ `sim` 对象**不暴露 `executeScriptCode`**(实测 `hasattr` 为 `False`)。已验证可行的机制是:
+1. `sim.createScript(sim.scripttype_customizationscript, wrapped_code, 0)` 创建一个定制脚本,其 `sysCall_init` 内**直接嵌入**用户代码并用 `pcall` 包裹。
+2. ⚠ 关键限制:定制脚本运行在沙箱中,**`load`/`loadstring` 被禁用**(实测 `load_only`/`load_run` 均报 "error in script function")。因此用户代码必须**嵌入脚本源码**(而非运行时编译)。
+3. 用户代码把结果/错误写入字符串信号 `mcp_run_lua_result`(如 `sim.setStringSignal("mcp_run_lua_result", tostring(x))`)。
+4. Python 端 `sim.getStringSignal("mcp_run_lua_result")` 读回,再 `sim.removeObject(script_handle)` 清理脚本。
+
+四层护栏:
 
 ### ① 同步阻塞语义,文档 + 返回双重明示
 - 工具描述首行:"⚠ 同步阻塞:执行期间 ro_connector 被独占,其他只读工具会排队等待。"
 - 返回结构带 `blocked_seconds`(实际耗时)+ `warning`(超 timeout 截断时)。
 
 ### ② 超时硬截断(timeout 默认 5.0s)
-- Python 侧无法安全 kill 卡在 ZMQ 请求里的 `sim.executeScriptCode`。
-- 实现:在独立线程里执行,主线程 `join(timeout)`;超时不 kill 线程(无法安全 kill),而是**返回 timeout 告警并把该线程标记为 "lingering"**。
+- Python 侧无法安全 kill 卡在 ZMQ 请求里的脚本执行。
+- 实现:在独立线程里执行(线程内做 createScript+读信号+removeScript 全流程),主线程 `join(timeout)`;超时不 kill 线程(无法安全 kill),而是**返回 timeout 告警并把该线程标记为 "lingering"**。
 - 后续 `run_lua` 调用若检测到 lingering 线程存活,则拒绝("上一个 run_lua 未返回,请先 stop_simulation 重置")。
 - 策略:"无法安全中断就拒绝重叠"——比假装修能 kill 安全。
 
