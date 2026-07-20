@@ -519,8 +519,10 @@ def inspect_scene_state(summary: bool = True) -> str:
         code = sim.getSimulationState()
         sim_t = sim.getSimulationTime()
         dt = sim.getSimulationTimeStep()
-        # 枚举所有 shape+dummy
+        # 枚举所有 shape+dummy — 越界返回 -1 (CoppeliaSim ZMQ 绑定不抛异常)
+        # 首个 -1 即止; seen 去重与 list_objects 一致, 防止跨类型重复计数
         objs = []
+        seen = set()
         for tval in (sim.object_shape_type, sim.object_dummy_type):
             i = 0
             while i < 5000:
@@ -528,6 +530,12 @@ def inspect_scene_state(summary: bool = True) -> str:
                     h = sim.getObjects(i, tval)
                 except Exception:
                     break
+                if h == -1:
+                    break  # 越界哨兵
+                if h in seen:
+                    i += 1
+                    continue
+                seen.add(h)
                 objs.append(h)
                 i += 1
         out = {
