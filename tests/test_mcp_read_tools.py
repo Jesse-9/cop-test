@@ -29,3 +29,24 @@ class TestGetObjectPose:
         from factory_mcp_server import get_object_pose
         r = get_object_pose(alias_or_path="NoSuchObject_xyz")
         assert r.startswith("失败") or "找不到" in r
+
+
+class TestListObjects:
+    def test_list_all(self, mcp_server):
+        from factory_mcp_server import list_objects
+        r = list_objects()
+        if r.startswith("失败"):
+            pytest.skip("未连接")
+        d = json.loads(r)
+        assert "objects" in d
+        assert isinstance(d["objects"], list)
+        assert d["count"] == len(d["objects"])
+
+    def test_filter_prefix(self, mcp_server):
+        from factory_mcp_server import list_objects
+        r = list_objects(filter="Island_*")
+        if r.startswith("失败"):
+            pytest.skip("未连接")
+        d = json.loads(r)
+        for obj in d["objects"]:
+            assert "Island_" in obj["alias"] or obj["alias"].startswith("_Island_")

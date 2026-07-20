@@ -559,6 +559,63 @@ def get_object_pose(alias_or_path: str, ref: str = "world",
 
 
 @mcp.tool()
+def list_objects(filter: str = "*", object_type: str = "all") -> str:
+    """列出场景中所有物体 — List scene objects by type and name filter.
+
+    用于"不知道场景里有什么"的探索性诊断。
+
+    Args:
+        filter:       别名通配(filter="Island_*" 列工作岛前缀); "*" 列全部。
+        object_type:  "all"|"shape"|"dummy"|"joint"|"..." 类型过滤。
+    Returns:
+        JSON {objects: [{alias, handle, type}], count}。
+    """
+    import fnmatch
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    type_map = {
+        "all": None,
+        "shape": sim.object_shape_type,
+        "dummy": sim.object_dummy_type,
+        "joint": sim.object_joint_type,
+    }
+    types_to_scan = [type_map[object_type]] if object_type in type_map \
+        else [sim.object_shape_type, sim.object_dummy_type, sim.object_joint_type]
+    if object_type == "all":
+        types_to_scan = [sim.object_shape_type, sim.object_dummy_type,
+                         sim.object_joint_type]
+    results = []
+    seen = set()
+    for tval in types_to_scan:
+        i = 0
+        while i < 5000:
+            try:
+                h = sim.getObjects(i, tval)
+            except Exception:
+                break  # 越界即结束
+            if h in seen:
+                i += 1
+                continue
+            seen.add(h)
+            try:
+                alias = sim.getObjectAlias(h)
+            except Exception:
+                alias = ""
+            if filter == "*" or fnmatch.fnmatch(alias, filter) \
+               or fnmatch.fnmatch(alias, "_" + filter):
+                results.append({"alias": alias, "handle": h,
+                                "type": object_type if object_type != "all"
+                                else "mixed"})
+            i += 1
+    return json.dumps({"objects": results, "count": len(results)},
+                      ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
 def tail_log(lines: int = 50) -> str:
     """读取仿真日志文件末尾若干行。
 
