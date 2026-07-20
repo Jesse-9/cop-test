@@ -354,14 +354,18 @@ class DeviceHandleMap:
             paths.append(wh["alias"])
         for isl in cfg.WORK_ISLANDS.values():
             paths.append(isl["alias"])
-            paths.append(f"{isl['alias']}/Pillar")
+            paths.append(f"{isl['alias']}_Pillar")
         for cv in cfg.CONVEYORS.values():
             paths.append(cv["alias"])
         paths.append(cfg.AGV_ALIAS)
 
+        # CoppeliaSim 的 sim.getObject(query) 按路径查询, 路径须以 '/' 开头
+        # 表示从场景根开始; '/' 是 API 的路径分隔符, 不是对象别名的一部分。
+        # 对象别名本身不含 '/' (见 CLAUDE.md「已知问题与坑」第 1 条),
+        # 故查询时在无斜杠别名前加 '/'。
         for path in paths:
             try:
-                handle = self.sim.getObject(path)
+                handle = self.sim.getObject("/" + path)
                 self.handles[path] = handle
             except Exception as e:
                 print(f"[WARN] 找不到对象 '{path}': {e}")

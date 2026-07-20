@@ -68,13 +68,13 @@ UPSTREAM_MAP = {
 # ═══════════════════════════════════════════════════════════════
 WAREHOUSES = {
     "S1": {
-        "alias":  "/Warehouse/S1_Main",
+        "alias":  "Warehouse_S1_Main",
         "pos":    (-7.0, 2.0, Z_BASE),
         "size":   (1.2, 1.2, 0.8),
         "color":  (0.2, 0.4, 0.9),       # 蓝色 — 主原料库
     },
     "S2": {
-        "alias":  "/Warehouse/S2_Auxiliary",
+        "alias":  "Warehouse_S2_Auxiliary",
         "pos":    (-7.0, -4.5, Z_BASE),
         "size":   (1.2, 1.2, 0.8),
         "color":  (0.2, 0.8, 0.8),       # 青色 — 辅助原料/零部件库
@@ -82,35 +82,35 @@ WAREHOUSES = {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# 工作岛 (Work Islands) — 遵循 /Island/<Name> 命名层级
+# 工作岛 (Work Islands) — 别名遵循 Island_<Name> 命名 (CoppeliaSim 命名不用 '/')
 # ═══════════════════════════════════════════════════════════════
 WORK_ISLANDS = {
     "A": {
-        "alias":  "/Island/A_Assembly",
+        "alias":  "Island_A_Assembly",
         "pos":    (-2.5, 2.0, Z_BASE),
         "size":   (1.4, 1.4, 0.9),
         "color":  (0.2, 0.8, 0.3),       # 绿色 — 前端装配/加工岛 A
     },
     "B": {
-        "alias":  "/Island/B_Preprocess",
+        "alias":  "Island_B_Preprocess",
         "pos":    (-2.5, -1.0, Z_BASE),
         "size":   (1.4, 1.4, 0.9),
         "color":  (0.9, 0.8, 0.2),       # 黄色 — 前端预处理岛 B
     },
     "C": {
-        "alias":  "/Island/C_Processing",
+        "alias":  "Island_C_Processing",
         "pos":    (2.0, 2.0, Z_BASE),
         "size":   (1.4, 1.4, 0.9),
         "color":  (0.9, 0.5, 0.2),       # 橙色 — 中间工序岛 C
     },
     "D": {
-        "alias":  "/Island/D_QC_Assembly",
+        "alias":  "Island_D_QC_Assembly",
         "pos":    (-2.5, -4.5, Z_BASE),
         "size":   (1.4, 1.4, 0.9),
         "color":  (0.6, 0.3, 0.8),       # 紫色 — 质检装配岛 D
     },
     "E": {
-        "alias":  "/Island/E_FinalAssembly",
+        "alias":  "Island_E_FinalAssembly",
         "pos":    (6.0, -0.5, Z_BASE),
         "size":   (1.6, 1.6, 1.0),
         "color":  (0.9, 0.2, 0.2),       # 红色 — 最终装配线 E
@@ -118,32 +118,32 @@ WORK_ISLANDS = {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# 传送带 (Conveyors) — 遵循 /Conveyor/<Name> 命名层级
+# 传送带 (Conveyors) — 别名遵循 Conveyor_<Name> 命名 (CoppeliaSim 命名不用 '/')
 # ═══════════════════════════════════════════════════════════════
 CONVEYORS = {
     "S1_to_A": {
-        "alias": "/Conveyor/S1_to_A",
+        "alias": "Conveyor_S1_to_A",
         "start": (-6.4, 2.0),
         "end":   (-3.2, 2.0),
         "width": 0.5,
         "color": (0.5, 0.5, 0.5),
     },
     "S1_to_B": {
-        "alias": "/Conveyor/S1_to_B",
+        "alias": "Conveyor_S1_to_B",
         "start": (-6.4, 1.6),
         "end":   (-3.2, -0.6),
         "width": 0.5,
         "color": (0.5, 0.5, 0.5),
     },
     "S2_to_D": {
-        "alias": "/Conveyor/S2_to_D",
+        "alias": "Conveyor_S2_to_D",
         "start": (-6.4, -4.5),
         "end":   (-3.2, -4.5),
         "width": 0.5,
         "color": (0.5, 0.5, 0.5),
     },
     "C_to_E": {
-        "alias": "/Conveyor/C_to_E",
+        "alias": "Conveyor_C_to_E",
         "start": (2.7, 1.6),
         "end":   (5.2, -0.1),
         "width": 0.5,
@@ -155,8 +155,8 @@ CONVEYORS = {
 # 共享 AGV 路径 — Shared AGV Routes
 # ═══════════════════════════════════════════════════════════════
 # 使用单一共享 AGV，通过优先级调度处理 B→A 和 D→E 两条路径。
-# AGV alias: /Mobile/AGV_Shared
-AGV_ALIAS = "/Mobile/AGV_Shared"
+# AGV alias: Mobile_AGV_Shared (CoppeliaSim 命名不用 '/')
+AGV_ALIAS = "Mobile_AGV_Shared"
 AGV_SIZE  = (0.6, 0.4, 0.25)            # AGV 车身尺寸
 AGV_COLOR = (0.95, 0.95, 0.95)          # 白色
 
@@ -194,13 +194,15 @@ MATERIAL_COLORS = {
 # ═══════════════════════════════════════════════════════════════
 # 场景层级父对象 — Scene Hierarchy Parent Group Aliases
 # ═══════════════════════════════════════════════════════════════
-# 这些是场景中的"文件夹"对象，所有实际设备作为其子对象
+# 这些是场景中的"文件夹"对象，所有实际设备作为其子对象。
+# 注意: CoppeliaSim 命名不支持字符 '/'，所有别名一律用下划线连接，
+# 不使用任何斜杠 (详见 CLAUDE.md「已知问题与坑」第 1 条)。
 HIERARCHY_ROOTS = [
-    "/Warehouse",
-    "/Conveyor",
-    "/Island",
-    "/Mobile",
-    "/Part",
+    "Warehouse",
+    "Conveyor",
+    "Island",
+    "Mobile",
+    "Part",
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -242,7 +244,8 @@ BUILTIN_MODELS = {
 # 工作岛机械臂配置 — Per-Island Robot Arm Configuration
 # ═══════════════════════════════════════════════════════════════
 # 每个工作岛可挂载一只机械臂（E 岛挂两只：C 线臂 + D 线臂）。
-# 机械臂作为对应岛底座的子对象，alias 遵循 /Island/<X>/Robot_X 规范。
+# 机械臂作为对应岛底座的子对象，alias 遵循 Island_<X>/Robot_X 规范
+# (CoppeliaSim 命名不用 '/', 用下划线连接, 如 Island_A_Assembly_Robot_A)。
 #
 # model_key:    BUILTIN_MODELS 中的键，决定用哪种机械臂
 # offset:       机械臂基座相对岛中心的 [x, y, z] 偏移（岛局部坐标）
@@ -250,28 +253,28 @@ BUILTIN_MODELS = {
 # gripper:      夹爪模型键，None 表示不挂夹爪
 ISLAND_ROBOTS = {
     "A": {
-        "alias":   "/Island/A_Assembly/Robot_A",
+        "alias":   "Island_A_Assembly_Robot_A",
         "model_key": "robot_arm_ur5",
         "offset":  [0.0, 0.35, 0.45],   # 装配臂靠岛后侧
         "euler":   [0.0, 0.0, 0.0],
         "gripper": "gripper_robotiq",
     },
     "B": {
-        "alias":   "/Island/B_Preprocess/Robot_B",
+        "alias":   "Island_B_Preprocess_Robot_B",
         "model_key": "robot_arm_iiwa",
         "offset":  [0.0, 0.35, 0.45],
         "euler":   [0.0, 0.0, 0.0],
         "gripper": "gripper_rg2",
     },
     "C": {
-        "alias":   "/Island/C_Processing/Robot_C",
+        "alias":   "Island_C_Processing_Robot_C",
         "model_key": "robot_arm_franka",
         "offset":  [0.0, 0.35, 0.45],
         "euler":   [0.0, 0.0, 0.0],
         "gripper": "gripper_robotiq",
     },
     "D": {
-        "alias":   "/Island/D_QC_Assembly/Robot_D",
+        "alias":   "Island_D_QC_Assembly_Robot_D",
         "model_key": "robot_arm_ur5",
         "offset":  [0.0, 0.35, 0.45],
         "euler":   [0.0, 0.0, 0.0],
@@ -279,14 +282,14 @@ ISLAND_ROBOTS = {
     },
     # E 岛为最终装配线，配双臂：C 线臂 + D 线臂协同装配
     "E_C": {
-        "alias":   "/Island/E_FinalAssembly/Robot_E_C",
+        "alias":   "Island_E_FinalAssembly_Robot_E_C",
         "model_key": "robot_arm_ur5",
         "offset":  [-0.5, 0.35, 0.55],   # C 线（左侧）装配臂
         "euler":   [0.0, 0.0, 0.0],
         "gripper": "gripper_robotiq",
     },
     "E_D": {
-        "alias":   "/Island/E_FinalAssembly/Robot_E_D",
+        "alias":   "Island_E_FinalAssembly_Robot_E_D",
         "model_key": "robot_arm_ur5",
         "offset":  [0.5, 0.35, 0.55],    # D 线（右侧）装配臂
         "euler":   [0.0, 0.0, 0.0],

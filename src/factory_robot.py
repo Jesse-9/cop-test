@@ -70,26 +70,25 @@ class RobotArmAnimator:
     def _collect_arm_joints(self):
         """采集各机械臂根句柄与其关节句柄。
 
-        CoppeliaSim 4.10 的 setObjectAlias 将含 '/' 的路径转为下划线别名
-        (如 /Island/A/Robot_A -> _Island_A_Robot_A)，导致 getObject(斜杠路径)
-        查询失败。因此本方法采用"遍历所有对象按叶子别名匹配"的方式定位
-        机械臂根，再用 getObjectsInTree 枚举其关节子树。
+        CoppeliaSim 命名不支持字符 '/', 项目内所有别名一律用下划线连接
+        (见 CLAUDE.md「已知问题与坑」第 1 条)。此处遍历所有对象按叶子别名
+        匹配机械臂根, 再用 getObjectsInTree 枚举其关节子树。
 
         匹配规则: 对象别名 (getObjectAlias) 的叶子部分等于
         ISLAND_ROBOTS[<key>]["alias"] 的叶子部分。
         """
         sim = self.sim
         # 预计算各机械臂要匹配的叶子别名
-        # alias 形如 "/Island/A_Assembly/Robot_A"，叶子为 "Robot_A"
-        # setObjectAlias 后实际存储别名可能为 "_Island_A_Assembly_Robot_A"
-        # 或 "Robot_A"，故同时匹配两种形式。
-        leaf_map: dict[str, str] = {}  # key -> (leaf, full_normalized)
+        # alias 形如 "Island_A_Assembly_Robot_A"，叶子为 "Robot_A"
+        # setObjectAlias 后存储别名即为该完整名, 也可能为内置模型残留的原生别名,
+        # 故同时匹配归一化全名与叶子名。
+        leaf_map: dict[str, str] = {}  # key -> (leaf, full_alias)
         for key, robot_cfg in cfg.ISLAND_ROBOTS.items():
             full = robot_cfg["alias"]
-            leaf = full.rsplit("/", 1)[-1]
-            # 归一化: 斜杠和下划线都视为分隔, 取最后一段
-            norm = full.replace("/", "_")
-            leaf_map[key] = (leaf, norm)
+            # 叶子取末两段, 如 "Island_A_Assembly_Robot_A" -> "Robot_A"
+            parts = full.split("_")
+            leaf = "_".join(parts[-2:]) if len(parts) >= 2 else full
+            leaf_map[key] = (leaf, full)
 
         # 收集所有对象 (shape + dummy + joint 类型) 的 (handle, alias)
         all_handles: list[tuple[int, str]] = []
@@ -111,14 +110,13 @@ class RobotArmAnimator:
                     break
 
         # 为每个机械臂键找根句柄
-        for key, (leaf, norm) in leaf_map.items():
+        for key, (leaf, full) in leaf_map.items():
             root_handle = None
             for h, a in all_handles:
                 if not a:
                     continue
-                # 精确匹配归一化全名, 或叶子名
-                if a == norm or a == leaf or a.endswith("_" + leaf) \
-                        or a.endswith("/" + leaf):
+                # 精确匹配完整别名, 或叶子名
+                if a == full or a == leaf or a.endswith("_" + leaf):
                     root_handle = h
                     break
             if root_handle is None:

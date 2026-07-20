@@ -162,13 +162,15 @@ class FactoryController:
         优先使用场景中已有的 AGV 对象 (由 build_scene.py 加载的 pioneer p3dx)，
         避免创建重复物体。若场景中不存在则创建一个新的几何体 AGV。
 
-        注意: CoppeliaSim 4.10 的 setObjectAlias 把含 '/' 的路径别名转为下划线
-        (如 /Mobile/AGV_Shared → _Mobile_AGV_Shared)，导致 getObject(斜杠路径)
-        查询失败。因此这里用别名匹配方式定位 AGV 根句柄，确保复用 pioneer 模型。
+        CoppeliaSim 命名不支持字符 '/', 项目内所有别名一律用下划线连接
+        (见 CLAUDE.md「已知问题与坑」第 1 条)。AGV 别名为
+        cfg.AGV_ALIAS = "Mobile_AGV_Shared"，此处按别名匹配定位 AGV 根句柄，
+        以兼容内置 pioneer 模型可能残留的原生别名。
         """
         sim = self.sim
-        agv_leaf = cfg.AGV_ALIAS.rsplit("/", 1)[-1]  # "AGV_Shared"
-        agv_norm = cfg.AGV_ALIAS.replace("/", "_")     # "_Mobile_AGV_Shared"
+        # 取别名末两段 "AGV_Shared" 作为叶子, 用于匹配内置 pioneer 模型
+        parts = cfg.AGV_ALIAS.split("_")
+        agv_leaf = "_".join(parts[-2:]) if len(parts) >= 2 else cfg.AGV_ALIAS
 
         # 遍历所有 shape/dummy 对象，按别名匹配 AGV 根
         for tval in (sim.object_shape_type, sim.object_dummy_type):
@@ -180,7 +182,7 @@ class FactoryController:
                         a = sim.getObjectAlias(h)
                     except Exception:
                         a = ""
-                    if a and (a == agv_norm or a == agv_leaf
+                    if a and (a == cfg.AGV_ALIAS or a == agv_leaf
                               or a.endswith("_" + agv_leaf)):
                         # 确认是 AGV 根: 其父对象别名含 Mobile
                         self.agv_handle = h
