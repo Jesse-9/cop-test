@@ -376,6 +376,130 @@ def _audit_lua_code(code: str, confirm: bool = False) -> tuple[bool, str]:
     return True, "ok"
 
 
+# run_lua 信号通道
+_RUN_LUA_SIGNAL = "mcp_run_lua_result"
+
+
+def _build_run_lua_script(user_code: str) -> str:
+    """把用户代码包成定制脚本源码 — wrap user code into a customization script.
+
+    机制(实测): ZMQ sim 无 executeScriptCode; load/loadstring 在沙箱被禁。
+    故把用户代码直接嵌入 sysCall_init, 用 pcall 包裹, 结果写信号回读。
+    """
+    return (
+        "function sysCall_init()\n"
+        "    local ok, err = pcall(function()\n"
+        f"        {user_code}\n"
+        "    end)\n"
+        f"    local prev = sim.getStringSignal('{_RUN_LUA_SIGNAL}')\n"
+        "    if not ok then\n"
+        f"        sim.setStringSignal('{_RUN_LUA_SIGNAL}', "
+        "'EXEC_ERROR:' .. tostring(err))\n"
+        "    elseif not prev then\n"
+        f"        sim.setStringSignal('{_RUN_LUA_SIGNAL}', 'NO_RETURN')\n"
+        "    end\n"
+        "end\n"
+    )
+
+
+@mcp.tool()
+def run_lua(code: str, timeout: float = 5.0,
+            dry_run: bool = False, confirm: bool = False) -> str:
+    """远程执行 Lua 探针 — Execute arbitrary Lua (guarded).
+
+    ⚠ 同步阻塞: 执行期间 ro_connector 被独占, 其他只读工具会排队等待。
+    机制: 创建临时定制脚本, 用户代码嵌入 sysCall_init + pcall 包裹,
+    结果经 mcp_run_lua_result 字符串信号回读 (ZMQ 无 executeScriptCode,
+    且沙箱禁用 load/loadstring)。
+
+    Args:
+        code:     Lua 源码。结果请显式 sim.setStringSignal('mcp_run_lua_result', ...)。
+        timeout:  秒, 超时则标记 lingering 并拒绝后续重叠调用 (无法安全 kill)。
+        dry_run:  True 只审计不执行。
+        confirm:  True 才放行含危险调用(os.execute/io.popen/...)的代码。
+    Returns:
+        JSON {ok, result, blocked_seconds, timeout, warning, lingering}。
+    """
+    import json
+    import time
+    # 护栏 ④: 审计
+    ok, msg = _audit_lua_code(code, confirm=confirm)
+    if not ok:
+        return json.dumps({"ok": False, "result": msg,
+                           "blocked_seconds": 0.0, "timeout": timeout,
+                           "warning": None, "lingering": False},
+                          ensure_ascii=False)
+    if dry_run:
+        return json.dumps({"ok": True,
+                           "result": f"dry_run: 审计通过, 未执行 ({msg})",
+                           "blocked_seconds": 0.0, "timeout": timeout,
+                           "warning": None, "lingering": False},
+                          ensure_ascii=False)
+    # 检查 lingering (上一个 run_lua 未返回)
+    if getattr(server, "_run_lua_lingering", False):
+        return json.dumps({"ok": False,
+                           "result": "上一个 run_lua 未返回(超时未 kill), "
+                                     "请先 stop_simulation 重置",
+                           "blocked_seconds": 0.0, "timeout": timeout,
+                           "warning": "lingering", "lingering": True},
+                          ensure_ascii=False)
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    # 先清信号
+    try:
+        sim.setStringSignal(_RUN_LUA_SIGNAL, "")
+    except Exception:
+        pass
+    script_src = _build_run_lua_script(code)
+    result_holder = {"ok": True, "result": "NO_RETURN", "warning": None,
+                     "lingering": False}
+
+    def _execute():
+        try:
+            h = sim.createScript(sim.scripttype_customizationscript,
+                                script_src, 0)
+            time.sleep(0.3)  # 让 sysCall_init 跑完
+            try:
+                res = sim.getStringSignal(_RUN_LUA_SIGNAL)
+            except Exception:
+                res = None
+            if res:
+                if res.startswith("EXEC_ERROR:"):
+                    result_holder["ok"] = False
+                result_holder["result"] = res
+            try:
+                sim.removeObject(h)
+            except Exception:
+                pass
+        except Exception as e:
+            result_holder["ok"] = False
+            result_holder["result"] = f"EXEC_ERROR: {type(e).__name__}: {e}"
+
+    t0 = time.time()
+    th = threading.Thread(target=_execute, daemon=True,
+                          name="mcp-run-lua")
+    th.start()
+    th.join(timeout=timeout)
+    blocked = time.time() - t0
+    if th.is_alive():
+        # 超时, 线程仍在 → 标记 lingering, 拒绝后续重叠
+        server._run_lua_lingering = True
+        result_holder["ok"] = False
+        result_holder["result"] = f"执行超时({timeout}s), 结果可能不完整"
+        result_holder["warning"] = "timeout"
+        result_holder["lingering"] = True
+    return json.dumps({"ok": result_holder["ok"],
+                       "result": result_holder["result"],
+                       "blocked_seconds": round(blocked, 3),
+                       "timeout": timeout,
+                       "warning": result_holder["warning"],
+                       "lingering": result_holder["lingering"]},
+                      ensure_ascii=False)
+
+
 # ═══════════════════════════════════════════════════════════════
 # MCP 工具 — Tools exposed to Claude Code
 # ═══════════════════════════════════════════════════════════════

@@ -51,3 +51,34 @@ class TestAuditLua:
     def test_popen_caught(self):
         ok, msg = _audit_lua_code('local f = io.popen("ls")')
         assert ok is False
+
+
+class TestRunLuaExecution:
+    def test_simple_arithmetic(self, mcp_server):
+        from factory_mcp_server import run_lua
+        r = run_lua(code='sim.setStringSignal("mcp_run_lua_result", tostring(6*7))')
+        d = json.loads(r)
+        assert d["ok"] is True
+        assert "42" in d["result"]
+        assert d["lingering"] is False
+
+    def test_capture_error(self, mcp_server):
+        from factory_mcp_server import run_lua
+        r = run_lua(code='error("intentional boom")')
+        d = json.loads(r)
+        assert d["ok"] is False
+        assert "boom" in d["result"]
+
+    def test_dangerous_blocked_without_confirm(self, mcp_server):
+        from factory_mcp_server import run_lua
+        r = run_lua(code='os.execute("echo hi")', confirm=False)
+        d = json.loads(r)
+        assert d["ok"] is False
+        assert "confirm" in d["result"].lower()
+
+    def test_dry_run_does_not_execute(self, mcp_server):
+        from factory_mcp_server import run_lua
+        r = run_lua(code='error("should not run")', dry_run=True)
+        d = json.loads(r)
+        assert d["ok"] is True
+        assert "dry" in d["result"].lower() or "未执行" in d["result"]
