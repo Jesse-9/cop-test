@@ -31,6 +31,14 @@ def clear_scene(sim):
 
     策略: 遍历所有主类型枚举对象，收集句柄后用 removeObjects 批量删除。
     污染严重时部分句柄可能失效（被父对象删除时连带），忽略错误继续。
+
+    保留: CoppeliaSim 默认场景自带的 DefaultCamera (别名/对象名相同)。
+    它是视角相机, 删掉后用户在 CoppeliaSim GUI 里会失去默认视角, 故保留。
+    识别方式: 别名或对象名等于 "DefaultCamera"。
+
+    注意: CoppeliaSim 的 sim.getObjects(i, type) 按对象在该类型中的序号索引,
+    删除对象后剩余对象的序号会被压缩重排为连续 0..N-1, 故循环遇到 None/<0
+    即可安全 break, 不会因"索引空洞"漏删对象。
     """
     type_list = [
         sim.object_shape_type, sim.object_dummy_type,
@@ -40,7 +48,13 @@ def clear_scene(sim):
         sim.object_mirror_type, sim.object_octree_type,
         sim.object_pointcloud_type,
     ]
+    # 需保留的对象别名/对象名集合 (CoppeliaSim 默认场景自带)
+    keep_names = {"DefaultCamera",
+                  "XYZCameraProxy", "XViewCamera", "YViewCamera", "ZViewCamera", "NXViewCamera", "NYViewCamera", "NZViewCamera",
+                  "DefaultLights", "LightA", "LightB", "LightC", "LightD"}
+
     all_handles: set[int] = set()
+    kept: set[str] = set()
     for tval in type_list:
         i = 0
         while i < 100000:
@@ -48,10 +62,26 @@ def clear_scene(sim):
                 h = sim.getObjects(i, tval)
                 if h is None or h < 0:
                     break
-                all_handles.add(int(h))
+                # 读取别名与对象名, 任一命中保留集即跳过删除
+                try:
+                    alias = sim.getObjectAlias(h)
+                except Exception:
+                    alias = ""
+                try:
+                    name = sim.getObjectName(h)
+                except Exception:
+                    name = ""
+                if alias in keep_names or name in keep_names:
+                    kept.add(alias or name)
+                    print(f"[INFO] 保留默认对象: {alias or name} (handle={h})", i, tval)
+                else:
+                    all_handles.add(int(h))
                 i += 1
             except Exception:
                 break
+
+    if kept:
+        print(f"[INFO] 保留 {len(kept)} 个默认对象: {', '.join(sorted(kept))}")
 
     if not all_handles:
         print("[INFO] 场景已为空，无需清理")
