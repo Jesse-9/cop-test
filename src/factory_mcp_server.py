@@ -504,6 +504,61 @@ def set_config(key: str, value: Any) -> str:
 
 
 @mcp.tool()
+def get_object_pose(alias_or_path: str, ref: str = "world",
+                   components: str = "pose") -> str:
+    """读取场景中物体的真实位姿 — Read an object's real pose from CoppeliaSim.
+
+    这是 Q2 的核心工具:从 CoppeliaSim 物理引擎读回真实位姿,而非 Python
+    端的逻辑坐标。支持读取单个物体。
+
+    Args:
+        alias_or_path: 物体别名或路径。别名本身不含 '/'(见 CLAUDE.md
+                       「已知问题」第 1 条);若传入已含 '/' 前缀则原样用,
+                       否则前加 '/'。
+        ref:          参考系, "world"(默认) 或 "parent"。
+        components:   返回分量: "pose"(x,y,z,qx,qy,qz,qw)/
+                      "pos"(xyz)/"euler"(xyz+欧拉角)/"matrix"(4x4)。
+    Returns:
+        JSON 字符串 {alias, handle, ref, components, pose/...}, 或失败原因。
+    """
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    path = alias_or_path if alias_or_path.startswith("/") else "/" + alias_or_path
+    try:
+        h = sim.getObject(path)
+    except Exception as e:
+        return f"失败: 找不到对象 '{alias_or_path}': {e}"
+    ref_handle = sim.handle_world if ref == "world" else sim.handle_parent
+    try:
+        if components == "pose":
+            data = sim.getObjectPose(h, ref_handle)
+            key = "pose"
+        elif components == "pos":
+            data = sim.getObjectPosition(h, ref_handle)
+            key = "position"
+        elif components == "euler":
+            pos = sim.getObjectPosition(h, ref_handle)
+            eul = sim.getObjectOrientation(h, ref_handle)
+            data = {"position": pos, "euler": eul}
+            key = "euler"
+        elif components == "matrix":
+            data = sim.getObjectMatrix(h, ref_handle)
+            key = "matrix"
+        else:
+            return f"失败: 未知 components '{components}', 应为 pose/pos/euler/matrix"
+        out = {"alias": alias_or_path, "handle": h, "ref": ref,
+               "components": components, key: data}
+        return json.dumps(out, ensure_ascii=False, indent=2)
+    except Exception as e:
+        server.last_error = f"get_object_pose 失败: {e}"
+        return f"失败: {e}"
+
+
+@mcp.tool()
 def tail_log(lines: int = 50) -> str:
     """读取仿真日志文件末尾若干行。
 

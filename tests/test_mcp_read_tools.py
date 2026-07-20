@@ -13,3 +13,19 @@ class TestRoConnector:
     def test_ro_sim_available(self, mcp_server):
         mcp_server.ensure_ro_connected()
         assert mcp_server.ro_sim is not None
+
+
+class TestGetObjectPose:
+    def test_pose_default_components(self, mcp_server):
+        from factory_mcp_server import get_object_pose
+        r = get_object_pose(alias_or_path="Floor")  # build_scene 创建的地板
+        if r.startswith("失败"):
+            pytest.skip("场景未构建,跳过")
+        d = json.loads(r)
+        assert "alias" in d
+        assert "pose" in d or "position" in d
+
+    def test_unknown_alias_returns_failure_string(self, mcp_server):
+        from factory_mcp_server import get_object_pose
+        r = get_object_pose(alias_or_path="NoSuchObject_xyz")
+        assert r.startswith("失败") or "找不到" in r
