@@ -91,6 +91,9 @@ class FactoryMCPServer:
         self.sim_thread: Optional[threading.Thread] = None
         self.last_error: Optional[str] = None
         self._lock = threading.Lock()
+        # 只读诊断专用连接 — 与主连接隔离,避免与主循环抢锁
+        self.ro_connector: Optional[CoppeliaConnector] = None
+        self.ro_lock = threading.Lock()
 
     # ── 连接管理 — Connection management ──────────────────────
     @property
@@ -118,6 +121,32 @@ class FactoryMCPServer:
                 raise RuntimeError(self.last_error)
             self.connector = conn
             self.last_error = None
+            return True
+
+    @property
+    def ro_sim(self):
+        """只读连接的 sim 句柄。"""
+        return self.ro_connector.sim if self.ro_connector else None
+
+    def ensure_ro_connected(self, host: str = "localhost",
+                            port: int = 23000) -> bool:
+        """惰性建立只读诊断连接 — Lazily establish the read-only connection.
+
+        host/port 跟随主连接(若已连),否则用参数默认值。
+        """
+        # 主连接未连 → 拒绝(单一入口)
+        if self.connector is None or not self.connector.check_alive():
+            raise RuntimeError("未连接 CoppeliaSim, 先调用 connect")
+        h = self.connector.host if self.connector else host
+        p = self.connector.port if self.connector else port
+        with self.ro_lock:
+            if self.ro_connector is not None and self.ro_connector.check_alive():
+                return True
+            conn = CoppeliaConnector(host=h, port=p)
+            if not conn.connect():
+                self.last_error = f"无法建立只读连接 {h}:{p}"
+                raise RuntimeError(self.last_error)
+            self.ro_connector = conn
             return True
 
     # ── 仿真生命周期 — Simulation lifecycle ───────────────────
@@ -510,6 +539,7 @@ def disconnect() -> str:
     server.connector = None
     server.controller = None
     server.sim_thread = None
+    server.ro_connector = None  # 新增: 关闭只读连接
     return "已断开连接"
 
 
