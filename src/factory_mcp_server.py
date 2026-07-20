@@ -657,6 +657,49 @@ def read_signal(name: str) -> str:
 
 
 @mcp.tool()
+def get_object_tree(root_alias: str) -> str:
+    """列出某对象的子树 — List an object's subtree (joints, shapes, children).
+
+    用于排查机械臂关节、传送带组件等层级结构。模式参考 factory_robot.py
+    / build_scene.py 中既有的 getObjectsInTree 用法。
+
+    Args:
+        root_alias: 根对象别名(不含 '/')。
+    Returns:
+        JSON {root, handle, children: [{alias, handle, type}], count}。
+    """
+    import json
+    try:
+        server.ensure_ro_connected()
+    except Exception as e:
+        return f"失败: {e}"
+    sim = server.ro_sim
+    path = root_alias if root_alias.startswith("/") else "/" + root_alias
+    try:
+        root_h = sim.getObject(path)
+    except Exception as e:
+        return f"失败: 找不到根对象 '{root_alias}': {e}"
+    try:
+        tree = sim.getObjectsInTree(root_h, sim.handle_all, 0)
+        children = []
+        for obj in tree:
+            if obj == root_h:
+                continue
+            try:
+                alias = sim.getObjectAlias(obj)
+            except Exception:
+                alias = ""
+            children.append({"alias": alias, "handle": obj})
+        return json.dumps({"root": root_alias, "handle": root_h,
+                           "children": children,
+                           "count": len(children)},
+                          ensure_ascii=False, indent=2)
+    except Exception as e:
+        server.last_error = f"get_object_tree 失败: {e}"
+        return f"失败: {e}"
+
+
+@mcp.tool()
 def tail_log(lines: int = 50) -> str:
     """读取仿真日志文件末尾若干行。
 

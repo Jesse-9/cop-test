@@ -71,3 +71,19 @@ class TestReadSignal:
         d = json.loads(r)
         assert d["value"] is None
         assert d["type"] == "none"
+
+
+class TestGetObjectTree:
+    def test_tree_of_root(self, mcp_server):
+        from factory_mcp_server import get_object_tree
+        from factory_mcp_server import list_objects
+        lo = list_objects(filter="*")
+        d_lo = json.loads(lo)
+        if not d_lo["objects"]:
+            pytest.skip("场景为空")
+        root_alias = d_lo["objects"][0]["alias"].lstrip("_")
+        r = get_object_tree(root_alias=root_alias)
+        d = json.loads(r)
+        assert "root" in d
+        assert "children" in d
+        assert isinstance(d["children"], list)
