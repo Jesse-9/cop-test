@@ -142,6 +142,10 @@ class FactoryController:
         self.step_count = 0
         self.agv_handle: int = -1
 
+        # ── 用户主动暂停标志 — user-requested pause (区别于 zmq_monitor.comm_paused) ──
+        self._pause_requested: bool = False
+        self._pause_at_sim_time: float = 0.0
+
         # ── E 岛装配定时器 — E island timed assembly (TAKT_TIME['E']=8.0s) ──
         self.e_assembly_timer: float = cfg.TAKT_TIME['E']
 
@@ -297,6 +301,13 @@ class FactoryController:
                 if self.zmq_monitor.comm_paused:
                     sim.step()
                     self.sim_time = sim.getSimulationTime()
+                    continue
+
+                # ── 2b. 用户主动暂停 — user pause: 只推进物理, 跳过控制逻辑 ──
+                if self._pause_requested:
+                    sim.step()
+                    self.sim_time = sim.getSimulationTime()
+                    self.step_count += 1
                     continue
 
                 # ── 3. 正常仿真步进 — Normal step sequence ──
