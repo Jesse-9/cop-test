@@ -265,6 +265,8 @@ class FactoryMCPServer:
         或等待线程自然结束。
         """
         with self._lock:
+            # 重置 run_lua lingering 标志 (stop 后场景已重置)
+            self._run_lua_lingering = False
             if not self.is_running():
                 # 即使 controller 已置 None 但线程还在收尾, 也算未运行
                 return "仿真未在运行"
@@ -594,16 +596,68 @@ def stop_simulation() -> str:
 
 
 @mcp.tool()
-def step_simulation() -> str:
-    """单步推进仿真 (stepping 模式)。
+def step_simulation(n: int = 1) -> str:
+    """单步或多步推进仿真 (stepping 模式)。
 
-    在仿真已启动的前提下, 推进一个 SIM_STEP (默认 0.05s)。
-    适用于逐帧观察调度/节拍行为。
+    在仿真已启动的前提下, 推进 n 个 SIM_STEP (每个默认 0.05s)。
+    n 上限 1000 防失控。
+
+    Args:
+        n: 推进步数, 默认 1, 上限 1000。
+    Returns:
+        末步仿真时间 + 实际步数, 或失败原因。
+    """
+    if server.sim is None:
+        return "未连接 CoppeliaSim, 先调用 connect"
+    if not server.is_running():
+        return "仿真未运行, 先调用 start_simulation"
+    n = max(1, min(int(n), 1000))
+    try:
+        for _ in range(n):
+            server.sim.step()
+        t = server.sim.getSimulationTime()
+        return f"已推进 {n} 步, sim_time={t:.3f}s"
+    except Exception as e:  # noqa: BLE001
+        server.last_error = f"step 异常: {e}"
+        return f"step 失败: {e}"
+
+
+@mcp.tool()
+def pause_simulation() -> str:
+    """暂停仿真控制逻辑 (stepping 模式下)。
+
+    置 controller._pause_requested=True, 主循环只推进物理引擎、跳过控制逻辑
+    (区别于 zmq_monitor.comm_paused 的通信故障降级)。resume 清标志恢复。
 
     Returns:
-        推进后的仿真时间, 或失败原因 (未连接/未运行)。
+        操作结果 + 暂停时 sim_time。
     """
-    return server.step_once()
+    if not server.is_running():
+        return "仿真未运行, 先调用 start_simulation"
+    ctrl = server.controller
+    if ctrl is None:
+        return "失败: controller 不存在"
+    ctrl._pause_requested = True
+    ctrl._pause_at_sim_time = server.sim.getSimulationTime()
+    return (f"已请求暂停控制逻辑 @ sim_time="
+            f"{ctrl._pause_at_sim_time:.3f}s; 物理 engine 仍推进, "
+            "用 resume_simulation 恢复")
+
+
+@mcp.tool()
+def resume_simulation() -> str:
+    """恢复仿真控制逻辑 (清除 pause 标志)。
+
+    Returns:
+        操作结果。
+    """
+    if not server.is_running():
+        return "仿真未运行"
+    ctrl = server.controller
+    if ctrl is None:
+        return "失败: controller 不存在"
+    ctrl._pause_requested = False
+    return "已恢复控制逻辑 (pause 标志已清除)"
 
 
 @mcp.tool()
