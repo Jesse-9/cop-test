@@ -5,7 +5,7 @@ tags:
   - coppeliasim
   - 类别/基础知识
 created: 2024-07-13
-updated: 2024-07-13
+updated: 2026-07-21
 status: published
 ---
 
@@ -63,9 +63,26 @@ manual.coppeliarobotics.com/en/
 └── versionInfo.htm ◄────────────── 版本历史
 ```
 
+### 补充源材料 (2026-07-21 抓取)
+
+为丰富 `01-API参考`（Regular API 与 ZMQ Remote API）两条 wiki，从官方手册与 GitHub 补抓 7 份源材料。抓取方式：`defuddle parse <url> --md -o`（手册页），`curl -sL raw.githubusercontent.com`（GitHub markdown）。
+
+| # | 文件名 | 原始 URL | 大小 | 说明 |
+|---|--------|----------|------|------|
+| 13 | `src-doc-CoppeliaSim-zmq-remote-api.md` | `manual.coppeliarobotics.com/en/zmqRemoteApiOverview.htm` | 7 KB | ZeroMQ Remote API 总览 + 各语言客户端示例 |
+| 14 | `src-doc-CoppeliaSim-zmq-remote-api-protocol.md` | `github.com/CoppeliaRobotics/zmqRemoteApi/PROTOCOL.md` | 2 KB | ZMQ 协议 v2：REQ socket、CBOR、请求/响应字段、版本对应 |
+| 15 | `src-doc-CoppeliaSim-zmq-remote-api-python-client.md` | `github.com/CoppeliaRobotics/zmqRemoteApi/clients/python/README.md` | 2 KB | Python 客户端安装/用法/asyncio/gather/Windows 事件循环 |
+| 16 | `src-doc-CoppeliaSim-callback-functions.md` | `manual.coppeliarobotics.com/en/callbackFunctions.htm` | 13 KB | 全部系统回调 sysCall_*（Python+Lua 签名） |
+| 17 | `src-doc-CoppeliaSim-accessing-scene-objects.md` | `manual.coppeliarobotics.com/en/accessingSceneObjects.htm` | 6 KB | 对象路径/别名语法（绝对/相对/通配/索引）+ setObjectAlias 字符限制 |
+| 18 | `src-doc-CoppeliaSim-simulation.md` | `manual.coppeliarobotics.com/en/simulation.htm` | 4 KB | 仿真循环、实时模式、stepping 单步模式（官方示例） |
+| 19 | `src-doc-CoppeliaSim-scripts.md` | `manual.coppeliarobotics.com/en/scripts.htm` | 2 KB | 脚本类型：sandbox/add-on/embedded(main/simulation/customization) |
+
+> 注：第 13/16/17/18/19 份由 defuddle 转 markdown（手册为 frameset，转出正文完整）；第 14/15 份为 GitHub 原始 markdown（curl 直取，无格式损失）。
+
 ### 使用说明
 
 1. ⚠️ **raw/ 目录的文件为源材料，不要修改**
 2. 引用时在 wiki 条目的 `source:` 字段中注明文件名
 3. 如发现官方文档更新，重新 curl 下载并替换对应文件
 4. `.md` 版本由 Pandoc 自动转换，复杂的多语言代码块可能需参考 `.html` 原始版本
+5. 2026-07-21 补充的 5 份手册页用 defuddle 而非 Pandoc 转出，仅保留 `.md` 一种格式

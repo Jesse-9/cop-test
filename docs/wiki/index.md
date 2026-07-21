@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2024-07-13
-updated: 2026-07-17
+updated: 2026-07-21
 status: published
 ---
 
@@ -34,8 +34,8 @@ status: published
 - [[00-基础知识/00-03-安装与设置]] — 安装配置
 
 ### 01 API 参考
-- [[01-API参考/01-01-Regular-API-overview]] — Regular API 详解
-- [[01-API参考/01-02-Remote-API-ZMQ]] — ZeroMQ Remote API
+- [[01-API参考/01-01-Regular-API-overview]] — Regular API 详解（脚本体系/系统回调/路径别名/单步模式/完整函数目录）
+- [[01-API参考/01-02-Remote-API-ZMQ]] — ZeroMQ Remote API（协议 v2/CBOR/单步示例/多语言客户端/asyncio）
 
 ### 02 仿真建模
 - [[02-仿真建模/02-01-分层命名场景构建]] — 分层路径 + 4.10 别名陷阱 + 内置模型回退
@@ -82,7 +82,7 @@ status: published
 |------|------|
 | 目录分类 | 9 个 |
 | Wiki 条目 | 14 条 |
-| 原始资料 | 12 份 |
+| 原始资料 | 19 份 |
 | 标签分类 | 4 大类 |
 
 ## 🔍 阅读路径推荐
