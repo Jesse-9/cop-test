@@ -5,8 +5,9 @@ import pytest
 
 
 class TestPauseResumeFlag:
-    def test_flag_default_false(self, mcp_server):
+    def test_flag_default_false(self):
         # controller 未运行时无 flag, 故测 FactoryController 类属性约定
+        # 纯源码检查, 无需 CoppeliaSim 连接 → 不取 mcp_server fixture
         from factory_controller import FactoryController
         import inspect
         src = inspect.getsource(FactoryController.__init__)

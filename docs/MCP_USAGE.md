@@ -154,7 +154,7 @@ step_simulation                  → 手动逐帧 (绕过 controller 复杂初�
 ### 完整场景启动后冻结
 
 完整工厂场景 (6 机械臂 + 传送带 + AGV) 启动后约 3 帧处仿真冻结
-(`state=8`, simTime 卡 0.15)，`sim.step()` 不再推进。单机械臂/空场景 stepping 正常，
+(state 见 `_STATE_CODE_NAMES` 表, simTime 卡 0.15)，`sim.step()` 不再推进。单机械臂/空场景 stepping 正常，
 推断是某机械臂模型脚本组合阻塞。
 
 **MCP 已内置探活**: `start_simulation` 启动 5s 后若 `sim_time` 无增长，

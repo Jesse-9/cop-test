@@ -53,7 +53,7 @@ class TestListObjects:
 
 
 class TestReadSignal:
-    def test_read_string_signal(self, mcp_server):
+    def test_read_integer_signal(self, mcp_server):
         from factory_mcp_server import read_signal
         server = mcp_server
         server.ensure_ro_connected()

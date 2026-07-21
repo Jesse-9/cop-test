@@ -95,6 +95,9 @@ class FactoryMCPServer:
         # 只读诊断专用连接 — 与主连接隔离,避免与主循环抢锁
         self.ro_connector: Optional[CoppeliaConnector] = None
         self.ro_lock = threading.Lock()
+        # run_lua 超时标志: True 表示上一个 run_lua 未返回, 拒绝重叠调用
+        # (stop_simulation 与 disconnect 均会重置)
+        self._run_lua_lingering: bool = False
 
     # ── 连接管理 — Connection management ──────────────────────
     @property
@@ -172,10 +175,11 @@ class FactoryMCPServer:
     def _watch_progress(self, started_at: float):
         """启动后探活监控 — Verify sim_time advances shortly after start.
 
-        已知问题: 完整工厂场景启动后可能冻结 (state=8, simTime 卡 0.15),
-        FactoryController.run() 不会自报。此方法在 PROGRESS_WATCH_SECONDS 秒后
-        检查 controller.sim_time 是否有增长, 若无则写入告警到 last_error,
-        使 status 工具能如实反映"已启动但不推进"的状态, 避免哑启动。
+        已知问题: 完整工厂场景启动后可能冻结 (state 见 _STATE_CODE_NAMES 表,
+        simTime 卡 0.15), FactoryController.run() 不会自报。此方法在
+        PROGRESS_WATCH_SECONDS 秒后检查 controller.sim_time 是否有增长,
+        若无则写入告警到 last_error, 使 status 工具能如实反映"已启动但不推进"
+        的状态, 避免哑启动。
         """
         # 先等探活窗口过半, 给 controller 初始化留时间
         wall_time.sleep(self.PROGRESS_WATCH_SECONDS)
@@ -611,7 +615,10 @@ def step_simulation(n: int = 1) -> str:
         return "未连接 CoppeliaSim, 先调用 connect"
     if not server.is_running():
         return "仿真未运行, 先调用 start_simulation"
-    n = max(1, min(int(n), 1000))
+    try:
+        n = max(1, min(int(n), 1000))
+    except (TypeError, ValueError):
+        return "失败: n 必须为整数"
     try:
         for _ in range(n):
             server.sim.step()
@@ -1060,7 +1067,14 @@ def disconnect() -> str:
     server.connector = None
     server.controller = None
     server.sim_thread = None
-    server.ro_connector = None  # 新增: 关闭只读连接
+    # ro_connector 与 _run_lua_lingering 的清零必须持有 ro_lock:
+    # 否则并发诊断工具 (get_object_pose 等) 在 ensure_ro_connected() 与
+    # sim = server.ro_sim 之间看到 ro_connector 变 None → sim=None → 抛
+    # AttributeError, 误报"失败"。同时 reset lingering 避免 run_lua 超时
+    # 后未 stop 即 disconnect, 重连后 lingering 永久为 True 导致 run_lua 被砖。
+    with server.ro_lock:
+        server.ro_connector = None
+        server._run_lua_lingering = False
     return "已断开连接"
 
 
