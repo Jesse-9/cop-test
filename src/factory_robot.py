@@ -127,8 +127,20 @@ class RobotArmAnimator:
 
             # 枚举机械臂子树的关节
             joints = []
+            tree = None
             try:
                 tree = sim.getObjectsInTree(root_handle, sim.handle_all, 0)
+            except Exception as e:
+                # 实测: 仿真未启动或模型子树含不可查询对象时,
+                # getObjectsInTree 抛 "Operation cannot be accomplished in
+                # current state"。此时退化为全场景扫描, 按 "joint" 类型
+                # + 别名匹配机械臂所属关节 (UR5 关节别名通常含 robot 别名)。
+                self.logger.warning(
+                    f"[ROBOT] {leaf} 子树枚举失败 ({type(e).__name__}: {e}), "
+                    "退化为全场景关节扫描"
+                )
+
+            if tree is not None:
                 # 先找出所有 "Gripper" 子树的根，其子树内的关节属于夹爪，
                 # 不应被机械臂动画驱动（夹爪有自己的开合逻辑）
                 gripper_subtrees: list[int] = []
@@ -155,11 +167,29 @@ class RobotArmAnimator:
                             joints.append(obj)
                     except Exception:
                         continue
-            except Exception as e:
-                self.logger.debug(
-                    f"[ROBOT] {leaf} 子树枚举失败: {e}"
-                )
+            else:
+                # 回退路径: 子树枚举失败 → 全场景按关节类型扫描,
+                # 仅收别名匹配该机械臂的关节 (UR5 关节常命名为
+                # "<RobotAlias>_jointN" 或 "UR5_jointN")。
+                i = 0
+                while i < 5000:
+                    try:
+                        jh = sim.getObjects(i, sim.object_joint_type)
+                    except Exception:
+                        break
+                    if jh == -1:
+                        break
+                    try:
+                        ja = sim.getObjectAlias(jh)
+                    except Exception:
+                        ja = ""
+                    # 关节别名含机械臂叶子名, 或属该臂根子树 (父链回溯到 root)
+                    if ja and (leaf in ja or full in ja
+                               or self._is_descendant(sim, jh, root_handle)):
+                        joints.append(jh)
+                    i += 1
 
+            joints = joints[:6]  # UR5 恰好 6 关节, 截断防止误收夹爪/额外件
             self.arms[key] = {
                 "root": root_handle,
                 "joints": joints,
@@ -168,9 +198,52 @@ class RobotArmAnimator:
                 "frame": 0,
                 "frame_t": 0.0,
             }
-            self.logger.info(
-                f"[ROBOT] {leaf} 已就绪: {len(joints)} 个关节"
-            )
+            if len(joints) == 0:
+                self.logger.warning(
+                    f"[ROBOT] {leaf} 未采集到任何关节, 动画将禁用 "
+                    "(检查机械臂模型是否加载成功 / 仿真是否已启动)"
+                )
+            else:
+                self.logger.info(
+                    f"[ROBOT] {leaf} 已就绪: {len(joints)} 个关节"
+                )
+                # 置初态为 HOME 姿态, 避免机械臂以模型默认奇异姿态出现
+                self._set_home_pose(self.arms[key])
+
+    @staticmethod
+    def _is_descendant(sim, handle: int, root_handle: int,
+                       max_depth: int = 20) -> bool:
+        """判断 handle 是否为 root_handle 的后代 — Walk parent chain."""
+        cur = handle
+        for _ in range(max_depth):
+            try:
+                parent = sim.getObjectParent(cur)
+            except Exception:
+                return False
+            if parent == -1 or parent == cur:
+                return False
+            if parent == root_handle:
+                return True
+            cur = parent
+        return False
+
+    def _set_home_pose(self, arm: dict):
+        """置机械臂为 HOME 待机姿态 — Set joints to ARM_ANIMATIONS HOME frame.
+
+        UR5 的 HOME 帧 (pick_and_place[0]) 是标准 L 形待机位, 立即下发
+        使机械臂在仿真启动瞬间就处于合理姿态, 而非模型默认的竖直奇异位。
+        """
+        home = cfg.ARM_ANIMATIONS.get("pick_and_place")
+        if not home or arm["n_joints"] == 0:
+            return
+        f0 = home[0]
+        sim = self.sim
+        for i, jh in enumerate(arm["joints"]):
+            try:
+                a = f0[i] if i < len(f0) else 0.0
+                sim.setJointPosition(jh, a)
+            except Exception:
+                continue
 
     # ── 公共接口 ─────────────────────────────────────────────
 

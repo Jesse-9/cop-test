@@ -141,6 +141,11 @@ class FactoryController:
         self.sim_time = 0.0
         self.step_count = 0
         self.agv_handle: int = -1
+        # AGV 朝向追踪 — 用于 setObjectOrientation 令车头指向行进方向
+        self._agv_yaw: float = 0.0
+        self._agv_prev_pos: tuple[float, float] = (
+            cfg.AGV_ROUTES["B_TO_A"][0][0], cfg.AGV_ROUTES["B_TO_A"][0][1]
+        )
 
         # ── 用户主动暂停标志 — user-requested pause (区别于 zmq_monitor.comm_paused) ──
         self._pause_requested: bool = False
@@ -217,6 +222,10 @@ class FactoryController:
         sim.setObjectAlias(handle, cfg.AGV_ALIAS)
         self.agv_handle = handle
         self.logger.info("AGV 可视化已创建 (场景中无已有对象)")
+        # 创建后立即对齐朝向跟踪初值
+        start = cfg.AGV_ROUTES["B_TO_A"][0]
+        self._agv_prev_pos = (start[0], start[1])
+        self._agv_yaw = 0.0
 
     # ═══════════════════════════════════════════════════════════
     # 主循环 — Main Simulation Loop
@@ -848,13 +857,30 @@ class FactoryController:
             if new_pos:
                 sim.setObjectPosition(mat.handle, new_pos, sim.handle_world)
 
-        # 更新 AGV 车身位置
+        # 更新 AGV 车身位置 + 朝向
         if self.agv_handle != -1:
             agv_pos = self.agv_scheduler.current_position()
             sim.setObjectPosition(
                 self.agv_handle,
                 [agv_pos[0], agv_pos[1],
                  cfg.Z_BASE + cfg.AGV_SIZE[2] / 2],
+                sim.handle_world,
+            )
+            # 朝向 (yaw): 令 AGV 车头指向行进方向。
+            # 旧版只设位置不设朝向, 小车始终以初始朝向滑行, 视觉错乱。
+            # 用上一帧位置与本帧位置的位移向量计算航向; 位移过小 (近乎静止)
+            # 时保留上一朝向, 避免抖动。
+            dx = agv_pos[0] - self._agv_prev_pos[0]
+            dy = agv_pos[1] - self._agv_prev_pos[1]
+            if math.hypot(dx, dy) > 1e-4:
+                yaw = math.atan2(dy, dx)
+                # pioneer p3dx / 几何体 AGV 的 +X 轴为车头方向,
+                # atan2(dy,dx) 即车头航向, 直接作为绕 Z 的偏航角。
+                self._agv_yaw = yaw
+                self._agv_prev_pos = (agv_pos[0], agv_pos[1])
+            sim.setObjectOrientation(
+                self.agv_handle,
+                [0.0, 0.0, self._agv_yaw],
                 sim.handle_world,
             )
 

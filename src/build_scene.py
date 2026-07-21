@@ -247,6 +247,11 @@ def create_robot_arm(sim, island_alias: str, island_handle: int,
         )
         sim.setObjectAlias(arm_handle, alias)
         print(f"  [FALLBACK] {alias} 使用立柱占位")
+    else:
+        # 内置 UR5 自带 IK/控制脚本 → 剥离, 避免多臂脚本争用 ZMQ addOn
+        # 导致 "abort execution Connectivity >> ZMQ remote API server@addOnScript"
+        # 整场冻结 (CLAUDE.md §3)。动画由 Python 关键帧插值驱动, 无需脚本。
+        _strip_model_scripts(sim, arm_handle)
 
     # 挂载夹爪 — Attach gripper to arm tip
     gripper_key = robot_cfg.get("gripper")
@@ -284,6 +289,9 @@ def create_robot_arm(sim, island_alias: str, island_handle: int,
                 grip_handle = sim.loadModel(
                     os.path.join(cfg.MODEL_BASE, gripper_rel)
                 )
+                # 夹爪 (ROBOTIQ 85/RG2) 自带开合控制脚本 → 同样剥离,
+                # 与机械臂一致, 避免 addOn 脚本争用导致冻结。
+                _strip_model_scripts(sim, grip_handle)
                 sim.setObjectParent(grip_handle, tip_handle, True)
                 sim.setObjectAlias(grip_handle, "Gripper")
                 sim.setObjectPosition(
@@ -394,6 +402,49 @@ def create_work_island(sim, name: str, params: dict,
 
     print(f"[OK] 工作岛 {name} → {alias} @ ({px:.1f}, {py:.1f})")
     return handle
+
+
+def _strip_model_scripts(sim, model_handle: int):
+    """移除内置模型自带的 Lua 脚本子对象 — Strip embedded scripts from a loaded model.
+
+    CoppeliaSim 内置机械臂 (UR5/KUKA/...)、AGV (pioneer p3dx) 等模型自带
+    定制脚本 (customization/child script), 它们在仿真启动时执行 IK/逆运动学
+    或差速控制逻辑。本项目动画由 Python 端关键帧插值驱动 (factory_robot.py),
+    不需要这些脚本; 且 6 只机械臂 + 1 个 AGV 的脚本组合在 4.10 会互相争用
+    ZMQ addOn, 导致启动约 3 帧处整场冻结并报
+    "abort execution Connectivity >> ZMQ remote API server@addOnScript"
+    (见 CLAUDE.md §3)。统一剥离脚本后, 仅保留几何体 + 关节, 仿真由 Python 步进。
+
+    Args:
+        model_handle: 模型根句柄.
+    """
+    try:
+        tree = sim.getObjectsInTree(model_handle, sim.handle_all, 0)
+    except Exception:
+        return
+    # 收集脚本句柄后再删 (边遍历边删会扰动 tree 迭代器)
+    to_remove = []
+    script_type = getattr(sim, "object_script_type", None)
+    for obj in tree:
+        try:
+            ot = sim.getObjectType(obj)
+            if script_type is not None and ot == script_type:
+                to_remove.append(obj)
+                continue
+            alias = sim.getObjectAlias(obj)
+            # 内置模型脚本别名常见: Script / customizationScript /
+            # UR5 反向运动学脚本等; 兜底匹配包含 "script" 的别名 (不区分大小写)。
+            if alias and alias.lower().find("script") >= 0:
+                to_remove.append(obj)
+        except Exception:
+            continue
+    for obj in to_remove:
+        try:
+            sim.removeObjects([obj])
+        except Exception:
+            continue
+    if to_remove:
+        print(f"    [STRIP] 移除 {len(to_remove)} 个脚本子对象")
 
 
 def _strip_conveyor_scripts(sim, conveyor_handle: int):
@@ -524,6 +575,10 @@ def create_shared_agv(sim, parent_handle: int) -> int:
 
     if model_handle is not None:
         agv_handle = model_handle
+        # pioneer p3dx 自带差速驱动脚本 → 剥离, AGV 位置/朝向由 Python 端
+        # factory_controller._update_scene_positions 直接 setObjectPosition 控制,
+        # 无需脚本; 同样规避 addOn 脚本争用导致的冻结。
+        _strip_model_scripts(sim, agv_handle)
     else:
         # 回退：基本几何体 AGV
         agv_handle = sim.createPrimitiveShape(
