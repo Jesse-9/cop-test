@@ -27,8 +27,8 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 ## 运行模型
 
 - **stdio 传输**: Claude Code 通过启动一个 Python 子进程与服务器通信，无需额外端口。
-- **单连接复用**: 所有工具共享一个 `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，
-  避免重复握手。
+- **主连接复用**: 写/控制类工具 (start/stop/step/set_config 等) 与主仿真循环共享一个
+  `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。
 - **仿真在守护线程**: `start_simulation` 调 `FactoryController.run()` 于 daemon 线程，
   立即返回；`status` / `stop` / `step` 可在运行中实时查询与控制。
 - **启动探活**: 启动 5s 后若 `sim_time` 不推进，自动在 `status.last_error` 写入冻结告警。

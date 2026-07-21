@@ -13,16 +13,31 @@ import factory_mcp_server
 from factory_mcp_server import FactoryMCPServer
 
 
-def _coppeliasim_up(host: str = "localhost", port: int = 23000) -> bool:
-    """探测 CoppeliaSim ZMQ 是否在线 — 不抛,只返回 bool。"""
-    try:
-        from coppeliasim_zmqremoteapi_client import RemoteAPIClient
-        c = RemoteAPIClient(host=host, port=port)
-        sim = c.require("sim")
-        sim.getSimulationState()  # 探针
-        return True
-    except Exception:
-        return False
+def _coppeliasim_up(host: str = "localhost", port: int = 23000,
+                    timeout: float = 3.0) -> bool:
+    """探测 CoppeliaSim ZMQ 是否在线 — 不抛,只返回 bool。
+
+    带超时: 若 ZMQ 端口存活但引擎冻结 (探针阻塞), 超时后返回 False
+    让测试 skip 而非挂起整个 suite。
+    """
+    import threading
+    result = {"up": False}
+
+    def _probe():
+        try:
+            from coppeliasim_zmqremoteapi_client import RemoteAPIClient
+            c = RemoteAPIClient(host=host, port=port)
+            sim = c.require("sim")
+            sim.getSimulationState()  # 探针
+            result["up"] = True
+        except Exception:
+            result["up"] = False
+
+    t = threading.Thread(target=_probe, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+    # 线程仍活 = 探针阻塞 (引擎冻结) → 视为不可用, 让测试 skip
+    return result["up"] and not t.is_alive()
 
 
 @pytest.fixture(scope="session")
