@@ -7,7 +7,8 @@ factory_mcp_server.py — CoppeliaSim 工厂仿真 MCP 服务器
 
 架构:
   - stdio 传输: Claude Code 通过 npx/stdio 启动本进程, 长驻管理 ZMQ 连接。
-  - 单连接复用: 所有工具共享一个 CoppeliaConnector, 避免重复握手。
+  - 双连接: 主连接 (写/控制类工具 + 主仿真循环) 与 ro_connector (只读诊断工具 +
+    run_lua) 经 ro_lock 隔离, 避免运行中诊断工具与主循环互挤 (解决假断连)。
   - 仿真在守护线程中运行: start_simulation 不阻塞 MCP 请求处理;
     status / stop / step 可在运行中实时查询与控制。
 
@@ -67,7 +68,8 @@ class FactoryMCPServer:
     仿真在守护线程中运行, 主线程负责响应 MCP 请求。
 
     设计要点:
-      - 单连接复用: connect 后所有工具共享 sim 句柄, 避免重复握手。
+      - 双连接: connect 后主连接 (写/控制类工具 + 主仿真循环) 与 ro_connector
+        (只读诊断工具 + run_lua) 隔离, 避免诊断工具与主循环互挤。
       - 线程隔离: 仿真主循环在 daemon 线程, MCP 工具线程只读 controller 状态。
       - 启动探活: start 后派生短时监控线程, 若 N 秒内 sim_time 不推进
         (已知完整场景冻结问题) 则写入 last_error 告警, status 可如实暴露。

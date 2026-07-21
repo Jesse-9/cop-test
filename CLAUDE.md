@@ -8,7 +8,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
-│  (FastMCP / stdio, 10 个工具, 仿真跑在守护线程)      │
+│  (FastMCP / stdio, 19 个工具, 仿真跑在守护线程)      │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -50,7 +50,7 @@
 | [factory_controller.py](src/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
 | [build_scene.py](src/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
 | [run_simulation.py](src/run_simulation.py) / [main.py](src/main.py) | CLI 入口 | `main()` |
-| [factory_mcp_server.py](src/factory_mcp_server.py) | MCP 服务器, 暴露 10 个工具给 Claude Code | `FactoryMCPServer`, `mcp` |
+| [factory_mcp_server.py](src/factory_mcp_server.py) | MCP 服务器, 暴露 19 个工具给 Claude Code (A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
 
 > 全部源码平铺在 [src/](src/) 下（基础层 / 控制层 / 视觉层 / 接入层 / CLI 入口），
 > 详见 [README.md](README.md) 的「项目结构」与 [docs/FILE_INDEX.md](docs/FILE_INDEX.md)。
@@ -101,7 +101,7 @@ uv run run-simulation --time 60
 ## MCP 服务器 (给 Claude Code 用)
 
 [factory_mcp_server.py](src/factory_mcp_server.py) 通过 [.mcp.json](.mcp.json) 注册，
-Claude Code 在本项目会话会自动加载。详细使用见 [docs/MCP_USAGE.md](docs/MCP_USAGE.md)。
+Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 
 ## 已知问题与坑 (重要)
 
@@ -113,15 +113,35 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/MCP_USAGE.
    `getStringSignal` 返回 None。`CoppeliaConnector.check_alive()` 已加回退探针
    (改用 `getSimulationState()`)，`connect()` 也已容错。
 
-3. **完整场景启动后冻结 (未解决)**: 完整工厂场景 (6 机械臂 + 传送带 + AGV) 启动后约 3 帧处
-   仿真冻结 (`state=8`, simTime 卡 0.15)，`sim.step()` 不再推进。
-   - 单机械臂/空场景 stepping 正常 → 推断是某机械臂模型脚本组合阻塞
-   - MCP 的 `start_simulation` 已加**启动探活**: 启动 5s 后若 sim_time 不推进,
-     `status` 的 `last_error` 会给出冻结告警与排查建议
-   - 排查手段: `stop_simulation` → 简化场景 (减少机械臂) → `step_simulation` 手动逐帧定位阻塞脚本
+3. **完整场景启动冻结 (已缓解)**: 完整工厂场景 (6 机械臂 + 传送带 + AGV) 启动后约 3 帧处
+   仿真冻结 (`state=8`, simTime 卡 0.15), `sim.step()` 不再推进, 报
+   "abort execution Connectivity >> ZMQ remote API server@addOnScript"。
+   - **根因**: 内置机械臂 (UR5/KUKA iiwa/Franka)、AGV (pioneer p3dx)、夹爪模型各自
+     携带 Lua 定制/子脚本, 多份脚本在 4.10 ZMQ addOn 层争用导致阻塞。
+   - **缓解 (已实施)**: `build_scene._strip_model_scripts()` 在加载每个模型后剥离其
+     脚本子对象 (按 `object_script_type` + 别名含 "script" 匹配); 同时统一全部机械臂
+     为 UR5 (6 轴), 不再混用 iiwa/Franka (避免脚本组合冲突 + 关节数不匹配)。
+     动画由 Python 端关键帧插值驱动 (`factory_robot.py`), 不依赖模型脚本。
+   - 若仍冻结: `stop_simulation` → `inspect_scene_state` 查残留脚本 → `step_simulation`
+     手动逐帧定位剩余阻塞脚本; 或用 `list_objects filter="*cript*"` 找脚本对象。
+   - MCP 的 `start_simulation` 启动探活: 启动 5s 后若 sim_time 不推进,
+     `status` 的 `last_error` 给出冻结告警与排查建议。
 
-4. **单 ZMQ 连接共享**: 所有 MCP 工具共享一个 CoppeliaConnector。仿真运行中,
-   `status` 调 `check_alive` 可能瞬时返回 False (连接被主循环占用), 属正常现象。
+4. **机械臂 0 关节 / 动画不播放**: `getObjectsInTree` 在仿真未启动或子树含不可查询
+   对象时抛 "Operation cannot be accomplished in current state", 导致采集到 0 关节。
+   `RobotArmAnimator._collect_arm_joints()` 已加全场景关节扫描回退 + HOME 姿态预置,
+   0 关节时输出 WARNING 而非静默。
+
+5. **AGV 朝向不更新 (已修复)**: 旧版 `_update_scene_positions` 只设 AGV 位置不设朝向,
+   小车始终以初始朝向滑行。已加 `_agv_yaw`/`_agv_prev_pos` 跟踪, 每帧按位移向量算
+   航向 `atan2(dy,dx)` 调 `setObjectOrientation`, 位移过小时保留上一朝向避免抖动。
+
+6. **双 ZMQ 连接**: MCP 服务器维护两个 `CoppeliaConnector` —— 主连接 (写/控制类工具 +
+   主仿真循环) 与 `ro_connector` (只读诊断工具 `get_object_pose`/`list_objects`/
+   `read_signal`/`get_object_tree`/`inspect_scene_state`/`get_simulation_state`/`run_lua`,
+   经 `ro_lock` 隔离)。仿真运行中, `status` 走主连接调 `check_alive` 可能瞬时返回
+   False (连接被主循环占用), 属正常现象; 只读诊断工具走 `ro_connector` 不受影响
+   (这正是双连接设计的目的, 解决旧版假断连)。详见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 
 ## 日志
 

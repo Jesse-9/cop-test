@@ -3,7 +3,8 @@
 基于 CoppeliaSim 4.10+ 的岛式车间柔性生产仿真系统，使用 Python + ZeroMQ Remote API
 实现分层场景构建与实时控制。
 
-> 📖 **使用指南**：从安装到运行的完整流程见 [docs/USAGE.md](docs/USAGE.md)。
+> 📖 **使用指南**：从安装到运行的完整流程见 [docs/wiki/98-ProjectUsage/USAGE.md](docs/wiki/98-ProjectUsage/USAGE.md)。
+> 📖 **MCP 工具**：19 个工具（A 读取/B 诊断/C 控制）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 > 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
 
 ## 核心特性
@@ -217,7 +218,7 @@ cop-test/
 │   │  # 视觉层
 │   ├── factory_robot.py           # 机械臂关键帧动画 (纯视觉层, 不影响调度)
 │   │  # 接入层
-│   ├── factory_mcp_server.py      # MCP 服务器 (10 个工具, 仿真跑守护线程)
+│   ├── factory_mcp_server.py      # MCP 服务器 (19 个工具: A 读取/B 诊断/C 控制, 双连接)
 │   │  # 场景 / CLI 入口
 │   ├── build_scene.py             # 场景构建器 (分层命名 + 内置模型回退)
 │   ├── run_simulation.py          # 柔性仿真 CLI 入口
@@ -225,9 +226,9 @@ cop-test/
 ├── factory-sim.ttt              # 构建好的 CoppeliaSim 场景 (按需跟踪)
 ├── docs/                        # LLM 知识库 (CoppeliaSim wiki / raw 源材料 / outputs)
 │   ├── CLAUDE.md                # 知识库 Schema 与维护规范
-│   ├── MCP_USAGE.md             # MCP 服务器使用文档
 │   ├── raw/                     # 官方手册原始资料 (只读, 不修改)
 │   ├── wiki/                    # 整理后的 CoppeliaSim 维基 (00~99 分类)
+│   │   └── 98-ProjectUsage/     # USAGE.md (安装/运行) + MCP_USAGE.md (19 工具)
 │   └── outputs/                 # 研究报告 / QA / 分析
 ├── evals/                       # skill 评测集 (evals.json)
 ├── .claude/skills/             # Claude Code skill 定义 (coppeliasim-factory-sim)

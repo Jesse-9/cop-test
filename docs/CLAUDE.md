@@ -10,7 +10,6 @@
 docs/                          # 本知识库根目录 (即 cop-test/docs)
 ├── CLAUDE.md                  # 本文件 — 知识库 Schema 和维护指南
 ├── README.md                  # 文档入口导航
-├── MCP_USAGE.md               # MCP 服务器使用文档
 ├── raw/                       # 未处理的源材料（官方文档HTML/MD、论文、网页存档等）
 │   ├── README.md              # 原始资料清单与来源验证
 │   └── ...                    # ⚠️ 永远不要修改这些文件
