@@ -32,8 +32,13 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 - **仿真在守护线程**: `start_simulation` 调 `FactoryController.run()` 于 daemon 线程，
   立即返回；`status` / `stop` / `step` 可在运行中实时查询与控制。
 - **启动探活**: 启动 5s 后若 `sim_time` 不推进，自动在 `status.last_error` 写入冻结告警。
+- **双连接**: 主连接 (写/控制类工具 + 主仿真循环) 与 `ro_connector` (只读诊断
+  工具 + `run_lua`) 隔离，避免运行中诊断工具与主循环互挤 (解决 CLAUDE.md
+  「已知问题」第 4 条假断连)。诊断类工具 (`get_object_pose` / `list_objects` /
+  `read_signal` / `get_object_tree` / `inspect_scene_state` / `get_simulation_state`
+  / `run_lua`) 走只读连接；其他工具走主连接。
 
-## 10 个工具
+## 19 个工具
 
 ### 连接与场景
 
@@ -49,7 +54,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 |------|------|---------|
 | `start_simulation` | 后台线程启动仿真主循环 | `total_time` (秒, 0=无限直到 stop), `log_file` |
 | `stop_simulation` | 停止仿真 (最多等 5s 收尾) | — |
-| `step_simulation` | 单步推进 (stepping 模式, 需先 start) | — |
+| `step_simulation` | 单步/多步推进 (stepping 模式, 需先 start) | `n` (默认 1, 上限 1000) |
 
 ### 状态与配置
 
@@ -59,6 +64,34 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 | `get_config` | 读取 factory_config 关键参数 (节拍/位置/路径/机械臂/阈值) | — |
 | `set_config` | 动态改单个配置 (内存级, 对已构建场景无效, 应在 build 前) | `key` (支持 `TAKT_TIME.A` 点号取值), `value` |
 | `tail_log` | 读 `factory_sim.log` 末尾 N 行 | `lines` (默认 50) |
+
+### A 档 — 读取 (Q1/Q2)
+
+只读诊断工具，走独立的 `ro_connector`，可在仿真运行中安全调用。
+
+| 工具 | 说明 | 关键参数 |
+|------|------|---------|
+| `get_object_pose` | 读物体真实位姿 (pose/pos/euler/matrix) | `alias_or_path`, `ref=world`, `components=pose` |
+| `list_objects` | 列场景物体 (按类型/别名过滤) | `filter=*`, `object_type=all` |
+| `read_signal` | 读信号 (string/int/float/double 自动判类型) | `name` |
+| `get_object_tree` | 列某对象子树 (joints/shapes/children) | `root_alias` |
+
+### B 档 — 诊断
+
+| 工具 | 说明 | 关键参数 |
+|------|------|---------|
+| `inspect_scene_state` | 一次性快照 (状态码 + sim_time + 物体位姿) | `summary=true` |
+| `get_simulation_state` | 轻量状态探针 (冻结排查, 仅状态码 + sim_time) | — |
+| `run_lua` | 远程 Lua 探针 (带护栏: 审计/超时/lingering/confirm) | `code`, `timeout=5`, `dry_run`, `confirm` |
+
+### C 档 — 运行时控制
+
+| 工具 | 说明 | 关键参数 |
+|------|------|---------|
+| `pause_simulation` | 暂停控制逻辑 (物理仍推进, stepping 模式下) | — |
+| `resume_simulation` | 恢复控制逻辑 (清 pause 标志) | — |
+
+> `step_simulation` 见「仿真生命周期」表 (扩展签名, 支持 `n` 多步)。
 
 ## 典型工作流
 
@@ -140,7 +173,7 @@ step_simulation                  → 手动逐帧 (绕过 controller 复杂初�
 
 不用经过 Claude Code，直接命令行验证服务器：
 ```bash
-# 打印 10 个工具清单
+# 打印 19 个工具清单
 .venv/Scripts/python src/factory_mcp_server.py --inspect
 
 # 直接跑各 CLI (不经 MCP)
