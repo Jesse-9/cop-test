@@ -142,13 +142,20 @@ Each `SIM_STEP` executes this fixed order (matches [CLAUDE.md](../../../CLAUDE.m
 
 ## Device Handle Mapping (by alias leaf, NOT slash path)
 
-Build a complete handle map on startup. Because slash-path `getObject` is
-unreliable in 4.10 (see [scene-building.md](scene-building.md) §Handle Lookup),
-acquire handles by **enumerating and alias-leaf matching**, not by
-`getObject("/Warehouse/S1_Main")`:
+Acquire handles by **enumerating and alias-leaf matching**, not by
+`getObject("/Warehouse/S1_Main")` (unreliable in 4.10 — see
+[scene-building.md](scene-building.md) §Handle Lookup).
+
+> ⚠ The project does **not** have a centralized `DeviceHandleMap` class. A
+> draft one was removed as unused in commit `c1b0223`. The alias-leaf matching
+> logic is **inlined and duplicated** across `build_scene.clear_scene`,
+> `factory_controller._setup_agv_visual`, and `factory_robot._collect_arm_joints`
+> (known cleanup item — see [scene-building.md](scene-building.md)). The class
+> below is an *illustrative pattern* for how to centralize it, not an existing
+> export:
 
 ```python
-class DeviceHandleMap:
+class DeviceHandleMap:  # illustrative — not in src/ today
     """Maps all scene objects by alias leaf name (4.10-safe)."""
 
     def __init__(self, sim):
@@ -187,8 +194,11 @@ class DeviceHandleMap:
         return self.handles[leaf]
 ```
 
-> A single `getObject()` is a ZMQ round-trip; populating the map once at
-> startup avoids per-step round-trips.
+(`find_by_leaf` is the alias-leaf matcher shown in
+[scene-building.md](scene-building.md) §Handle Lookup.)
+
+> A single `getObject()` is a ZMQ round-trip; caching handles once at startup
+> avoids per-step round-trips.
 
 ## Beat Tracking System
 
