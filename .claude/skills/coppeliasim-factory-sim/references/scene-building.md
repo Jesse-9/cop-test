@@ -1,252 +1,207 @@
 # Scene Building Reference — CoppeliaSim Island Workshop
 
-## Hierarchical Naming: The Why
+> Mirrors [docs/wiki/02-仿真建模/02-01-分层命名场景构建.md](../../../docs/wiki/02-仿真建模/02-01-分层命名场景构建.md)
+> and the real [src/build_scene.py](../../../src/build_scene.py).
 
-CoppeliaSim's scene tree uses slash-separated paths like a filesystem.
-This is not cosmetic — it enables:
+## Naming: UNDERSCORE aliases, never slash-path getObject
 
-- **Wildcard queries**: `sim.getObjectsInTree('/Island/A_Assembly')` returns
-  all children of Island A in one call
-- **No name collisions**: `/Island/A_Assembly/Robot` vs `/Island/D_QC_Assembly/Robot`
-  are distinct even though both end in `Robot`
-- **Scene browser readability**: Objects group naturally in the hierarchy panel
-- **Lua-side scripting**: `sim.getObject('/Island/A_Assembly/Robot_A')` is
-  self-documenting
+CoppeliaSim's scene tree is *conceptually* slash-separated (`/Warehouse/S1_Main`),
+but in **4.10+** `setObjectAlias` converts any `/` to `_` when storing the
+alias. So `setObjectAlias(h, "Conveyor/S1_to_A")` is stored as
+`_Conveyor_S1_to_A`, and `getObject("Conveyor/S1_to_A")` /
+`getObject("/Conveyor/S1_to_A")` **both fail**.
 
-**Rule**: Every object created via Python or Lua MUST be placed under its
-canonical parent path. Never create objects at the scene root.
+**Rule**:
+- **Aliases are flat underscore names** (`Warehouse_S1_Main`, `Conveyor_S1_to_A`,
+  `Island_A_Assembly`, `Mobile_AGV_Shared`). The slash form is only a
+  documentation/grouping aid.
+- **Handle lookup is by alias-leaf matching**, never slash-path `getObject`.
+
+The project's hierarchy roots (`cfg.HIERARCHY_ROOTS`) are:
+`Warehouse`, `Conveyor`, `Island`, `Mobile`, `Part` — created as invisible
+dummy "folder" objects, with devices `setObjectParent`'d under them.
 
 ## Object Creation Order
 
-Build the scene bottom-up so parent paths exist before children:
+Build bottom-up so parent roots exist before children:
 
-1. Floor (root level, no parent)
-2. Warehouse group → S1_Main, S2_Auxiliary
-3. Conveyor group → each conveyor belt + rollers
-4. Island group → each island body + internal equipment
-5. Mobile group → AGV_Shared
-6. Part group → material tags (created at runtime, not during scene build)
+1. Floor (root level)
+2. Hierarchy roots: `Warehouse`, `Conveyor`, `Island`, `Mobile`, `Part`
+3. Warehouses: `Warehouse_S1_Main`, `Warehouse_S2_Auxiliary`
+4. Conveyors: `Conveyor_S1_to_A`, `Conveyor_S1_to_B`, `Conveyor_S2_to_D`,
+   `Conveyor_C_to_E`
+5. Island bases: `Island_A_Assembly` … `Island_E_FinalAssembly`
+6. Robot arms per island (UR5), aliased `Island_<X>_<...>_Robot_<X>`
+7. AGV: `Mobile_AGV_Shared`
+8. Part tags: created at runtime (spawned materials), not during scene build
 
-## Creating Objects with Proper Hierarchy
-
-### Via Python (scene build phase)
+## Hierarchy Root + Child Creation
 
 ```python
-def create_child_cuboid(sim, parent_path: str, name: str,
-                         size: list, position: list,
-                         color: list = None) -> int:
-    """Create a cuboid as a child of parent_path."""
-    parent_handle = sim.getObject(parent_path)
-    handle = sim.createPrimitiveShape(
-        sim.primitiveshape_cuboid, size
-    )
-    # Set as child of parent
-    sim.setObjectParent(handle, parent_handle, True)
-    # Position relative to parent (use sim.handle_parent)
-    sim.setObjectPosition(handle, position, sim.handle_parent)
+def create_hierarchy_roots(sim) -> dict[str, int]:
+    roots = {}
+    for name in ("Warehouse", "Conveyor", "Island", "Mobile", "Part"):
+        h = sim.createDummy(0.01)
+        sim.setObjectAlias(h, name)                 # flat, no slash
+        sim.setObjectInt32Param(h, sim.objintparam_visibility, 0)
+        roots[name] = h
+    return roots
+
+def create_child_cuboid(sim, parent_handle: int, alias: str,
+                        size: list, position: list,
+                        color: list = None) -> int:
+    """Create a cuboid under a hierarchy root, with a flat underscore alias."""
+    handle = sim.createPrimitiveShape(sim.primitiveshape_cuboid, size)
+    sim.setObjectParent(handle, parent_handle, True)   # inPlace=True keeps world coords
+    sim.setObjectPosition(handle, position, sim.handle_world)
     if color:
         sim.setObjectColor(handle, 0, sim.colorcomponent_ambient_diffuse, color)
-    # Set alias to the full path name
-    full_path = f"{parent_path}/{name}"
-    sim.setObjectAlias(handle, full_path)
+    sim.setObjectAlias(handle, alias)                  # e.g. "Warehouse_S1_Main"
     return handle
 ```
 
-### Via Lua (CoppeliaSim init script)
+> Do **not** write `sim.setObjectAlias(handle, f"{parent_path}/{name}")` — the
+> slash will be mangled to `_` and you'll have a hard-to-predict stored alias.
+> Pass the full flat alias directly.
 
-```lua
--- In CoppeliaSim's embedded script, create hierarchical objects:
-function createIsland(name, pos, size, color)
-    local parent = sim.createPrimitiveShape(
-        sim.primitiveshape_cuboid, size
-    )
-    sim.setObjectAlias(parent, '/Island/' .. name)
-    sim.setObjectPosition(parent, pos, sim.handle_world)
-    sim.setObjectColor(parent, 0, sim.colorcomponent_ambient_diffuse, color)
-    return parent
-end
+## Built-in Models: load + strip scripts + reparent
 
--- Then create child equipment:
-local robotA = sim.createPrimitiveShape(
-    sim.primitiveshape_cylinder, {0.15, 0.15, 0.4}
-)
-sim.setObjectParent(robotA, parentA, true)
-sim.setObjectAlias(robotA, '/Island/A_Assembly/Robot_A')
-```
-
-## Using CoppeliaSim Built-in Models
-
-CoppeliaSim ships with a rich library of pre-built industrial models —
-articulated robots, conveyor belts, mobile platforms, sensors, and more.
-**Prefer loading built-in models over building everything from primitive
-shapes** — they come with realistic geometry, joint configurations, and
-often include embedded control scripts.
-
-### Model Base Directory
-
-```
-C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\
-```
-
-The directory tree under `models/` is organized by category:
-
-```
-models/
-├── robots/
-│   ├── mobile/          ← AGVs, mobile platforms, differential drive robots
-│   └── non-mobile/      ← Articulated robot arms (KUKA, ABB, UR, etc.)
-├── conveyors/           ← Belt conveyors, roller conveyors
-├── equipment/           ← Machines, fixtures, tool changers
-├── infrastructure/      ← Floors, walls, fences, pillars, safety barriers
-├── sensors/             ← Proximity, vision, laser scanners
-├── components/          ← Generic parts, grippers, nozzles
-├── tools/               ← Welding guns, suction cups, cutting tools
-└── people/              ← Human models (for workspace ergonomics)
-```
-
-### Loading a Model via Python
-
-Use `sim.loadModel()` to bring a built-in model into the scene at a target
-position. The model's internal hierarchy is preserved — you then reparent
-and alias its root to fit the workshop naming convention:
+Prefer `sim.loadModel()` over primitives — realistic geometry and joints. The
+project's model base is `cfg.MODEL_BASE`
+(`C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models`), with relative
+paths in `cfg.BUILTIN_MODELS`.
 
 ```python
 import os
 
-MODEL_BASE = r"C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models"
-
 def load_model(sim, model_relative_path: str, target_position: list,
-               new_alias: str, parent_path: str = None) -> int:
-    """
-    Load a CoppeliaSim built-in model and integrate into the workshop hierarchy.
+               new_alias: str, parent_handle: int = None) -> int:
+    """Load a built-in model, strip its scripts, reparent, and alias it."""
+    full_path = os.path.join(cfg.MODEL_BASE, model_relative_path)
+    if not os.path.isfile(full_path):
+        return _fallback_primitive(sim, new_alias, parent_handle)  # 几何体回退
 
-    Args:
-        model_relative_path: Path relative to MODEL_BASE, e.g.
-                             'robots/non-mobile/KUKA LBR iiwa 14 R820.ttm'
-        target_position:    [x, y, z] world position to place the model
-        new_alias:          Canonical alias, e.g. '/Island/A_Assembly/Robot_A'
-        parent_path:        Optional parent to reparent under, e.g. '/Island/A_Assembly'
-
-    Returns:
-        Handle of the loaded model's root object.
-    """
-    full_path = os.path.join(MODEL_BASE, model_relative_path)
-    if not os.path.exists(full_path):
-        raise FileNotFoundError(f"Model not found: {full_path}")
-
-    # loadModel returns the handle of the model's root object
     model_handle = sim.loadModel(full_path)
 
-    # Set position in world before reparenting
+    # ⚠ Strip the model's embedded Lua scripts — without this, the mixed
+    # script set blocks the 4.10 ZMQ addOn layer ~3 frames in and freezes
+    # the whole scene (state=8). See SKILL.md §Robot Arm Policy.
+    _strip_model_scripts(sim, model_handle)
+
     sim.setObjectPosition(model_handle, target_position, sim.handle_world)
-
-    # Reparent under workspace hierarchy if requested
-    if parent_path:
-        parent_handle = sim.getObject(parent_path)
+    if parent_handle is not None:
         sim.setObjectParent(model_handle, parent_handle, True)
-
-    # Assign canonical alias
-    sim.setObjectAlias(model_handle, new_alias)
-
+    sim.setObjectAlias(model_handle, new_alias)   # flat underscore alias
     return model_handle
 ```
 
-### Loading a Model via Lua (CoppeliaSim embedded script)
+### Script stripping (`build_scene._strip_model_scripts`)
 
-```lua
-local modelBase = [[C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\]]
-
-function loadWorkshopModel(relativePath, pos, alias, parentPath)
-    local fullPath = modelBase .. relativePath
-    local handle = sim.loadModel(fullPath)
-    sim.setObjectPosition(handle, pos, sim.handle_world)
-    if parentPath then
-        sim.setObjectParent(handle, sim.getObject(parentPath), true)
-    end
-    sim.setObjectAlias(handle, alias)
-    return handle
-end
-```
-
-### Recommended Built-in Models for Island Workshop
-
-This table maps each workshop element to suitable built-in models. Paths are
-relative to the model base directory. If a listed model is missing, check your
-CoppeliaSim edition (Edu vs Pro) or fall back to primitive shapes.
-
-| Workshop Element | Recommended Model (relative path) | Notes |
-|-----------------|----------------------------------|-------|
-| **Articulated Robot (Island A/D)** | `robots/non-mobile/KUKA LBR iiwa 14 R820.ttm` | 7-axis lightweight, good for assembly. Alternatives: `UR5.ttm`, `ABB IRB 120.ttm` |
-| **Conveyor Belt** | `conveyors/belt conveyor/50cm/50cm belt conveyor.ttm` | Adjustable length. Several width variants available under `conveyors/` |
-| **Mobile AGV** | `robots/mobile/pioneer p3dx.ttm` | Differential drive platform. Alternatives: `robots/mobile/youBot.ttm` (omnidirectional with arm) |
-| **Proximity Sensor** | `sensors/proximity sensor.ttm` | Generic photoelectric-like sensor |
-| **Vision Sensor** | `sensors/vision sensor.ttm` | For QC inspection at Island D |
-| **Fixture / Table** | `equipment/table.ttm` or `infrastructure/table.ttm` | Work surface for islands |
-| **Safety Fence** | `infrastructure/safety fence.ttm` | Surrounds robot work cells |
-| **Pallet / Tray** | `equipment/pallet.ttm` | Material carrier on conveyors |
-| **Floor** | `infrastructure/floor.ttm` | Textured industrial floor; or use primitive cuboid |
-
-### Model Names Can Vary by Version
-
-CoppeliaSim model filenames may differ between versions and editions (Edu vs
-Pro). Before writing code that references a specific model, **verify the
-exact filename** by browsing the directory. For example:
-
-```bash
-# List available conveyor models
-ls "C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\conveyors\"
-
-# List robot arms
-ls "C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\robots\non-mobile\"
-
-# List mobile robots (for AGV)
-ls "C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\robots\mobile\"
-```
-
-If a preferred model is missing, fall back to the primitive-shape approach
-described in the previous section. Always document which models were used
-in the project README.
-
-### After Loading: Rename Internal Objects
-
-Built-in models contain their own internal hierarchy (links, joints, shapes).
-After loading, iterate the model's children and assign meaningful aliases so
-the ZMQ API can address specific parts:
+After `loadModel`, enumerate the model's subtree and remove objects whose
+`object_script_type` is set **and** whose alias contains "script":
 
 ```python
-def rename_model_children(sim, model_handle: int, base_alias: str):
-    """Assign hierarchical aliases to all children of a loaded model."""
-    child_count = sim.getObjectChildCount(model_handle)
-    for i in range(child_count):
-        child = sim.getObjectChild(model_handle, i)
-        child_name = sim.getObjectAlias(child)
-        # Build canonical path: e.g. /Island/A_Assembly/Robot_A/Joint_1
-        new_alias = f"{base_alias}/{child_name}"
-        sim.setObjectAlias(child, new_alias)
+def _strip_model_scripts(sim, model_handle: int):
+    """Remove a loaded model's Lua customization/child scripts."""
+    i = 0
+    while True:
+        try:
+            h = sim.getObjects(i, sim.object_script_type)
+            if h is None or h < 0:
+                break
+        except Exception:
+            break
+        # Only strip scripts that belong to THIS model's subtree
+        if _is_in_subtree(sim, h, model_handle):
+            alias = sim.getObjectAlias(h)
+            if "script" in alias.lower():
+                sim.removeObject(h)
+                continue   # don't increment i — indices shift after removal
+        i += 1
 ```
 
-## Standard Object Dimensions
+> This is the mitigation for the "abort execution Connectivity >> ZMQ remote
+> API server@addOnScript" freeze. If a scene still freezes, use
+> `list_objects filter="*cript*"` (via the MCP `list_objects` tool) to find
+> residual scripts, then `step_simulation` frame-by-frame to localize the
+> blocker.
 
-These are the recommended proportions for an island workshop. Adjust based on
-your actual equipment sizes:
+## Robot Arm Policy: Unified UR5 (6-axis)
 
-| Object | Dimensions (X, Y, Z) meters | Notes |
-|--------|---------------------------|-------|
-| Floor | (16, 8, 0.05) | Dark gray, matte |
-| Warehouse | (1.2, 1.2, 0.8) | Colored cuboid + label |
+All island arms are **UR5** (`cfg.BUILTIN_MODELS["robot_arm_ur5"]` =
+`robots/non-mobile/UR5.ttm`). Never mix in KUKA iiwa or Franka:
+
+- Their 7-axis joint count misaligns with the project's 6-element keyframe
+  arrays (`cfg.ARM_ANIMATIONS`) → animation pose corruption / index overflow.
+- Mixed model scripts trigger the startup freeze above.
+
+Per-island config lives in `cfg.ISLAND_ROBOTS` (A/B/C/D each one arm; E has
+two — `E_C` left, `E_D` right — for paired assembly). Aliases follow
+`Island_<X>_<Name>_Robot_<X>` (e.g. `Island_A_Assembly_Robot_A`,
+`Island_E_FinalAssembly_Robot_E_C`).
+
+Animation is **pure visual** — Python-side keyframe interpolation in
+[factory_robot.py](../../../src/factory_robot.py), no IK, no model scripts.
+`RobotArmAnimator._collect_arm_joints()` scans the scene for joints with a
+full-scene fallback (since `getObjectsInTree` throws "Operation cannot be
+accomplished in current state" when sim is stopped or the subtree contains
+non-queryable objects).
+
+## Idempotent Clear (clear_scene)
+
+Repeated builds cause alias collisions (multiple objects with the same leaf
+name). `build_scene.clear_scene(sim)` enumerates all main object types and
+batch-removes them before construction:
+
+> ⚠ The clear type list includes `object_camera_type` / `object_light_type`,
+> so it will delete the default viewport camera and light. If you need to
+> keep them, remove those two types from the list. (Documented in
+> [docs/wiki/02-仿真建模/02-01-分层命名场景构建.md](../../../docs/wiki/02-仿真建模/02-01-分层命名场景构建.md).)
+
+## Handle Lookup by Alias-Leaf Matching
+
+Because slash-path `getObject` is unreliable in 4.10, the project locates
+objects by enumerating and matching the alias leaf:
+
+```python
+def find_by_leaf(sim, leaf: str, obj_type) -> int | None:
+    """Locate an object by its alias leaf name (slash- and underscore-aware)."""
+    i = 0
+    while True:
+        try:
+            h = sim.getObjects(i, obj_type)
+            if h is None or h < 0:
+                break
+            alias = sim.getObjectAlias(h)
+            norm = alias.rsplit("/", 1)[-1].rsplit("_", 1)[-1]
+            if alias == leaf or norm == leaf:
+                return h
+            i += 1
+        except Exception:
+            break
+    return None
+```
+
+> This matching logic is currently duplicated in `build_scene.clear_scene`,
+> `factory_controller._setup_agv_visual`, and
+> `factory_robot._collect_arm_joints` — a known cleanup item.
+
+## Standard Dimensions (from cfg)
+
+| Object | Dimensions (X, Y, Z) m | Notes |
+|--------|------------------------|-------|
+| Floor | (18.0, 11.0, 0.05) | Centered at world origin; Y from -5.5 to 5.5 to fit D island lowered |
+| Warehouse | (1.2, 1.2, 0.8) | Colored cuboid |
 | Work Island | (1.4, 1.4, 0.9) | Base + identifier pillar |
-| Conveyor Belt | (length, 0.5, 0.06) | Flat cuboid, length from start→end |
-| Conveyor Roller | (0.08r, 0.08r, width+0.04) | Cylinder at each end |
-| AGV Body | (0.6, 0.4, 0.25) | White cuboid |
-| Material Cube | (0.15, 0.15, 0.12) | Color varies by type |
-| Island Pillar | (0.12r, 0.12r, 0.35) | Cylinder on top of island |
+| Conveyor | (length, 0.5, ~) | Length derived from start→end |
+| AGV Body | (0.6, 0.4, 0.25) | White |
+| Material Cube | (0.15, 0.15, 0.12) | Color by type |
+| `Z_BASE` | 0.6 | Working height for all devices/conveyors |
 
-## Color Coding Convention
+## Color Coding (from cfg)
 
-Use consistent colors to make the scene immediately readable:
-
-| Element Type | RGB | Visual |
-|-------------|-----|--------|
+| Element | RGB | Visual |
+|---------|-----|--------|
 | Warehouse S1 | (0.2, 0.4, 0.9) | Blue |
 | Warehouse S2 | (0.2, 0.8, 0.8) | Cyan |
 | Island A | (0.2, 0.8, 0.3) | Green |
@@ -256,11 +211,8 @@ Use consistent colors to make the scene immediately readable:
 | Island E | (0.9, 0.2, 0.2) | Red |
 | Conveyor | (0.5, 0.5, 0.5) | Gray |
 | AGV | (0.95, 0.95, 0.95) | White |
-| Floor | (0.25, 0.25, 0.28) | Dark gray |
 
-## Material Color Coding
-
-Each material type gets a distinct color for visual tracking:
+## Material Color Coding (`cfg.MATERIAL_COLORS`)
 
 | Material | RGB | Meaning |
 |----------|-----|---------|
@@ -273,67 +225,33 @@ Each material type gets a distinct color for visual tracking:
 | part_DE | (0.8, 0.5, 1.0) | Light purple — D→E special part |
 | final_E | (0.9, 0.9, 0.1) | Gold — finished product |
 
-## Sensors and Triggers
+## Layout Coordinates (from cfg)
 
-For material detection and process automation, place these sensor types:
-
-### Proximity Sensors (Photoelectric Switch Simulation)
-Use CoppeliaSim's proximity sensor type to detect when materials arrive:
-
-```python
-def create_proximity_sensor(sim, parent_path: str, name: str,
-                             position: list, detection_range: float = 0.3):
-    """Create a proximity sensor to detect material arrival."""
-    handle = sim.createProximitySensor(
-        sim.proximitysensor_ray, detection_range, [0, 0, 1]
-    )
-    sim.setObjectParent(handle, sim.getObject(parent_path), True)
-    sim.setObjectPosition(handle, position, sim.handle_parent)
-    sim.setObjectAlias(handle, f"{parent_path}/{name}")
-    return handle
-```
-
-### Recommended Sensor Placements
-
-| Location | Sensor Name | Purpose |
-|----------|------------|---------|
-| End of each conveyor | `Conveyor/*/Sensor_Arrival` | Detect material reaching conveyor end |
-| Each island input | `Island/*/Sensor_Input` | Detect material arriving at island |
-| AGV loading point | `Mobile/AGV_Shared/Sensor_Load` | Confirm material loaded onto AGV |
-
-## Physics and Collision Configuration
-
-For realistic material handling:
-
-- **Conveyors**: Set as **static, non-respondable** (materials ride on top via
-  script positioning, not physics simulation)
-- **Island bases**: **Static, respondable** — provides collision surface
-- **AGV body**: **Non-static, respondable** — moves via script but should
-  collide with obstacles
-- **Materials**: **Non-static, respondable** — if you want physics-based
-  interactions; otherwise **non-respondable** if purely script-driven
-- **Floor**: **Static, respondable** — the ground plane
-
-## Layout Coordinates Template
-
-When designing a new island workshop, start from this coordinate template
-and adjust for your specific layout. Origin (0,0) at floor center:
+Origin (0,0) at floor center; `Z_BASE = 0.6` is the working height:
 
 ```
 Y-axis ↑
-  4 ┤
-  2 ┤  S1(-7,2)          A(-2.5,2)        C(2,2)
-  0 ┤                                        ● E(6,-0.5)
- -1 ┤                     B(-2.5,-1)
- -3 ┤  S2(-7,-3)          D(-2.5,-3)
- -4 ┤
-     └──────────────────────────────────────────→ X-axis
-    -8   -6    -4    -2     0     2     4     6     8
+  2 ┤  S1(-7,2)            A(-2.5,2)       C(2,2)
+  0 ┤                                         ● E(6,-0.5)
+ -1 ┤                       B(-2.5,-1)
+ -4.5┤ S2(-7,-4.5)          D(-2.5,-4.5)
+    └──────────────────────────────────────────→ X-axis
+  -7      -2.5    0      2        6
 ```
 
 **Layout principles**:
 1. Warehouses on the left (negative X), final assembly on the right (positive X)
 2. Material flows generally left-to-right
-3. Related islands paired vertically (A/B, C/D) for efficient AGV routing
-4. AGV paths should avoid crossing conveyors at grade level
-5. Leave at least 1.5m clearance between islands for AGV maneuverability
+3. D island is lowered to Y=-4.5 to give the D→E AGV route clearance
+4. AGV D→E route has mid-turn waypoints to avoid crossing conveyors at grade
+
+## Physics / Collision Configuration
+
+- **Conveyors**: Static, non-respondable (materials ride on top via script
+  positioning, not physics)
+- **Island bases**: Static, respondable — collision surface
+- **AGV body**: Script-driven position + orientation (yaw recomputed each
+  frame from the displacement vector; small movements keep prior yaw to
+  avoid jitter — see `factory_controller._update_scene_positions`)
+- **Materials**: Non-respondable, script-driven (purely positional)
+- **Floor**: Static, respondable — ground plane

@@ -17,10 +17,16 @@ compatibility:
 
 # CoppeliaSim Island-Style Flexible Production Simulation
 
-Guide for building industrial-grade factory simulations in CoppeliaSim 4.10+ with
-Python ZeroMQ Remote API control. Focuses on island-style workshop architecture
-with flexible production scheduling, industrial beat alignment, and robust
-exception handling.
+Guide for building and controlling industrial-grade factory simulations in
+CoppeliaSim 4.10+ with Python ZeroMQ Remote API control. Focuses on the
+**island-style workshop architecture** used by the real `cop-test` project:
+five work islands, two warehouses, four conveyors, a single shared AGV,
+unified UR5 robot arms, and robust exception handling.
+
+> This skill mirrors the authoritative wiki and source. When details here and
+> the repo disagree, the repo (CLAUDE.md / `src/` / `docs/wiki/`) wins. See
+> [06-02-岛式车间柔性生产案例.md](../../../docs/wiki/06-工业案例/06-02-岛式车间柔性生产案例.md)
+> and [06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md).
 
 ## When to Read Reference Files
 
@@ -29,90 +35,128 @@ references when you need specifics:
 
 | Reference | When to Read |
 |-----------|-------------|
-| [references/scene-building.md](references/scene-building.md) | Creating/placing 3D objects, hierarchical naming, sensors, collision setup |
-| [references/control-framework.md](references/control-framework.md) | ZMQ connection, stepping mode, handle mapping, beat dictionary |
-| [references/scheduling.md](references/scheduling.md) | AGV state machine, flexible routing, priority preemption, deadlock prevention |
-| [references/exception-handling.md](references/exception-handling.md) | ZMQ reconnect, congestion detection, workstation timeout, logging |
+| [references/scene-building.md](references/scene-building.md) | Placing 3D objects, **underscore aliases (not slash paths)**, built-in model loading, script stripping, idempotent clear |
+| [references/control-framework.md](references/control-framework.md) | ZMQ connection + reconnect, stepping mode, **alias-leaf handle mapping**, beat dictionary, logger |
+| [references/scheduling.md](references/scheduling.md) | AGV state machine, priority queue, starvation escalation, island state machine, material lifecycle |
+| [references/exception-handling.md](references/exception-handling.md) | ZMQ reconnect, congestion/timeout/overflow, upstream supply gating, emergency stop |
+| [references/workflow.md](references/workflow.md) | The change workflow: **plan → execute → review → update docs → commit** (code, then docs) |
 
 ## Architecture Overview
 
-The system follows a **three-tier architecture**:
+The system follows a **three-tier architecture plus an MCP access layer**:
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Python Control Layer (this codebase)            │
-│  - SimulationLoop (time-driven stepping)         │
-│  - AGV_Scheduler (flexible routing + priority)   │
-│  - Exception_Handler (polling + recovery)        │
-│  - BeatTracker (TAKT_TIME validation)            │
-├─────────────────────────────────────────────────┤
-│  ZeroMQ Remote API (synchronous, stepping mode)  │
-│  sim.setStepping(True) + sim.step()              │
-├─────────────────────────────────────────────────┤
-│  CoppeliaSim 4.10 Scene                          │
-│  - Island workshop layout                        │
-│  - Hierarchical object paths                     │
-│  - Sensors, collision bodies                     │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
+│  (FastMCP / stdio, 19 个工具, 仿真跑在守护线程)      │
+└───────────────┬─────────────────────────────────────┘
+                │ 调用
+┌───────────────▼─────────────────────────────────────┐
+│  Python Control Layer                              │
+│  factory_controller.py  — FactoryController (编排)   │
+│  factory_island.py      — 工作岛/节拍追踪/供料门控   │
+│  factory_agv.py         — 共享 AGV 柔性调度器        │
+│  factory_exceptions.py  — 统一异常处理              │
+│  factory_robot.py       — 机械臂动画 (纯视觉层)      │
+│  factory_types.py       — 枚举/数据类/物料           │
+└───────────────┬─────────────────────────────────────┘
+                │ ZMQ Remote API (同步, stepping 模式)
+┌───────────────▼─────────────────────────────────────┐
+│  ZeroMQ Remote API Layer — factory_core.py          │
+│  CoppeliaConnector / ZMQMonitor / setup_logger      │
+└───────────────┬─────────────────────────────────────┘
+                │ TCP localhost:23000
+        ┌────────▼────────┐
+        │  CoppeliaSim 4.10+ │  (3D 物理引擎 + 内置模型)
+        └──────────────────┘
 ```
 
-**Core principle**: The Python side is always the clock master. Every simulation
-step is triggered by `sim.step()`, ensuring the control logic stays strictly
-synchronized with the physics engine. This is what makes precise industrial beat
-timing possible.
+**Clock master**: The Python side is always the clock master. After
+`sim.setStepping(True)`, each `sim.step()` advances one `SIM_STEP`
+(default 0.05s), so control logic and the physics engine stay strictly
+synchronized — the foundation for precise industrial beat timing.
 
 ## Island Workshop Topology
 
-The standard topology matches the user's spec — a flexible production line with
-five work islands, two warehouses, conveyors, and shared AGVs:
+The standard topology (matches [factory_config.py](../../../src/factory_config.py)):
+five work islands A–E, two warehouses S1/S2, four conveyors, one shared AGV.
 
 ```
 Material flow:
-  S1 ──conv_S1A──→ A ──agv_AC──→ C ──conv_CE──→ E
-  S1 ──conv_S1B──→ B ──agv_BA──→ A              ↗
-  S2 ──conv_S2D──→ D ──agv_DE──────────────→  E
+  S1 ──Conveyor_S1_to_A──→ A ──A→C刚性──→ C ──Conveyor_C_to_E──→ E
+  S1 ──Conveyor_S1_to_B──→ B ──AGV B→A (高优先)──→ A              ↘
+  S2 ──Conveyor_S2_to_D──→ D ──AGV D→E (低优先,饥饿升级)────────→ E
 
 Flexible paths:
-  B → A: Cross-island replenishment, AGV dynamic routing
-  D → E: Custom/rework parts, AGV with priority constraints
+  B → A: Cross-island replenishment, AGV dynamic routing (priority 0)
+  D → E: Custom/rework parts, AGV (priority 1, escalatable)
 
-Assembly at E:
+Assembly at E (pair-matched gating):
   SEMI_CE (from C) + PART_DE (from D) → FINAL product
 ```
 
-## Mandatory Naming Convention
+## Mandatory Naming Convention (4.10+ — UNDERSCORE, NOT SLASH)
 
-All scene objects MUST use hierarchical slash-separated paths. This is not
-optional — it prevents namespace pollution, enables wildcard queries, and
-makes the scene tree navigable in CoppeliaSim's browser.
+> ⚠ This is the single most important 4.10+ rule, and the most common
+> mistake. See the wiki's "4.10 别名路径陷阱":
+> [docs/wiki/02-仿真建模/02-01-分层命名场景构建.md](../../../docs/wiki/02-仿真建模/02-01-分层命名场景构建.md).
+
+In CoppeliaSim 4.10+, `setObjectAlias` **converts any `/` in an alias to an
+underscore** when storing it. So `setObjectAlias(h, "Conveyor/S1_to_A")` is
+stored as `_Conveyor_S1_to_A`, and subsequent `getObject("Conveyor/S1_to_A")`
+or `getObject("/Conveyor/S1_to_A")` queries **fail**.
+
+**Rule**: All aliases are flat underscore names. Slash paths are only a
+conceptual grouping aid and must never be passed to `getObject`.
 
 ```
-/Warehouse/S1_Main            — Primary raw material storage
-/Warehouse/S2_Auxiliary       — Secondary/auxiliary material storage
+Warehouse_S1_Main            — Primary raw material storage
+Warehouse_S2_Auxiliary       — Secondary/auxiliary material storage
 
-/Conveyor/S1_to_A             — Conveyor from S1 to Island A
-/Conveyor/S1_to_B             — Conveyor from S1 to Island B
-/Conveyor/S2_to_D             — Conveyor from S2 to Island D
-/Conveyor/C_to_E              — Conveyor from Island C to E
+Conveyor_S1_to_A              — Conveyor from S1 to Island A
+Conveyor_S1_to_B              — Conveyor from S1 to Island B
+Conveyor_S2_to_D              — Conveyor from S2 to Island D
+Conveyor_C_to_E               — Conveyor from Island C to E
 
-/Island/A_Assembly            — Assembly/processing island A
-/Island/A_Assembly/Robot_A    — Robot arm in Island A
-/Island/B_Preprocess          — Preprocessing island B
-/Island/B_Preprocess/Fixture_B — Cyclic fixture in Island B
-/Island/C_Processing          — Processing island C
-/Island/C_Processing/Machine_C — Machine module in Island C
-/Island/D_QC_Assembly         — QC/Assembly island D
-/Island/D_QC_Assembly/Robot_D — Robot arm in Island D
-/Island/E_FinalAssembly       — Final assembly line E
-/Island/E_FinalAssembly/Line_E — Multi-device assembly line
+Island_A_Assembly             — Assembly/processing island A
+Island_A_Assembly_Robot_A     — UR5 arm in Island A
+Island_B_Preprocess           — Preprocessing island B
+Island_B_Preprocess_Robot_B  — UR5 arm in Island B
+Island_C_Processing          — Processing island C
+Island_C_Processing_Robot_C  — UR5 arm in Island C
+Island_D_QC_Assembly         — QC/Assembly island D
+Island_D_QC_Assembly_Robot_D — UR5 arm in Island D
+Island_E_FinalAssembly       — Final assembly line E
+Island_E_FinalAssembly_Robot_E_C — E-line arm for the C stream (left)
+Island_E_FinalAssembly_Robot_E_D — E-line arm for the D stream (right)
 
-/Mobile/AGV_Shared            — Shared AGV for flexible transport
-
-/Part/Raw                     — Raw material tag
-/Part/Semi_A                  — Semi-finished from A
-/Part/Semi_C                  — Semi-finished from C
-/Part/Aux_D                   — Auxiliary part from D
+Mobile_AGV_Shared            — Single shared AGV
 ```
+
+**Handle lookup** is done by **alias-leaf matching** (enumerate objects, compare
+the final path segment), never by slash-path `getObject`. See
+[references/control-framework.md](references/control-framework.md) §Handle Mapping.
+
+## Robot Arm Policy: Unified UR5 (6-axis) + Script Stripping
+
+All six island arms are **UR5 (6-axis)** — never mix in KUKA iiwa or Franka.
+
+- Mixed UR5/iiwa/Franka in 4.10 triggers a startup freeze ~3 frames in
+  (`state=8`, simTime stuck at 0.15s) with
+  `"abort execution Connectivity >> ZMQ remote API server@addOnScript"`.
+  Root cause: each built-in model ships its own Lua customization/child
+  scripts; multiple script objects contend on the 4.10 ZMQ addOn layer.
+- iiwa/Franka are 7-axis; the project's 6-element keyframe arrays
+  misalign/overflow on 7-axis arms.
+- `build_scene._strip_model_scripts()` strips each loaded model's script
+  sub-objects (matched by `object_script_type` + alias containing "script")
+  right after `sim.loadModel()`, so animation is driven purely by Python-side
+  keyframe interpolation in [factory_robot.py](../../../src/factory_robot.py) — no model
+  scripts involved.
+
+If a full scene still freezes: `stop_simulation` → `inspect_scene_state` to
+find residual scripts → `step_simulation` frame-by-frame to locate the
+blocking script, or `list_objects filter="*cript*"`.
 
 ## Production Workflow State Machine
 
@@ -120,63 +164,92 @@ The production lifecycle has three phases. Each island and transport unit
 maintains its own sub-state-machine within these phases:
 
 ### Phase 1: Supply
-- S1 continuously produces raw materials, splits to Island A and Island B
-- S2 continuously produces auxiliary materials to Island D
-- Supply cadence governed by `TAKT_TIME` per island
-- If a downstream island is in TIMEOUT state, upstream supply pauses
+- S1 produces raw materials, splits to Island A (raw_A) and Island B (raw_B)
+- S2 produces auxiliary parts to Island D (raw_D)
+- Supply cadence governed by `MATERIAL_INTERVAL` (default 5.0s) and gated by
+  `SupplyController` per downstream island state
+- If a downstream island is in TIMEOUT or queue full, upstream supply pauses
 
 ### Phase 2: Flexible Transfer (Island-to-Island)
-- **B → A (flexible)**: AGV_Shared dynamically dispatched. Higher priority.
-- **A → C (rigid)**: Fixed conveyor or dedicated robot arm transfer
-- AGV handles route planning with collision avoidance
+- **B → A (flexible, AGV)**: `Mobile_AGV_Shared` dynamically dispatched,
+  higher base priority (priority=0)
+- **A → C (rigid)**: Fixed transfer, not via AGV (handled inline by the
+  controller's `_handle_ac_transfer`)
+- AGV handles route planning with collision avoidance along waypoints
 
 ### Phase 3: Main Line + Special Path Merge
-- **C → E (main line)**: Continuous conveyor flow
-- **D → E (special path)**: AGV_Shared, only when IDLE and C→E is not blocked
+- **C → E (main line)**: Continuous conveyor flow (`Conveyor_C_to_E`), produces
+  `SEMI_CE`
+- **D → E (special path)**: AGV `D_TO_E`, lower base priority; only when the
+  AGV is IDLE. Produces `PART_DE`
+- E pair-matches `SEMI_CE` + `PART_DE` → spawns `FINAL` (gold)
+
+## Single-Step Simulation Loop Order (FactoryController.run)
+
+Each `SIM_STEP` executes this fixed 13-step order (see
+[CLAUDE.md](../../../CLAUDE.md) and
+[references/control-framework.md](references/control-framework.md)):
+
+1. Exception polling (ZMQ comm / workstation timeout / material overflow / AGV congestion)
+2. If comm paused → advance physics only, skip control logic
+3. Warehouses spawn materials by cadence (S1→A, S1→B, S2→D)
+4. Conveyors move materials (4 belts)
+5. Island processing (update processing time + beat tracking)
+6. AGV task scheduling (B→A high priority, D→E low priority)
+7. AGV state machine advance
+8. A→C rigid transfer (not via AGV)
+9. C→E conveyor transfer
+10. E island timed assembly (SEMI_CE + PART_DE → FINAL)
+11. Scene position sync (Python state → CoppeliaSim objects, incl. AGV yaw)
+12. Robot arm animation update (visual layer)
+13. `sim.step()` advances the physics engine
 
 ## AGV State Machine
 
-The shared AGV operates with these states:
+The single shared AGV operates with these states (`AGVState` in
+[factory_types.py](../../../src/factory_types.py)):
 
 ```
                     ┌──────────┐
-                    │   IDLE   │
+                    │   IDLE    │
                     └────┬─────┘
-                         │ task request
-                    ┌────▼─────┐
-              ┌─────│ MOVING_  │─────┐
-              │     │ B_TO_A   │     │ (preempted)
-              │     └────┬─────┘     │
-              │          │ arrived   │
-              │     ┌────▼─────┐     │
-              │     │ MOVING_  │     │
-              │     │ D_TO_E   │     │
-              │     └────┬─────┘     │
-              │          │           │
-         ┌────▼──────────▼───────────▼────┐
-         │           BLOCKED              │
-         │  (path occupied > 5s timeout)  │
-         └────────────┬──────────────────┘
-                      │ path cleared / replan
-                 ┌────▼─────┐
-                 │   IDLE    │  (recovery)
-                 └──────────┘
+                         │ task request (queue head)
+                    ┌────▼──────────┐
+              ┌─────│ MOVING_B_TO_A │ (priority 0)
+              │     └────┬──────────┘
+              │          │ arrived
+              │     ┌────▼──────────┐
+              │     │ MOVING_D_TO_E │ (priority 1, escalatable)
+              │     └────┬──────────┘
+              │          │ path blocked > CONGESTION_TIMEOUT
+         ┌────▼──────────▼────┐
+         │      BLOCKED        │
+         └────────┬───────────┘
+                  │ path cleared → IDLE
+             ┌────▼─────┐
+             │   IDLE    │
+             └──────────┘
 ```
 
 **Priority rule (hybrid strategy)**:
-1. B→A has higher base priority than D→E (production critical path)
-2. If D→E waits longer than `D_E_STARVATION_THRESHOLD` (default 15s),
-   it escalates to equal priority with B→A
-3. Preemption: ongoing D→E tasks CAN be preempted by new B→A requests;
-   B→A tasks CANNOT be preempted
+1. B→A has higher base priority (priority=0) than D→E (priority=1) — B→A is
+   the production critical path
+2. If a D→E job waits longer than `D_E_STARVATION_THRESHOLD` (default 15.0s),
+   it escalates to priority=0 (equal with B→A)
+3. **Preemption is removed in the current implementation.** The `AGVTask`
+   docstring still labels D→E "preemptable" — this is a stale contract, not
+   live behavior (known defect documented in
+   [docs/wiki/06-工业案例/06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md)).
+   Do not write code that relies on in-flight preemption.
 
 ## Industrial Beat Alignment
 
-The Python controller maintains a global beat dictionary:
+The Python controller maintains a global beat dictionary
+([factory_config.py](../../../src/factory_config.py)):
 
 ```python
 TAKT_TIME = {
-    'A': 5.0,   # Assembly Island A processing time (seconds)
+    'A': 5.0,   # Assembly Island A
     'B': 3.0,   # Preprocess Island B
     'C': 4.0,   # Processing Island C
     'D': 6.0,   # QC/Assembly Island D
@@ -184,37 +257,99 @@ TAKT_TIME = {
 }
 ```
 
-**Beat tracking loop**:
+**Beat tracking loop** (`BeatTracker` in [factory_island.py](../../../src/factory_island.py)):
 1. Use `sim.getSimulationTime()` to measure actual processing duration
 2. Compare against `TAKT_TIME[island]`
-3. If deviation > `TAKT_DEVIATION_THRESHOLD` (default 1.0s), trigger WARNING
-4. If actual time > `TAKT_TIME[island] * 1.5`, trigger TIMEOUT state
-5. TIMEOUT → auto-degrade: extend beat for that island by 50%, pause upstream
-6. After 3 consecutive normal cycles, auto-restore original beat
+3. If |deviation| > `TAKT_DEVIATION_THRESHOLD` (default 1.0s) → WARNING
+4. If actual time > `TAKT_TIME[island] * 1.5` (`TAKT_TIMEOUT_FACTOR`) → TIMEOUT
+5. TIMEOUT → auto-degrade: extend that island's beat by 50%, pause upstream
+   supply (`SupplyController.pause_all_upstream`)
+6. After 3 consecutive normal cycles → auto-restore original beat and resume
+   upstream supply
 
 ## Exception Handling Strategy
 
-Four categories of exceptions, each with defined recovery:
+Four categories of exceptions, each with defined recovery (see
+[references/exception-handling.md](references/exception-handling.md)):
 
 ### 1. Communication Exception (ZMQ)
-- **Detect**: 3-second no-response timeout on any API call
-- **Recover**: Auto-reconnect attempt (max 3 retries), pause new commands
-- **Escalate**: If reconnect fails 3 times, stop simulation gracefully with log
+- **Detect**: `ZMQMonitor.check()` polls `CoppeliaConnector.check_alive()`;
+  `ZMQ_TIMEOUT` (3.0s) no-response window, `ZMQ_MAX_RETRIES` (3) retries
+- **Recover**: Auto-reconnect attempt, pause new commands (`comm_paused`)
+- **Escalate**: 3 failed reconnects → `poll()` returns False → emergency stop
 
-### 2. Logistics Congestion / Deadlock
-- **Detect**: AGV target path occupied for > 5 seconds
-- **Recover**: Set AGV to BLOCKED state, attempt path re-planning
-- **Fallback**: Degrade to waiting mode, log event for analysis
+### 2. AGV Congestion / Deadlock
+- **Detect**: AGV target path occupied > `CONGESTION_TIMEOUT` (5.0s)
+- **Recover**: AGV → BLOCKED state; single shared AGV eliminates multi-AGV
+  deadlock, so recovery is path-clear-then-resume
+- **Log**: Record congestion event
 
 ### 3. Workstation Timeout
-- **Detect**: Processing time exceeds `TAKT_TIME * 1.5`
-- **Recover**: Set workstation anomaly flag, pause upstream supply
-- **Auto-restore**: After 3 consecutive normal cycles, clear anomaly flag
+- **Detect**: Processing time exceeds `TAKT_TIME * TAKT_TIMEOUT_FACTOR` (1.5)
+- **Recover**: Island → TIMEOUT; `SupplyController` pauses all upstream
+  sources (per `UPSTREAM_MAP`)
+- **Auto-restore**: 3 consecutive normal cycles → resume upstream supply
 
 ### 4. Material Overflow
-- **Detect**: Island queue length exceeds `MAX_QUEUE_LENGTH` (default 5)
-- **Recover**: Throttle or pause upstream supply for that island
-- **Log**: Record overflow event with timestamp and queue state
+- **Detect**: Island queue length ≥ `MAX_QUEUE_LENGTH` (5)
+- **Recover**: Pause upstream supply for that island
+- **Resume**: When queue drops to ≤ `MAX_QUEUE_LENGTH // 2`
+
+## MCP Integration (Claude Code access point)
+
+[factory_mcp_server.py](../../../src/factory_mcp_server.py) is registered via
+[.mcp.json](../../../.mcp.json); Claude Code auto-loads it in this project. It exposes
+**19 tools** over stdio (FastMCP), with the simulation running in a daemon
+thread. Two ZMQ connections: the main connection (write/control tools + main
+loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
+
+| Tier | Tools |
+|------|-------|
+| Connect/Scene/Lifecycle/Config (10) | `connect`, `build_scene`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log` |
+| A — Read (4, via `ro_connector`) | `get_object_pose`, `list_objects`, `read_signal`, `get_object_tree` |
+| B — Diagnose (3) | `inspect_scene_state`, `get_simulation_state`, `run_lua` |
+| C — Control (2) | `pause_simulation`, `resume_simulation` |
+
+> When the simulation is running, `status` over the main connection may
+> transiently report `connected:false` (the connection is busy with the main
+> loop). This is normal; read-only diagnostics over `ro_connector` are
+> unaffected — that is the whole point of the dual-connection design.
+>
+> Prefer driving the existing MCP tools over hand-writing ZMQ control code.
+> Full usage (incl. `run_lua` execution model, freeze-diagnosis workflow,
+> test suite): [docs/wiki/98-ProjectUsage/MCP_USAGE.md](../../../docs/wiki/98-ProjectUsage/MCP_USAGE.md).
+
+## Change Workflow (plan → execute → review → update docs → commit)
+
+Any non-trivial change to this simulation follows a fixed five-phase loop so
+that **code, wiki, and this skill stay aligned** with a traceable history.
+Read [references/workflow.md](references/workflow.md) for the full template,
+review checklist, doc-sync table, and commit conventions; the summary:
+
+1. **Plan** — goal, files in scope, out-of-scope, 4.10 gotcha risks, test plan.
+   Use `EnterPlanMode` for multi-file/behavior-changing work; a verbal plan
+   is fine for small mechanical tweaks.
+2. **Execute** — implement per the skill's conventions (underscore aliases,
+   UR5-only arms, script stripping, config-centralized tuning, 13-step loop
+   order). Run verification as you go.
+3. **Review** — verify behavior end-to-end (no `state=8` freeze, no `0 joints`,
+   no exception spam); self-read the diff; run `/code-review` or `/simplify`
+   on the uncommitted diff. Do not commit yet.
+4. **Update docs** — walk all three truth-sources (wiki 06-02/06-03/02-01,
+   MCP_USAGE, CLAUDE.md, this skill) and update each the change affects.
+   Bump frontmatter `updated:` dates; keep the tool-count and known-pitfall
+   claims consistent everywhere.
+5. **Commit** — two scoped commits, **code first then docs**:
+   - `<type>(<scope>): …` for `src/` (types: `feat`/`fix`/`refactor`/…)
+   - `docs(<scope>): …` for `docs/wiki/` + `CLAUDE.md` + `.claude/skills/`
+   Stage explicitly (never `git add -A` — the working tree often holds
+   unrelated in-progress files). Branch off `main` first unless told
+   otherwise; report both commit hashes; don't push unless asked.
+
+**Anti-patterns**: one mega commit mixing code+docs; `git add -A`; updating
+code but leaving wiki/skill stale; re-asserting a removed feature (e.g.
+"preemptable") as live guidance; committing to `main` unbidden; skipping
+review on "small" changes (that's where slash-path `getObject` sneaks back).
 
 ## Implementation Sequence
 
@@ -222,44 +357,46 @@ When building or refactoring a factory simulation, follow this order:
 
 ### Step 1: Scene Setup
 Read [references/scene-building.md](references/scene-building.md). Place all
-objects in CoppeliaSim with hierarchical names, configure physics properties,
-collision bodies, and sensors (photoelectric switches for material detection).
-
-**Prefer built-in models over primitive shapes** where available. CoppeliaSim
-ships with industrial robots, conveyors, mobile platforms, and sensors under
-`C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models\`. Use `sim.loadModel()`
-to load them, then reparent and alias to fit the workshop naming convention.
-See the "Using CoppeliaSim Built-in Models" section in the scene-building
-reference for exact model paths and loading patterns.
+objects with **underscore aliases**, establish the hierarchy-root dummies
+(`Warehouse`/`Conveyor`/`Island`/`Mobile`/`Part`), load built-in models with
+`sim.loadModel()`, strip their scripts, and reparent/alias to fit the
+convention. Prefer built-in models; fall back to primitives if a model file
+is missing.
 
 ### Step 2: ZMQ Bridge Initialization
 Read [references/control-framework.md](references/control-framework.md).
-Write the Lua-side init script in CoppeliaSim to expose core control functions
-(`startProcess()`, `getSensorState()`, `moveAGV()`). Initialize the Python
-RemoteAPIClient, build handle maps, and set up the beat dictionary and logger.
+Build the `CoppeliaConnector` (with `_read_version` fallback for the
+4.10 `coppeliaSimVersion`-may-be-None quirk), the `ZMQMonitor`, the
+alias-leaf handle map, the `setup_logger`, and the beat dictionary.
 
 ### Step 3: Core Scheduling Loop
-Read [references/scheduling.md](references/scheduling.md). Implement the
-time-driven `SimulationLoop`, the `AGV_Scheduler` for flexible routing with
-conflict avoidance, and the `Exception_Handler` for polling timeout and
-collision flags.
+Read [references/scheduling.md](references/scheduling.md). Implement
+`FactoryController.run()`'s 13-step fixed loop, `AGVScheduler` for flexible
+routing, `IslandController` + `BeatTracker` + `SupplyController`, and
+`ExceptionHandler`.
 
 ### Step 4: Integration Testing
-Run the simulation end-to-end. Inject artificial anomalies (pause an island,
-block an AGV path) to verify the system detects, logs, and recovers without
-crashing. Validate that all handles are acquired through canonical paths with
-no hierarchy pollution.
+Run end-to-end. Inject anomalies (pause an island, block an AGV path, drop
+the ZMQ connection) to verify detection, logging, and recovery without
+crashing. Validate that all handles are acquired via alias-leaf matching
+with no slash-path queries.
 
 ## Validation Checklist
 
 Before declaring the system complete, verify:
 
 - [ ] Python client connects to CoppeliaSim 4.10, supports start/step/pause
-- [ ] All islands and devices acquired via canonical paths, no naming pollution
-- [ ] Flexible production logic works: AGV correctly responds to B→A priority
-      requests and D→E special transport when idle, no logical deadlocks
-- [ ] Industrial beat is controllable: processing times match TAKT_TIME dict,
-      beat deviation is monitored and logged
+- [ ] All aliases are underscore names; handles acquired via alias-leaf
+      matching — **no** slash-path `getObject` queries
+- [ ] All island arms are UR5 (6-axis); model scripts stripped after load;
+      no startup freeze (`state=8` does not appear ~3 frames in)
+- [ ] Flexible production logic works: AGV serves B→A (priority 0) and D→E
+      (priority 1, escalates after 15s starvation); no logical deadlocks
+- [ ] Industrial beat is controllable: processing times match `TAKT_TIME`,
+      beat deviation is monitored, timeout auto-degrades + pauses upstream,
+      3 normal cycles auto-restore
 - [ ] Exception handling is robust: simulated communication loss, material
-      congestion, and workstation timeout all trigger correct detection,
-      logging, and safe recovery (not crash)
+      congestion, workstation timeout, and material overflow all trigger
+      correct detection, logging, and safe recovery (not crash)
+- [ ] MCP 19 tools work; dual-connection keeps read-only diagnostics stable
+      while the main loop runs

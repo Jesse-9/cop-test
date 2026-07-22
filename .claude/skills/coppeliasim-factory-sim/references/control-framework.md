@@ -1,288 +1,251 @@
 # Python Control Framework Reference
 
+> Mirrors [docs/wiki/06-工业案例/06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md)
+> (factory_core / factory_controller sections) and [src/factory_core.py](../../../src/factory_core.py),
+> [src/factory_controller.py](../../../src/factory_controller.py).
+
 ## ZMQ Connection with Auto-Reconnect
 
-The connection to CoppeliaSim must be robust. Wrap the RemoteAPIClient in a
-retry-capable connector:
+`CoppeliaConnector` ([src/factory_core.py](../../../src/factory_core.py)) wraps
+`RemoteAPIClient` with retry logic and a health check. **Important 4.10 quirk**:
+the `coppeliaSimVersion` signal may be `None` in some instance configs, so
+`getStringSignal("coppeliaSimVersion")` returns `None`. The connector handles
+this via `_read_version()` (which tolerates `None`) and `check_alive()` falls
+back to `getSimulationState()` as a probe.
 
 ```python
 import time
-import sys
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 class CoppeliaConnector:
-    """ZMQ connection manager with auto-reconnect capability."""
+    """ZMQ connection manager with auto-reconnect + 4.10 version-signal tolerance."""
 
-    def __init__(self, host: str = "localhost", port: int = 23000,
-                 max_retries: int = 3, timeout: float = 3.0):
+    def __init__(self, host="localhost", port=23000,
+                 max_retries=3, timeout=3.0):
         self.host = host
         self.port = port
-        self.max_retries = max_retries
-        self.timeout = timeout
+        self.max_retries = max_retries      # cfg.ZMQ_MAX_RETRIES
+        self.timeout = timeout              # cfg.ZMQ_TIMEOUT
         self.client = None
         self.sim = None
 
     def connect(self) -> bool:
-        """Establish connection with retry logic."""
         for attempt in range(1, self.max_retries + 1):
             try:
                 self.client = RemoteAPIClient(host=self.host, port=self.port)
                 self.sim = self.client.require("sim")
-                # Verify connection is alive
-                version = self.sim.getStringSignal("coppeliaSimVersion")
-                print(f"[OK] Connected to CoppeliaSim {version} "
-                      f"(attempt {attempt})")
+                version = self._read_version()      # tolerates None
+                print(f"[OK] Connected to CoppeliaSim {version} (attempt {attempt})")
                 return True
             except Exception as e:
-                print(f"[WARN] Connection attempt {attempt}/{self.max_retries} "
-                      f"failed: {e}")
+                print(f"[WARN] Connection attempt {attempt}/{self.max_retries} failed: {e}")
                 if attempt < self.max_retries:
-                    time.sleep(1.0 * attempt)  # Exponential backoff
-        print(f"[FATAL] Cannot connect to CoppeliaSim after "
-              f"{self.max_retries} attempts")
+                    time.sleep(1.0 * attempt)
+        print(f"[FATAL] Cannot connect to CoppeliaSim after {self.max_retries} attempts")
         return False
 
-    def check_alive(self) -> bool:
-        """Quick health check. Returns False if connection is dead."""
+    def _read_version(self) -> str:
+        """Read version signal; tolerate None (4.10 quirk)."""
         try:
-            self.sim.getStringSignal("coppeliaSimVersion")
+            v = self.sim.getStringSignal("coppeliaSimVersion")
+            return v if v else "unknown (version signal is None)"
+        except Exception:
+            return "unknown"
+
+    def check_alive(self) -> bool:
+        """Quick health check. Falls back to getSimulationState() if version signal is None."""
+        try:
+            v = self.sim.getStringSignal("coppeliaSimVersion")
+            if v:                  # signal present → healthy
+                return True
+            # signal None → fall back to a probe that always responds
+            self.sim.getSimulationState()
             return True
         except Exception:
             return False
 
     def reconnect_if_needed(self) -> bool:
-        """Attempt reconnect if connection is dead."""
         if self.check_alive():
             return True
         print("[WARN] ZMQ connection lost, attempting reconnect...")
         return self.connect()
 ```
 
+> The MCP server maintains **two** `CoppeliaConnector`s: the main connection
+> (write/control tools + the main sim loop) and `ro_connector` (read-only
+> diagnostics, guarded by `ro_lock`). This avoids false-disconnect reports
+> while the main loop holds the main connection busy. See SKILL.md §MCP.
+
 ## Stepping Mode: The Clock Master Pattern
 
-The Python side MUST be the clock master. This is the foundation for all
-beat timing and exception handling:
+Python is the clock master. `sim.setStepping(True)` then each `sim.step()`
+advances exactly one `SIM_STEP` (default 0.05s). The stepping loop is
+**inlined directly in `FactoryController.run()`** — there is no separate
+`SimulationLoop` wrapper class:
 
 ```python
-class SimulationLoop:
-    """Time-driven simulation loop with stepping mode control."""
+class FactoryController:
+    """Top-level orchestrator. Drives the fixed 13-step loop each SIM_STEP."""
 
-    def __init__(self, connector: CoppeliaConnector,
-                 takt_time: dict, sim_step: float = 0.05):
-        self.conn = connector
-        self.sim = connector.sim
-        self.takt_time = takt_time
-        self.sim_step = sim_step
+    def __init__(self, sim, total_time=60.0, log_file="factory_sim.log"):
+        self.sim = sim
+        self.total_time = total_time            # cfg.TOTAL_SIM_TIME
+        self.sim_step = 0.05                    # cfg.SIM_STEP
         self.sim_time = 0.0
         self.step_count = 0
         self.running = False
+        # ... build island controllers, AGVScheduler, ExceptionHandler,
+        #     BeatTracker, SupplyController, RobotArmAnimator, handle maps ...
 
-    def start(self):
-        """Initialize stepping mode and start simulation."""
+    def run(self):
         self.sim.setStepping(True)
         self.sim.startSimulation()
         self.running = True
-        print(f"[INFO] Stepping mode enabled, dt={self.sim_step}s")
+        while self._should_continue():
+            self._single_step()
+            self.sim.step()                     # advance physics one SIM_STEP
+            self.sim_time = self.sim.getSimulationTime()
+            self.step_count += 1
+        self._shutdown()
 
-    def step(self) -> float:
-        """Execute one simulation step. Returns current simulation time."""
-        self.sim.step()
-        self.sim_time = self.sim.getSimulationTime()
-        self.step_count += 1
-        return self.sim_time
-
-    def stop(self):
-        """Gracefully stop simulation."""
-        self.sim.stopSimulation()
-        self.running = False
+    def _single_step(self):
+        # The fixed 13-step order — see "Single-Step Loop Order" below
+        ...
 ```
 
-**Why stepping mode matters**: Without it, the simulation runs on CoppeliaSim's
-internal clock, decoupled from your control logic. Beat timing becomes
-unreliable, and exception detection (which depends on wall-clock comparisons)
-produces false positives or misses real issues. Stepping mode makes every
-simulated second predictable and measurable.
+**Why stepping mode matters**: without it the simulation runs on
+CoppeliaSim's internal clock, decoupled from your control logic. Beat timing
+becomes unreliable and exception detection (which depends on time
+comparisons) produces false positives. Stepping makes every simulated second
+predictable and measurable.
 
-## Device Handle Mapping
+## Single-Step Loop Order (FactoryController.run, 13 steps)
 
-Build a complete handle map on startup. This avoids repeated `getObject()`
-calls (each is a ZMQ round-trip):
+Each `SIM_STEP` executes this fixed order (matches [CLAUDE.md](../../../CLAUDE.md)):
+
+1. Exception polling (`ExceptionHandler.poll`) — ZMQ comm / workstation
+   timeout / material overflow / AGV congestion
+2. If `comm_paused` → advance physics only (`sim.step()`), skip control logic
+3. Warehouses spawn materials by cadence (`_spawn_from_warehouses`) —
+   S1→A (raw_A), S1→B (raw_B), S2→D (raw_D), gated by `SupplyController`
+4. Conveyors move materials (`_move_conveyors`) — 4 belts
+5. Island processing (`_process_islands`) — update processing time + beat tracking
+6. AGV task scheduling (`_schedule_agv_tasks`) — B→A priority 0, D→E priority 1
+7. AGV state machine advance (`_update_agv`)
+8. A→C rigid transfer (`_handle_ac_transfer`) — not via AGV
+9. C→E conveyor transfer (`_handle_ce_transfer`) — produces SEMI_CE
+10. E island timed assembly (`_check_assembly_at_E`) — SEMI_CE + PART_DE → FINAL
+11. Scene position sync (`_update_scene_positions`) — Python state → CoppeliaSim
+    objects, incl. AGV yaw from displacement vector
+12. Robot arm animation update (`_update_robot_animations`) — visual layer
+13. `sim.step()` advances the physics engine
+
+## Device Handle Mapping (by alias leaf, NOT slash path)
+
+Build a complete handle map on startup. Because slash-path `getObject` is
+unreliable in 4.10 (see [scene-building.md](scene-building.md) §Handle Lookup),
+acquire handles by **enumerating and alias-leaf matching**, not by
+`getObject("/Warehouse/S1_Main")`:
 
 ```python
 class DeviceHandleMap:
-    """Complete mapping of all scene objects by canonical path."""
+    """Maps all scene objects by alias leaf name (4.10-safe)."""
 
     def __init__(self, sim):
         self.sim = sim
         self.handles: dict[str, int] = {}
 
     def populate(self):
-        """Acquire handles for all known objects by canonical path."""
-        paths = [
+        leaves = [
             # Warehouses
-            "/Warehouse/S1_Main",
-            "/Warehouse/S2_Auxiliary",
+            "Warehouse_S1_Main", "Warehouse_S2_Auxiliary",
             # Conveyors
-            "/Conveyor/S1_to_A",
-            "/Conveyor/S1_to_B",
-            "/Conveyor/S2_to_D",
-            "/Conveyor/C_to_E",
+            "Conveyor_S1_to_A", "Conveyor_S1_to_B",
+            "Conveyor_S2_to_D", "Conveyor_C_to_E",
             # Islands
-            "/Island/A_Assembly",
-            "/Island/A_Assembly/Robot_A",
-            "/Island/B_Preprocess",
-            "/Island/B_Preprocess/Fixture_B",
-            "/Island/C_Processing",
-            "/Island/C_Processing/Machine_C",
-            "/Island/D_QC_Assembly",
-            "/Island/D_QC_Assembly/Robot_D",
-            "/Island/E_FinalAssembly",
-            "/Island/E_FinalAssembly/Line_E",
+            "Island_A_Assembly", "Island_B_Preprocess",
+            "Island_C_Processing", "Island_D_QC_Assembly",
+            "Island_E_FinalAssembly",
+            # Robot arms (UR5)
+            "Island_A_Assembly_Robot_A", "Island_B_Preprocess_Robot_B",
+            "Island_C_Processing_Robot_C", "Island_D_QC_Assembly_Robot_D",
+            "Island_E_FinalAssembly_Robot_E_C", "Island_E_FinalAssembly_Robot_E_D",
             # AGV
-            "/Mobile/AGV_Shared",
+            "Mobile_AGV_Shared",
         ]
-        for path in paths:
-            try:
-                handle = self.sim.getObject(path)
-                self.handles[path] = handle
-            except Exception as e:
-                print(f"[WARN] Cannot find object '{path}': {e}")
-
+        for leaf in leaves:
+            h = find_by_leaf(self.sim, leaf, sim.object_sceneobject_type)
+            if h is not None:
+                self.handles[leaf] = h
+            else:
+                print(f"[WARN] Cannot find object by leaf '{leaf}'")
         print(f"[OK] Handle map populated: {len(self.handles)} objects")
 
-    def get(self, path: str) -> int:
-        """Get handle by canonical path. Raises KeyError if missing."""
-        if path not in self.handles:
-            raise KeyError(f"Object '{path}' not in handle map")
-        return self.handles[path]
+    def get(self, leaf: str) -> int:
+        if leaf not in self.handles:
+            raise KeyError(f"Object '{leaf}' not in handle map")
+        return self.handles[leaf]
 ```
+
+> A single `getObject()` is a ZMQ round-trip; populating the map once at
+> startup avoids per-step round-trips.
 
 ## Beat Tracking System
 
-The beat tracker validates that each island's actual processing time matches
-the planned TAKT_TIME:
+`BeatTracker` ([src/factory_island.py](../../../src/factory_island.py)) validates
+each island's actual processing time against its `TAKT_TIME` target. Runtime
+state per island is the `IslandBeatState` dataclass
+([src/factory_types.py](../../../src/factory_types.py)):
 
 ```python
-import logging
-from dataclasses import dataclass, field
-from typing import Optional
-
 @dataclass
 class IslandBeatState:
-    """Runtime beat tracking for one island."""
     island: str
-    takt_target: float          # Target processing time (seconds)
+    takt_target: float          # target processing time (seconds); auto-extended on timeout
     cycle_start: float = 0.0    # simTime when current cycle began
     cycle_elapsed: float = 0.0  # accumulated processing time
     deviation: float = 0.0      # current deviation from target
     anomaly: bool = False       # True if timeout detected
     normal_cycles: int = 0      # consecutive normal cycles for auto-recovery
-    warn_threshold: float = 1.0 # absolute deviation to trigger warning
-    timeout_factor: float = 1.5 # multiplier on takt_target for timeout
-
-class BeatTracker:
-    """Monitors per-island processing time against TAKT_TIME."""
-
-    def __init__(self, takt_time: dict, logger: logging.Logger):
-        self.states: dict[str, IslandBeatState] = {
-            name: IslandBeatState(island=name, takt_target=target)
-            for name, target in takt_time.items()
-        }
-        self.logger = logger
-
-    def start_cycle(self, island: str, sim_time: float):
-        """Mark the start of a processing cycle for an island."""
-        state = self.states.get(island)
-        if state:
-            state.cycle_start = sim_time
-            state.cycle_elapsed = 0.0
-
-    def update(self, island: str, sim_time: float, dt: float):
-        """Update elapsed time for a processing island."""
-        state = self.states.get(island)
-        if state is None or state.cycle_start == 0:
-            return
-        state.cycle_elapsed += dt
-        state.deviation = state.cycle_elapsed - state.takt_target
-
-    def check(self, island: str) -> Optional[str]:
-        """Check beat status. Returns 'ok', 'warn', or 'timeout'."""
-        state = self.states.get(island)
-        if state is None:
-            return None
-
-        abs_dev = abs(state.deviation)
-
-        # Timeout check (must happen first — most severe)
-        if state.cycle_elapsed > state.takt_target * state.timeout_factor:
-            if not state.anomaly:
-                state.anomaly = True
-                state.normal_cycles = 0
-                self.logger.warning(
-                    f"[TIMEOUT] Island {island}: "
-                    f"{state.cycle_elapsed:.1f}s > "
-                    f"{state.takt_target * state.timeout_factor:.1f}s "
-                    f"(target: {state.takt_target}s)"
-                )
-                # Auto-degrade: extend beat by 50%
-                old_target = state.takt_target
-                state.takt_target *= 1.5
-                self.logger.info(
-                    f"[DEGRADE] Island {island} beat extended: "
-                    f"{old_target:.1f}s → {state.takt_target:.1f}s"
-                )
-            return "timeout"
-
-        # Warning check
-        if abs_dev > state.warn_threshold:
-            return "warn"
-
-        # Normal — track consecutive normal cycles for auto-recovery
-        if state.anomaly:
-            state.normal_cycles += 1
-            if state.normal_cycles >= 3:
-                # Auto-restore
-                state.takt_target /= 1.5
-                state.anomaly = False
-                state.normal_cycles = 0
-                self.logger.info(
-                    f"[RESTORE] Island {island} beat restored to "
-                    f"{state.takt_target:.1f}s"
-                )
-
-        return "ok"
 ```
+
+`BeatTracker` API: `start_cycle(island, sim_time)`, `update(island, sim_time, dt)`,
+`check(island) -> 'ok' | 'warn' | 'timeout' | None`.
+
+Logic (thresholds from [factory_config.py](../../../src/factory_config.py)):
+- Timeout (checked first, most severe): if `cycle_elapsed > takt_target *
+  TAKT_TIMEOUT_FACTOR` (1.5) → set `anomaly`, reset `normal_cycles`, auto-degrade
+  by extending `takt_target *= 1.5`, return `"timeout"`
+- Warning: if `|deviation| > TAKT_DEVIATION_THRESHOLD` (1.0s) → `"warn"`
+- Normal + was anomalous: increment `normal_cycles`; on 3 → auto-restore
+  (`takt_target /= 1.5`, clear `anomaly`, resume upstream supply), return `"ok"`
 
 ## Logger Configuration
 
-Use Python's structured logging for all events. Log levels map to severity:
+`setup_logger` ([src/factory_core.py](../../../src/factory_core.py)) — dual output:
+file at DEBUG, console at INFO:
 
 ```python
 import logging
 
-def setup_logger(name: str = "factory-sim",
-                 log_file: str = "factory_sim.log") -> logging.Logger:
-    """Configure the factory simulation logger."""
+def setup_logger(name="factory-sim", log_file="factory_sim.log") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-
-    # File handler — complete record
     fh = logging.FileHandler(log_file, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
-    fh.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    ))
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s",
+                                      datefmt="%Y-%m-%d %H:%M:%S"))
     logger.addHandler(fh)
-
-    # Console handler — INFO and above
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     ch.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
     logger.addHandler(ch)
-
     return logger
 ```
+
+On emergency stop, the controller writes `emergency_dump_<timestamp>.json`
+with sim time, step count, island states, AGV state, material count, and the
+last 50 events — for post-mortem analysis.
 
 **Log level usage**:
 - `DEBUG`: Per-step position updates, state transitions
@@ -292,20 +255,30 @@ def setup_logger(name: str = "factory-sim",
 
 ## Configuration Centralization
 
-All tunable parameters belong in a single config module, never hardcoded:
+All tunable parameters live in [src/factory_config.py](../../../src/factory_config.py),
+never hardcoded. Key groups:
 
 ```python
-# config keys that MUST be centralized:
-# - TAKT_TIME dict (per-island processing targets)
-# - All positions, sizes, and colors
-# - Conveyor speeds, AGV speeds
-# - Material spawn intervals
-# - SIM_STEP
-# - Exception thresholds:
-#   ZMQ_TIMEOUT = 3.0          # seconds, no-response detection
-#   CONGESTION_TIMEOUT = 5.0   # seconds, path blocked before BLOCKED
-#   TAKT_DEVIATION_THRESHOLD = 1.0  # seconds, beat warning
-#   TAKT_TIMEOUT_FACTOR = 1.5  # multiplier for timeout
-#   D_E_STARVATION_THRESHOLD = 15.0  # seconds before D→E priority escalation
-#   MAX_QUEUE_LENGTH = 5       # items before overflow throttling
+# Simulation
+SIM_STEP = 0.05; CONVEYOR_SPEED = 0.5; AGV_SPEED = 0.8
+MATERIAL_INTERVAL = 5.0      # warehouse spawn cadence (s)
+TOTAL_SIM_TIME = 60.0        # 0 = run until stop
+PROCESS_TIME = 1.5          # island processing time (s)
+
+# Beat
+TAKT_TIME = {'A': 5.0, 'B': 3.0, 'C': 4.0, 'D': 6.0, 'E': 8.0}
+
+# Exception thresholds
+ZMQ_TIMEOUT = 3.0; ZMQ_MAX_RETRIES = 3
+CONGESTION_TIMEOUT = 5.0
+TAKT_DEVIATION_THRESHOLD = 1.0
+TAKT_TIMEOUT_FACTOR = 1.5
+D_E_STARVATION_THRESHOLD = 15.0
+MAX_QUEUE_LENGTH = 5
+
+# Upstream dependency map (for timeout/overflow supply gating)
+UPSTREAM_MAP = {"A": ["S1"], "B": ["S1"], "C": ["A"], "D": ["S2"], "E": ["C", "D"]}
 ```
+
+Changing layout/size/model keys needs `build_scene`; changing timings or
+thresholds just needs re-running the simulation.
