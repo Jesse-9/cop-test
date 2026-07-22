@@ -1,15 +1,18 @@
 """
-factory_core.py — 仿真基础设施层 (ZMQ 通信 + 步进循环 + 设备句柄 + 日志)
+factory_core.py — 仿真基础设施层 (ZMQ 通信 + 健康监控 + 日志)
 ======================================================================
-本模块封装与 CoppeliaSim 的底层通信、步进式仿真循环、场景对象句柄映射
+本模块封装与 CoppeliaSim 的底层通信、通信健康监控
 以及结构化日志配置。这是三层架构中的"通信与基础设施层"。
+
+步进式仿真循环与场景对象句柄采集由上层 FactoryController 直接内联
+(sim.setStepping/sim.step + 别名扫描匹配), 故本层不再保留对应的封装类。
 
 对应架构层: ZeroMQ Remote API (synchronous, stepping mode)
 参考文档:   references/control-framework.md
 
 Exports:
   Functions:  setup_logger()
-  Classes:    CoppeliaConnector, ZMQMonitor, SimulationLoop, DeviceHandleMap
+  Classes:    CoppeliaConnector, ZMQMonitor
 """
 
 import logging
@@ -81,7 +84,7 @@ class CoppeliaConnector:
 
     Collaborators:
       - ZMQMonitor: 调用 check_alive() / reconnect_if_needed() 进行健康监控.
-      - SimulationLoop: 提供 sim 句柄以执行步进控制.
+      - FactoryController: 上层直接内联 sim.setStepping/sim.step 执行步进控制.
 
     Attributes:
         host:         CoppeliaSim 主机地址.
@@ -261,127 +264,3 @@ class ZMQMonitor:
                 return "reconnecting"
 
         return "ok"
-
-
-# ═══════════════════════════════════════════════════════════════
-# 步进式仿真循环 — SimulationLoop
-# ═══════════════════════════════════════════════════════════════
-
-class SimulationLoop:
-    """时间驱动的步进式仿真循环 — Time-Driven Stepping Simulation Loop.
-
-    Python 端始终是时钟主导者 (clock master)。每步通过 sim.step() 触发
-    CoppeliaSim 物理引擎前进，确保控制逻辑与物理引擎严格同步。
-    这是精确工业节拍时序的基础。
-
-    参考: references/control-framework.md §Stepping Mode: The Clock Master Pattern
-
-    Attributes:
-        conn:       CoppeliaConnector 实例.
-        sim:        CoppeliaSim Remote API "sim" 模块.
-        sim_step:   仿真步长 (秒).
-        sim_time:   当前仿真时间 (秒).
-        step_count: 已执行的步数.
-        running:    True 表示仿真正在运行.
-    """
-
-    def __init__(self, connector: CoppeliaConnector):
-        self.conn = connector
-        self.sim = connector.sim
-        self.sim_step = cfg.SIM_STEP
-        self.sim_time = 0.0
-        self.step_count = 0
-        self.running = False
-
-    def start(self):
-        """启动步进模式 — Enable stepping mode and start simulation.
-
-        调用 sim.setStepping(True) 后，仿真不会自动推进，
-        每次 sim.step() 推进一个 sim_step 时长。
-        """
-        self.sim.setStepping(True)
-        self.sim.startSimulation()
-        self.running = True
-        print(f"[INFO] 步进模式已启用, dt={self.sim_step}s")
-
-    def step(self) -> float:
-        """执行一个仿真步进 — Advance simulation by one step.
-
-        Returns:
-            当前仿真时间 (秒).
-        """
-        self.sim.step()
-        self.sim_time = self.sim.getSimulationTime()
-        self.step_count += 1
-        return self.sim_time
-
-    def stop(self):
-        """优雅停止仿真 — Gracefully stop the simulation."""
-        if self.running:
-            self.sim.stopSimulation()
-            self.running = False
-
-
-# ═══════════════════════════════════════════════════════════════
-# 设备句柄映射 — DeviceHandleMap
-# ═══════════════════════════════════════════════════════════════
-
-class DeviceHandleMap:
-    """场景对象句柄映射 — Scene Object Handle Map.
-
-    在启动时按规范路径批量获取所有场景对象的整数句柄，缓存到字典中。
-    避免每个步进重复调用 sim.getObject() (每次都是 ZMQ 往返).
-
-    参考: references/control-framework.md §Device Handle Mapping
-
-    Attributes:
-        sim:     CoppeliaSim Remote API "sim" 模块.
-        handles: 路径 → 整数句柄 的映射字典.
-    """
-
-    def __init__(self, sim):
-        self.sim = sim
-        self.handles: dict[str, int] = {}
-
-    def populate(self):
-        """批量加载所有已知对象的句柄 — Populate handle map.
-
-        从 factory_config 中读取所有仓库、工作岛、传送带和 AGV 的规范路径，
-        逐一调用 sim.getObject() 获取句柄。缺失的对象打印 WARNING 但不会中断.
-        """
-        paths = []
-        for wh in cfg.WAREHOUSES.values():
-            paths.append(wh["alias"])
-        for isl in cfg.WORK_ISLANDS.values():
-            paths.append(isl["alias"])
-            paths.append(f"{isl['alias']}_Pillar")
-        for cv in cfg.CONVEYORS.values():
-            paths.append(cv["alias"])
-        paths.append(cfg.AGV_ALIAS)
-
-        # CoppeliaSim 的 sim.getObject(query) 按路径查询, 路径须以 '/' 开头
-        # 表示从场景根开始; '/' 是 API 的路径分隔符, 不是对象别名的一部分。
-        # 对象别名本身不含 '/' (见 CLAUDE.md「已知问题与坑」第 1 条),
-        # 故查询时在无斜杠别名前加 '/'。
-        for path in paths:
-            try:
-                handle = self.sim.getObject("/" + path)
-                self.handles[path] = handle
-            except Exception as e:
-                print(f"[WARN] 找不到对象 '{path}': {e}")
-
-        print(f"[OK] 句柄映射已加载: {len(self.handles)} 个对象")
-
-    def get(self, path: str) -> int:
-        """获取句柄 — Get handle by canonical path.
-
-        Raises:
-            KeyError: 若路径不在映射中.
-        """
-        if path not in self.handles:
-            raise KeyError(f"对象 '{path}' 不在句柄映射中")
-        return self.handles[path]
-
-    def safe_get(self, path: str) -> Optional[int]:
-        """安全获取句柄 — Get handle, returning None if missing."""
-        return self.handles.get(path)

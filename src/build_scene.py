@@ -46,7 +46,7 @@ def clear_scene(sim):
         sim.object_visionsensor_type, sim.object_graph_type,
         sim.object_light_type, sim.object_camera_type,
         sim.object_mirror_type, sim.object_octree_type,
-        sim.object_pointcloud_type,
+        sim.object_pointcloud_type, sim.object_forcesensor_type
     ]
     # 需保留的对象别名/对象名集合 (CoppeliaSim 默认场景自带)
     keep_names = {"DefaultCamera",

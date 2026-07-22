@@ -23,8 +23,7 @@
                 │ ZMQ Remote API (同步, stepping 模式)
 ┌───────────────▼─────────────────────────────────────┐
 │  ZeroMQ Remote API Layer — factory_core.py          │
-│  CoppeliaConnector / ZMQMonitor / SimulationLoop    │
-│  / DeviceHandleMap / setup_logger                   │
+│  CoppeliaConnector / ZMQMonitor / setup_logger      │
 └─────────────────────────────────────────────────────┘
                 │ TCP localhost:23000
         ┌────────▼────────┐
@@ -41,7 +40,7 @@
 | 文件 | 职责 | 核心导出 |
 |------|------|---------|
 | [factory_config.py](src/factory_config.py) | 所有位置/尺寸/节拍/阈值集中配置 | 常量字典 |
-| [factory_core.py](src/factory_core.py) | ZMQ 连接+重连、健康监控、步进循环、句柄映射、日志 | `CoppeliaConnector`, `ZMQMonitor`, `SimulationLoop`, `DeviceHandleMap`, `setup_logger` |
+| [factory_core.py](src/factory_core.py) | ZMQ 连接+重连、健康监控、日志 | `CoppeliaConnector`, `ZMQMonitor`, `setup_logger` |
 | [factory_types.py](src/factory_types.py) | 枚举(物料类型/AGV状态/岛状态)、数据类、物料生成 | `ItemType`, `AGVState`, `IslandState`, `Material`, `spawn_material`, `lerp_2d` |
 | [factory_island.py](src/factory_island.py) | 工作岛状态机、节拍追踪、供料门控 | `IslandController`, `BeatTracker`, `SupplyController` |
 | [factory_agv.py](src/factory_agv.py) | 单一共享 AGV + 优先级调度 (B→A 高优先, D→E 低优先, 饥饿可升级) | `AGVScheduler` |
