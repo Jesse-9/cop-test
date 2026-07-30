@@ -3,7 +3,6 @@ __pycache__/
 *.py[oc]
 build/
 dist/
-docs/superpowers/
 /.superpowers/
 wheels/
 *.egg-info
@@ -22,3 +21,5 @@ emergency_dump_*.json
 # 文档库的 Obsidian 本地状态与插件 (不入库)
 docs/.obsidian/
 docs/.claudian/
+docs/.claude/
+docs/raw/

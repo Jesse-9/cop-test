@@ -1,5 +1,5 @@
 ---
-title: Regular API 概述与使用
+title: CoppeliaSim API 框架与 Regular API 总览
 type: reference
 tags:
   - coppeliasim
@@ -7,255 +7,219 @@ tags:
   - 类别/API
   - 难度/中级
 created: 2024-07-13
-updated: 2026-07-21
+updated: 2026-07-24
 status: published
-source: src-doc-CoppeliaSim-API-functions.md, src-doc-CoppeliaSim-callback-functions.md, src-doc-CoppeliaSim-scripts.md, src-doc-CoppeliaSim-accessing-scene-objects.md, src-doc-CoppeliaSim-simulation.md
+source:
+  - apisOverview.htm
+  - apiFunctions.htm
+  - apiConstants.htm
+  - properties.htm
+  - zmqRemoteApiOverview.htm
 related:
-  - [[wiki/00-基础知识/00-01-CoppeliaSim-overview]]
-  - [[wiki/07-API脚本示例/07-01-Lua基本脚本模式]]
-  - [[wiki/03-运动规划与控制/03-01-逆运动学-simIK]]
-  - [[wiki/01-API参考/01-02-Remote-API-ZMQ]]
+  - "[[wiki/00-基础知识/00-01-CoppeliaSim-overview]]"
+  - "[[wiki/01-API参考/01-02-Remote-API-ZMQ]]"
+  - "[[wiki/01-API参考/01-03-常量与参数ID]]"
+  - "[[wiki/01-API参考/01-04-插件API总览]]"
+  - "[[wiki/01-API参考/api/]]"
 sim_version: "4.10"
 ---
 
-# Regular API 概述与使用
+# CoppeliaSim API 框架与 Regular API 总览
 
-## 简介
+## 引言：一个可运行的例子
 
-Regular API 是 CoppeliaSim 最核心的编程接口，由 `sim` 命名空间提供（所有函数以 `sim.` 为前缀，如 `sim.getObjectPosition`）。它**不是**某个脚本的私有 API——所有嵌入 CoppeliaSim 的脚本（主脚本、子脚本、定制化脚本、沙盒脚本、add-on）都通过 Regular API 与仿真环境交互，**外部程序经 [[01-02-Remote-API-ZMQ|ZeroMQ Remote API]] 调用时获得的也是同一套 `sim.*` 函数**（外加各插件命名空间如 `simIK.*`/`simOMPL.*`/`simUI.*`）。换言之，Remote API = Regular API + 插件 API 的远程代理。
-
-> 完整函数目录见官方手册 [apiFunctions.htm](https://manual.coppeliarobotics.com/en/apiFunctions.htm)，本地存档 `raw/src-doc-CoppeliaSim-API-functions.md`。
-
-> **单位约定**：进出 API 的所有数值均使用 **米、千克、秒、弧度**（或其组合），除非另行说明。
-
-## 脚本体系（Regular API 的运行宿主）
-
-CoppeliaSim 内置 Lua 与 Python 两种脚本解释器，二者用法几乎一致（细微差异见手册 `luaPythonDifferences.htm`）。脚本分三类：
-
-| 脚本类型 | 作用域 | 典型用途 |
-|----------|--------|----------|
-| **沙盒脚本** (sandbox) | 不绑定任何场景/对象，跨所有场景运行 | 临时调试、原型计算 |
-| **Add-on** | 不绑定场景，随 CoppeliaSim 启动常驻 | 扩展功能、菜单项、后台服务 |
-| **嵌入脚本** (embedded) | 嵌入场景/模型，随场景保存加载 | 又分主脚本(main)、仿真脚本(simulation)、定制化脚本(customization) |
-
-嵌入脚本是仿真的主力：每个对象/模型可由各自的子脚本独立控制，正是这种**分布式控制架构**让 CoppeliaSim 适合多机器人场景。
-
-> 详见 `raw/src-doc-CoppeliaSim-scripts.md`。
-
-## 系统回调函数（进入脚本代码的唯一入口）
-
-脚本代码**只通过回调函数被触发**——没有自上而下的"主循环"由用户书写。CoppeliaSim 在特定事件发生时调用对应 `sysCall_*` 函数。以下是全部系统回调（Python/Lua 同名）：
-
-### 仿真生命周期核心回调
-| 回调 | 触发时机 |
-|------|----------|
-| `sysCall_init()` | 脚本初始化 |
-| `sysCall_actuation()` | 每个仿真步的**执行阶段**（驱动机理） |
-| `sysCall_sensing()` | 每个仿真步的**感知阶段**（读传感器） |
-| `sysCall_cleanup()` | 脚本清理 |
-| `sysCall_thread()` | 线程脚本的入口点 |
-| `sysCall_beforeMainScript(inData)` | 可返回 `{doNotRunMainScript=True}` 自定义单步推进 |
-
-### 仿真状态切换
-`sysCall_nonSimulation`、`sysCall_beforeSimulation`、`sysCall_afterSimulation`、`sysCall_suspend`、`sysCall_suspended`、`sysCall_resume`、`sysCall_realTimeIdle`、`sysCall_beforeInstanceSwitch`、`sysCall_afterInstanceSwitch`（仿真脚本/主脚本不支持部分项）。
-
-### 物理引擎回调
-`sysCall_dyn(inData)`（每动力学步前后）、`sysCall_joint(inData)`（自定义关节控制）、`sysCall_contact(inData)`（每接触对）、`sysCall_vision(inData)`（新图像采集/应用时）。
-
-### 场景/对象事件回调
-`sysCall_beforeSave`/`sysCall_afterSave`、`sysCall_afterLoad`、`sysCall_selChange`、`sysCall_beforeCopy`/`sysCall_afterCopy`、`sysCall_afterCreate`、`sysCall_beforeDelete`/`sysCall_afterDelete`。
-
-### 通信回调
-- `sysCall_msg(msg, origin)`：同步调用，`sim.broadcastMsg` 或上述若干 init/cleanup 回调触发时被调用（可重入）。
-- `sysCall_data(inData)`：异步，当附加到本脚本/其父对象的自定义数据属性被修改时触发（仅仿真/定制化脚本）。
-- `sysCall_event(cborBuffer)`：异步，当内部变量/状态变化时触发（可重入）；主要用于把外部 GUI/查看器与 CoppeliaSim 同步，配合 `sim.setEventFilters` 做过滤。
-- `sysCall_ext(funcName, inData)`：当此函数存在时，所有外部对脚本函数的调用（用户回调）都会被它拦截（原函数被遮蔽）；若只想监控应改用 `sim.registerScriptFuncHook`。
-
-> 完整签名（Python + Lua）见 `raw/src-doc-CoppeliaSim-callback-functions.md`。大多数回调可返回 `{cmd='cleanup'}` 或 `{cmd='restart'}` 来结束/重启脚本。
-
-### 非线程 vs 线程脚本
-
-```lua
--- 非线程子脚本：每步由 CoppeliaSim 调用 sysCall_actuation/sysCall_sensing 一次
-function sysCall_init()
-    motor = sim.getObject('/arm_joint')
-end
-function sysCall_actuation()
-    sim.setJointTargetPosition(motor, sim.getJointPosition(motor) + 0.01)
-end
-
--- 线程子脚本：在 sysCall_thread 中写自己的循环，用 sim.switchThread() 让出
-function sysCall_thread()
-    while sim.getSimulationState() ~= sim.simulation_advancing_abouttostop do
-        sim.setJointTargetPosition(motor, sim.getJointPosition(motor) + 0.01)
-        sim.switchThread()
-    end
-end
-```
-
-## 仿真循环与单步（stepping）模式
-
-CoppeliaSim 通过**按固定时间步推进仿真时间**来运行。默认每个仿真周期由两步顺序组成：**执行主脚本 → 渲染场景**。实时仿真则尽量让仿真时间与真实时间同步。
-
-**单步模式（stepping / synchronous mode）** 允许手动触发每一个仿真步——这是检查单步行为、或与外部应用同步的基础。脚本内可用 `sysCall_beforeMainScript` 实现；外部程序则有专用函数：先 `sim.setStepping(True)` 启用，再用 `sim.step()` 逐帧推进。
+外部程序经 ZeroMQ Remote API 调得的 `sim.*` 函数，正是本条目所述的 Regular API。下面这段 Python 代码在 CoppeliaSim 4.10 上可直接运行：它取对象句柄、读位姿、再以单步模式推进仿真 3 秒。
 
 ```python
-# 手册官方单步示例（Python ZMQ Remote API）
+# pip install coppeliasim-zmqremoteapi-client
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 client = RemoteAPIClient()
-sim = client.require('sim')
+sim = client.require('sim')                       # 取得 sim 命名空间
 
-sim.setStepping(True)          # 启用单步模式 → 外部程序成为时钟主导
+handle = sim.getObject('/robot')                  # Regular API: 按路径取句柄
+pos = sim.getObjectPosition(handle, sim.handle_world)   # 读世界系位置 [x,y,z] 米
+print('robot position [m]:', pos)
+
+sim.setStepping(True)                             # 启用单步模式（外部程序作时钟主导）
 sim.startSimulation()
 while (t := sim.getSimulationTime()) < 3:
-    print(f'Simulation time: {t:.2f} [s]')
-    sim.step()                  # 推进一个仿真步
+    print(f'sim time: {t:.2f} [s]')
+    sim.step()                                    # 推进一个仿真步
 sim.stopSimulation()
 ```
 
-> ⚠ **本仓库正是基于此模式**：Python 端 `sim.setStepping(True)` 后每次 `sim.step()` 推进一个 `SIM_STEP`（默认 0.05s），控制逻辑与物理引擎严格同步——这是精确工业节拍时序的基础。详见 [[06-02-岛式车间柔性生产案例]]。
->
-> ⚠ 注意 `sim.setStepping` / `sim.step` 在手册中归类于 **Threads** 而非 Simulation，其语义偏"线程中断/单步推进"，但在外部 Remote API 客户端上用法即上面示例。
+> `sim.getObject` / `sim.getObjectPosition` / `sim.setStepping` / `sim.step` 都是 Regular API 函数；它们在脚本内部（Lua/Python）与在外部 Remote API 客户端上签名一致。这正是 Regular API 的核心特征——**一套函数，脚本内外通用**。
 
-## 访问场景对象：路径与别名系统（重要）
+## API 框架：两大类函数
 
-获取对象句柄统一通过 `sim.getObject(objectPath, options={})`，参数是**对象路径**而非单纯的别名。路径语法：
+手册 `apisOverview.htm` 将 CoppeliaSim 的 API 划分为**两大组**：
 
-| 写法 | 含义 |
-|------|------|
-| `/Path/to/Object` | 完整绝对路径 |
-| `/Object` | 别名唯一时，路径可简化为别名 |
-| `/Robot[0]` / `/Robot[1]` | 同一层级中第 1/第 2 个别名为 Robot 的对象 |
-| `/Robot{4}` | 场景中第 5 个别名为 Robot 的对象 |
-| `/Mobile*` | 通配：所有别名以 Mobile 开头的对象（循环取） |
+| API 组 | 命名空间 | 提供者 | 典型函数 |
+|--------|----------|--------|----------|
+| **Regular API**（主函数） | `sim.*` | CoppeliaSim 本体 | `sim.getObject`、`sim.setJointPosition`、`sim.startSimulation` |
+| **插件 API**（其他函数） | `simXxx.*`（各插件独立命名空间） | 各功能插件 | `simOMPL.*`、`simIK.*`、`simUI.*`、`simROS2.*` 等 |
 
-**脚本对象内**还支持相对路径：`./`（本脚本层级）、`..`（父）、`:`（本脚本所在模型）、`::`（父模型），如 `sim.getObject('./Object*')`、`sim.getObject(':/Leg[3]')`。
+Regular API 是 CoppeliaSim 自身提供的主函数集合，统一收敛在 `sim` 命名空间下；**属性（Properties）及其相关 API 函数是 Regular API 的重要组成部分**。插件 API 由具体插件提供，每个插件把函数挂在自己的独立命名空间下（如 `simOMPL`、`simUI`、`simIK`），其说明与 API 参考位于各插件的功能章节。
 
-`options` 字典：`noError`（找不到时静默返回 -1）、`index`（取第 n 个匹配）、`proxy`（在指定代理对象的子树内搜索）。
+> 详见 [[01-04-插件API总览]]。本条目只讲 Regular API。
 
-### ⚠ 别名陷阱（本仓库已知问题 #1 的根因）
+## Regular API 的三语言支持
 
-`sim.setObjectAlias(handle, alias)` 对别名有严格字符限制：
+> ⚠ **纠正旧条目错误**：旧版 wiki 曾把 Regular API 说成"只有 Lua"。实际上手册 `apiFunctions.htm` 对**每个**函数都给出两栏：一栏是 `language-python-lua`（Python 与 Lua 共享同一 `sim.*` 驼峰命名），另一栏是 `language-c++`（C/C++ 端的 `simXxx` 驼峰命名）。因此 Regular API 在**脚本侧支持 Python 和 Lua**，在**插件/C++ 侧支持 C/C++**。
 
-> Allowed characters include **0-9, a-z, A-Z, and underscores. Illegal characters are replaced with underscores.
-> （合法字符仅为数字、字母、下划线；**非法字符（含 `/`）会被替换为下划线**。）
+| 语言 | 函数命名风格 | 调用位置 | 示例 |
+|------|--------------|----------|------|
+| **Python** | `sim.camelCase` | 脚本内 / ZMQ Remote API 客户端 | `sim.getObjectPosition(h, sim.handle_world)` |
+| **Lua** | `sim.camelCase` | 脚本内（与 Python 同名同签名） | `sim.getObjectPosition(h, sim.handle_world)` |
+| **C/C++** | `simCamelCase` | 插件 / 嵌入式 C++ 客户端 | `simGetObjectPosition(h, sim_handle_world)` |
 
-因此 `setObjectAlias('/Mobile/AGV_Shared', ...)` 实际把别名存成 `_Mobile_AGV_Shared`，随后 `sim.getObject('/Mobile/AGV_Shared')` 按路径查会失败。**正确做法**：别名本身只用下划线层级（如 `Mobile_AGV_Shared`），仅在 `getObject` 查询时用 `/` 作路径前缀。详见 [[02-01-分层命名场景构建]]。
+Python 与 Lua 共享完全相同的 `sim.*` 函数名与签名（细微语法差异见 `luaPythonDifferences.htm`）；C++ 接口函数名首字母大写且无 `sim.` 前缀点号。本仓库及外部程序均走 Python ZMQ Remote API 客户端，故后续示例以 Python 为主。
 
-## `sim` 模块加载
+## 单位约定
 
-```lua
-sim = require('sim')
-```
-从 CoppeliaSim 4.6 起，`sim` 模块在脚本中**默认预加载**，可直接使用 `sim.*`。Python 端经 Remote API 取得：`sim = client.require('sim')`。
+手册 `apiFunctions.htm` 开篇即声明：
 
-## API 函数分类（完整目录）
+> All units going to, or coming from the API are in **meters, kilograms, seconds and radians** or a combination of those (unless otherwise explicitly indicated)
 
-手册将 Regular API 函数按对象/领域分为 40+ 类，下表列出主要类别与代表性函数（完整列表见 `raw/src-doc-CoppeliaSim-API-functions.md`）：
+即进出 Regular API 的所有数值默认使用**米、千克、秒、弧度**（或其组合），除非另行显式说明。位置是米、角度是弧度、力是牛顿、时间是秒。
 
-| 类别 | 代表函数 |
-|------|---------|
-| 文件操作 | `sim.loadScene` / `sim.saveScene` / `sim.loadModel` / `sim.importShape` / `sim.importMesh` / `sim.exportMesh` |
-| 句柄获取 | `sim.getObject` / `sim.getObjectFromUid` / `sim.getObjects` / `sim.getObjectsInTree` / `sim.isHandle` |
-| 场景对象 | `sim.getObjectAlias`/`setObjectAlias`、`getObjectParent`/`setObjectParent`、`getObjectChild`、`copyPasteObjects`、`scaleObject`、`getObjectType`、`getObjectSel`/`setObjectSel` |
-| 仿真控制 | `sim.startSimulation` / `sim.pauseSimulation` / `sim.stopSimulation` / `sim.getSimulationState` / `sim.getSimulationTime` / `sim.getSimulationTimeStep` / `sim.getRealTimeSimulation` |
-| 关节 | `sim.setJointPosition` / `getJointPosition` / `setJointTargetPosition` / `setJointTargetVelocity` / `getJointVelocity` / `setJointTargetForce` / `getJointForce` / `setJointMode` / `getJointMode` / `setJointInterval` / `getJointType` / `setJointDependency` |
-| 动力学 | `sim.handleDynamics` / `sim.setJointTargetPosition` / `sim.readForceSensor` / `sim.addForce` / `sim.addForceAndTorque` / `sim.getVelocity` / `sim.setLinkDummy` / `sim.getShapeMass`/`setShapeMass` / `sim.computeMassAndInertia` |
-| 形状 | `sim.createShape` / `createPrimitiveShape` / `getShapeMesh` / `getShapeViz` / `groupShapes` / `ungroupShape` / `alignShapeBB` / `relocateShapeFrame` / `getShapeColor`/`setShapeColor` |
-| 变换/位姿 | `sim.buildMatrix`/`buildPose` / `matrixToPose`/`poseToMatrix` / `multiplyMatrices`/`multiplyPoses` / `interpolateMatrices`/`interpolatePoses` / `getMatrixInverse`/`getPoseInverse` / `getObject/setPosition` / `getObject/Orientation` / `getObject/Quaternion` / `getObject/ChildPose` / `rotateAroundAxis` / `getRotationAxis` / `multiplyVector` |
-| 碰撞/距离 | `sim.checkCollision` / `checkCollisionEx` / `sim.checkDistance` |
-| 接近传感器 | `sim.handleProximitySensor` / `readProximitySensor` / `resetProximitySensor` / `checkProximitySensor*` / `createProximitySensor` |
-| 视觉传感器 | `sim.handleVisionSensor` / `readVisionSensor` / `getVisionSensorImg`/`setVisionSensorImg` / `getVisionSensorDepth` / `getVisionSensorRes` / `createVisionSensor` / `adjustView` |
-| 力传感器 | `sim.readForceSensor` / `sim.createForceSensor` |
-| 图 | `sim.addGraphStream` / `setGraphStreamValue` / `addGraphCurve` / `handleGraph` / `resetGraph` |
-| 八叉树/点云 | `sim.createOctree` / `insertVoxelsIntoOctree` / `createPointCloud` / `insertPointsIntoPointCloud` / `getPointCloudPoints` |
-| 路径/轨迹 | `sim.createPath` / `getPathLengths` / `getPathInterpolatedConfig` / `resamplePath` / `generateTimeOptimalTrajectory` |
-| 属性 (Properties) | `sim.setBoolProperty`/`getBoolProperty`、`setIntProperty`/`getIntProperty`、`setFloatProperty`/`getFloatProperty`、`setStringProperty`/`getStringProperty`、`setBufferProperty`/`getBufferProperty`、`setIntArrayProperty` 等 |
-| 信号 (Signals) | **4.10 起推荐经"信号属性"访问**（见 `properties.htm#signals`）；旧式 `sim.setIntegerSignal`/`getIntegerSignal`、`setFloatSignal`/`getFloatSignal`、`setStringSignal`/`getStringSignal`、`clearIntegerSignal`、`clearAllSignals` 仍可用 |
-| 自定义数据 | 经"自定义数据属性"访问（`properties.htm#customData`），可在对象/场景上挂持久化数据块 |
-| 脚本 | `sim.createScript` / `initScript` / `callScriptFunction` / `getScriptFunctions` / `executeScriptString` / `getApiFunc` / `getApiInfo` / `registerScriptFuncHook` / `getStackTraceback` |
-| 线程 | `sim.setStepping` / `sim.step` / `sim.switchThread` 等（单步模式相关） |
-| 消息通信 | `sim.broadcastMsg`（→ 各脚本 `sysCall_msg`） |
-| 渲染/绘图 | `sim.addDrawingObject` / `addDrawingObjectItem` |
-| 模型 | 组建/拆解模型相关 |
+## 属性（Properties）与 Regular API 的关系
 
-### 关节控制模式
-```lua
-sim.jointmode_passive              -- 被动（外力驱动）
-sim.jointmode_movement             -- 运动（运动学）
-sim.jointmode_ik                   -- IK
-sim.jointmode_dependent            -- 依赖
-sim.jointmode_dynamic              -- 动力学
-sim.jointmode_torque               -- 力矩
-sim.jointmode_force                -- 力
+属性是 Regular API 的重要组成。手册 `properties.htm` 指出：CoppeliaSim 中**所有内部变量或状态**都可作为属性被查询/修改，通过一组专用 API 函数访问。属性隶属于某个 **target**：
+
+| Target | 含义 | 常量 |
+|--------|------|------|
+| `sim.handle_app` | CoppeliaSim 全局 | 应用级设置、命名参数 |
+| `sim.handle_scene` | 当前场景 | 场景级重力、信号 |
+| 对象句柄 | 具体场景对象 | 关节区间、网格顶点、颜色等 |
+
+属性访问函数按类型成对出现（`set*Property` / `get*Property`）：`Bool/Int/Long/Float/String/Buffer`、`IntArray/FloatArray/IntArray2`、`Vector2/Vector3/Quaternion/Pose/Color`，以及泛化的 `getProperty`/`setProperty`/`getProperties` 等。
+
+属性有四类**特殊前缀**（同属 Regular API，但语义分层）：
+
+| 前缀 | 类别 | 挥发性 | 示例 |
+|------|------|--------|------|
+| `customData.` | 自定义数据 | **持久化**（存盘，不随脚本状态销毁） | `sim.setBufferProperty(h, 'customData.myTag', sim.packTable(...))` |
+| `signal.` | 信号 | **易失**（创建它的脚本状态销毁时自动清除） | `sim.setIntProperty(sim.handle_scene, 'signal.myInt', 37)` |
+| `namedParam.` | 命名参数 | 易失，仅 `sim.handle_app` | 命令行 `-G` 传入的用户参数 |
+| `bullet.`/`ode.`/`newton.`/`vortex.`/`mujoco.` | 物理引擎相关 | 引擎参数 | 引擎开关、步长等 |
+
+```python
+# 属性访问示例（Python ZMQ Remote API）
+sim.setVector3Property(sim.handle_scene, 'gravity', [0.0, 0.0, 0.0])  # 关闭重力
+low, high = sim.getFloatArrayProperty(jointHandle, 'interval')        # 关节上下限
+meshes = sim.getIntArrayProperty(shapeHandle, 'meshes')               # 组成 shape 的 mesh 句柄
 ```
 
-## 关键函数签名
+> ⚠ **4.10 信号迁移**：旧式 `sim.setIntegerSignal`/`sim.setFloatSignal`/`sim.setStringSignal` 等仍可用，但 4.10 起推荐经 `signal.*` 属性访问（见上表）。自定义数据同理，推荐经 `customData.*` 属性而非旧式 `sim.setBufferProperty` 裸调用。
 
-### sim.getObject
+## 按类别的函数清单总览
+
+手册 `apiFunctions.htm` 将 Regular API 按对象/领域分类，每类均给出 Python/Lua 与 C++ 两栏。下表汇总主要类别与代表性函数（完整清单以手册为准）：
+
+| 类别 | 代表性函数（Python/Lua） |
+|------|--------------------------|
+| 文件操作 | `sim.loadScene`/`saveScene`/`loadModel`/`saveModel`/`importShape`/`importMesh`/`exportMesh`/`createTexture` |
+| 句柄获取 | `sim.getObject`/`getObjectFromUid`/`isHandle`/`getObjects`/`getObjectsInTree`/`getCollectionObjects`/`getReferencedHandles` |
+| 场景对象 | `getObject`/`getObjectUid`/`getObjectAlias`/`setObjectAlias`/`getObjectParent`/`setObjectParent`/`getObjectChild`/`copyPasteObjects`/`scaleObject`/`getObjectType`/`getObjectSel`/`setObjectSel` |
+| 仿真控制 | `startSimulation`/`pauseSimulation`/`stopSimulation`/`getSimulationState`/`getSimulationTime`/`getSimulationTimeStep`/`getRealTimeSimulation` |
+| 关节 | `setJointPosition`/`getJointPosition`/`setJointTargetPosition`/`setJointTargetVelocity`/`getJointVelocity`/`setJointTargetForce`/`getJointForce`/`setJointMode`/`getJointType`/`setJointInterval`/`setJointDependency`/`createJoint` |
+| 动力学 | `handleDynamics`/`readForceSensor`/`addForce`/`addForceAndTorque`/`getVelocity`/`setLinkDummy`/`getLinkDummy`/`getShapeMass`/`setShapeMass`/`computeMassAndInertia`/`createForceSensor`/`isDynamicallyEnabled` |
+| 形状 | `createShape`/`createPrimitiveShape`/`createHeightfieldShape`/`getShapeMesh`/`getShapeViz`/`groupShapes`/`ungroupShape`/`alignShapeBB`/`relocateShapeFrame`/`getShapeColor`/`setShapeColor`/`generateTextShape` |
+| Dummy | `createDummy`/`getLinkDummy`/`setLinkDummy` |
+| 脚本 | `createScript`/`initScript`/`callScriptFunction`/`getScriptFunctions`/`executeScriptString`/`getApiFunc`/`getApiInfo`/`registerScriptFuncHook`/`getStackTraceback` |
+| 变换/位姿 | `buildMatrix`/`buildPose`/`matrixToPose`/`poseToMatrix`/`multiplyMatrices`/`multiplyPoses`/`interpolateMatrices`/`getMatrixInverse`/`getPoseInverse`/`getObjectPosition`/`setObjectPosition`/`getObjectOrientation`/`getObjectQuaternion`/`getObjectPose`/`setObjectPose`/`rotateAroundAxis`/`getRotationAxis` |
+| 碰撞/距离 | `checkCollision`/`checkCollisionEx`/`checkDistance` |
+| 接近传感器 | `handleProximitySensor`/`readProximitySensor`/`resetProximitySensor`/`checkProximitySensor`/`checkProximitySensorEx`/`checkProximitySensorEx2`/`createProximitySensor` |
+| 视觉传感器 | `handleVisionSensor`/`readVisionSensor`/`getVisionSensorImg`/`setVisionSensorImg`/`getVisionSensorDepth`/`getVisionSensorRes`/`adjustView`/`createVisionSensor` |
+| 力传感器 | `readForceSensor`/`createForceSensor` |
+| 图 | `addGraphStream`/`setGraphStreamValue`/`addGraphCurve`/`handleGraph`/`resetGraph` |
+| 八叉树 | `createOctree`/`insertVoxelsIntoOctree`/`removeVoxelsFromOctree`/`getOctreeVoxels`/`checkOctreePointOccupancy` |
+| 点云 | `createPointCloud`/`insertPointsIntoPointCloud`/`removePointsFromPointCloud`/`getPointCloudPoints` |
+| 路径/轨迹 | `createPath`/`getPathLengths`/`getPathInterpolatedConfig`/`resamplePath`/`generateTimeOptimalTrajectory`/`generateShapeFromPath` |
+| 属性 | `setBoolProperty`/`getBoolProperty`、`setIntProperty`/`getIntProperty`、`setFloatProperty`/`getFloatProperty`、`setStringProperty`/`getStringProperty`、`setBufferProperty`/`getBufferProperty`、`setIntArrayProperty`/`setFloatArrayProperty`/`setVector2Property`/`setVector3Property`/`setQuaternionProperty`/`setPoseProperty`/`setColorProperty`、`getProperty`/`setProperty`/`getProperties`/`removeProperty`/`getPropertyName`/`getPropertyInfo` |
+| 集合 | `createCollection`/`destroyCollection`/`addItemToCollection`/`getCollectionObjects` |
+| 信号 | 4.10 推荐经 `signal.*` 属性访问；旧式 `setIntegerSignal`/`getIntegerSignal`/`setFloatSignal`/`setStringSignal`/`clearIntegerSignal`/`clearAllSignals` 仍兼容 |
+| 自定义数据 | 经 `customData.*` 属性访问 |
+| 渲染/绘图 | `addDrawingObject`/`addDrawingObjectItem`/`removeDrawingObject`/`getObjectColor`/`setObjectColor`/`changeEntityColor`/`restoreEntityColor` |
+| 线程/单步 | `setStepping`/`step`/`setAutoYieldDelay`/`acquireLock`/`releaseLock`/`switchThread` |
+| 消息通信 | `broadcastMsg`（→ 各脚本 `sysCall_msg`）/`getSimulatorMessage`/`pushUserEvent` |
+| 运动功能 | `moveToConfig`/`moveToPose` 及 `_init`/`_step`/`_cleanup` 变体、`ruckigPos`/`ruckigVel`/`ruckigStep` |
+| 打包/解包 | `packTable`/`unpackTable`/`packUInt8Table`/`unpackFloatTable`/`copyTable`/`transformBuffer` |
+| 纹理/图像 | `getTextureId`/`readTexture`/`writeTexture`/`loadImage`/`saveImage`/`transformImage` |
+| 辅助控制台 | `auxiliaryConsoleOpen`/`auxiliaryConsoleClose`/`auxiliaryConsolePrint`/`auxiliaryConsoleShow` |
+| 模型 | `saveModel`/`loadModel` |
+| 其他 | `addLog`/`getPluginName`/`getPluginInfo`/`getSystemTime`/`launchExecutable`/`quitSimulator`/`getExplicitHandling`/`setExplicitHandling` |
+
+> 每个类别的完整三栏清单（Python/Lua + C++）见 `apiFunctions.htm`；各函数的签名、参数、返回值见 `regularApi/{funcName}.htm` 单页（本 wiki 在 [[01-API参考/api/]] 子目录逐条精修）。
+
+## 常量体系
+
+Regular API 的常量集中在 `apiConstants.htm`，按用途分组：
+
+- **General object types**：`sim.objecttype_sceneobject`、`sim.objecttype_collection`、`sim.objecttype_mesh`、`sim.objecttype_texture`
+- **Scene object types**：`sim.sceneobject_shape`、`sim.sceneobject_joint`、`sim.sceneobject_graph`、`sim.sceneobject_camera`、`sim.sceneobject_light`、`sim.sceneobject_dummy`、`sim.sceneobject_proximitysensor`、`sim.sceneobject_octree`、`sim.sceneobject_pointcloud`、`sim.sceneobject_visionsensor`、`sim.sceneobject_forcesensor`、`sim.sceneobject_script`（配合 `sim.getObjectType`、`sim.getObjectsInTree` 使用）
+- **Scene object sub-types**：`sim.light_omnidirectional`/`light_spot`/`light_directional`；`sim.joint_revolute`/`joint_prismatic`/`joint_spherical`；`sim.shape_simple`/`shape_compound`；`sim.proximitysensor_ray`/`pyramid`/`cylinder`/`disc`/`cone`
+- **Simulator messages**：`sim.message_model_loaded`、`sim.message_scene_loaded`、`sim.message_keypress`（`auxData[0]`=按键，`auxData[1]`=Ctrl/Shift 状态）等，经 `sim.getSimulatorMessage` 查询
+- **事件回调消息**：`sim_message_eventcallback_instancepass`（每个主循环触发，`auxData[0]` 含事件位码：bit0 对象删除、bit1 对象创建、bit2 模型加载、bit3 场景加载、bit11 仿真开始、bit12 仿真结束 等）、`..._instanceabouttoswitch`、`..._scenesave`、`..._abouttoundo` 等
+
+> 常量与参数 ID 的完整对照见 [[01-03-常量与参数ID]]。
+
+## 与远程 API 的关系
+
+手册 `zmqRemoteApiOverview.htm` 明确：
+
+> The ZeroMQ remote API ... offers **all API functions also available via a CoppeliaSim script**: this includes all regular API functions (i.e. `sim.*`-type functions), but also all API functions provided by plugins (e.g. `simOMPL.*`, `simUI.*`, `simIK.*`, etc.), if enabled.
+
+即 **ZMQ Remote API = Regular API + 插件 API 的远程代理**。外部程序经 ZeroMQ + CBOR 调用，获得的 `sim.*` 与脚本内调用的 `sim.*` 是同一套函数，签名一致；插件命名空间同样可经 `client.require('simIK')` 等取得。这意味着：
+
+- 本条目所述的全部 Regular API 函数，**都能从外部 Python/C++/Java 客户端调用**，无需写脚本。
+- 单步模式（`setStepping(True)` + `step()`）让外部程序成为**时钟主导**，每个仿真步由外部触发——这是本仓库精确工业节拍时序的基础。
+- Remote API 支持 stepping（与每步同步）与 non-stepping（常规运行）两种模式，甚至支持远程加载场景、启停仿真等对仿真器本身的控制。
+
+```python
+# 取得多个命名空间（Regular API + 插件 API）
+client = RemoteAPIClient()
+sim = client.require('sim')        # Regular API
+simIK = client.require('simIK')    # 插件 API: 逆运动学
+simOMPL = client.require('simOMPL')  # 插件 API: 运动规划
+```
+
+> Remote API 的协议版本、客户端语言、与本仓库双连接设计详见 [[01-02-Remote-API-ZMQ]]。
+
+## 关键函数签名速查
+
+### sim.getObject（按路径取句柄）
 ```python
 int objectHandle = sim.getObject(string objectPath, dict options = {})
 # options: noError(bool)、index(int)、proxy(int)
-# 返回: 句柄或 -1
+# 返回: 对象句柄；找不到时默认抛错，options.noError=True 时返回 -1
+```
+路径支持绝对（`/Robot`）、相对（`./`、`../`、`:`、`::`）、通配（`/Mobile*`）、同层索引（`/Robot[0]`）、全局索引（`/Robot{4}`）。⚠ `setObjectAlias` 设别名时**别名本身不应含 `/`**（非法字符会被替换为下划线），`/` 仅在 `getObject` 查询时作路径前缀。
+
+### sim.getObjectPosition（读位置）
+```python
+list position = sim.getObjectPosition(int objectHandle, int relativeToObjectHandle = sim.handle_world)
+# relativeToObjectHandle: sim.handle_world(绝对)、sim.handle_parent(相对父)、或任意对象句柄
+# 返回: [x, y, z]，单位米
 ```
 
-### sim.getObjectsInTree
+### sim.setStepping / sim.step（单步模式）
 ```python
-list objects = sim.getObjectsInTree(int treeBaseHandle,
-                                   int objectType = sim.handle_all,
-                                   int options = 0)
-# treeBaseHandle 也可传 sim.handle_scene 取场景全部对象
-# options 位码: bit0=1 排除树根; bit1=2 仅含直接子对象
+int prevStepLevel = sim.setStepping(bool enable)   # 累加生效：启用 n 次需禁用 n 次才回初态
+sim.step()                                          # 推进一个仿真步
 ```
-> ⚠ 仿真未启动或子树含不可查询对象时可能抛 "Operation cannot be accomplished in current state"，导致采集到 0 关节。本仓库 `RobotArmAnimator` 已加全场景关节扫描回退（已知问题 #4）。
 
 ### sim.getSimulationState
 ```python
-int simulationState = sim.getSimulationState()   # 返回 simulationStatus 常量
-```
-状态码用于冻结排查（本仓库 MCP `get_simulation_state` 即封装此调用）。状态图见 `raw/src-doc-CoppeliaSim-simulation.md`。
-
-### sim.setStepping
-```python
-int prevStepLevel = sim.setStepping(bool enable)
-# 累加生效: 启用 n 次需禁用 n 次才回到初始态
-# 返回前一级别 (0 表示之前未启用)
+int state = sim.getSimulationState()   # 返回 simulationStatus 常量
 ```
 
-## 常用最佳实践
+## 参见
 
-### 对象句柄
-- 避免在每次回调中重复 `sim.getObject()`，把句柄缓存到全局变量（`sysCall_init` 中一次性获取）。
-- 用绝对路径（`/` 开头）定位对象；别名唯一时可简化为 `/Object`。
-
-### 坐标变换
-```lua
-local relPos  = sim.getObjectPosition(tip, base)                 -- 相对 base
-local localPos = sim.getObjectPosition(tip, sim.handle_world)     -- 世界系
--- 优先用 sim.multiplyPoses / sim.interpolatePoses 做组合与插值，而非手算欧拉角
-```
-
-### 性能
-- 减少 `sim.switchThread()` 调用频率。
-- 脚本间通信用信号 / 自定义数据属性 / `broadcastMsg`，避免轮询。
-- 被远程调用的脚本函数应短小，否则会阻塞整个仿真（长任务应改为外部触发、由系统回调在合适时机处理）。
-
-## API 版本兼容性
-
-> 本条目面向 CoppeliaSim 4.10。Remote API 协议版本 2 对应 4.6.0+（协议 1 对应 4.5.1 及更早），见 [[01-02-Remote-API-ZMQ]] 的协议版本表。
-
-| 函数 | 4.10 | 4.6+ | 4.0+ | 注意 |
-|------|------|------|------|------|
-| `sim.getObject` | ✅ | ✅ | ✅ | 4.0 起推荐，替代旧版 `sim.getObjectHandle` |
-| `sim.setStepping` | ✅ | ✅ | ❌ | 4.2+ 引入 |
-| `sim.callScriptFunctionEx` | ✅ | ✅ | ❌ | 4.3+ 引入（C++ 端） |
-| 信号 `setIntegerSignal` 等 | ✅(兼容) | ✅ | ✅ | 4.10 起推荐改用信号属性 |
-
----
-
-**关联条目：**
-- [[wiki/01-API参考/01-02-Remote-API-ZMQ]] — ZeroMQ Remote API（同一套 `sim.*` 的远程代理）
-- [[wiki/07-API脚本示例/07-01-Lua基本脚本模式]] — Lua 脚本模式详解
-- [[wiki/02-仿真建模/02-01-分层命名场景构建]] — 别名路径陷阱的工程化规避
-- [[wiki/99-附录/99-01-术语表]] — 常用术语
+- [[01-02-Remote-API-ZMQ]] — ZeroMQ Remote API（同一套 `sim.*` 的远程代理，含协议版本表）
+- [[01-03-常量与参数ID]] — 常量与参数 ID 完整对照
+- [[01-04-插件API总览]] — 插件 API（`simIK.*`/`simOMPL.*`/`simUI.*` 等）
+- [[wiki/01-API参考/api/]] — Regular API 单函数精修条目子目录
+- [[00-基础知识/00-01-CoppeliaSim-overview]] — CoppeliaSim 总览
