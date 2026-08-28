@@ -27,6 +27,38 @@ MATERIAL_INTERVAL  = 5.0                # 每个仓库产出物料的时间间�
 TOTAL_SIM_TIME     = 60.0               # 仿真总时长 (s)，0 表示无限运行
 PROCESS_TIME       = 1.5                # 工作岛处理时间 (s) - 从2.0减少到1.5
 
+# ── 物理传送带配置 — Physics conveyor (4.10 friction-driven belt) ──
+# True  = 传送带表面 kinematic+static+respondable, 由 Python 推动; 物料
+#        dynamic+respondable, 由物理摩擦拖动; 到带末端时由距离判定入岛。
+# False = 旧行为: Python 按 conv_progress 浮点累加 + setObjectPosition 瞬移。
+# 切换无副作用, 同一场景 build 可反复试两套路径 (见 factory_robot 同名机制)。
+# 参考: docs/wiki/02-仿真建模/02-11-动力学仿真设计.md, physicsEngineDifferences.htm:39
+PHYSICS_CONVEYOR        = True
+# 物料物理参数 (kg, 摩擦) — 0.15×0.15×0.12 m³ 物体适合此量级
+MATERIAL_MASS           = 0.05
+MATERIAL_FRICTION       = 0.6
+# 物料动态属性
+MATERIAL_START_IN_SLEEP = False
+# 传送带面物理参数 — kinematic 表面; static; respondable
+# (geometry thickness 仅用于 stopper, 主带面厚度由模型/回退几何决定)
+# 到达判定: 物料世界坐标距带末端 <= ARRIVAL_RADIUS (m)
+ARRIVAL_RADIUS          = 0.15
+# 摩擦属性候选名 (按所选物理引擎生效; 其他引擎的属性会被 setProperty 静默忽略)
+FRICTION_PROPS = (
+    "bullet.friction",                # Bullet / MuJoCo(Bullet back) — 优先
+    "ode.friction",                   # ODE
+    "newton.kineticFriction",         # Newton Dynamics
+    "vortex.linearPrimaryAxisFrictionValue",  # Vortex
+)
+# respondable_mask 打包: int32 = (global_mask << 8) | local_mask
+# (objectParameterIDs.htm:165: 两个 8-bit 值, 共享父用 local, 否则用 global)
+MATERIAL_RESPONDABLE_MASK_LOCAL  = 0xFF
+MATERIAL_RESPONDABLE_MASK_GLOBAL = 0xFF
+def _pack_respondable_mask(local: int, global_: int) -> int:
+    return ((global_ & 0xFF) << 8) | (local & 0xFF)
+MATERIAL_RESPONDABLE_MASK_PACKED = _pack_respondable_mask(
+    MATERIAL_RESPONDABLE_MASK_LOCAL, MATERIAL_RESPONDABLE_MASK_GLOBAL)
+
 # ═══════════════════════════════════════════════════════════════
 # 工业节拍字典 — Industrial Beat Dictionary
 # ═══════════════════════════════════════════════════════════════

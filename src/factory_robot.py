@@ -20,11 +20,9 @@ Exports:
 """
 
 import logging
-import math
-from typing import Optional
 
 import factory_config as cfg
-from factory_types import AGVState
+from factory_scene import find_by_alias, parse_leaf
 
 
 class RobotArmAnimator:
@@ -71,55 +69,22 @@ class RobotArmAnimator:
         """采集各机械臂根句柄与其关节句柄。
 
         CoppeliaSim 命名不支持字符 '/', 项目内所有别名一律用下划线连接
-        (见 CLAUDE.md「已知问题与坑」第 1 条)。此处遍历所有对象按叶子别名
-        匹配机械臂根, 再用 getObjectsInTree 枚举其关节子树。
+        (见 CLAUDE.md「已知问题与坑」第 1 条)。此处用 factory_scene.find_by_alias
+        统一匹配 (完整别名 / 叶子 / _前缀) — 取代旧内联 3 重循环。
 
-        匹配规则: 对象别名 (getObjectAlias) 的叶子部分等于
-        ISLAND_ROBOTS[<key>]["alias"] 的叶子部分。
+        匹配规则: 对象别名 (getObjectAlias) 与 ISLAND_ROBOTS[<key>]["alias"]
+        完整相等, 或叶子部分相等, 或以 _<leaf> 结尾 (alias 路径 quirk)。
         """
         sim = self.sim
-        # 预计算各机械臂要匹配的叶子别名
-        # alias 形如 "Island_A_Assembly_Robot_A"，叶子为 "Robot_A"
-        # setObjectAlias 后存储别名即为该完整名, 也可能为内置模型残留的原生别名,
-        # 故同时匹配归一化全名与叶子名。
-        leaf_map: dict[str, str] = {}  # key -> (leaf, full_alias)
+        # 为每个机械臂键找根句柄 (统一 helper, 消除 wiki 02-01 指出的重复)
         for key, robot_cfg in cfg.ISLAND_ROBOTS.items():
             full = robot_cfg["alias"]
-            # 叶子取末两段, 如 "Island_A_Assembly_Robot_A" -> "Robot_A"
-            parts = full.split("_")
-            leaf = "_".join(parts[-2:]) if len(parts) >= 2 else full
-            leaf_map[key] = (leaf, full)
-
-        # 收集所有对象 (shape + dummy + joint 类型) 的 (handle, alias)
-        all_handles: list[tuple[int, str]] = []
-        for tval in (sim.object_shape_type, sim.object_dummy_type,
-                     sim.object_joint_type):
-            i = 0
-            while True:
-                try:
-                    h = sim.getObjects(i, tval)
-                    try:
-                        a = sim.getObjectAlias(h)
-                    except Exception:
-                        a = ""
-                    all_handles.append((h, a))
-                    i += 1
-                except Exception:
-                    break
-                if i > 2000:
-                    break
-
-        # 为每个机械臂键找根句柄
-        for key, (leaf, full) in leaf_map.items():
-            root_handle = None
-            for h, a in all_handles:
-                if not a:
-                    continue
-                # 精确匹配完整别名, 或叶子名
-                if a == full or a == leaf or a.endswith("_" + leaf):
-                    root_handle = h
-                    break
-            if root_handle is None:
+            leaf = parse_leaf(full, 2)
+            root_handle = find_by_alias(
+                sim, full,
+                sim.object_shape_type, sim.object_dummy_type,
+            )
+            if root_handle < 0:
                 self.logger.debug(
                     f"[ROBOT] 机械臂 {leaf} 未在场景中找到，跳过动画"
                 )
@@ -189,7 +154,12 @@ class RobotArmAnimator:
                         joints.append(jh)
                     i += 1
 
-            joints = joints[:6]  # UR5 恰好 6 关节, 截断防止误收夹爪/额外件
+            # API 不承诺 getObjectsInTree 的返回顺序。UR5 六个本体关节
+            # 沿单一父子链排列，按相对根节点深度排序后才能与关键帧稳定对应。
+            joints = sorted(
+                set(int(jh) for jh in joints),
+                key=lambda jh: self._depth_from_root(sim, jh, root_handle),
+            )[:6]
             self.arms[key] = {
                 "root": root_handle,
                 "joints": joints,
@@ -227,6 +197,23 @@ class RobotArmAnimator:
             cur = parent
         return False
 
+    @staticmethod
+    def _depth_from_root(sim, handle: int, root_handle: int,
+                         max_depth: int = 100) -> int:
+        """返回对象相对根节点的层级深度，无法回溯时排到末尾。"""
+        cur = handle
+        for depth in range(1, max_depth + 1):
+            try:
+                parent = sim.getObjectParent(cur)
+            except Exception:
+                return max_depth + 1
+            if parent == root_handle:
+                return depth
+            if parent < 0 or parent == cur:
+                return max_depth + 1
+            cur = parent
+        return max_depth + 1
+
     def _set_home_pose(self, arm: dict):
         """置机械臂为 HOME 待机姿态 — Set joints to ARM_ANIMATIONS HOME frame.
 
@@ -237,13 +224,7 @@ class RobotArmAnimator:
         if not home or arm["n_joints"] == 0:
             return
         f0 = home[0]
-        sim = self.sim
-        for i, jh in enumerate(arm["joints"]):
-            try:
-                a = f0[i] if i < len(f0) else 0.0
-                sim.setJointPosition(jh, a)
-            except Exception:
-                continue
+        self._command_pose(arm, f0)
 
     # ── 公共接口 ─────────────────────────────────────────────
 
@@ -267,21 +248,25 @@ class RobotArmAnimator:
         """每步推进所有机械臂动画 — Advance all arm animations by dt.
 
         自动触发逻辑:
-          - 岛进入 PROCESSING: 触发 idle_wiggle
-          - 岛进入 COMPLETE: 触发 pick_and_place (抓取送出)
-          - AGV 到达/离开 + 装配事件: 由控制器显式 trigger
+          - 岛进入 PROCESSING: 触发 idle_wiggle (仅在 anim is None 时, 不会覆盖
+            pick_and_place / assemble 等显式动作)
+          - 岛完成出料: 由控制器显式触发 pick_and_place (见
+            FactoryController._schedule_agv_tasks / _handle_ac_transfer /
+            _handle_ce_transfer)
+          - E 岛装配事件: 由控制器显式触发 on_assembly (双臂协同)
 
         Args:
             dt:           时间增量 (秒).
             islands:      岛名 → IslandController 映射.
             agv_scheduler: AGVScheduler 实例 (用于判断 AGV 状态).
         """
-        # 1. 自动触发: 岛状态变化
+        # 1. 自动触发: 岛进入 PROCESSING 状态时, 启动 idle_wiggle 循环。
+        #    注意: 仅当 anim is None 时才置, 因此 pick_and_place / assemble 等
+        #    显式动作不会被 idle_wiggle 打断 (test_idle_wiggle_does_not_interrupt_pick_and_place)。
         for name, ctrl in islands.items():
             arm_key = name if name != "E" else None
             # E 岛动画由装配事件显式触发，不在此自动处理
             if arm_key and arm_key in self.arms:
-                # PROCESSING → idle_wiggle (持续)
                 if ctrl.state.name == "PROCESSING":
                     arm = self.arms[arm_key]
                     if arm["anim"] is None:
@@ -321,9 +306,11 @@ class RobotArmAnimator:
                 if arm["anim"] == "idle_wiggle":
                     arm["frame"] = 0
                 else:
-                    # 持续保持末帧直到下次触发
+                    # 先精确下发末帧，再结束。旧实现先清 anim 后 return，
+                    # 导致最后一帧永远只逼近、不真正到达。
+                    self._command_pose(arm, anim[-1])
                     arm["anim"] = None
-                break
+                    return
 
         # 计算插值因子
         if arm["anim"] is None:
@@ -341,10 +328,17 @@ class RobotArmAnimator:
             a1 = f1[i] if i < len(f1) else 0.0
             angles.append(a0 + (a1 - a0) * t)
 
-        # 驱动关节
+        self._command_pose(arm, angles)
+
+    def _command_pose(self, arm: dict, angles: list[float]):
+        """向 UR5 动态位置控制器下发目标，旧模型回退为直接设位。"""
         sim = self.sim
         for i, jh in enumerate(arm["joints"]):
+            angle = angles[i] if i < len(angles) else 0.0
             try:
-                sim.setJointPosition(jh, angles[i])
+                sim.setJointTargetPosition(jh, angle)
             except Exception:
-                continue
+                try:
+                    sim.setJointPosition(jh, angle)
+                except Exception:
+                    continue

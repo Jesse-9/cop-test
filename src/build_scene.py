@@ -21,6 +21,13 @@ import sys
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
 import factory_config as cfg
+from factory_scene import iter_by_type
+from factory_physics import (
+    apply_conveyor_physics_props, apply_conveyor_physics_props_all_pads,
+    apply_material_physics_props,
+    find_belt_pad_shape, find_all_belt_pad_shapes,
+    get_physics_engine_name, is_physics_engine_safe,
+)
 
 
 def clear_scene(sim):
@@ -56,30 +63,18 @@ def clear_scene(sim):
 
     all_handles: set[int] = set()
     kept: set[str] = set()
-    for tval in type_list:
-        i = 0
-        while i < 100000:
-            try:
-                h = sim.getObjects(i, tval)
-                if h is None or h < 0:
-                    break
-                # 读取别名与对象名, 任一命中保留集即跳过删除
-                try:
-                    alias = sim.getObjectAlias(h)
-                except Exception:
-                    alias = ""
-                try:
-                    name = sim.getObjectName(h)
-                except Exception:
-                    name = ""
-                if alias in keep_names or name in keep_names:
-                    kept.add(alias or name)
-                    print(f"[INFO] 保留默认对象: {alias or name} (handle={h})", i, tval)
-                else:
-                    all_handles.add(int(h))
-                i += 1
-            except Exception:
-                break
+    # 使用 factory_scene.iter_by_type 统一遍历逻辑 (消除 3 处重复之一)
+    for h, alias in iter_by_type(sim, *type_list):
+        # 读取对象名 (iter_by_type 不读 name, 因为部分对象无 name)
+        try:
+            name = sim.getObjectName(h)
+        except Exception:
+            name = ""
+        if alias in keep_names or name in keep_names:
+            kept.add(alias or name)
+            print(f"[INFO] 保留默认对象: {alias or name} (handle={h})")
+        else:
+            all_handles.add(int(h))
 
     if kept:
         print(f"[INFO] 保留 {len(kept)} 个默认对象: {', '.join(sorted(kept))}")
@@ -119,8 +114,22 @@ def connect(host: str = "localhost", port: int = 23000):
     try:
         client = RemoteAPIClient(host=host, port=port)
         sim = client.require("sim")
-        version = sim.getStringSignal("coppeliaSimVersion")
-        print(f"[OK] 已连接 CoppeliaSim {version}")
+        # 4.10 推荐 properties: getStringProperty(handle_app, 'productVersion')
+        # 旧 getStringSignal("coppeliaSimVersion") 在部分实例返回 None, 仅作回退
+        version = ""
+        try:
+            version = sim.getStringProperty(sim.handle_app, "productVersion") or ""
+        except Exception:
+            pass
+        if not version:
+            try:
+                version = sim.getStringSignal("coppeliaSimVersion") or ""
+            except Exception:
+                version = ""
+        if version:
+            print(f"[OK] 已连接 CoppeliaSim {version}")
+        else:
+            print(f"[OK] 已连接 CoppeliaSim @ {host}:{port} (版本信号未设置)")
         return client, sim
     except Exception as e:
         print(f"[FATAL] 无法连接 CoppeliaSim: {e}")
@@ -479,6 +488,10 @@ def create_conveyor(sim, name: str, params: dict,
     内置传送带默认沿 +X 方向。按 start→end 的角度旋转后放置于中点。
     若内置模型长度与实际距离不符，仍按中点对齐（视觉接近即可），
     物料移动仍由 Python 端按 start→end 线性插值定位。
+
+    物理传送带模式 (cfg.PHYSICS_CONVEYOR=True): 创建后调用
+    apply_conveyor_physics_props 把带面设为 static+kinematic+respondable,
+    由 Python 每步 setObjectPosition 推动, 上方 dynamic 物料被摩擦带动。
     """
     x1, y1 = params["start"]
     x2, y2 = params["end"]
@@ -491,18 +504,22 @@ def create_conveyor(sim, name: str, params: dict,
     length = math.hypot(dx, dy)
     angle = math.atan2(dy, dx)
     mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+    # 单位方向向量 — 物理模式推带面用
+    dir_x = (dx / length) if length > 0 else 1.0
+    dir_y = (dy / length) if length > 0 else 0.0
+
+    belt_handle: int = -1
 
     # 尝试加载内置传送带模型
     model_rel = _resolve_model_path("conveyor_belt")
-    belt_handle = None
     if model_rel and os.path.exists(os.path.join(cfg.MODEL_BASE, model_rel)):
         try:
             belt_handle = sim.loadModel(
                 os.path.join(cfg.MODEL_BASE, model_rel)
             )
             sim.setObjectParent(belt_handle, parent_handle, True)
-            # 重要: 先缩放后移动。scaleObjects 围绕世界原点缩放，
-            # 若先移动到目标位置再缩放，位置会被等比放大漂移 (pos × scale)，
+            # 重要: 先缩放后移动。scaleObjects 围绕世界原点缩放,
+            # 若先移动到目标位置再缩放，位置会被等比放大漂移 (pos × scale),
             # 导致传送带飞到远离工厂的位置无法可视化。
             try:
                 # generic conveyor 默认长度约 1.0m，按实际长度缩放 X 轴
@@ -518,43 +535,85 @@ def create_conveyor(sim, name: str, params: dict,
                 belt_handle, [0, 0, angle], sim.handle_world
             )
             sim.setObjectAlias(belt_handle, alias)
-            # 移除传送带自带 Lua 脚本: 物料移动由 Python 端控制，
+            # 移除传送带自带 Lua 脚本: 物料移动由 Python 端控制,
             # 内置脚本依赖的 conveyor_customization 模块在 4.10 会
-            # 发出 matrix/simEigen 弃用警告，且脚本无用，移除以消除警告。
+            # 发出 matrix/simEigen 弃用警告, 且脚本无用, 移除以消除警告。
             _strip_conveyor_scripts(sim, belt_handle)
             print(f"[OK] 传送带(内置) {name} → {alias}: "
-                  f"({x1:.1f},{y1:.1f}) → ({x2:.1f},{y2:.1f}), L={length:.2f}m")
-            return belt_handle
+                  f"({x1:.1f},{y1:.1f}) → ({x2:.1f},{y1:.1f}), L={length:.2f}m")
         except Exception as e:
             print(f"  [WARN] 内置传送带加载失败，回退到几何体: {e}")
+            belt_handle = -1
 
     # 回退: 基本几何体传送带
-    belt = sim.createPrimitiveShape(
-        sim.primitiveshape_cuboid, [length, width, 0.06],
-    )
-    sim.setObjectParent(belt, parent_handle, True)
-    sim.setObjectPosition(belt, [mx, my, cfg.Z_BASE], sim.handle_world)
-    sim.setObjectOrientation(belt, [0, 0, angle], sim.handle_world)
-    sim.setObjectColor(belt, 0, sim.colorcomponent_ambient_diffuse, [r, g, b])
-    sim.setObjectAlias(belt, alias)
-
-    # 两端滚轮标记
-    roller_color = [0.35, 0.35, 0.35]
-    for idx, (rx, ry) in enumerate([(x1, y1), (x2, y2)]):
-        suffix = "RollerStart" if idx == 0 else "RollerEnd"
-        roller = sim.createPrimitiveShape(
-            sim.primitiveshape_cylinder, [0.08, 0.08, width + 0.04],
+    if belt_handle == -1:
+        belt_handle = sim.createPrimitiveShape(
+            sim.primitiveshape_cuboid, [length, width, 0.06],
         )
-        sim.setObjectParent(roller, belt, True)
-        sim.setObjectPosition(roller, [-length / 2 + (0 if idx == 0 else length),
-                                       0, -0.02], sim.handle_parent)
-        sim.setObjectOrientation(roller, [0, math.pi / 2, 0], sim.handle_parent)
-        sim.setObjectColor(roller, 0, sim.colorcomponent_ambient_diffuse, roller_color)
-        sim.setObjectAlias(roller, f"{alias}_{suffix}")
+        sim.setObjectParent(belt_handle, parent_handle, True)
+        sim.setObjectPosition(belt_handle, [mx, my, cfg.Z_BASE], sim.handle_world)
+        sim.setObjectOrientation(belt_handle, [0, 0, angle], sim.handle_world)
+        sim.setObjectColor(belt_handle, 0, sim.colorcomponent_ambient_diffuse, [r, g, b])
+        sim.setObjectAlias(belt_handle, alias)
 
-    print(f"[OK] 传送带(几何体) {name} → {alias}: "
-          f"({x1:.1f},{y1:.1f}) → ({x2:.1f},{y2:.1f}), L={length:.2f}m")
-    return belt
+        # 两端滚轮标记
+        roller_color = [0.35, 0.35, 0.35]
+        for idx, (rx, ry) in enumerate([(x1, y1), (x2, y2)]):
+            suffix = "RollerStart" if idx == 0 else "RollerEnd"
+            roller = sim.createPrimitiveShape(
+                sim.primitiveshape_cylinder, [0.08, 0.08, width + 0.04],
+            )
+            sim.setObjectParent(roller, belt_handle, True)
+            sim.setObjectPosition(roller, [-length / 2 + (0 if idx == 0 else length),
+                                           0, -0.02], sim.handle_parent)
+            sim.setObjectOrientation(roller, [0, math.pi / 2, 0], sim.handle_parent)
+            sim.setObjectColor(roller, 0, sim.colorcomponent_ambient_diffuse, roller_color)
+            sim.setObjectAlias(roller, f"{alias}_{suffix}")
+
+        print(f"[OK] 传送带(几何体) {name} → {alias}: "
+              f"({x1:.1f},{y1:.1f}) → ({x2:.1f},{y2:.1f}), L={length:.2f}m")
+
+    # 物理模式: 设带面 static+respondable+surface velocity
+    if cfg.PHYSICS_CONVEYOR and belt_handle > 0:
+        # 物理引擎 (决定 surface velocity 路径是否可用)
+        try:
+            engine = get_physics_engine_name(sim)
+        except Exception:
+            engine = "unknown"
+
+        # 内置传送带模型根是 dummy, 真正承载物料的是其下的 'pad' 形状 (约 50 个)
+        pads = find_all_belt_pad_shapes(sim, belt_handle)
+        if pads:
+            # 内置模型: 对每个 pad 设 static+respondable+surface velocity
+            ok = apply_conveyor_physics_props_all_pads(
+                sim, belt_handle, cfg.CONVEYOR_SPEED, engine, None
+            )
+            if ok:
+                print(f"  [PHYSICS] 传送带 {alias}: {len(pads)} 个 pad "
+                      f"static+respondable+surfaceV={cfg.CONVEYOR_SPEED}m/s "
+                      f"(engine={engine}) ✓")
+            else:
+                print(f"  [WARN] 传送带 {alias}: pad surface velocity 写入失败 "
+                      f"(engine={engine}), 物料可能不被带动")
+        else:
+            # 回退几何体传送带: 单一 shape, 直接设属性
+            ok = apply_conveyor_physics_props(
+                sim, belt_handle, cfg.CONVEYOR_SPEED, engine, None
+            )
+            if ok:
+                print(f"  [PHYSICS] 传送带(几何体) {alias}: "
+                      f"static+respondable+surfaceV (engine={engine}) ✓")
+            else:
+                print(f"  [WARN] 传送带 {alias} 物理属性设置失败")
+
+    # 写回 handle 给 controller (物理模式不再推带面, handle 仅用于到达检测参考)
+    if cfg.PHYSICS_CONVEYOR:
+        params["handle"] = belt_handle
+    else:
+        params["handle"] = belt_handle
+    params["dir"] = [dir_x, dir_y]
+    params["length"] = length
+    return belt_handle
 
 
 def create_shared_agv(sim, parent_handle: int) -> int:
@@ -665,6 +724,19 @@ def build_scene(sim):
     # 5. 共享 AGV（单一小车，双路径）
     print("\n── 共享 AGV ──")
     create_shared_agv(sim, roots["Mobile"])
+
+    # 6. 物理引擎提示 — 警告 MuJoCo (physicsEngineDifferences.htm:39)
+    if cfg.PHYSICS_CONVEYOR:
+        try:
+            engine = get_physics_engine_name(sim)
+            if not is_physics_engine_safe(engine):
+                print(f"  [WARN] 当前物理引擎 = {engine}; "
+                      "kinematic+static 表面在 MuJoCo 下走 mocap+weld 路径, "
+                      "如出现性能问题请切换 Bullet/ODE/Newton")
+            else:
+                print(f"  [PHYSICS] 当前物理引擎 = {engine} OK (适合 kinematic+static 表面)")
+        except Exception as e:
+            print(f"  [WARN] 读取物理引擎失败: {e}")
 
     # 提示用户
     print("\n" + "=" * 55)

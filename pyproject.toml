@@ -25,7 +25,9 @@ py-modules = [
     "factory_island",
     "factory_agv",
     "factory_exceptions",
+    "factory_physics",
     "factory_robot",
+    "factory_scene",
     "factory_controller",
     "factory_mcp_server",
 ]

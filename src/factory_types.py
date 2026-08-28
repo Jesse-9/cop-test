@@ -101,12 +101,16 @@ class Material:
         handle: CoppeliaSim 场景中的物体句柄 (-1 表示已删除).
         pos: 物料在场景中的当前位置 [x, y, z].
         on_conveyor: 所在传送带名称 (如 "S1_to_A"), None 表示不在传送带上.
-        conv_progress: 在传送带上的进度 (0.0 → 1.0).
+        conv_progress: kinematic 模式下传送带进度 (0.0 → 1.0);
+                       物理模式 (PHYSICS_CONVEYOR) 下此值不推进, 仅 0/1 标志
+                       是否仍在带面。
         on_agv: 所在 AGV 名称, None 表示不在 AGV 上.
         agv_progress: 在 AGV 运输路径上的进度 (0.0 → 1.0).
         at_island: 所在工作岛名称 (如 "A"), None 表示不在岛上.
         processing_remaining: 在岛上剩余的加工时间 (秒).
         delivered: True 表示物料已完成使命 (被消耗/装配/移除).
+        frozen: 物理模式下: 物料到达带末端但目标岛拒绝时置 True
+                → 传送带面停止推动 (背压), 岛接受后清 False。
         history: 物料履历列表 [(sim_time, event_description), ...].
     """
     uid:       int
@@ -122,6 +126,7 @@ class Material:
     at_island:    Optional[str] = None
     processing_remaining: float = 0.0
     delivered:    bool = False
+    frozen:       bool = False
 
     # 物料履历 — Event history for traceability
     history: list[tuple[float, str]] = field(default_factory=list)
@@ -216,7 +221,10 @@ def spawn_material(sim, item_type: ItemType,
     """在场景中创建物料方块并返回 Material 对象。
 
     Creates a colored cuboid in CoppeliaSim at the given position and wraps
-    it in a Material dataclass for lifecycle tracking.
+    it in a Material dataclass for lifecycle tracking. If PHYSICS_CONVEYOR is
+    True, applies physics properties (dynamic+respondable+mass+friction) via
+    factory_physics.apply_material_physics_props so the material is carried by
+    the kinematic belt surface via friction.
 
     Args:
         sim:       CoppeliaSim Remote API object (sim).
@@ -225,7 +233,7 @@ def spawn_material(sim, item_type: ItemType,
         sim_time:  当前仿真时间 (用于履历记录).
 
     Returns:
-        Material 对象，已记录 SPAWNED 事件.
+        Material 对象, 已记录 SPAWNED 事件.
     """
     global _uid_counter
     _uid_counter += 1
@@ -236,6 +244,16 @@ def spawn_material(sim, item_type: ItemType,
     sim.setObjectColor(handle, 0, sim.colorcomponent_ambient_diffuse, list(color))
     mat = Material(uid=_uid_counter, item_type=item_type,
                    handle=handle, pos=position)
+
+    # 物理传送带模式: 物料设为 dynamic+respondable, 由带面摩擦拖动
+    if cfg.PHYSICS_CONVEYOR:
+        # 延迟导入避免循环依赖
+        try:
+            from factory_physics import apply_material_physics_props
+            apply_material_physics_props(sim, handle, None)
+        except Exception:
+            pass
+
     mat.history.append((sim_time, f"SPAWNED as {item_type.name}"))
     return mat
 
