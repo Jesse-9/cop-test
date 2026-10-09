@@ -1,6 +1,7 @@
 """机械臂设备层(关节采集/控制模式/反馈)与动画器的纯单元测试。"""
 
 import logging
+import math
 
 import factory_config as cfg
 from factory_robot import RobotArmAnimator, RobotArmDevice
@@ -19,19 +20,30 @@ class FakeRobotSim:
     jointmode_dependent = 4
     jointmode_dynamic = 5
 
-    def __init__(self, with_arm: bool = True):
+    def __init__(self, with_arm: bool = True, joint_count: int = 6,
+                 fail_feedback: bool = False):
         self.with_arm = with_arm
+        self.joint_count = joint_count
+        self.fail_feedback = fail_feedback
         self.root = 100
-        self.joints = [101, 102, 103, 104, 105, 106]
+        self.joints = [101, 102, 103, 104, 105, 106][:joint_count]
         self.gripper = 200
         self.gripper_joints = [201, 202]
         self.tcp = 300
-        self.parents = {101: 100, 102: 101, 103: 102,
-                        104: 103, 105: 104, 106: 105,
-                        self.gripper: 106, 201: self.gripper,
-                        202: self.gripper, self.tcp: 106}
+        self.parents = {}
+        prev = self.root
+        for j in self.joints:
+            self.parents[j] = prev
+            prev = j
+        self.parents[self.gripper] = prev
+        self.parents[201] = self.gripper
+        self.parents[202] = self.gripper
+        self.parents[self.tcp] = prev
+        # 仿真启动时关节处于模型零位; HOME 由动画器/设备层下发
         self.aliases = {self.root: "Test_Robot_A", self.gripper: "Gripper",
                         self.tcp: "connection"}
+        for i, j in enumerate(self.joints, start=1):
+            self.aliases[j] = f"joint{i}"
         self.targets = []          # (handle, angle) — 兼容既有断言
         self.calls = []            # (handle, angle, motion_params)
         self.modes = {j: self.jointmode_dynamic for j in self.joints}
@@ -78,9 +90,13 @@ class FakeRobotSim:
         self.positions[handle] = angle
 
     def getJointPosition(self, handle):
+        if self.fail_feedback:
+            raise RuntimeError("反馈读取失败 (模拟断连/引擎冻结)")
         return self.positions.get(handle, 0.0)
 
     def getJointTargetPosition(self, handle):
+        if self.fail_feedback:
+            raise RuntimeError("反馈读取失败 (模拟断连/引擎冻结)")
         return self.target_positions.get(handle, 0.0)
 
     def setJointMode(self, handle, mode):
@@ -213,6 +229,62 @@ def test_device_reports_positions_targets_and_max_error(monkeypatch):
     assert dev.read_positions()[0] == 0.1
     assert dev.read_targets() == [0.3] * 6
     assert abs(dev.max_error() - 0.2) < 1e-9
+
+
+# ── §9.3 "恰好六个本体关节" 不变量 ─────────────────────────────
+
+
+def test_device_disabled_when_joint_count_is_not_six(monkeypatch):
+    """§9.3: 最终必须校验恰好得到六个本体关节 —— 否则整臂静默乱动。"""
+    sim = FakeRobotSim(joint_count=3)
+    dev = _make_device(monkeypatch, sim)
+
+    assert len(dev.joints) == 3          # 采集到了, 但不满足不变量
+    assert dev.enabled is False
+    assert dev.command([0.1] * 6) is False
+
+
+def test_device_exposes_each_joint_alias_parent_and_mode(monkeypatch):
+    """§9.3: 输出每个关节的别名、父对象和模式。"""
+    sim = FakeRobotSim()
+    dev = _make_device(monkeypatch, sim)
+
+    assert [i["alias"] for i in dev.joint_info] == \
+        [f"joint{n}" for n in range(1, 7)]
+    assert dev.joint_info[0]["parent_alias"] == "Test_Robot_A"
+    assert dev.joint_info[1]["parent_alias"] == "joint1"
+    assert [i["mode"] for i in dev.joint_info] == [sim.jointmode_dynamic] * 6
+
+
+# ── 反馈读取失败必须可见 (不得谎报到位, §9.4 判据) ─────────────
+
+
+def test_reads_return_none_when_joint_feedback_fails(monkeypatch):
+    sim = FakeRobotSim(fail_feedback=True)
+    dev = _make_device(monkeypatch, sim)
+
+    assert dev.read_positions() is None
+    assert dev.read_targets() is None
+
+
+def test_max_error_is_infinite_when_feedback_fails(monkeypatch):
+    """§9.4 判据是 max_error() < tolerance; 读失败时必须在容差之外,
+    绝不能因为两路读取都退回 0.0 而谎报"已到位"。"""
+    sim = FakeRobotSim(fail_feedback=True)
+    dev = _make_device(monkeypatch, sim)
+
+    assert math.isinf(dev.max_error())
+    assert not (dev.max_error() < cfg.ARM_POSITION_TOLERANCE)
+
+
+def test_command_joint_refuses_when_targets_unreadable(monkeypatch):
+    """目标位读不到时不得下发 —— 否则会把其余五轴写成 0.0。"""
+    sim = FakeRobotSim(fail_feedback=True)
+    dev = _make_device(monkeypatch, sim)
+    before = len(sim.calls)
+
+    assert dev.command_joint(0, 0.5) is False
+    assert len(sim.calls) == before
 
 
 # ── 动画器与设备层接线 (§9.7: 加载后立即配置控制模式) ───────────

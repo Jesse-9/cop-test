@@ -2,6 +2,11 @@
 
 需要 CoppeliaSim 4.10+ 在线且 ZMQ remote API 已激活; 不在线时整体 skip。
 
+⚠ 本测试**会清空并用只含 A 岛机械臂的场景覆盖当前 CoppeliaSim 场景**
+   (这是阶段一"只加载 A 岛机械臂"的要求), 且不自动还原。因此默认跳过,
+   需显式设 `FACTORY_LIVE_SCENE_REBUILD=1` 才执行。跑完用
+   `python src/build_scene.py` 恢复完整六臂场景。
+
 流程 (§9.9 阶段一):
   1. 清场并只构建 A 岛机械臂 (§9.7 第 5 条)
   2. 六轴切 kinematic 模式
@@ -12,6 +17,7 @@
 """
 
 import logging
+import os
 
 import pytest
 
@@ -34,13 +40,24 @@ SETTLE_TIMEOUT = 8.0             # 单次到位等待上限 (HOME 大行程需�
 TOL = cfg.ARM_POSITION_TOLERANCE
 LOG_PATH = "factory_arm_phase1.log"
 
+#: 破坏性联调的显式开关 — 未设置时整个模块 skip
+REBUILD_ENV = "FACTORY_LIVE_SCENE_REBUILD"
+
 
 def _record(sim, device, trace, log=None, every=5):
-    """采样一次并 (可选) 写日志 — Sample joint state one step."""
+    """采样一次并 (可选) 写日志 — Sample joint state one step.
+
+    反馈读取失败时 read_positions/read_targets 返回 None (不兜 0.0), 此处
+    直接断言失败, 而不是把一个假的 0.0 采样写进轨迹。
+    """
+    pos = device.read_positions()
+    target = device.read_targets()
+    assert pos is not None and target is not None, \
+        "关节反馈读取失败 (read_positions/read_targets 返回 None)"
     entry = {
         "t": sim.getSimulationTime(),
-        "pos": device.read_positions(),
-        "target": device.read_targets(),
+        "pos": pos,
+        "target": target,
         "err": device.max_error(),
     }
     trace.append(entry)
@@ -80,6 +97,11 @@ def phase1(coppeliasim_available):
     """建只含 A 岛机械臂的场景, 启动 stepping 仿真, 返回 (sim, device, log)。"""
     if not coppeliasim_available:
         pytest.skip("CoppeliaSim 未运行, 跳过阶段一联调")
+    if os.environ.get(REBUILD_ENV) != "1":
+        pytest.skip(
+            f"阶段一联调会清空当前 CoppeliaSim 场景, 替换为「只含 A 岛机械臂」"
+            f"且不自动还原, 故默认跳过; 确认可重建时设 {REBUILD_ENV}=1 再跑"
+        )
 
     from coppeliasim_zmqremoteapi_client import RemoteAPIClient
     try:
@@ -120,6 +142,8 @@ def phase1(coppeliasim_available):
             sim.stopSimulation()
         except Exception:                       # noqa: BLE001
             pass
+        print(f"\n[阶段一] 注意: 场景已被替换为「只含 A 岛机械臂」且未自动还原。"
+              f"\n         恢复完整六臂场景: .venv/Scripts/python src/build_scene.py")
 
 
 def test_only_island_a_arm_exists_and_reaches_kinematic_mode(phase1):

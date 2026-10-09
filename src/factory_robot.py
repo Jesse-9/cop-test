@@ -43,6 +43,7 @@ class RobotArmDevice:
         gripper_handle: 夹爪根句柄, 未挂夹爪为 -1.
         control_mode:   最近一次成功应用的控制模式名, 未应用过为 None.
         joint_modes:    最近一次读回的关节模式列表 (读不到时为 -1).
+        joint_info:     每个本体关节的 {handle, alias, parent_alias, mode} (启动诊断).
     """
 
     #: 控制模式名 → sim 常量属性名 (4.10 实测: kinematic=0/dependent=4/dynamic=5)
@@ -73,12 +74,19 @@ class RobotArmDevice:
         self.gripper_handle = -1
         self.control_mode: str | None = None
         self.joint_modes: list[int] = []
+        self.joint_info: list[dict] = []
         self._locate()
 
     @property
     def enabled(self) -> bool:
-        """根对象与六个本体关节是否都已就位 — Device usable?"""
-        return self.root_handle >= 0 and len(self.joints) > 0
+        """根对象与**恰好六个**本体关节是否都已就位 — Device usable?
+
+        §9.3 要求"最终必须校验恰好得到六个本体关节"。少于六个时只驱动
+        采集到的那几个轴, 整臂会静默乱动; 多于六个说明采集越界。两种情况
+        都判为不可用 (并告警), 而不是带着半个臂继续跑。
+        """
+        return (self.root_handle >= 0
+                and len(self.joints) == cfg.ARM_BODY_JOINT_COUNT)
 
     # ── 定位：根 / 关节 / TCP / 夹爪 ─────────────────────────────
 
@@ -104,10 +112,13 @@ class RobotArmDevice:
         self.gripper_handle = self._find_gripper_root()
         self.tcp_handle = self._find_tcp()
         self.joint_modes = self.read_modes()
+        self.joint_info = self._describe_joints()
 
-        if not self.joints:
+        want = cfg.ARM_BODY_JOINT_COUNT
+        if len(self.joints) != want:
             self.logger.warning(
-                f"[ROBOT] {self.leaf} 未采集到任何关节, 动画将禁用 "
+                f"[ROBOT] {self.leaf} 本体关节数异常: 采集到 {len(self.joints)} 个, "
+                f"要求恰好 {want} 个 —— 该臂已禁用, 动画将跳过 "
                 "(检查机械臂模型是否加载成功 / 仿真是否已启动)"
             )
         else:
@@ -117,6 +128,36 @@ class RobotArmDevice:
                 f"夹爪={'有' if self.gripper_handle >= 0 else '无'}, "
                 f"模式={self.joint_modes})"
             )
+            # §9.3: 输出每个关节的别名、父对象和模式 (文件日志 DEBUG 级)
+            self.logger.debug(
+                f"[ROBOT] {self.leaf} 六轴诊断: " + " | ".join(
+                    f"{i['alias'] or i['handle']}(parent={i['parent_alias']}, "
+                    f"mode={i['mode']})" for i in self.joint_info
+                )
+            )
+
+    def _describe_joints(self) -> list[dict]:
+        """采集每个本体关节的别名/父对象/模式 — §9.3 诊断要求。
+
+        句柄定位出错时很难从"6 个关节"这一行看出来, 故逐轴记录。
+        """
+        sim = self.sim
+        info = []
+        for jh, mode in zip(self.joints, self.joint_modes):
+            alias, parent_alias = "", ""
+            try:
+                alias = sim.getObjectAlias(jh)
+            except Exception:
+                pass
+            try:
+                parent = sim.getObjectParent(jh)
+                if parent >= 0:
+                    parent_alias = sim.getObjectAlias(parent)
+            except Exception:
+                pass
+            info.append({"handle": jh, "alias": alias,
+                         "parent_alias": parent_alias, "mode": mode})
+        return info
 
     def _subtree(self) -> list[int]:
         """返回根对象子树句柄列表; 枚举失败返回空列表。
@@ -377,43 +418,68 @@ class RobotArmDevice:
 
     def command_joint(self, index: int, angle: float,
                       motion_params: list[float] | None = None) -> bool:
-        """下发单关节目标位置 — Command a single joint (阶段一单关节验证用)."""
+        """下发单关节目标位置 — Command a single joint (阶段一单关节验证用).
+
+        其余五轴沿用它们当前的目标位。目标位读不回来时**拒绝下发** ——
+        否则会拿 0.0 补齐, 把其余五轴写到零位。
+        """
         if not self.enabled or not 0 <= index < len(self.joints):
             return False
         angles = self.read_targets()
+        if angles is None:
+            self.logger.warning(
+                f"[ROBOT] {self.leaf} 目标位读取失败, 拒绝单关节下发 "
+                "(避免把其余五轴写成 0.0)"
+            )
+            return False
         while len(angles) < len(self.joints):
             angles.append(0.0)
         angles[index] = angle
         return self.command(angles, motion_params)
 
-    def read_positions(self) -> list[float]:
-        """读回六轴实际位置 (rad) — Read actual joint positions."""
+    def read_positions(self) -> list[float] | None:
+        """读回六轴实际位置 (rad) — Read actual joint positions.
+
+        Returns:
+            六个实际位置; **任一关节读取失败返回 None**。此处刻意不用 0.0
+            兜底: 那会让 max_error() 在什么都没读到时算出 0.0, 把 §9.4 的
+            "max|current - target| < tolerance" 判据变成谎报到位。
+        """
         positions = []
         for jh in self.joints:
             try:
                 positions.append(float(self.sim.getJointPosition(jh)))
             except Exception:
-                positions.append(0.0)
+                return None
         return positions
 
-    def read_targets(self) -> list[float]:
-        """读回六轴目标位置 (rad) — Read commanded joint targets."""
+    def read_targets(self) -> list[float] | None:
+        """读回六轴目标位置 (rad) — Read commanded joint targets.
+
+        Returns:
+            六个目标位置; 任一关节读取失败返回 None (同 read_positions)。
+        """
         targets = []
         for jh in self.joints:
             try:
                 targets.append(float(self.sim.getJointTargetPosition(jh)))
             except Exception:
-                targets.append(0.0)
+                return None
         return targets
 
     def max_error(self) -> float:
         """六轴实际位置与目标位置的最大偏差 (rad) — Max joint error.
 
         §9.4 的到位判据 (max|current - target| < tolerance) 直接用它。
+        反馈读不到时返回 inf, 即判"未到位" —— 绝不能在什么都没读到的情况下
+        返回 0.0 把动作判成已完成。
         """
+        current = self.read_positions()
+        target = self.read_targets()
+        if current is None or target is None:
+            return float("inf")
         return max(
-            (abs(c - t) for c, t in
-             zip(self.read_positions(), self.read_targets())),
+            (abs(c - t) for c, t in zip(current, target)),
             default=0.0,
         )
 
