@@ -271,11 +271,19 @@ class RobotArmDevice:
     # ── 控制模式 (§9.2) ─────────────────────────────────────────
 
     def read_modes(self) -> list[int]:
-        """读回六轴当前关节模式 — Read joint modes (读不到记 -1)。"""
+        """读回六轴当前关节模式 — Read joint modes (读不到记 -1)。
+
+        4.10 实测: `sim.getJointMode` 返回 **(jointMode, options) 二元组**,
+        与手册的单一返回值签名不符 —— 必须归一化, 否则 `int(元组)` 抛
+        TypeError 被兜底吞成 -1, 模式写回校验会静默失效。
+        """
         modes = []
         for jh in self.joints:
             try:
-                modes.append(int(self.sim.getJointMode(jh)))
+                value = self.sim.getJointMode(jh)
+                if isinstance(value, (tuple, list)):
+                    value = value[0] if value else -1
+                modes.append(int(value))
             except Exception:
                 modes.append(-1)
         return modes
@@ -314,7 +322,12 @@ class RobotArmDevice:
 
         self.control_mode = mode
         self.joint_modes = self.read_modes()
-        if any(m != const for m in self.joint_modes):
+        if any(m < 0 for m in self.joint_modes):
+            self.logger.warning(
+                f"[ROBOT] {self.leaf} 关节模式读回失败 (getJointMode 不可用), "
+                f"{mode} 模式已下发但无法校验"
+            )
+        elif any(m != const for m in self.joint_modes):
             self.logger.warning(
                 f"[ROBOT] {self.leaf} 模式写回校验不一致: "
                 f"{self.joint_modes} (期望 {const})"

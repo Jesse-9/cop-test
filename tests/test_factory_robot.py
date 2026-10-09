@@ -87,7 +87,14 @@ class FakeRobotSim:
         self.modes[handle] = mode
 
     def getJointMode(self, handle):
-        return self.modes[handle]
+        # 4.10 实测: sim.getJointMode 返回 (jointMode, options) 二元组, 非标量
+        return (self.modes[handle], 0)
+
+
+def _joint_mode(sim, handle: int) -> int:
+    """读取关节模式 — 兼容 4.10 的 (mode, options) 二元组返回。"""
+    value = sim.getJointMode(handle)
+    return value[0] if isinstance(value, (tuple, list)) else value
 
 
 def _robot_cfg(monkeypatch):
@@ -160,11 +167,11 @@ def test_device_applies_kinematic_mode_to_all_six_joints(monkeypatch):
     dev = _make_device(monkeypatch, sim)
 
     assert dev.apply_control_mode("kinematic") is True
-    assert [sim.getJointMode(j) for j in sim.joints] == [0] * 6
+    assert [_joint_mode(sim, j) for j in sim.joints] == [0] * 6
     assert dev.joint_modes == [0] * 6
     assert dev.control_mode == "kinematic"
     # 夹爪从动关节不参与本体模式设置
-    assert sim.getJointMode(sim.gripper_joints[0]) == sim.jointmode_dynamic
+    assert _joint_mode(sim, sim.gripper_joints[0]) == sim.jointmode_dynamic
 
 
 def test_device_reads_back_joint_modes(monkeypatch):
