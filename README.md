@@ -179,6 +179,7 @@ uv sync
 # 4. 构建场景（首次运行，只需执行一次）
 uv run python src/build_scene.py
 #    或用入口脚本: uv run build-scene
+#    只构建某几个岛的机械臂（逐台带动验收）: uv run build-scene --arms A
 
 # 5. 运行仿真（柔性调度 + 节拍追踪 + 异常处理）
 uv run python src/run_simulation.py --time 60

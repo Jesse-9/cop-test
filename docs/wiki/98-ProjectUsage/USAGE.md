@@ -82,7 +82,10 @@ connect → build_scene → start_simulation(total_time=60) → status → tail_
 ```
 --host HOST    CoppeliaSim 地址 (默认 localhost)
 --port PORT    ZMQ 端口 (默认 23000)
+--arms ARMS    只构建指定岛的机械臂 (逗号分隔, 如 A 或 A,E_C; all=全部, 默认)
 ```
+`--arms` 用于逐台带动验收：首次只启用 A 岛机械臂，确认后再逐台放开 B/C/D/E_C/E_D
+（机械臂实际运行重构方案 §9.7 第 5 条）。
 
 ### run_simulation.py
 ```
@@ -104,7 +107,7 @@ connect → build_scene → start_simulation(total_time=60) → status → tail_
 | 场景布局 | `WORK_ISLANDS` 坐标/尺寸、`CONVEYORS` 起止点 | ✅ 需重跑 `build_scene` |
 | 节拍/阈值 | `TAKT_TIME`、`ZMQ_TIMEOUT`、`D_E_STARVATION_THRESHOLD` | ❌ 重跑仿真即生效 |
 | 速度/步长 | `SIM_STEP`、`CONVEYOR_SPEED`、`AGV_SPEED` | ❌ 重跑仿真即生效 |
-| 机械臂动画 | `ARM_ANIMATIONS`、`ISLAND_ROBOTS` | ⚠️ 动画参数改后重跑仿真；机械臂模型改动需重跑 `build_scene` |
+| 机械臂动画/控制 | `ARM_ANIMATIONS`、`ISLAND_ROBOTS`、`ARM_CONTROL_MODE`、`ARM_POSITION_TOLERANCE` | ⚠️ 动画/控制参数改后重跑仿真；机械臂模型改动需重跑 `build_scene` |
 
 关键参数速查：
 
@@ -117,6 +120,8 @@ connect → build_scene → start_simulation(total_time=60) → status → tail_
 | `D_E_STARVATION_THRESHOLD` | 15.0 s | D→E 饥饿升级阈值 |
 | `CONGESTION_TIMEOUT` | 5.0 s | AGV 路径拥堵判定 |
 | `MATERIAL_INTERVAL` | 3.0 s | 物料产出间隔 |
+| `ARM_CONTROL_MODE` | `"kinematic"` | 机械臂本体关节控制模式（`kinematic` 运动学 / `dynamic` 物理解算） |
+| `ARM_POSITION_TOLERANCE` | 0.05 rad | 关节到位判据：最大位置偏差阈值 |
 
 > 调参实验也可用 MCP 的 `get_config` / `set_config`（仅改内存级配置，详见 [MCP_USAGE.md](MCP_USAGE.md) 的调参工作流）。
 
