@@ -9,8 +9,11 @@ build_scene.py — 在 CoppeliaSim 中构建岛式车间工厂仿真场景
   2. ZMQ Remote API 服务端已激活（默认端口 23000）
   3. 场景尽量为空（可先 File > New Scene）
 
-用法: uv run python src/build_scene.py [--host HOST] [--port PORT]
-     或: uv run build-scene [--host HOST] [--port PORT]
+用法: uv run python src/build_scene.py [--host HOST] [--port PORT] [--arms A]
+     或: uv run build-scene [--host HOST] [--port PORT] [--arms A]
+
+--arms 用于逐台带动验收 (重构方案 §9.7 第 5 条): 只构建指定岛的机械臂,
+如 `--arms A`, 确认后再逐台启用 B/C/D/E_C/E_D; 默认 all 构建全部六台。
 """
 
 import argparse
@@ -178,6 +181,12 @@ def load_builtin_model(sim, relative_path: str, position: list,
                        orientation: list = None) -> int | None:
     """尝试加载 CoppeliaSim 内置模型。
 
+    ⚠ 4.10 实测: `setObjectParent` 会清掉被挂对象**自身**的 `static` 标志
+    (见 CLAUDE.md「已知问题与坑」第 7 条)。UR5.ttm 的模型根是
+    static+kinematic 的固定基座, 被挂到工作岛下后 static 变 0 → 整条臂成为
+    动力学体, 仿真开始即自由落体。故这里挂父前记录根 shape 的 static 标志、
+    挂父后写回。对本来就是 dynamic 的模型 (如 pioneer p3dx) 是空操作。
+
     Args:
         relative_path: 相对 MODEL_BASE 的模型路径。
         position:      世界坐标 [x, y, z]。
@@ -194,11 +203,28 @@ def load_builtin_model(sim, relative_path: str, position: list,
         return None
     try:
         handle = sim.loadModel(full_path)
+        # 挂父前记录根的 static 标志 (setObjectParent 会清掉它)。
+        # 'static' 的 properties 路径在 4.10 不可用, 只能走 int-param
+        # (见 factory_physics 实测记录)。
+        root_static = None
+        try:
+            root_static = sim.getObjectInt32Param(
+                handle, sim.shapeintparam_static
+            )
+        except Exception:
+            pass
         sim.setObjectPosition(handle, position, sim.handle_world)
         if orientation is not None:
             sim.setObjectOrientation(handle, orientation, sim.handle_world)
         if parent_handle != -1:
             sim.setObjectParent(handle, parent_handle, True)
+            if root_static:
+                try:
+                    sim.setObjectInt32Param(
+                        handle, sim.shapeintparam_static, root_static
+                    )
+                except Exception as e:
+                    print(f"  [WARN] {alias} 挂父后写回 static 失败: {e}")
         sim.setObjectAlias(handle, alias)
         print(f"  [MODEL] 加载内置模型: {relative_path} → {alias}")
         return handle
@@ -211,6 +237,30 @@ def _resolve_model_path(model_key: str) -> str:
     """从 cfg.BUILTIN_MODELS 解析模型键到相对路径。"""
     print(f"  [INFO] 解析模型键: {model_key}")
     return cfg.BUILTIN_MODELS.get(model_key, "")
+
+
+def arm_keys_to_build(only=None, robots: dict = None) -> list:
+    """列出本次要构建的机械臂键 — Which island arms to build.
+
+    重构方案 §9.7 第 5 条: 首次验收只启用 A 岛机械臂, 确认后再逐台启用
+    B/C/D/E_C/E_D。故构建范围可收窄, 默认仍是全部。
+
+    Args:
+        only:   要构建的岛键序列 (如 ["A"] / ["A", "E_C"]); None 或空 → 全部。
+        robots: 机械臂配置字典, 默认取 cfg.ISLAND_ROBOTS。
+
+    Returns:
+        按配置顺序排列的键列表; only 里的未定义键被忽略并告警, 不抛异常。
+    """
+    robots = cfg.ISLAND_ROBOTS if robots is None else robots
+    if not only:
+        return list(robots)
+    wanted = list(dict.fromkeys(only))          # 去重保序
+    unknown = [k for k in wanted if k not in robots]
+    if unknown:
+        print(f"  [WARN] 未定义的机械臂键 {unknown}, 已忽略 "
+              f"(可用: {list(robots)})")
+    return [k for k in robots if k in wanted]
 
 
 def create_robot_arm(sim, island_alias: str, island_handle: int,
@@ -678,8 +728,14 @@ def create_shared_agv(sim, parent_handle: int) -> int:
 # 主流程
 # ═══════════════════════════════════════════════════════════════
 
-def build_scene(sim):
-    """按拓扑顺序构建完整岛式车间工厂场景。"""
+def build_scene(sim, arm_islands=None):
+    """按拓扑顺序构建完整岛式车间工厂场景。
+
+    Args:
+        sim:          CoppeliaSim Remote API "sim" 模块 (已连接)。
+        arm_islands:  只构建这些岛的机械臂 (如 ["A"]); None = 全部 (默认)。
+                      用于重构方案 §9.7 第 5 条的逐台带动验收。
+    """
     print("\n" + "=" * 55)
     print("  构建岛式车间工厂仿真场景")
     print("  (分层命名: Warehouse, Island, Conveyor, Mobile)")
@@ -705,7 +761,12 @@ def build_scene(sim):
         island_handles[name] = create_work_island(sim, name, params, roots["Island"])
 
     print("\n── 工作岛机械臂 ──")
-    for key, robot_cfg in cfg.ISLAND_ROBOTS.items():
+    arm_keys = arm_keys_to_build(arm_islands)
+    if len(arm_keys) != len(cfg.ISLAND_ROBOTS):
+        print(f"  [SCOPE] 本次只构建机械臂: {arm_keys} "
+              f"(共 {len(cfg.ISLAND_ROBOTS)} 台, 其余跳过)")
+    for key in arm_keys:
+        robot_cfg = cfg.ISLAND_ROBOTS[key]
         # E_C / E_D 都挂在 E 岛下
         island_name = key[0]  # 取首字符作为岛名
         island_handle = island_handles.get(island_name)
@@ -752,12 +813,20 @@ def main():
     parser = argparse.ArgumentParser(description="构建岛式车间工厂仿真场景")
     parser.add_argument("--host", default="localhost", help="CoppeliaSim 主机地址")
     parser.add_argument("--port", type=int, default=23000, help="ZMQ Remote API 端口")
+    parser.add_argument(
+        "--arms", default="all",
+        help="只构建指定岛的机械臂 (逗号分隔, 如 A 或 A,E_C); all=全部 (默认)",
+    )
     args = parser.parse_args()
+
+    arm_islands = None
+    if args.arms.strip().lower() != "all":
+        arm_islands = [k.strip() for k in args.arms.split(",") if k.strip()]
 
     client, sim = connect(args.host, args.port)
     try:
         clear_scene(sim)   # 幂等: 构建前清空，避免重复运行累积对象
-        build_scene(sim)
+        build_scene(sim, arm_islands=arm_islands)
     except Exception as e:
         print(f"\n[ERROR] 构建失败: {e}")
         raise
