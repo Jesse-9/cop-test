@@ -357,6 +357,34 @@ ISLAND_ROBOTS = {
 #   - 抓取点: 在 HOME 基础上 j5 略转使腕部下俯, 整体接近工作台面。
 #   - 放置点: j1 转 0.6 rad (~34°) 到侧方, 肘部回收下探。
 # 关节角度在 UR5 关节限位内 (各关节 ±2π, 多数姿态远离极限)。
+# ═══════════════════════════════════════════════════════════════
+# 机械臂控制与运控参数 — Arm Control & Motion Parameters
+# ═══════════════════════════════════════════════════════════════
+# 重构方案 (docs/wiki/98-ProjectUsage/机械臂与传送带代码审查计划.md §9) 落地配置。
+
+# 本体关节控制模式 — "kinematic" | "dynamic"
+#   kinematic: 六轴设为运动学模式 (4.10 实测 sim.jointmode_kinematic=0),
+#              由 Python 下发目标位, 关节按运动轮廓逼近, 不依赖 link 动力学
+#              配置与物理引擎差异。产线演示/动作可视化推荐 (§9.2)。
+#   dynamic:   保持模型自带 dynamic + position control (4.10 实测
+#              jointmode_dynamic=5 且 dynctrl=8), 由物理解算驱动, 属第二阶段。
+# 注意: 常量一律取 sim.jointmode_* —— 4.10 实测 dependent=4/dynamic=5,
+# 与旧版 1/2 不同, 写字面量必错。
+ARM_CONTROL_MODE = "kinematic"
+
+# 动作完成判据 (§9.4): 六轴实际位置与目标位置最大偏差小于该值 (rad)。
+# 当前 kinematic 模式下的实测收敛阈值; 关键帧动画的"到位"判定复用。
+ARM_POSITION_TOLERANCE = 0.05
+
+# TCP 定位候选叶子名 — 末端执行器参考点 (按此顺序在机械臂子树中匹配)
+# 4.10 内置 UR5.ttm 的末端为 "connection" (force sensor), 非 dummy。
+ARM_TCP_ALIASES = (
+    "connection", "tip", "flange", "linkTip", "tcp", "endpoint",
+)
+
+# 夹爪根对象别名 — build_scene 挂载时统一设为该名 (见 create_robot_arm)
+ARM_GRIPPER_ALIAS = "Gripper"
+
 ARM_FRAME_DURATION = 0.6   # 单帧插值时长 (秒)
 ARM_IDLE_PERIOD    = 4.0    # IDLE 循环抖动周期 (秒)
 
