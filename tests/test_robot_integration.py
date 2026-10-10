@@ -23,7 +23,7 @@ import pytest
 
 import build_scene as bs
 import factory_config as cfg
-from factory_robot import RobotArmDevice
+from factory_robot import RobotArmAnimator, RobotArmDevice
 from factory_scene import find_by_alias
 
 ISLAND = "A"
@@ -130,13 +130,17 @@ def phase1(coppeliasim_available):
     sim.setStepping(True)
     sim.startSimulation()
 
-    device = RobotArmDevice(sim, ISLAND, cfg.ISLAND_ROBOTS[ISLAND],
-                            logging.getLogger("robot-phase1"))
+    # ★ 按生产顺序构造动画器: FactoryController.run() 里也是
+    #   setStepping → startSimulation → RobotArmAnimator(...), 中间没有 sim.step()。
+    #   这个顺序曾经是"连杆掉落"的触发条件, 夹具必须复刻它。
+    animator = RobotArmAnimator(sim, logging.getLogger("robot-phase1"))
+    device = animator.devices[ISLAND]
     log(f"设备: {device.alias} enabled={device.enabled} "
         f"joints={device.joints} tcp={device.tcp_handle} "
         f"gripper={device.gripper_handle}")
+    log(f"控制模式: {device.control_mode} 写回={device.joint_modes}")
     try:
-        yield sim, device, log
+        yield sim, device, animator, log
     finally:
         try:
             sim.stopSimulation()
@@ -146,9 +150,9 @@ def phase1(coppeliasim_available):
               f"\n         恢复完整六臂场景: .venv/Scripts/python src/build_scene.py")
 
 
-def test_only_island_a_arm_exists_and_reaches_kinematic_mode(phase1):
-    """只构建 A 岛机械臂, 且六轴切 kinematic 后写回校验一致。"""
-    sim, device, log = phase1
+def test_only_island_a_arm_exists_and_configured_mode_applied(phase1):
+    """只构建 A 岛机械臂, 且六轴已按 cfg.ARM_CONTROL_MODE 配置并写回校验一致。"""
+    sim, device, animator, log = phase1
 
     assert device.enabled, "A 岛机械臂未在场景中找到"
     # 其余五台不在场景中 (§9.9 阶段一: 只加载 A 岛机械臂)
@@ -159,14 +163,37 @@ def test_only_island_a_arm_exists_and_reaches_kinematic_mode(phase1):
         )
         assert handle < 0, f"{key} 岛机械臂不应在阶段一场景中"
 
-    assert device.apply_control_mode("kinematic") is True
-    assert device.joint_modes == [sim.jointmode_kinematic] * len(device.joints)
-    log(f"控制模式: {device.control_mode} 写回={device.joint_modes}")
+    expected = {"kinematic": sim.jointmode_kinematic,
+                "dynamic": sim.jointmode_dynamic,
+                "dependent": sim.jointmode_dependent}[cfg.ARM_CONTROL_MODE]
+    assert device.control_mode == cfg.ARM_CONTROL_MODE
+    assert device.joint_modes == [expected] * len(device.joints)
+
+
+def test_arm_does_not_collapse_after_animator_startup(phase1):
+    """★ 回归护栏: 生产顺序 (startSimulation → 构造动画器 → 步进) 下机械臂不得塌陷。
+
+    背景 (4.10 实测): 把该 UR5 的关节转成 kinematic 会让**动态启用的连杆**
+    失去约束而自由落体。塌陷时**关节角读数仍精确等于设定值**, 所以只看关节角
+    查不出来 —— 必须看 TCP 的**世界坐标**: 正常 ≈1.6 m (HOME) / 2.0 m (零位),
+    塌陷后 ≈0.13 m。
+    """
+    sim, device, animator, log = phase1
+    trace: list[dict] = []
+    _drive(sim, device, 5.0, trace, log)
+
+    tcp_z = sim.getObjectPosition(device.tcp_handle, sim.handle_world)[2]
+    log(f"TCP 世界 Z = {tcp_z:+.4f} (控制模式={device.control_mode})")
+    assert tcp_z > 1.4, (
+        f"机械臂塌陷: TCP 世界 Z={tcp_z:+.3f}, 期望 >1.4。"
+        f"注意关节角读数={device.read_positions()} 此时可能仍等于设定值, "
+        f"不能作为判据。"
+    )
 
 
 def test_single_joint_moves_settles_and_returns_home(phase1):
     """joint1 从 HOME +0.3 rad → 保持 1s → 回 HOME, 全程可测。"""
-    sim, device, log = phase1
+    sim, device, animator, log = phase1
     home = cfg.ARM_ANIMATIONS["pick_and_place"][0]
     home_j1 = home[JOINT_INDEX]
     trace: list[dict] = []

@@ -45,7 +45,7 @@
 | [factory_island.py](src/factory_island.py) | 工作岛状态机、节拍追踪、供料门控 | `IslandController`, `BeatTracker`, `SupplyController` |
 | [factory_agv.py](src/factory_agv.py) | 单一共享 AGV + 优先级调度 (B→A 高优先, D→E 低优先, 饥饿可升级) | `AGVScheduler` |
 | [factory_exceptions.py](src/factory_exceptions.py) | 统一异常轮询与紧急停止 | `ExceptionHandler` |
-| [factory_robot.py](src/factory_robot.py) | 机械臂关键帧动画, **纯视觉叠加, 不影响调度/节拍/异常** | `RobotArmAnimator` |
+| [factory_robot.py](src/factory_robot.py) | 机械臂设备层(六轴/TCP/控制模式/反馈) + 关键帧动画, **不影响调度/节拍/异常** | `RobotArmDevice`, `RobotArmAnimator` |
 | [factory_controller.py](src/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
 | [build_scene.py](src/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
 | [run_simulation.py](src/run_simulation.py) / [main.py](src/main.py) | CLI 入口 | `main()` |
@@ -141,6 +141,35 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
    经 `ro_lock` 隔离)。仿真运行中, `status` 走主连接调 `check_alive` 可能瞬时返回
    False (连接被主循环占用), 属正常现象; 只读诊断工具走 `ro_connector` 不受影响
    (这正是双连接设计的目的, 解决旧版假断连)。详见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
+
+7. **`setObjectParent` 清掉 `static` → 机械臂掉落 (已修复)**: 4.10 实测,
+   `sim.setObjectParent()` 会重算被挂对象**自身**的动力学标志 —— UR5.ttm 的模型根
+   是 static+kinematic 的固定基座 (`loadModel` 后 `static=1`), 挂到工作岛下之后
+   `static` 被清成 0, 整条机械臂变成受重力的动力学体, 仿真开始即自由落体
+   (实测 2.5s 掉到 z=-24m, 穿过工作台也穿过地板)。挂到 dummy 与挂到 shape 同样会清掉。
+   - 视觉上之所以是"从平台上掉下去": 工作岛台面由 `createPrimitiveShape` 建,
+     4.10 默认 `respondable=0` (不参与碰撞), 托不住任何东西。
+   - **修复**: [build_scene.py](src/build_scene.py) 的 `load_builtin_model()` 挂父前
+     记录根 shape 的 `static`, 挂父后写回 `setObjectInt32Param(h, shapeintparam_static, 1)`
+     (4.10 的 `static` properties 路径不可用, 只能走 int-param, 见
+     [factory_physics.py](src/factory_physics.py))。已验证写回后 4s 内臂高恒定、
+     关节正常走到 HOME 并保持。对本就是 dynamic 的模型 (pioneer p3dx) 是空操作;
+     传送带 pad (挂的是 dummy 根) 与 `createPrimitiveShape` 造的岛 (kin=0) 不受影响。
+   - 修复后需**重新 build 场景** —— 修复前 build 出来的场景里机械臂仍是 dynamic 状态。
+
+8. **`sim.getJointMode` 在 4.10 返回二元组 → 模式写回校验会被静默吞掉 (已修复)**:
+   该函数实测返回 `(jointMode, options)`，与官方手册
+   `int jointMode = sim.getJointMode(int jointHandle)` 的签名不符
+   (`getJointPosition`/`getJointTargetPosition` 仍返回标量，只有它是这个形态)。
+   `int(元组)` 抛 TypeError，被 `RobotArmDevice.read_modes()` 的兜底 `except`
+   吞成 `-1`，于是"设置关节模式后读回校验"恒报不一致 —— 模式是否真的切换成功
+   无法验证。**修复**: [factory_robot.py](src/factory_robot.py) 的 `read_modes()`
+   归一化 tuple/list 返回，并把"读回失败(-1)"与"读回不一致"分成两种告警。
+   - 常量实测值: `jointmode_kinematic=0` / `jointmode_dependent=4` /
+     `jointmode_dynamic=5` —— 与旧版 1/2 不同，一律取 `sim.jointmode_*`，不可写字面量。
+   - 另: kinematic 模式下 `sim.setJointTargetPosition(h, target, motionParams)`
+     的第三参数 `[maxVel, maxAccel, maxJerk]` 确实生效 (实测 0.5 rad/s 走 0.3 rad
+     约 0.6 s)；不传则用关节自带 maxVelAccelJerk 属性。
 
 ## 日志
 

@@ -362,15 +362,24 @@ ISLAND_ROBOTS = {
 # ═══════════════════════════════════════════════════════════════
 # 重构方案 (docs/wiki/98-ProjectUsage/机械臂与传送带代码审查计划.md §9) 落地配置。
 
-# 本体关节控制模式 — "kinematic" | "dynamic"
-#   kinematic: 六轴设为运动学模式 (4.10 实测 sim.jointmode_kinematic=0),
-#              由 Python 下发目标位, 关节按运动轮廓逼近, 不依赖 link 动力学
-#              配置与物理引擎差异。产线演示/动作可视化推荐 (§9.2)。
+# 本体关节控制模式 — "dynamic" | "kinematic"
 #   dynamic:   保持模型自带 dynamic + position control (4.10 实测
-#              jointmode_dynamic=5 且 dynctrl=8), 由物理解算驱动, 属第二阶段。
+#              jointmode_dynamic=5 且 dynctrl=8)。**默认值** —— 唯一实测安全的配置。
+#   kinematic: 六轴设运动学模式 (4.10 实测 sim.jointmode_kinematic=0)。
+#              ⚠ 本版 UR5.ttm 下会让**连杆脱落自由落体**, 默认不启用。
+#
+# 4.10 实测 (2026-10-10, 六台臂 × 六种处理的对照实验):
+#   该模型本体连杆 shape 是 static=0 respondable=1 (动态启用)。关节处于
+#   kinematic 时引擎不为它建立约束, 连杆失去支撑即自由落体: TCP 世界 Z 由
+#   2.04 m 掉到 0.13 m (贴地), 而**关节角读数仍精确等于设定值** —— 只看关节角
+#   查不出来, 必须看世界坐标。
+#   触发条件: 只要"仿真的第一步"时关节已是 kinematic 就会掉, 包括
+#   (a) 起仿真后才切换、(b) 起仿真前就已配成 kinematic。唯一侥幸可用的时序是
+#   "已经步进过至少一步之后再切", 那是引擎约束图缓存的副作用, 不可作设计依据。
+#   故计划 §9.2「运动学模式不依赖 link 的动态启用」的前提在本版模型上不成立。
 # 注意: 常量一律取 sim.jointmode_* —— 4.10 实测 dependent=4/dynamic=5,
 # 与旧版 1/2 不同, 写字面量必错。
-ARM_CONTROL_MODE = "kinematic"
+ARM_CONTROL_MODE = "dynamic"
 
 # 本体关节数不变量 — §9.3: 必须恰好六个 (UR5 六轴)
 # 少于六个只驱动采集到的那几个轴, 整臂会静默乱动; 多于六个说明采集越界。
