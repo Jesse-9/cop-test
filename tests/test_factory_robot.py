@@ -19,12 +19,15 @@ class FakeRobotSim:
     jointmode_kinematic = 0
     jointmode_dependent = 4
     jointmode_dynamic = 5
+    shapeintparam_static = 3003
 
     def __init__(self, with_arm: bool = True, joint_count: int = 6,
-                 fail_feedback: bool = False):
+                 fail_feedback: bool = False, dynamic_shapes: int = 0):
         self.with_arm = with_arm
         self.joint_count = joint_count
         self.fail_feedback = fail_feedback
+        # >0 表示"连杆尚未转非动态"(旧场景), 用于验证 kinematic 前置检查
+        self.dynamic_shapes = dynamic_shapes
         self.root = 100
         self.joints = [101, 102, 103, 104, 105, 106][:joint_count]
         self.gripper = 200
@@ -105,6 +108,14 @@ class FakeRobotSim:
     def getJointMode(self, handle):
         # 4.10 实测: sim.getJointMode 返回 (jointMode, options) 二元组, 非标量
         return (self.modes[handle], 0)
+
+    def getObjectInt32Param(self, handle, param):
+        if param != self.shapeintparam_static:
+            raise ValueError(param)
+        if self.dynamic_shapes <= 0:
+            return 1
+        # 前若干个 shape 视为仍是动态 (旧场景)
+        return 0 if handle in (self.root, self.gripper) else 1
 
 
 def _joint_mode(sim, handle: int) -> int:
@@ -195,6 +206,28 @@ def test_device_reads_back_joint_modes(monkeypatch):
     dev = _make_device(monkeypatch, sim)
 
     assert dev.read_modes() == [sim.jointmode_dynamic] * 6
+
+
+def test_device_refuses_kinematic_when_links_are_still_dynamic(monkeypatch):
+    """旧场景 (连杆未转非动态) 下必须**拒绝**切 kinematic。
+
+    否则连杆会自由落体, 而关节角读数仍等于设定值 —— 静默塌陷, 查不出来。
+    """
+    sim = FakeRobotSim(dynamic_shapes=2)
+    dev = _make_device(monkeypatch, sim)
+
+    assert dev.apply_control_mode("kinematic") is False
+    assert dev.read_modes() == [sim.jointmode_dynamic] * 6   # 一个关节都没改
+    assert dev.control_mode is None
+
+
+def test_device_allows_kinematic_when_links_are_static(monkeypatch):
+    """连杆已非动态 (build_scene 已改造) 时正常切换。"""
+    sim = FakeRobotSim(dynamic_shapes=0)
+    dev = _make_device(monkeypatch, sim)
+
+    assert dev.apply_control_mode("kinematic") is True
+    assert dev.joint_modes == [sim.jointmode_kinematic] * 6
 
 
 # ── RobotArmDevice: 目标下发与反馈 (§9.3/§9.4 判据基础) ─────────

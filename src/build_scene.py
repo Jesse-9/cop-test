@@ -263,6 +263,45 @@ def arm_keys_to_build(only=None, robots: dict = None) -> list:
     return [k for k in robots if k in wanted]
 
 
+def make_arm_kinematic(sim, arm_handle: int) -> dict:
+    """把机械臂整条子树设为非动态 — Make the arm a pure kinematic mechanism.
+
+    4.10 实测 (CLAUDE.md 坑 9): 本版 UR5.ttm 的连杆与夹爪碰撞体是
+    `static=0 respondable=1`(动态启用)。关节转到 kinematic 后引擎不再为它们
+    建立约束, 连杆失去支撑直接自由落体 (TCP 世界 Z 由 2.04 m 掉到 0.13 m),
+    而**关节角读数仍等于设定值**。改成非动态后 kinematic 关节才能真正驱动它,
+    且构建期/运行期两种切换时序都不再塌陷 (实测对照见计划文档 §9.2)。
+
+    必须覆盖**整棵子树**: 只改 6 个连杆的话, 夹爪(根/手指/配重块)会作为
+    无支撑的自由动力学体掉落。只改 `static`, `respondable` 保持不动
+    (实测与非动态改造前一致, 不影响与动态物料的碰撞行为)。
+
+    Args:
+        sim:        CoppeliaSim Remote API "sim" 模块.
+        arm_handle: 机械臂根对象句柄.
+
+    Returns:
+        {"total": 子树内 shape 总数, "changed": 本次改为非动态的个数}.
+    """
+    report = {"total": 0, "changed": 0}
+    try:
+        tree = sim.getObjectsInTree(arm_handle, sim.handle_all, 0)
+    except Exception as e:
+        print(f"  [WARN] 机械臂子树枚举失败, 跳过纯运动学改造: {e}")
+        return report
+    for h in tree:
+        try:
+            if sim.getObjectType(h) != sim.object_shape_type:
+                continue
+            report["total"] += 1
+            if sim.getObjectInt32Param(h, sim.shapeintparam_static) == 0:
+                sim.setObjectInt32Param(h, sim.shapeintparam_static, 1)
+                report["changed"] += 1
+        except Exception:
+            continue
+    return report
+
+
 def create_robot_arm(sim, island_alias: str, island_handle: int,
                      island_pos: list, robot_cfg: dict) -> int | None:
     """为工作岛加载一只机械臂并挂载夹爪 — Load robot arm + gripper.
@@ -362,6 +401,13 @@ def create_robot_arm(sim, island_alias: str, island_handle: int,
                 print(f"  [WARN] 未找到 {alias} 末端 link，跳过夹爪挂载")
         except Exception as e:
             print(f"  [WARN] 夹爪挂载失败 ({gripper_rel}): {e}")
+
+    # 纯运动学改造 — 必须在挂好夹爪**之后**做: 夹爪的根/手指/配重块同样是
+    # static=0 的动态体, 漏掉它们整只夹爪会掉落 (见 make_arm_kinematic 注释)。
+    if cfg.ARM_CONTROL_MODE == "kinematic":
+        rep = make_arm_kinematic(sim, arm_handle)
+        print(f"  [KINEMATIC] {alias} 纯运动学化: "
+              f"{rep['changed']}/{rep['total']} 个 shape 改为非动态")
 
     return arm_handle
 

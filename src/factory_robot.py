@@ -311,6 +311,25 @@ class RobotArmDevice:
 
     # ── 控制模式 (§9.2) ─────────────────────────────────────────
 
+    def _count_dynamic_shapes(self) -> int:
+        """子树内仍是 static=0 的 shape 数 — 纯运动学改造是否已完成。
+
+        kinematic 的前置安全网: 只要还有动态 shape, 切到 kinematic 就会让它们
+        失去约束而自由落体, 且关节角读数看不出来 (见 CLAUDE.md 坑 9)。
+        读不到时 (API 不可用 / 测试夹具未实现) 返回 0 即不阻断 —— 这是安全网,
+        不是模式切换的必要条件。
+        """
+        count = 0
+        for h in self._subtree():
+            try:
+                if (self.sim.getObjectType(h) == self.sim.object_shape_type
+                        and self.sim.getObjectInt32Param(
+                            h, self.sim.shapeintparam_static) == 0):
+                    count += 1
+            except Exception:
+                return 0
+        return count
+
     def read_modes(self) -> list[int]:
         """读回六轴当前关节模式 — Read joint modes (读不到记 -1)。
 
@@ -350,6 +369,17 @@ class RobotArmDevice:
                 f"[ROBOT] {self.leaf} 未知控制模式 '{mode}', 保持原模式"
             )
             return False
+        if mode == "kinematic":
+            still_dynamic = self._count_dynamic_shapes()
+            if still_dynamic:
+                self.logger.error(
+                    f"[ROBOT] {self.leaf} 拒绝切换到 kinematic: 子树内仍有 "
+                    f"{still_dynamic} 个动态 shape。kinematic 关节不会为它们建立"
+                    "约束, 机械臂会自由落体 —— 而关节角读数仍等于设定值, 事后"
+                    "查不出来。请用当前 build_scene 重建场景 "
+                    "(make_arm_kinematic 会把整条子树设为非动态)。"
+                )
+                return False
         try:
             const = getattr(self.sim, const_attr)
             for jh in self.joints:
