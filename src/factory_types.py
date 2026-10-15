@@ -84,6 +84,17 @@ class IslandState(Enum):
     OFFLINE          = auto()   # 手动或紧急停止，不接受任何物料
 
 
+# 物料在传送带末端的取料状态机 (重构方案 §5.3)
+#   ON_CONVEYOR → WAITING_FOR_SUCTION → SUCTION_ATTACHED → AT_ISLAND
+# 用字符串常量而非 Enum, 便于日志直接可读且不需要在 MCP 侧转换。
+MATERIAL_STATE_ON_CONVEYOR       = "ON_CONVEYOR"
+MATERIAL_STATE_WAITING_FOR_SUCTION = "WAITING_FOR_SUCTION"
+MATERIAL_STATE_SUCTION_ATTACHED  = "SUCTION_ATTACHED"
+MATERIAL_STATE_AT_ISLAND         = "AT_ISLAND"
+# 非传送带路径 (仓库刚产出 / AGV 运输 / A→C 刚性传输) 的统一标签
+MATERIAL_STATE_IN_TRANSIT        = "IN_TRANSIT"
+
+
 # ═══════════════════════════════════════════════════════════════
 # 数据类 — Dataclasses
 # ═══════════════════════════════════════════════════════════════
@@ -127,6 +138,14 @@ class Material:
     processing_remaining: float = 0.0
     delivered:    bool = False
     frozen:       bool = False
+    awaiting_pickup: bool = False
+    suction_attached: bool = False
+    # 实际输送机制标签 (KINEMATIC_BELT_TRANSPORT / GEOMETRIC_FALLBACK),
+    # 用于验收时区分"真实输送"与"逻辑回退" (方案 §5.2)。
+    transport:    str = ""
+    # 末端取料状态机 (方案 §5.3)。取值见 MATERIAL_STATE_* 常量。
+    # 与上面的布尔标志并存: 标志用于既有调度逻辑, state 用于日志/验收判读。
+    state:        str = MATERIAL_STATE_IN_TRANSIT
 
     # 物料履历 — Event history for traceability
     history: list[tuple[float, str]] = field(default_factory=list)
@@ -217,7 +236,8 @@ _uid_counter = 0
 
 def spawn_material(sim, item_type: ItemType,
                    position: list[float],
-                   sim_time: float) -> Material:
+                   sim_time: float,
+                   state: str = MATERIAL_STATE_IN_TRANSIT) -> Material:
     """在场景中创建物料方块并返回 Material 对象。
 
     Creates a colored cuboid in CoppeliaSim at the given position and wraps
@@ -231,6 +251,7 @@ def spawn_material(sim, item_type: ItemType,
         item_type: 物料类型 (决定颜色和生命周期).
         position:  世界坐标 [x, y, z].
         sim_time:  当前仿真时间 (用于履历记录).
+        state:     初始取料状态 (MATERIAL_STATE_*), 默认 IN_TRANSIT.
 
     Returns:
         Material 对象, 已记录 SPAWNED 事件.
@@ -243,7 +264,7 @@ def spawn_material(sim, item_type: ItemType,
     sim.setObjectPosition(handle, position, sim.handle_world)
     sim.setObjectColor(handle, 0, sim.colorcomponent_ambient_diffuse, list(color))
     mat = Material(uid=_uid_counter, item_type=item_type,
-                   handle=handle, pos=position)
+                   handle=handle, pos=position, state=state)
 
     # 物理传送带模式: 物料设为 dynamic+respondable, 由带面摩擦拖动
     if cfg.PHYSICS_CONVEYOR:

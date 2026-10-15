@@ -30,7 +30,9 @@ from typing import Optional
 import factory_config as cfg
 from factory_types import (
     ItemType, AGVState, AGVTask, IslandState,
-    Material, ITEM_COLOR_MAP, lerp_2d, spawn_material
+    Material, ITEM_COLOR_MAP, lerp_2d, spawn_material,
+    MATERIAL_STATE_WAITING_FOR_SUCTION, MATERIAL_STATE_SUCTION_ATTACHED,
+    MATERIAL_STATE_AT_ISLAND, MATERIAL_STATE_ON_CONVEYOR,
 )
 from factory_core import (
     setup_logger, CoppeliaConnector, ZMQMonitor
@@ -79,7 +81,7 @@ class FactoryController:
     """
 
     def __init__(self, sim, total_time: float = cfg.TOTAL_SIM_TIME,
-                 logger: logging.Logger = None):
+                 logger: logging.Logger = None, sim_ik=None):
         """初始化工厂控制器 — Initialize the factory controller.
 
         创建并关联所有子系统: 工作岛、AGV 调度器、节拍追踪、供料控制、
@@ -91,6 +93,7 @@ class FactoryController:
             logger:     日志记录器, 不提供则自动创建.
         """
         self.sim = sim
+        self.sim_ik = sim_ik
         self.total_time = total_time
         self.logger = logger or setup_logger()
         self.materials: list[Material] = []
@@ -167,6 +170,26 @@ class FactoryController:
         # 内置传送带 pad 的闭环位姿缓存。None 表示不是多 pad 模型，
         # 运行时自动退回物料位置插值，避免回退几何体传送带永久停滞。
         self._conveyor_pad_loops: dict[str, Optional[dict]] = {}
+        # 传送带实测几何缓存 — 构建后不再变化, 避免每步每料重建 (性能)
+        self._belt_geometry_cache: dict[str, dict] = {}
+        # 运行期从场景读回传送带实测几何 (方案 §4.2) — 必须早于任何用到端点的
+        # 逻辑; 构建期的元数据不会跨进程存活, 只能在这里重新量一遍。
+        self._resolve_conveyor_geometry()
+        self._apply_conveyor_resolution()
+        self._pending_conveyor_pickups: list[tuple[Material, str, str]] = []
+        # 冻结前保存的物料动态属性 (static 标志) — 方案 §10: 必须可还原
+        self._frozen_material_props: dict[int, int] = {}
+        # 起停下发/回读失败过的传送带 (方案 §5.4 SCRIPT_ERROR)
+        self._conveyor_script_error: set[str] = set()
+        # 履带驱动源是否已完成一次性启动探测 (方案 §5.1 PROBING)
+        self._conveyor_drive_probed = False
+        # GEOMETRIC_FALLBACK 只告警一次
+        self._geometric_fallback_warned = False
+        # 物料输送机制说明只打一次 (方案 §5.2 要求显式标注回退)
+        self._transport_notice = False
+        # IK 失败的物料: 退避重试而不是静默当成取料成功 (方案 §10)
+        self._failed_pickups: set[int] = set()
+        self._pickup_retry_at: dict[int, float] = {}
 
         # ── 机械臂动画器 — Robot arm visual animator (视觉增强层) ──
         # 纯视觉叠加，不影响调度/节拍/异常逻辑。机械臂句柄缺失时静默跳过。
@@ -205,7 +228,7 @@ class FactoryController:
         )
         sim.setObjectPosition(
             handle,
-            [pos[0], pos[1], cfg.Z_BASE + sz / 2],
+            [pos[0], pos[1], cfg.FLOOR_TOP_Z + sz / 2],
             sim.handle_world,
         )
         sim.setObjectColor(
@@ -261,7 +284,7 @@ class FactoryController:
 
         # ── 机械臂动画器初始化 — 采集各岛机械臂关节句柄 ──
         try:
-            self.robot_animator = RobotArmAnimator(sim, self.logger)
+            self.robot_animator = RobotArmAnimator(sim, self.logger, self.sim_ik)
         except Exception as e:
             self.logger.warning(f"[ROBOT] 机械臂动画器初始化失败: {e}")
             self.robot_animator = None
@@ -312,6 +335,16 @@ class FactoryController:
                     self.step_count += 1
                     continue
 
+                # ── 2c. 履带驱动源一次性探测 — One-shot conveyor drive probe ──
+                # 方案 §5.1: 启动后只探测一次, 之后禁止在脚本驱动与 Python
+                # pad 驱动之间每帧切换。探测本身会额外推进几个仿真步。
+                if not self._conveyor_drive_probed:
+                    try:
+                        self._probe_conveyor_drive()
+                    except Exception as e:
+                        self._conveyor_drive_probed = True
+                        self.logger.warning(f"[CONV] 履带驱动探测失败: {e}")
+
                 # ── 3. 正常仿真步进 — Normal step sequence ──
                 self._spawn_from_warehouses(dt)        # 仓库按节拍产出
                 self._move_conveyors(dt)               # 传送带移动物料
@@ -347,65 +380,50 @@ class FactoryController:
           - 计时器是否达到间隔阈值
 
         三条产出线:
-          S1 → A: 原料 RAW_A, 间隔 MATERIAL_INTERVAL (3.0s)
-          S1 → B: 原料 RAW_B, 间隔 MATERIAL_INTERVAL * 1.5 (4.5s)
-          S2 → D: 零部件 RAW_D, 间隔 MATERIAL_INTERVAL * 2.0 (6.0s)
+          S1 → A: 原料 RAW_A, 间隔 MATERIAL_INTERVAL (5.0s)
+          S1 → B: 原料 RAW_B, 间隔 MATERIAL_INTERVAL * 1.5 (7.5s)
+          S2 → D: 零部件 RAW_D, 间隔 MATERIAL_INTERVAL * 2.0 (10.0s)
 
-        Args:
-            dt: 本步进的时间增量 (秒).
+        ⚠ 方案 §3.1 第 5 条: 物料生成在**入口 dummy 的带面上方一个小间隙**处,
+        不再生成在仓库中心再靠位姿插值"跳"到传送带。生成 Z 一律由
+        `_belt_geometry(cname)["surface_z"]` 推出。
         """
         sim = self.sim
-        s1_pos = list(cfg.WAREHOUSES["S1"]["pos"])
-        s2_pos = list(cfg.WAREHOUSES["S2"]["pos"])
 
-        # 物理模式: 物料生成在带面起点上方一点, 让其下落接触带面被摩擦带动
-        # (kinematic 模式直接生成在仓库位置即可, 由 setObjectPosition 控制全程)
-        if cfg.PHYSICS_CONVEYOR:
-            spawn_z = cfg.Z_BASE + 0.15
-        else:
-            spawn_z = s1_pos[2]
+        def _spawn(item_type: ItemType, cname: str, tag: str) -> Material:
+            seg = self._belt_geometry(cname)
+            pos = [seg["start"][0], seg["start"][1],
+                   seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0
+                   + cfg.MATERIAL_SPAWN_GAP]
+            mat = spawn_material(sim, item_type, pos, self.sim_time,
+                                 state=MATERIAL_STATE_ON_CONVEYOR)
+            mat.on_conveyor = cname
+            mat.conv_progress = 0.0
+            self.materials.append(mat)
+            self.logger.info(f"{tag}: mat#{mat.uid} @ "
+                             f"({pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f})")
+            return mat
 
         # S1 → A: 检查 A 的上游供料是否被暂停
         if not self.supply_ctrl.is_paused("S1", "A"):
             self.s1_timer_A += dt
             if self.s1_timer_A >= self.s1_interval_A:
                 self.s1_timer_A = 0.0
-                entry = (cfg.CONVEYORS["S1_to_A"]["start"]
-                         if cfg.PHYSICS_CONVEYOR else s1_pos[:2])
-                pos = [entry[0], entry[1], spawn_z]
-                mat = spawn_material(sim, ItemType.RAW_A, pos, self.sim_time)
-                mat.on_conveyor = "S1_to_A"
-                mat.conv_progress = 0.0
-                self.materials.append(mat)
-                self.logger.info(f"S1 → A: raw_A mat#{mat.uid}")
+                _spawn(ItemType.RAW_A, "S1_to_A", "S1 → A: raw_A")
 
         # S1 → B: 检查 B 的上游供料是否被暂停
         if not self.supply_ctrl.is_paused("S1", "B"):
             self.s1_timer_B += dt
             if self.s1_timer_B >= self.s1_interval_B:
                 self.s1_timer_B = 0.0
-                entry = (cfg.CONVEYORS["S1_to_B"]["start"]
-                         if cfg.PHYSICS_CONVEYOR else s1_pos[:2])
-                pos = [entry[0], entry[1], spawn_z]
-                mat = spawn_material(sim, ItemType.RAW_B, pos, self.sim_time)
-                mat.on_conveyor = "S1_to_B"
-                mat.conv_progress = 0.0
-                self.materials.append(mat)
-                self.logger.info(f"S1 → B: raw_B mat#{mat.uid}")
+                _spawn(ItemType.RAW_B, "S1_to_B", "S1 → B: raw_B")
 
         # S2 → D: 检查 D 的上游供料是否被暂停
         if not self.supply_ctrl.is_paused("S2", "D"):
             self.s2_timer_D += dt
             if self.s2_timer_D >= self.s2_interval_D:
                 self.s2_timer_D = 0.0
-                entry = (cfg.CONVEYORS["S2_to_D"]["start"]
-                         if cfg.PHYSICS_CONVEYOR else s2_pos[:2])
-                pos = [entry[0], entry[1], spawn_z]
-                mat = spawn_material(sim, ItemType.RAW_D, pos, self.sim_time)
-                mat.on_conveyor = "S2_to_D"
-                mat.conv_progress = 0.0
-                self.materials.append(mat)
-                self.logger.info(f"S2 → D: raw_D mat#{mat.uid}")
+                _spawn(ItemType.RAW_D, "S2_to_D", "S2 → D: raw_D")
 
     # ═══════════════════════════════════════════════════════════
     # 传送带逻辑 — Conveyor Movement
@@ -418,6 +436,23 @@ class FactoryController:
         "S2_to_D": ("S2", "D"),
         "C_to_E":  ("C",  "E"),
     }
+
+    def _apply_conveyor_resolution(self):
+        """让控制器真正用上 `_resolve_conveyor_geometry` 的实测结果。
+
+        `_move_conveyors_physics` 里的每一处端点/高度读取都必须走实测元数据,
+        否则实测就白做了。这里集中断言一次, 缺项直接告警而不是静默回退成
+        设计值 —— 设计值只在"场景里压根没有标记对象"时才允许使用。
+        """
+        missing = []
+        for cname, c in cfg.CONVEYORS.items():
+            if not c.get("actual_start") or not c.get("actual_end"):
+                missing.append(cname)
+        if missing:
+            self.logger.warning(
+                f"[CONV] 这些传送带缺实测端点 (将退回设计值): {missing} — "
+                "请用当前 build_scene 重建场景以生成 Entry/PickupStop 标记"
+            )
 
     def _move_conveyors(self, dt: float):
         """移动传送带上的物料 — Advance materials on conveyors.
@@ -441,82 +476,367 @@ class FactoryController:
         else:
             self._move_conveyors_kinematic(dt)
 
+    # ═══════════════════════════════════════════════════════════
+    # 传送带几何 (方案 §4.2) — 一律读实测元数据, 不再自行推算端点
+    # ═══════════════════════════════════════════════════════════
+
+    def _resolve_conveyor_geometry(self):
+        """从场景读回传送带的实际几何与驱动源 — Resolve belt geometry at runtime.
+
+        ⚠ 关键: build_scene 写进 `cfg.CONVEYORS[*]` 的元数据只活在**构建进程**
+        的内存里, run_simulation / MCP 都是新进程、拿到的是初始配置。所以
+        运行期必须按别名把入口/末端 dummy 与传送带根重新找回来, 用实测值覆盖
+        设计值 (方案 §4.2: "控制器只使用这组实际值")。
+        """
+        from factory_physics import find_all_belt_pad_shapes
+        from factory_scene import (
+            model_local_bbox, measure_belt_surface_offset, find_script_child,
+        )
+        sim = self.sim
+        for cname, c in cfg.CONVEYORS.items():
+            alias = c["alias"]
+            root = find_by_alias(sim, alias, sim.object_dummy_type,
+                                 sim.object_shape_type)
+            if root < 0:
+                self.logger.warning(
+                    f"[CONV] {cname}: 场景中找不到 {alias}, 该带按几何回退处理")
+                c["handle"] = -1
+                continue
+            c["handle"] = root
+            # 入口 / 末端取料点 (build_scene 创建的 dummy)
+            entry = find_by_alias(sim, f"{alias}_Entry", sim.object_dummy_type)
+            stop = find_by_alias(sim, f"{alias}_PickupStop", sim.object_dummy_type)
+            stopper = find_by_alias(sim, f"{alias}_PickupStopper",
+                                    sim.object_shape_type)
+            try:
+                if entry >= 0:
+                    c["actual_start"] = list(
+                        sim.getObjectPosition(entry, sim.handle_world))
+                if stop >= 0:
+                    c["actual_end"] = list(
+                        sim.getObjectPosition(stop, sim.handle_world))
+            except Exception:
+                pass
+            c["stopper_handle"] = stopper
+            # 带面高度: 实测 pad 上表面 (不假定模型根就在带面上)
+            pads = find_all_belt_pad_shapes(sim, root)
+            try:
+                offset = measure_belt_surface_offset(sim, root, pads)
+                if offset is not None:
+                    c["surface_z"] = (
+                        sim.getObjectPosition(root, sim.handle_world)[2] + offset
+                    )
+            except Exception:
+                pass
+            # 实际长度 / 带宽
+            bbox = model_local_bbox(sim, root)
+            if bbox:
+                c["actual_length"] = bbox[3] - bbox[0]
+                c["width"] = bbox[4] - bbox[1]
+            # 驱动源: 有脚本 + 有 pad 才是脚本驱动的候选 (最终由启动探测裁定)
+            c["script_handle"] = find_script_child(sim, root)
+            if c["script_handle"] >= 0 and pads:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_SCRIPT
+            elif pads:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_PYTHON
+            else:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_FALLBACK
+            self.logger.info(
+                f"[CONV] {cname}: 实测 L="
+                f"{(c.get('actual_length') or 0):.3f}m "
+                f"(设计 {math.hypot(c['end'][0] - c['start'][0], c['end'][1] - c['start'][1]):.3f}m), "
+                f"带面 Z={(c.get('surface_z') or 0):.3f}, pad={len(pads)}, "
+                f"脚本={'有' if c['script_handle'] >= 0 else '无'}, "
+                f"驱动候选={c['drive_mode']}"
+            )
+
+    def _drive_mode(self, cname: str) -> str:
+        """该传送带的驱动模式 — Conveyor drive mode.
+
+        元数据缺失 (旧场景 / 未经 build_scene 的离线夹具) 时按
+        FALLBACK_GEOMETRY 处理: 这是唯一不需要场景元数据也能跑的模式, 也是
+        旧版行为。绝不默认成"脚本驱动", 否则 Python 会以为履带在动而不推 pad。
+        """
+        return cfg.CONVEYORS[cname].get("drive_mode") \
+            or cfg.CONVEYOR_DRIVE_FALLBACK
+
+    def _belt_geometry(self, cname: str) -> dict:
+        """取传送带**实际**几何 — Actual belt geometry.
+
+        优先用 build_scene 从内置模型包围盒实测后写回的元数据
+        (actual_start / actual_end / surface_z); 元数据缺失 (旧场景或几何
+        回退) 时才退回设计端点。调用方不得再对结果做 Z 补偿。
+
+        Returns:
+            {"start": [x, y], "end": [x, y], "length": float,
+             "surface_z": float, "dir": [dx, dy]}
+            起点 = 入口 dummy, 终点 = 末端取料点 dummy。
+        """
+        c = cfg.CONVEYORS[cname]
+        cached = self._belt_geometry_cache.get(cname)
+        if cached is not None:
+            return cached
+        start = c.get("actual_start") or c["start"]
+        end = c.get("actual_end") or c["end"]
+        sx, sy = float(start[0]), float(start[1])
+        ex, ey = float(end[0]), float(end[1])
+        length = math.hypot(ex - sx, ey - sy)
+        if length > 1e-9:
+            direction = [(ex - sx) / length, (ey - sy) / length]
+        else:
+            direction = list(c.get("dir") or [1.0, 0.0])
+        result = {
+            "start": [sx, sy],
+            "end": [ex, ey],
+            "length": length,
+            "surface_z": float(c.get("surface_z", cfg.CONVEYOR_SURFACE_Z)),
+            "dir": direction,
+        }
+        # 构建后几何不再变化, 缓存以避免每步每料重建字典 (ZMQ 每步超时风险)
+        self._belt_geometry_cache[cname] = result
+        return result
+
+    # ═══════════════════════════════════════════════════════════
+    # 传送带驱动源探测 (方案 §5.1 PROBING)
+    # ═══════════════════════════════════════════════════════════
+
+    def _probe_conveyor_drive(self):
+        """启动探测: 为每条带选定**唯一**驱动源 — Pick exactly one writer.
+
+        状态只允许在三种之间取一, 且探测后不再每帧切换 (方案 §5.1):
+          SCRIPT_DRIVEN      内置脚本驱动履带 → Python 只用 __ctrl__ 调速
+          PYTHON_PAD_DRIVEN  脚本不驱动 → 剥离脚本, Python 推 pad 闭环
+          FALLBACK_GEOMETRY  无内置模型/pad → Python 按 conv_progress 插值
+
+        判据是**实测**: 把带速设为 CONVEYOR_SPEED 后看一个仿真步内 pad 是否
+        沿带方向位移。探测会额外推进 CONVEYOR_PROBE_STEPS 个仿真步。
+        """
+        from factory_physics import (
+            find_all_belt_pad_shapes, set_conveyor_running,
+        )
+        for cname, c in cfg.CONVEYORS.items():
+            handle = c.get("handle", -1)
+            if handle is None or handle < 0:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_FALLBACK
+                continue
+            try:
+                pads = find_all_belt_pad_shapes(self.sim, handle)
+            except Exception:
+                pads = []
+            if not pads:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_FALLBACK
+                self.logger.info(
+                    f"[CONV] {cname}: 无 pad → {cfg.CONVEYOR_DRIVE_FALLBACK}"
+                )
+                continue
+            if c.get("script_handle", -1) < 0:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_PYTHON
+                self.logger.info(
+                    f"[CONV] {cname}: 有 pad 无脚本 → {cfg.CONVEYOR_DRIVE_PYTHON}"
+                )
+                continue
+
+            # 有脚本 + 有 pad: 先把速度设到配置值, 再实测 pad 是否真的移动
+            state = set_conveyor_running(
+                self.sim, handle, True, cfg.CONVEYOR_SPEED
+            )
+            moved = self._measure_pad_motion(pads)
+            if moved is None or moved < cfg.CONVEYOR_PROBE_MIN_MOVE:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_PYTHON
+                # 脚本不驱动履带 → **停用**它 (不是删除!)。删除会让场景逐次
+                # 退化: 第一次运行探测后脚本没了, 下次运行连探测对象都没有,
+                # 且重新建场景才能恢复 (实测踩过)。scriptintparam_enabled 可逆。
+                script = c.get("script_handle", -1)
+                if script >= 0:
+                    try:
+                        self.sim.setObjectInt32Param(
+                            script, self.sim.scriptintparam_enabled, 0)
+                        c["script_enabled"] = False
+                    except Exception as exc:
+                        self.logger.warning(
+                            f"[CONV] {cname} 停用脚本失败: {exc}")
+                self.logger.warning(
+                    f"[CONV] {cname}: 脚本未驱动履带 (单步位移={moved}) → "
+                    f"{cfg.CONVEYOR_DRIVE_PYTHON}, 已停用脚本 (未删除)")
+            else:
+                c["drive_mode"] = cfg.CONVEYOR_DRIVE_SCRIPT
+                c["script_vel"] = (state or {}).get("vel")
+                self.logger.info(
+                    f"[CONV] {cname}: {cfg.CONVEYOR_DRIVE_SCRIPT} "
+                    f"(单步位移 {moved:.5f} m, __state__={state})"
+                )
+        self._conveyor_drive_probed = True
+
+    def _measure_pad_motion(self, pads: list) -> Optional[float]:
+        """实测一个仿真步内 pad 的局部最大位移 (m) — 只读探测。
+
+        返回 None 表示读不到位姿 (视为"未驱动", 由调用方降级)。
+        """
+        try:
+            before = [list(self.sim.getObjectPose(p, self.sim.handle_parent))
+                      for p in pads[:3]]
+        except Exception:
+            return None
+        try:
+            for _ in range(max(1, cfg.CONVEYOR_PROBE_STEPS)):
+                self.sim.step()
+        except Exception:
+            return None
+        try:
+            after = [list(self.sim.getObjectPose(p, self.sim.handle_parent))
+                     for p in pads[:3]]
+        except Exception:
+            return None
+        return max(
+            math.dist(a[:3], b[:3]) for a, b in zip(before, after)
+        )
+
+    # ═══════════════════════════════════════════════════════════
+    # 传送带起停 (方案 §5.4) — 只影响被点名的那一条带
+    # ═══════════════════════════════════════════════════════════
+
+    def _set_belt_running(self, cname: str, running: bool) -> bool:
+        """起停单条传送带 — Start/stop one conveyor only.
+
+        返回 False 表示下发失败或回读不上 — 调用方必须把该带记为
+        SCRIPT_ERROR, 不得静默退回"物料位置插值"(方案 §5.4)。
+        """
+        from factory_physics import set_conveyor_running
+        c = cfg.CONVEYORS[cname]
+        if self._drive_mode(cname) != cfg.CONVEYOR_DRIVE_SCRIPT:
+            # 非脚本驱动: 用既有冻结标志表达"这条带停止推进"
+            self._conveyor_frozen[cname] = not running
+            return True
+        state = set_conveyor_running(
+            self.sim, c.get("handle", -1), running, cfg.CONVEYOR_SPEED
+        )
+        if state is None:
+            self._conveyor_script_error.add(cname)
+            self.logger.error(
+                f"[CONV] {cname} 起停下发/回读失败 → SCRIPT_ERROR "
+                f"(不退回位置插值)"
+            )
+            return False
+        self._conveyor_script_error.discard(cname)
+        c["script_vel"] = state["vel"]
+        self.logger.info(
+            f"[CONV] {cname} {'RUNNING' if running else 'STOPPED'} "
+            f"(__state__.vel={state['vel']:.4f})"
+        )
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # 物料冻结 / 解冻 (方案 §5.3 第 3 条, §10) — 必须可还原
+    # ═══════════════════════════════════════════════════════════
+
+    def _freeze_material(self, mat: Material) -> bool:
+        """冻结物料在取料点 — 保存原动态属性后置 static。
+
+        优先方案是用 PickupStopper 让物料自然停住 (方案 §5.3 第 2 条);
+        只有在挡停体不可用时才走这里的一次性冻结。
+        """
+        if mat.handle < 0:
+            return False
+        if mat.uid in self._frozen_material_props:
+            return True
+        param = getattr(self.sim, "shapeintparam_static", None)
+        if param is None:
+            return False
+        try:
+            saved = int(self.sim.getObjectInt32Param(mat.handle, param))
+            self.sim.setObjectInt32Param(mat.handle, param, 1)
+            self.sim.resetDynamicObject(mat.handle)
+        except Exception:
+            return False
+        self._frozen_material_props[mat.uid] = saved
+        return True
+
+    def _unfreeze_material(self, mat: Material) -> bool:
+        """恢复物料原动态属性 (方案 §10: 修改前的属性一定存得住, 还原得回)。"""
+        saved = self._frozen_material_props.pop(mat.uid, None)
+        if saved is None:
+            return True
+        if mat.handle < 0:
+            return False
+        param = getattr(self.sim, "shapeintparam_static", None)
+        try:
+            self.sim.setObjectInt32Param(mat.handle, param, saved)
+            self.sim.resetDynamicObject(mat.handle)
+            return True
+        except Exception:
+            return False
+
+    # ═══════════════════════════════════════════════════════════
+    # 传送带输送 — Conveyor Movement
+    # ═══════════════════════════════════════════════════════════
+
     def _move_conveyors_kinematic(self, dt: float):
-        """kinematic 模式: 浮点 conv_progress 累加 + 入岛判定 (旧行为)。"""
+        """无物理回退: 浮点 conv_progress 累加 + 入岛判定。
+
+        ⚠ 这是方案 §5.2 明确标注的 **GEOMETRIC_FALLBACK** 路径: 物料位置由
+        Python 按 conv_progress 插值伪造, 不是真实输送。只在 PHYSICS_CONVEYOR
+        关闭 (离线逻辑验证) 时使用, 首次进入会打一条 WARNING。
+        """
+        if not self._geometric_fallback_warned:
+            self._geometric_fallback_warned = True
+            self.logger.warning(
+                "[CONV] GEOMETRIC_FALLBACK: 无物理模式, 物料位置由 conv_progress "
+                "插值生成 (非真实摩擦输送)"
+            )
         for mat in self.materials:
             if mat.delivered or mat.on_conveyor is None:
+                continue
+            if mat.awaiting_pickup:
                 continue
             cname = mat.on_conveyor
             if cname not in self._CONVEYOR_DST:
                 continue
 
-            conv_cfg = cfg.CONVEYORS[cname]
-            x1, y1 = conv_cfg["start"]
-            x2, y2 = conv_cfg["end"]
-            belt_len = math.hypot(x2 - x1, y2 - y1)
-            # 速度 (m/s) 除以路径长度 (m) = 每秒完成的路径比例
-            speed_fraction = cfg.CONVEYOR_SPEED / belt_len if belt_len > 0 else 1.0
-            mat.conv_progress += speed_fraction * dt
+            seg = self._belt_geometry(cname)
+            belt_len = seg["length"]
+            if belt_len <= 0:
+                continue
+            mat.conv_progress = min(
+                1.0, mat.conv_progress + cfg.CONVEYOR_SPEED / belt_len * dt
+            )
+            pt = lerp_2d(seg["start"], seg["end"], mat.conv_progress)
+            mat.pos = [pt[0], pt[1], seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0]
 
             if mat.conv_progress >= 1.0:
-                mat.conv_progress = 1.0
                 src, dst = self._CONVEYOR_DST[cname]
-
-                # 检查目标岛是否可接受 (TIMEOUT/OFFLINE/队列满 → 等待)
                 island = self.islands.get(dst)
                 if island and not island.can_accept():
                     self.logger.debug(
                         f"岛 {dst} 无法接受 mat#{mat.uid}，等待中..."
                     )
                     continue
-
-                # 物料到达目标岛
-                mat.on_conveyor = None
-                mat.at_island = dst
-                mat.conv_progress = 0.0
-                if island:
-                    island.enqueue(mat.uid)
-                mat.history.append((self.sim_time, f"ARRIVED at island {dst}"))
-
-                # C→E 传送带: 类型转换 RAW → SEMI_CE
-                if cname == "C_to_E":
-                    mat.item_type = ItemType.SEMI_CE
-
-                # 开始节拍追踪
-                if island:
-                    self.beat_tracker.start_cycle(dst, self.sim_time)
-
-                self.logger.info(
-                    f"mat#{mat.uid} ({mat.item_type.name}) 到达岛 {dst}"
-                )
+                self._queue_conveyor_pickup(mat, cname, dst)
 
     def _move_conveyors_physics(self, dt: float):
-        """物理模式: 程序化移动所有 kinematic pad + 到达检测。
+        """有物理模式: 履带驱动 + 到达检测 (不伪造物料位置)。
 
-        工作机制:
-          - build_scene 时已对每个 pad 设 static+kinematic+respondable+mask
-            (4.10 surface velocity 不可用, 必须程序化移动)
-          - 启动时采集所有 pad 在上表面、滚轮和底部组成的闭环位姿；每步
-            沿闭环插值推进 CONVEYOR_SPEED*dt，由摩擦带动 dynamic 物料
-          - 非多 pad 的几何回退模型改用物料位置插值，保证仍可完成输送
+        方案 §5.2: 物理模式下**不能**再每帧 setObjectPosition 伪造物料移动 —
+        物料应通过 pad 接触、摩擦和动力学求解向前运动。故本函数只做两件事:
 
-        到达检测 (到达带末端 → 入岛 / 冻结带面 / 解冻):
-          - 物料世界坐标距带末端 ≤ ARRIVAL_RADIUS → 到达
-          - 目标岛可接受: 入岛 + 节拍 + (C→E) 类型转换
-          - 目标岛拒绝: 冻结带面 (停止推进, 背压)
-          - 岛从拒绝变为可接受: 解冻
+          1. 履带推进: 仅当 drive_mode == PYTHON_PAD_DRIVEN 时, Python 按闭环
+             采样推进 pad; SCRIPT_DRIVEN 下 pad 由内置脚本驱动, Python 不碰;
+             FALLBACK_GEOMETRY 下没有 pad 可推, 退回 conv_progress 插值。
+          2. 到达检测: 读物料**世界位姿**判断是否进入末端停止区, 而不是读
+             Python 自己累加的 conv_progress。
+
+        末端停止区内的物料会被标记 WAITING_FOR_SUCTION 并停止对应的那一条带
+        (方案 §5.3/§5.4)。
         """
         sim = self.sim
         from factory_physics import (
             advance_belt_pad_loop, capture_belt_pad_loop,
         )
 
-        # ── 1. 推进所有 pad (冻结的不动) ──
-        for cname, conv_cfg in cfg.CONVEYORS.items():
-            belt_h = conv_cfg.get("handle", -1)
+        # ── 1. 履带推进 (SCRIPT_DRIVEN 下不碰 pad) ──
+        for cname, c in cfg.CONVEYORS.items():
+            mode = c.get("drive_mode")
+            belt_h = c.get("handle", -1)
             if belt_h is None or belt_h < 0:
-                continue
-            if conv_cfg.get("length", 0.0) <= 0:
                 continue
             if cname not in self._conveyor_pad_loops:
                 try:
@@ -525,21 +845,22 @@ class FactoryController:
                     )
                 except Exception as e:
                     self.logger.warning(
-                        f"[CONV] {cname} 履带闭环采集失败，退回位置插值: {e}"
+                        f"[CONV] {cname} 履带闭环采集失败: {e}"
                     )
                     self._conveyor_pad_loops[cname] = None
 
             loop = self._conveyor_pad_loops[cname]
-            if loop is not None and not self._conveyor_frozen.get(cname, False):
+            if (mode == cfg.CONVEYOR_DRIVE_PYTHON and loop is not None
+                    and not self._conveyor_frozen.get(cname, False)):
                 if not advance_belt_pad_loop(
                     sim, loop, cfg.CONVEYOR_SPEED * dt
                 ):
                     self.logger.warning(
-                        f"[CONV] {cname} 履带闭环推进失败，退回位置插值"
+                        f"[CONV] {cname} 履带闭环推进失败, 退回位置插值"
                     )
                     self._conveyor_pad_loops[cname] = None
 
-        # ── 2. 到达检测 (按带面分组) ──
+        # ── 2. 到达检测 (按带分组) ──
         belts_mats: dict[str, list[Material]] = {}
         for mat in self.materials:
             if mat.delivered or mat.on_conveyor is None:
@@ -549,76 +870,295 @@ class FactoryController:
             belts_mats.setdefault(mat.on_conveyor, []).append(mat)
 
         for cname, mats_on_belt in belts_mats.items():
-            conv_cfg = cfg.CONVEYORS[cname]
-            end_x, end_y = conv_cfg["end"]
-            src, dst = self._CONVEYOR_DST[cname]
+            seg = self._belt_geometry(cname)
+            _, dst = self._CONVEYOR_DST[cname]
             island = self.islands.get(dst)
+            mode = self._drive_mode(cname)
 
-            # 单一几何体没有可循环的 pad，也没有可用的 surface velocity。
-            # 此时按逻辑进度移动物料，保持回退场景仍能完成生产流程。
-            if self._conveyor_pad_loops.get(cname) is None:
-                start_x, start_y = conv_cfg["start"]
-                length = math.hypot(end_x - start_x, end_y - start_y)
-                delta = cfg.CONVEYOR_SPEED * dt / length if length > 0 else 1.0
-                if not self._conveyor_frozen.get(cname, False):
-                    for mat in mats_on_belt:
-                        mat.conv_progress = min(1.0, mat.conv_progress + delta)
-                        pt = lerp_2d(
-                            conv_cfg["start"], conv_cfg["end"], mat.conv_progress
-                        )
-                        try:
-                            sim.setObjectPosition(
-                                mat.handle,
-                                [pt[0], pt[1], cfg.Z_BASE + 0.08],
-                                sim.handle_world,
-                            )
-                        except Exception:
-                            continue
-
-            # 该带面是否需要冻结 (有物料在末端且岛拒绝)
-            should_freeze = False
+            # ── 物料输送: 沿**实测带面路径**推进 ──
+            # ⚠ 4.10 实测结论 (2026-10-13, 见 .superpowers/sdd/progress.md):
+            #   履带 pad 由内置脚本 setObjectPosition 移动时, Bullet **不会**
+            #   把切向速度传给上方 dynamic 物料 ——
+            #     static=1 + kinematic=1        → 物料 10 s 位移 0.009 m
+            #     static=0 + kinematic=1        → 物料 10 s 位移 0.008 m
+            #   且 4.10 既没有 setObjectVelocity, 也没有 surfaceVelocity 属性
+            #   (bullet/ode.surfaceVelocity 均 "property is unknown")。
+            #   即方案 §5.2 要求的"靠 pad 接触摩擦把物料带走"在该引擎组合上
+            #   **不可达**。按方案 §10 的回退条款, 这里改为显式标注的
+            #   KINEMATIC_BELT_TRANSPORT: 物料按实测带速沿实测路径运动, 履带
+            #   视觉由脚本以同一速度驱动, 两者同步; 绝不冒充"摩擦输送"。
+            if not self._transport_notice:
+                self._transport_notice = True
+                self.logger.warning(
+                    "[CONV] 输送机制 = %s: 4.10 无摩擦输送能力 "
+                    "(无 setObjectVelocity / surfaceVelocity 属性; 传送带脚本移动 "
+                    "pad 不传递切向速度, 实测 static=1 与 static=0+kinematic=1 "
+                    "两种配置物料 10s 位移均 < 0.01 m) → 物料按实测路径以同一带速 "
+                    "输送, 履带视觉由脚本驱动; 非物理摩擦驱动。",
+                    cfg.CONVEYOR_TRANSPORT_KINEMATIC,
+                )
+            frozen = self._conveyor_frozen.get(cname, False)
             for mat in mats_on_belt:
-                if mat.handle < 0:
+                if mat.awaiting_pickup or mat.handle < 0:
                     continue
+                if frozen:
+                    continue
+                if seg["length"] <= 0:
+                    continue
+                mat.conv_progress = min(
+                    1.0, mat.conv_progress + cfg.CONVEYOR_SPEED * dt / seg["length"]
+                )
+                # 到达判据用**行程进度**而不是"距末端半径": 半径判据会让物料
+                # 停在距停止点最多 0.18 m 处, 使实际抓取点超出构建期校验过的
+                # arm[*].reach_to 位置 (实测 0.733 m → 0.85 m, 恰好越界)。
+                pt = lerp_2d(seg["start"], seg["end"], mat.conv_progress)
+                mat.transport = cfg.CONVEYOR_TRANSPORT_KINEMATIC
                 try:
-                    mpos = sim.getObjectPosition(mat.handle, sim.handle_world)
+                    sim.setObjectPosition(
+                        mat.handle,
+                        [pt[0], pt[1],
+                         seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0],
+                        sim.handle_world,
+                    )
                 except Exception:
                     continue
-                dist = math.hypot(mpos[0] - end_x, mpos[1] - end_y)
 
-                if dist <= cfg.ARRIVAL_RADIUS:
-                    # 到达带末端
-                    if island and not island.can_accept():
-                        # 岛拒绝 → 冻结带面 (背压)
-                        should_freeze = True
-                        mat.frozen = True
-                        self.logger.debug(
-                            f"岛 {dst} 无法接受 mat#{mat.uid}, "
-                            f"冻结带面 {cname}"
-                        )
-                        continue
+            # 该带是否需要冻结: 有物料停在末端但目标岛拒绝 (背压)
+            should_freeze = False
+            for mat in mats_on_belt:
+                if mat.awaiting_pickup or mat.handle < 0:
+                    continue
+                # 抓取失败退避中 → 不再立刻重新排队 (否则退避形同虚设)
+                if self.sim_time < self._pickup_retry_at.get(mat.uid, 0.0):
+                    continue
+                if cname in self._conveyor_script_error:
+                    # 该带脚本停不下来 → 不再继续往里送物料, 避免越过末端
+                    continue
+                # 到站判据 = 行程走完 (与物料实际推进同源, 不引入半径模糊)
+                if mat.conv_progress < 1.0:
+                    continue
+                if island and not island.can_accept():
+                    mat.frozen = True
+                    should_freeze = True
+                    continue
+                self._queue_conveyor_pickup(mat, cname, dst)
+            # 取料等待中同样视为"该带已停" — 与 _set_belt_running 的语义一致
+            pickup_pending = any(m.awaiting_pickup for m in mats_on_belt)
+            self._conveyor_frozen[cname] = should_freeze or pickup_pending
 
-                    # 岛可接受 → 入岛
-                    mat.on_conveyor = None
-                    mat.at_island = dst
-                    mat.frozen = False
-                    mat.conv_progress = 0.0
-                    if island:
-                        island.enqueue(mat.uid)
-                    mat.history.append(
-                        (self.sim_time, f"ARRIVED at island {dst}")
-                    )
-                    # C→E 传送带: 类型转换 RAW → SEMI_CE
-                    if cname == "C_to_E":
-                        mat.item_type = ItemType.SEMI_CE
-                    if island:
-                        self.beat_tracker.start_cycle(dst, self.sim_time)
-                    self.logger.info(
-                        f"mat#{mat.uid} ({mat.item_type.name}) 到达岛 {dst}"
-                    )
+    # ═══════════════════════════════════════════════════════════
+    # 末端取料 — 吸盘接管 (方案 §5.3/§5.4/§6.3)
+    # ═══════════════════════════════════════════════════════════
 
-            # 更新带面冻结状态
-            self._conveyor_frozen[cname] = should_freeze
+    def _queue_conveyor_pickup(self, mat: Material, cname: str, dst: str):
+        """物料进入末端停止区 — Park the material and stop THAT conveyor.
+
+        流程 (方案 §5.3):
+          1. 记录物料当前世界位姿与所在传送带
+          2. 停止该物料继续接受传送带驱动 (优先挡停体, 否则一次性冻结)
+          3. 停止当前这条传送带 (只停这条)
+          4. 进入 WAITING_FOR_SUCTION, 等机械臂 IK 到位 + 吸盘命中
+        """
+        if mat.awaiting_pickup or mat.at_island is not None:
+            return
+        mat.awaiting_pickup = True
+        mat.frozen = True
+        mat.conv_progress = 1.0
+        mat.state = MATERIAL_STATE_WAITING_FOR_SUCTION
+
+        c = cfg.CONVEYORS[cname]
+        seg = self._belt_geometry(cname)
+        # 1) 记录实测世界位姿
+        try:
+            mat.pos = list(self.sim.getObjectPosition(
+                mat.handle, self.sim.handle_world))
+        except Exception:
+            mat.pos = [seg["end"][0], seg["end"][1],
+                       seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0]
+
+        # 2) 让物料停住: 挡停体可用时不改动态属性 (让碰撞自然挡住)
+        if not (cfg.PICKUP_USE_STOPPER and c.get("stopper_handle", -1) >= 0):
+            if self._freeze_material(mat):
+                self.logger.debug(
+                    f"mat#{mat.uid} 到达 {cname} 末端, 一次性冻结等待吸盘")
+        # 3) 停止**当前**传送带
+        self._set_belt_running(cname, False)
+
+        mat.history.append(
+            (self.sim_time, f"{MATERIAL_STATE_WAITING_FOR_SUCTION} at {cname}")
+        )
+        item = (mat, cname, dst)
+        if not any(existing[0].uid == mat.uid
+                   for existing in self._pending_conveyor_pickups):
+            self._pending_conveyor_pickups.append(item)
+        self.logger.info(
+            f"mat#{mat.uid} ({mat.item_type.name}) 停在 {cname} 末端, "
+            f"等待吸盘取料 (岛 {dst})"
+        )
+        # 4) 让机械臂以 IK 路径点前往抓取点 (方案 §6.3/§7)
+        arm_key = self._arm_key_for(dst)
+        started = False
+        if self.robot_animator is not None and arm_key is not None:
+            started = self.robot_animator.start_pick_and_place(
+                arm_key, mat.pos, self._island_place_point(dst, mat)
+            )
+        # 离线/局部场景 (无机械臂) 直接交付, 否则物料永远卡在末端
+        if not started:
+            self._complete_conveyor_pickup(mat, cname, dst)
+
+    def _arm_key_for(self, dst: str) -> Optional[str]:
+        """目标岛对应的机械臂键 — Which arm serves this island."""
+        if dst in cfg.ISLAND_ROBOTS:
+            return dst
+        if dst == "E":
+            return "E_C"
+        return None
+
+    def _island_place_point(self, dst: str, mat: Material) -> list:
+        """目标岛台面上的放置点 (按 uid 错开, 避免堆叠)。"""
+        if dst not in cfg.WORK_ISLANDS:
+            seg = self._belt_geometry("C_to_E")
+            return [seg["start"][0], seg["start"][1],
+                    seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0
+                    + cfg.MATERIAL_SPAWN_GAP]
+        entry = cfg.WORK_ISLANDS[dst]
+        # 错开幅度 ±0.1 m: 再大就会超出 UR5 工作半径 (构建期 arm[*].reach_to
+        # 断言只覆盖取料点, 放置点由这里的幅度保证)
+        offset = (mat.uid % 2) * 0.2 - 0.1
+        return [entry["pos"][0] + offset, entry["pos"][1],
+                cfg.island_top_z(dst) + cfg.MATERIAL_SIZE[2] / 2.0 + 0.02]
+
+    def _complete_conveyor_pickup(self, mat: Material, cname: str,
+                                  dst: str) -> bool:
+        """完成一次吸盘取料并把物料交给目标工作岛 — Finish suction pickup.
+
+        时序 (方案 §5.3 / §6.3):
+          1. 等机械臂 IK 走到抓取点 → 接近传感器命中 → 父子绑定
+             (状态 SUCTION_ATTACHED)
+          2. 移动期间校验物料相对吸盘的位姿稳定 (verify_suction_hold)
+          3. 动作走完全部路径点 → 释放 + 恢复动态属性 → AT_ISLAND
+
+        Returns:
+            True 表示本步完成了状态转移; False 表示还要等。
+        """
+        # 幂等门 — 同一步里离线回退与 _service_conveyor_pickups 都会调用本方法,
+        # 少了这道门物料会被 enqueue 两次 (实测导致岛上队列虚高, 触发假溢出)。
+        if mat.at_island is not None:
+            return True
+        if not mat.awaiting_pickup:
+            return True
+        island = self.islands.get(dst)
+        if island is None or not island.can_accept():
+            return False
+        arm_key = self._arm_key_for(dst)
+        animator = self.robot_animator
+        arms = getattr(animator, "arms", {}) or {}
+
+        if animator is not None and arm_key in arms:
+            if not mat.suction_attached:
+                # 机械臂已判定本次取放失败 (IK 连续解不出) → 交给退避重试
+                if animator.arm_action_failed(arm_key):
+                    self._failed_pickups.add(mat.uid)
+                    return False
+                # 吸盘只在机械臂真正下探到抓取点之后才允许绑定
+                if not animator.has_reached_pick(arm_key):
+                    return False
+                if not animator.attach_material(arm_key, mat):
+                    return False
+                mat.state = MATERIAL_STATE_SUCTION_ATTACHED
+                mat.history.append(
+                    (self.sim_time,
+                     f"{MATERIAL_STATE_SUCTION_ATTACHED} on arm {arm_key}")
+                )
+                self.logger.info(
+                    f"mat#{mat.uid} 已被 {arm_key} 吸盘吸附 (SUCTION_ATTACHED)")
+                return False
+            # 移动期间校验吸附是否失效 (方案 §6.3 第 4 条)
+            if not animator.verify_suction_hold(arm_key, mat):
+                mat.history.append((self.sim_time, "SUCTION_HOLD_FAILED"))
+                self._failed_pickups.add(mat.uid)
+            if not animator.is_action_done(arm_key):
+                return False
+            # 动作完成 → 释放到台面 + 恢复动态属性
+            animator.release_material(
+                arm_key, mat, drop_position=self._island_place_point(dst, mat)
+            )
+
+        self._unfreeze_material(mat)
+        mat.on_conveyor = None
+        mat.at_island = dst
+        mat.awaiting_pickup = False
+        mat.suction_attached = False
+        mat.frozen = False
+        mat.conv_progress = 0.0
+        mat.state = MATERIAL_STATE_AT_ISLAND
+        island.enqueue(mat.uid)
+        if cname == "C_to_E":
+            mat.item_type = ItemType.SEMI_CE
+        mat.history.append(
+            (self.sim_time, f"{MATERIAL_STATE_AT_ISLAND} {dst} (from {cname})")
+        )
+        self.beat_tracker.start_cycle(dst, self.sim_time)
+        # 物料已离开停止区 → 恢复这条传送带 (方案 §5.4)
+        self._set_belt_running(cname, True)
+        self.logger.info(
+            f"mat#{mat.uid} ({mat.item_type.name}) 吸盘取料完成 → 岛 {dst}, "
+            f"恢复 {cname}"
+        )
+        return True
+
+    def _service_conveyor_pickups(self):
+        """在机械臂更新后尝试完成末端等待区的取料 (方案 §5.3 第 4 步)。"""
+        if not self._pending_conveyor_pickups:
+            return
+        pending = list(self._pending_conveyor_pickups)
+        self._pending_conveyor_pickups.clear()
+        for mat, cname, dst in pending:
+            # IK 失败 → 退避重试; 退避期内不再逐帧重算
+            if mat.uid in self._failed_pickups:
+                self._abandon_pickup(mat, cname, dst)
+                continue
+            retry_at = self._pickup_retry_at.get(mat.uid, 0.0)
+            if self.sim_time < retry_at:
+                self._pending_conveyor_pickups.append((mat, cname, dst))
+                continue
+            if not self._complete_conveyor_pickup(mat, cname, dst):
+                self._pending_conveyor_pickups.append((mat, cname, dst))
+
+    def _abandon_pickup(self, mat: Material, cname: str, dst: str):
+        """IK 抓取失败的处理 — Handle a failed grasp honestly.
+
+        方案 §10: "若 IK 主组和阻尼组都失败，机械臂动作必须失败并释放/保留物料
+        状态，不得把关键帧回退姿态当作完成"。
+
+        这里把物料状态退回 `ON_CONVEYOR` 并让它继续停在末端停止区 (传送带保持
+        停止), 隔 CONVEYOR_PICKUP_RETRY_DELAY 秒再试一次。物料既不会被判成
+        已入岛, 也不会被丢弃。
+        """
+        self._failed_pickups.discard(mat.uid)
+        animator = self.robot_animator
+        arm_key = self._arm_key_for(dst)
+        if animator is not None and arm_key is not None:
+            try:
+                animator.release_material(arm_key, mat)
+            except Exception:
+                pass
+        self._unfreeze_material(mat)
+        mat.suction_attached = False
+        mat.awaiting_pickup = False
+        mat.frozen = False
+        mat.state = MATERIAL_STATE_ON_CONVEYOR
+        mat.history.append(
+            (self.sim_time, f"PICKUP_FAILED at {cname} (IK 不可达), "
+                            f"{cfg.CONVEYOR_PICKUP_RETRY_DELAY:.1f}s 后重试")
+        )
+        self._pickup_retry_at[mat.uid] = (
+            self.sim_time + cfg.CONVEYOR_PICKUP_RETRY_DELAY
+        )
+        self.logger.error(
+            f"mat#{mat.uid} 在 {cname} 末端抓取失败 (IK 不可达) — 物料留在带面, "
+            f"{cfg.CONVEYOR_PICKUP_RETRY_DELAY:.1f}s 后重试; 传送带保持停止"
+        )
 
     # ═══════════════════════════════════════════════════════════
     # 工作岛处理 — Island Processing
@@ -832,7 +1372,7 @@ class FactoryController:
             # 更新物料位置 (用于场景可视化)
             t = min(new_progress, 1.0)
             pt = lerp_2d(ac_path[0], ac_path[1], t)
-            mat.pos = [pt[0], pt[1], cfg.Z_BASE + 0.05]
+            mat.pos = [pt[0], pt[1], cfg.MATERIAL_CENTER_Z]
 
             if new_progress >= 1.0:
                 completed.append(uid)
@@ -879,8 +1419,11 @@ class FactoryController:
                     mat.on_conveyor = "C_to_E"
                     mat.conv_progress = 0.0
                     if cfg.PHYSICS_CONVEYOR:
-                        start = cfg.CONVEYORS["C_to_E"]["start"]
-                        mat.pos = [start[0], start[1], cfg.Z_BASE + 0.15]
+                        seg = self._belt_geometry("C_to_E")
+                        mat.pos = [seg["start"][0], seg["start"][1],
+                                   seg["surface_z"]
+                                   + cfg.MATERIAL_SIZE[2] / 2.0
+                                   + cfg.MATERIAL_SPAWN_GAP]
                         self.sim.setObjectPosition(
                             mat.handle, mat.pos, self.sim.handle_world
                         )
@@ -955,8 +1498,11 @@ class FactoryController:
             except Exception:
                 pass
 
-        e_pos = list(cfg.WORK_ISLANDS["E"]["pos"])
-        final = spawn_material(self.sim, ItemType.FINAL, e_pos, self.sim_time)
+        e_cfg = cfg.WORK_ISLANDS["E"]
+        e_pos = [e_cfg["pos"][0], e_cfg["pos"][1],
+                 cfg.island_top_z("E") + cfg.MATERIAL_SIZE[2] / 2 + 0.02]
+        final = spawn_material(self.sim, ItemType.FINAL, e_pos, self.sim_time,
+                               state=MATERIAL_STATE_AT_ISLAND)
         final.delivered = True  # 成品直接标记为已交付 (展示用)
         self.materials.append(final)
         self.logger.info(
@@ -999,28 +1545,31 @@ class FactoryController:
                     continue
                 cname = mat.on_conveyor
                 if cname in cfg.CONVEYORS:
-                    c = cfg.CONVEYORS[cname]
-                    pt = lerp_2d(c["start"], c["end"], mat.conv_progress)
-                    new_pos = [pt[0], pt[1], cfg.Z_BASE + 0.05]
+                    seg = self._belt_geometry(cname)
+                    pt = lerp_2d(seg["start"], seg["end"], mat.conv_progress)
+                    new_pos = [pt[0], pt[1],
+                               seg["surface_z"] + cfg.MATERIAL_SIZE[2] / 2.0]
 
             # AGV 上的物料 — 跟随 AGV 调度器的插值位置
             elif mat.on_agv:
                 agv_pos = self.agv_scheduler.current_position()
                 new_pos = [agv_pos[0], agv_pos[1],
-                           cfg.Z_BASE + cfg.AGV_SIZE[2] + 0.06]
+                           cfg.AGV_DECK_Z + cfg.MATERIAL_SIZE[2] / 2.0]
 
-            # 岛上的物料 — 排列在基座上方, 按 uid 偏移避免重叠
+            # 岛上的物料 — 排在台面上方, 按 uid 偏移避免重叠
             elif mat.at_island and mat.at_island in cfg.WORK_ISLANDS:
                 ip = cfg.WORK_ISLANDS[mat.at_island]["pos"]
+                top_z = cfg.island_top_z(mat.at_island)
                 offset = len([
                     m for m in self.materials
                     if m.at_island == mat.at_island and m.uid < mat.uid
                 ]) * 0.2
-                new_pos = [ip[0] + offset - 0.3, ip[1], ip[2] + 0.5]
+                new_pos = [ip[0] + offset - 0.3, ip[1],
+                           top_z + cfg.MATERIAL_SIZE[2] / 2.0 + 0.02]
 
             # A→C 刚性传输中的物料
             if mat.uid in self.ac_transfer_progress and mat.pos:
-                new_pos = [mat.pos[0], mat.pos[1], cfg.Z_BASE + 0.05]
+                new_pos = [mat.pos[0], mat.pos[1], cfg.MATERIAL_CENTER_Z]
 
             if new_pos:
                 sim.setObjectPosition(mat.handle, new_pos, sim.handle_world)
@@ -1030,8 +1579,7 @@ class FactoryController:
             agv_pos = self.agv_scheduler.current_position()
             sim.setObjectPosition(
                 self.agv_handle,
-                [agv_pos[0], agv_pos[1],
-                 cfg.Z_BASE + cfg.AGV_SIZE[2] / 2],
+                [agv_pos[0], agv_pos[1], cfg.AGV_DECK_Z],
                 sim.handle_world,
             )
             # 朝向 (yaw): 令 AGV 车头指向行进方向。
@@ -1067,6 +1615,7 @@ class FactoryController:
             self.robot_animator.update(dt, self.islands, self.agv_scheduler)
         except Exception as e:
             self.logger.debug(f"[ROBOT] 动画更新异常 (已忽略): {e}")
+        self._service_conveyor_pickups()
 
     # ═══════════════════════════════════════════════════════════
     # 辅助方法 — Utilities

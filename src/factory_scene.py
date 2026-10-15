@@ -117,3 +117,161 @@ def add_object(sim, handle: int, full_alias: str,
     if parent_handle != -1:
         sim.setObjectParent(handle, parent_handle, True)
     return handle
+
+# ═══════════════════════════════════════════════════════════════
+# 几何测量 — Geometry Measurement Helpers (重构方案 §3.1 / §4.1)
+# ═══════════════════════════════════════════════════════════════
+# build_scene (构建期) 与 factory_controller (运行期) 都必须能"量"出传送带
+# 实际几何。构建期把入口/停止区 dummy 摆好; 运行期按别名把这些对象重新找
+# 回来 —— 构建期的元数据只活在构建进程的内存里, 换个进程就没了。
+def model_local_bbox(sim, handle: int) -> list[float] | None:
+    """模型**本地**包围盒 — Local model bbox via objfloatparam_modelbbox_*.
+
+    4.10 实测可用 (docs/wiki/01-API参考/01-03-常量与参数ID.md 的
+    objfloatparam_modelbbox_min/max_*)。返回 [min_x, min_y, min_z,
+    max_x, max_y, max_z]; 任一参数读取失败返回 None, 调用方必须能处理。
+    """
+    names = ("min_x", "min_y", "min_z", "max_x", "max_y", "max_z")
+    values = []
+    for name in names:
+        param = getattr(sim, f"objfloatparam_modelbbox_{name}", None)
+        if param is None:
+            return None
+        try:
+            values.append(float(sim.getObjectFloatParam(handle, param)))
+        except Exception:
+            return None
+    return values
+
+
+def shape_size(sim, handle: int) -> list[float] | None:
+    """shape 的**全尺寸** [sx, sy, sz] — Shape full size.
+
+    ⚠ 4.10 的 `sim.getShapeBB` 返回 `(size, transform)`, 而不是官方手册里
+    的 6 元素局部包围盒 (实测 2026-10-13)。这里只取 size, 且 size 是
+    **全尺寸**而非半尺寸 (岛屿 1.4 m 的 cuboid → size[0] == 1.4)。
+    """
+    try:
+        bb = sim.getShapeBB(handle)
+    except Exception:
+        return None
+    if isinstance(bb, (list, tuple)) and len(bb) == 2 and \
+            isinstance(bb[0], (list, tuple)):
+        return [float(v) for v in bb[0][:3]]
+    if isinstance(bb, (list, tuple)) and len(bb) == 6:
+        return [float(bb[3] - bb[0]), float(bb[4] - bb[1]), float(bb[5] - bb[2])]
+    return None
+
+
+def find_shapes_by_alias(sim, root: int, alias: str) -> list[int]:
+    """在 root 子树中找出所有别名为 alias 的 shape 句柄。"""
+    try:
+        tree = sim.getObjectsInTree(root, sim.handle_all, 0)
+    except Exception:
+        return []
+    found = []
+    for obj in tree:
+        try:
+            if (sim.getObjectType(obj) == sim.object_shape_type
+                    and sim.getObjectAlias(obj) == alias):
+                found.append(int(obj))
+        except Exception:
+            continue
+    return found
+
+
+def find_script_child(sim, root: int) -> int:
+    """找出 root 子树中的脚本对象句柄; 没有返回 -1。"""
+    script_type = getattr(sim, "object_script_type", None)
+    if script_type is None:
+        return -1
+    try:
+        tree = sim.getObjectsInTree(root, sim.handle_all, 0)
+    except Exception:
+        return -1
+    for obj in tree:
+        try:
+            if sim.getObjectType(obj) == script_type:
+                return int(obj)
+        except Exception:
+            continue
+    return -1
+
+
+def measure_belt_surface_offset(sim, root: int, pads: list[int]) -> float | None:
+    """带面上表面相对**模型根**的 Z 偏移 (m) — Belt top surface local Z.
+
+    模型根位于原点时, 上表面 = 最高的 pad 中心 + 半个 pad 厚度。返回 None
+    表示测不出来 (调用方必须回退而不是猜一个数)。
+    """
+    if not pads:
+        return None
+    try:
+        root_z = sim.getObjectPosition(root, sim.handle_world)[2]
+    except Exception:
+        return None
+    best = None
+    for pad in pads:
+        try:
+            pos_z = sim.getObjectPosition(pad, sim.handle_world)[2]
+        except Exception:
+            continue
+        size = shape_size(sim, pad)
+        half = (size[2] / 2.0) if size else 0.0
+        top = pos_z + half
+        best = top if best is None else max(best, top)
+    if best is None:
+        return None
+    return best - root_z
+
+
+def measure_belt_top_run(sim, root: int, pads: list) -> dict | None:
+    """实测履带**上表面行程** — Measure the actual top run of a belt.
+
+    ⚠ 关键 (2026-10-13 实测): 内置传送带模型的包围盒**不等于**可承载区。
+    `generic conveyor (belt).ttm` 的 native 包围盒 X 跨度 1.216 m, 但上表面
+    pad 只覆盖 [-0.497, 0.500] (约 82%), 两端是回转滚筒。若按包围盒半长放
+    入口 dummy, 物料会生成在滚筒外侧直接掉到地面 —— 实测确实如此。
+
+    故入口/停止区 dummy 必须由**上表面 pad 的实际行程**推出:
+
+    Returns:
+        {"min_x": 上表面最小局部 X, "max_x": 上表面最大局部 X,
+         "surface_off": 带面上表面相对模型根的 Z 偏移,
+         "pad_thickness": 单个 pad 厚度}
+        没有可用的上表面 pad 时返回 None。
+    """
+    if not pads:
+        return None
+    top_pads = []
+    best_top = None
+    geometry = {}
+    for pad in pads:
+        try:
+            local = sim.getObjectPosition(pad, root)
+        except Exception:
+            continue
+        size = shape_size(sim, pad)
+        half = (size[2] / 2.0) if size else 0.0
+        geometry[pad] = (local, half)
+        top = local[2] + half
+        if best_top is None or top > best_top:
+            best_top = top
+    if best_top is None:
+        return None
+    # 容差取 pad 厚度的一半, 避免把滚筒上过渡的 pad 也算成上表面
+    thicknesses = [half * 2.0 for _, half in geometry.values() if half > 0]
+    tol = (min(thicknesses) if thicknesses else 0.01)
+    for pad, (local, half) in geometry.items():
+        if abs(local[2] + half - best_top) <= max(tol, 1e-4):
+            top_pads.append(local)
+    if not top_pads:
+        return None
+    return {
+        "min_x": min(p[0] for p in top_pads),
+        "max_x": max(p[0] for p in top_pads),
+        "surface_off": best_top,
+        "pad_thickness": (min(thicknesses) if thicknesses else 0.0),
+        "top_pad_count": len(top_pads),
+    }
+

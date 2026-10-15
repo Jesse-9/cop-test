@@ -481,3 +481,64 @@ def apply_conveyor_physics_props_all_pads(
         logger.info(f"  [PHYSICS] 传送带 {conveyor_handle}: "
                     f"{ok_count}/{len(pads)} 个 pad 设上 surface velocity")
     return ok_count > 0
+
+
+# ═══════════════════════════════════════════════════════════════
+# 内置传送带运行控制 — Conveyor run control (方案 §5.4)
+# ═══════════════════════════════════════════════════════════════
+# ⚠ 实测结论 (2026-10-13, 4.10): 内置 `generic conveyor (belt).ttm` 的 Script
+#   是 customization 脚本, 正文只有 `require('models.conveyor_customization-3')`,
+#   **没有任何公开函数** → 方案 §5.4 假设的 `sim.callScriptFunction(
+#   "setConveyorRunning", ...)` 在该模型上不可用。
+#   模型自带注释给出的外部接口是 buffer 属性:
+#       sim.setBufferProperty(h, 'customData.__ctrl__', sim.packTable({vel=v}))
+#       sim.readCustomTableData(h, '__state__')  → {vel=..., pos=...}
+#   实测: 默认 vel=0.1; 下发 {vel=0} → __state__.vel=5e-7, 实测带速 0.0000 m/s;
+#         下发 {vel=0.5} → __state__.vel=0.5, 实测带速 0.427 m/s。
+#   下面两个函数就是上述两个调用的项目级封装, 与方案 §5.4 的 Lua
+#   `setConveyorRunning` / `getConveyorState` 语义一一对应。
+
+def get_conveyor_state(sim, conveyor_handle: int) -> Optional[dict]:
+    """读回内置传送带脚本状态 — Read back conveyor script state.
+
+    Returns:
+        {"vel": float, "pos": float}; 脚本不可用/无数据时返回 None。
+        ⚠ 调用方必须把 None 当成"无法确认", 而不是当成"已停止"。
+    """
+    from factory_config import CONVEYOR_STATE_KEY
+    if conveyor_handle is None or conveyor_handle < 0:
+        return None
+    try:
+        data = sim.readCustomTableData(conveyor_handle, CONVEYOR_STATE_KEY)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    try:
+        return {"vel": float(data.get("vel", 0.0)),
+                "pos": float(data.get("pos", 0.0))}
+    except (TypeError, ValueError):
+        return None
+
+
+def set_conveyor_running(sim, conveyor_handle: int, running: bool,
+                         speed: float = 0.0) -> Optional[dict]:
+    """设定内置传送带速度 — Start / stop the built-in conveyor.
+
+    与方案 §5.4 的 Lua `setConveyorRunning(running)` 等价: running=True 时把
+    目标速度设为 `speed`, False 时设为 0。
+
+    Returns:
+        回读到的 {"vel", "pos"}; 写入或回读失败返回 None。调用方应把该带标记
+        为 SCRIPT_ERROR, 而不是静默退回"物料位置插值"(方案 §5.4)。
+    """
+    from factory_config import CONVEYOR_CTRL_KEY
+    if conveyor_handle is None or conveyor_handle < 0:
+        return None
+    target = float(speed) if running else 0.0
+    try:
+        sim.setBufferProperty(conveyor_handle, CONVEYOR_CTRL_KEY,
+                              sim.packTable({"vel": target}))
+    except Exception:
+        return None
+    return get_conveyor_state(sim, conveyor_handle)

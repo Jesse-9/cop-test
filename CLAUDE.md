@@ -171,7 +171,104 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
      的第三参数 `[maxVel, maxAccel, maxJerk]` 确实生效 (实测 0.5 rad/s 走 0.3 rad
      约 0.6 s)；不传则用关节自带 maxVelAccelJerk 属性。
 
+9. **UR5 切 kinematic 需先把连杆转成纯运动学, 否则连杆塌陷 (已解决)**:
+   内置 `UR5.ttm` 的本体连杆与夹爪碰撞体是 `static=0 respondable=1`(动态启用)。
+   关节处于 `kinematic` 而连杆仍是动态时, 引擎不为这些体建立约束 →
+   **连杆失去支撑直接自由落体**: TCP 世界 Z 由 2.04 m 掉到 0.13 m(贴地)。
+   - ⚠ **最危险之处: 塌陷时关节角读数仍精确等于设定值**(实测读到 HOME 的
+     `[0, -1.5708, 1.5708, 0, 0, 0]` 而 TCP 已贴地)。任何只检查关节角/最大误差的
+     验证都会给出**假通过** —— 必须检查 TCP 或连杆的**世界坐标**。
+   - **解决**: `build_scene.make_arm_kinematic()` 在挂好夹爪**之后**遍历整条机械臂
+     子树, 把所有 `static=0` 的 shape 置为非动态(只改 `static`, `respondable` 不变)。
+     **必须覆盖整棵子树** —— 夹爪根/手指/配重块同样是动态体, 只改 6 个连杆会让
+     夹爪掉落。`ARM_CONTROL_MODE == "kinematic"` 时由 `create_robot_arm` 自动执行。
+     改造后**构建期/运行期两种切换时序都正常**, 原先"必须已步进过一步"的脆弱
+     时序约束消失。
+   - **安全网**: `RobotArmDevice.apply_control_mode("kinematic")` 会先统计子树内
+     残余的动态 shape 数, >0 则**拒绝切换**并报错(提示用当前 build_scene 重建场景)。
+     旧场景(或 MCP 服务里的旧模块构建的场景)不会再静默塌陷。
+   - 无效做法: 只设 `shapeintparam_kinematic=1` 而不设 `static`, 实测**无效**。
+   - 与动态物料的碰撞: 对照实验显示 `static` 改造前后表现一致(自建动态方块在两种
+     配置下均穿透连杆), 即该改造不改变碰撞行为。
+   - 回归护栏: `tests/test_robot_integration.py::test_arm_does_not_collapse_after_animator_startup`
+     (判据为 TCP 世界坐标 Z > 1.4 m)。
+
 ## 日志
 
 `factory_sim.log` — 双输出日志 (文件 DEBUG 级 / 控制台 INFO 级)。紧急停止时写
 `emergency_dump_<timestamp>.json` 保存状态供事后分析。
+
+10. **传送带长度曾是设计值的 3.2 倍 (已修复)**: `create_conveyor` 用硬编码
+    `default_len = 1.0` 计算 `scale_x`, 而内置 `generic conveyor (belt).ttm`
+    的 native 长度实测是 **1.216 m**, 于是每条带被放大了 `length/1.0` 倍
+    (3.2/3.9/3.0 倍), 长度、宽度、高度一起超标。
+    - **4.10 的 `sim.scaleObjects` 只能等比缩放**: 官方手册签名是
+      `(list objectHandles, float scalingFactor, bool scalePositionsToo)`,
+      scalingFactor 是**标量**; 实测传 `(2, 1, 1)` 结果三轴同时 ×2。
+      所以传送带只能整体等比放大到设计长度, 宽度/高度会随之等比变化
+      (实测 0.497~0.639 m 宽)。**一律以实测值 `CONVEYORS[*]["width"]` 为准。**
+    - 修复: 读 `objfloatparam_modelbbox_*` 得到 native 长度 → 等比缩放到设计
+      长度 → **重新读包围盒**确认实测长度 == 设计长度。
+
+11. **传送带包围盒 ≠ 可承载区, 物料会从端部掉到地面 (已修复)**:
+    `generic conveyor (belt).ttm` 的 native 包围盒 X 跨度 1.216 m, 但**上表面
+    pad 只覆盖 [-0.497, 0.500]** (约 82%), 两端是回转滚筒。按包围盒半长放
+    入口 dummy 会让物料生成在滚筒外, 直接自由落体到地面 (实测物料停在
+    z=0.16 的地面上)。
+    - 修复: `factory_scene.measure_belt_top_run()` 取最高一排 pad 的局部 X
+      范围, 入口/停止区 dummy 由**该范围** ± 内缩推出。
+    - 内缩必须 ≥ 物料半长 (`CONVEYOR_STOP_INSET = 0.08 ≥ 0.15/2`), 否则物料
+      有一半压在滚筒上。
+
+12. **4.10 无法做"摩擦驱动"的传送带 (实测结论)**: 内置 conveyor 脚本用
+    `setObjectPosition` 逐个移动 pad, **Bullet 不会把切向速度传给上方
+    dynamic 物料** —— 两种配置各跑 10 s 的物料位移都是 < 0.01 m:
+      - pad `static=1 + kinematic=1` (项目原配置) → 0.009 m
+      - pad `static=0 + kinematic=1` (传统传送带配置) → 0.008 m
+    且 4.10 **既没有 `sim.setObjectVelocity`**, 也**没有 surface velocity
+    属性** (`bullet.surfaceVelocity` / `ode.surfaceVelocity` 均报
+    `property is unknown`)。
+    - 因此 `factory_controller` 的物料输送是显式标注的
+      **`KINEMATIC_BELT_TRANSPORT`**: 物料按实测带面路径以同一带速运动, 履带
+      视觉由内置脚本驱动 (两者速度一致), 启动时打一条 WARNING 说明它不是
+      物理摩擦驱动。**不要把它描述成"摩擦输送"。**
+    - 履带的**驱动源**仍按方案 §5.1 做一次性启动探测: 有脚本且 pad 确实在动
+      → `SCRIPT_DRIVEN` (Python 只用 `__ctrl__` 调速, 不碰 pad 位姿); 否则剥离
+      脚本转 `PYTHON_PAD_DRIVEN`; 没有内置模型则为 `FALLBACK_GEOMETRY`。
+
+13. **内置 conveyor / suction 脚本没有公开函数, 只能走 buffer 属性与传感器回退**:
+    - conveyor: `Script` 是 customization 脚本, 正文只有
+      `require('models.conveyor_customization-3')`。外部控制接口是模型自带注释
+      里的 buffer 属性 (不是 `sim.callScriptFunction`):
+      `sim.setBufferProperty(h, 'customData.__ctrl__', sim.packTable({vel=v}))`,
+      `sim.readCustomTableData(h, '__state__') → {vel, pos}`。
+      实测默认 vel=0.1; 下发 `{vel=0}` → 实测带速 0.0000 m/s; `{vel=0.5}` → 0.427 m/s。
+      封装在 `factory_physics.set_conveyor_running` / `get_conveyor_state`。
+    - suction pad: 脚本是 child script, `sysCall_sensing` **每步枚举全场景
+      shape**, 对**第一个** respondable 且 `checkProximitySensor` 命中的对象做
+      `setObjectParent` + `setLinkDummy` —— 既没有 activate/deactivate, 又会
+      无条件吸附传送带 pad 等错误对象。故 `SUCTION_USE_BUILTIN_SCRIPT = False`,
+      加载后剥离脚本, 改用 `Sensor` 接近传感器静默检测 + Python 显式父子绑定
+      (方案 §6.3)。`Link`(力传感器) 保留作吸附参考点。
+
+14. **机械臂底座必须够得着取料点, 否则 IK 必然失败 (已加构建期断言)**:
+    原 `offset = [0, 0.35, 0.45]` 使 A/B/D 的底座到取料点距离达 0.89~0.97 m,
+    **超出 UR5 约 0.85 m 的工作半径** → `simIK.handleGroup` 主组与阻尼组双双
+    返回失败 (result=2, reason=112), 日志被 IK 失败刷屏。
+    - 修复: A/B/D 的 `offset.x` 由 0 改为 **-0.5** (底座靠近带尾侧), 并在
+      `build_scene.verify_layout()` 里加 `arm[*].reach_to(conveyor)` 断言
+      (`ARM_REACH_RADIUS - ARM_REACH_MARGIN`)。
+    - ⚠ 取料点是**末端停止区 dummy**, 不是传送带末端: 早期用"距末端半径"判到站,
+      物料会停在距停止点多达 0.18 m 处, 使实际抓取点刚好越过可达边界
+      (0.733 → 0.85 m)。现在到站判据用**行程进度** `conv_progress >= 1.0`。
+
+15. **simIK 在 4.10 的实际返回形态**: `simIK.handleGroup` 返回 **三元组**
+    `(resultCode, reason, [linearError, angularError])`, `result_success = 1`。
+    `addElementFromScene` 返回 `(0, {objHandle: ikElementHandle}, 反向映射)` ——
+    不是布尔值, 直接 `if not addElementFromScene(...)` 永远为假 (三元组恒真)。
+    - 带**姿态约束** (`constraint_pose`) 的 IK 在取料点常常无解
+      (角误差已满足但线误差 0.14 m), 故本项目用 `constraint_position` 求解,
+      再用 `ARM_TOOL_MAX_TILT` (≈20°) 在**抓取时刻**硬性拦截"吸盘翻转"的抓取。
+    - IK 上下文 (`RobotArmIKContext`) 每台臂只建一次并复用; 主组伪逆、备用组
+      阻尼最小二乘, 两组都失败 → 动作判为 `FAILED`, 由控制器退避重试
+      (`CONVEYOR_PICKUP_RETRY_DELAY`), **绝不用关键帧姿态冒充到位**。

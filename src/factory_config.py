@@ -15,7 +15,38 @@ touching the control logic.
 FLOOR_SIZE = (18.0, 11.0, 0.05)        # 地板 (X, Y, Z)，中心位于原点
                                           # Y 从 -5.5 到 5.5，容纳 D 岛下移后的布局
 FLOOR_POS  = (0.0, 0.0, 0.0)           # 地板中心 = 世界原点 (0,0,0)
-Z_BASE     = 0.6                         # 所有设备和传送带的工作高度
+
+# ═══════════════════════════════════════════════════════════════
+# 布局 Z 基准 — Layout Z Datum (重构方案 §2.1)
+# ═══════════════════════════════════════════════════════════════
+# 这是全场景唯一的竖向基准来源。任何模块都不允许再自行推导/补偿高度,
+# 需要高度时一律引用下列常量 (或由 build_scene 从包围盒实测后写回
+# CONVEYORS[*]["surface_z"] 等运行期字段)。
+#
+# 取值来自 CoppeliaSim 4.10 场景实测 (2026-10-13, 见 .superpowers/sdd/progress.md):
+#   12 块 5×5m concrete 地板上表面 = 0.102
+#   低矮平台顶面 (A/B/C/D)         = 0.740, E 岛 = 0.760
+#
+# 约定:
+#   WORK_ISLANDS[*]["top_z"]      平台**顶面** 高度 (不是模型中心)
+#   WAREHOUSES[*]["top_z"]        仓库**顶面** 高度
+#   build_scene 接收顶面高度, 再用包围盒/尺寸算出模型中心后 setObjectPosition
+FLOOR_TOP_Z        = 0.102   # 地面碰撞面上表面
+ISLAND_TOP_Z       = 0.300   # 低矮工作台面上表面 (A/B/C/D)
+ISLAND_TOP_Z_E     = 0.320   # E 岛最终装配线台面上表面
+
+# 方案 §2.1 第一版约束: 传送带带面与工作台面齐平。
+CONVEYOR_SURFACE_Z = ISLAND_TOP_Z
+
+# 物料几何中心 — 由带面高度 + 物料高度推导, 不单独调
+MATERIAL_CENTER_Z  = CONVEYOR_SURFACE_Z + 0.10 / 2   # 0.10 = MATERIAL_SIZE[2], 新尺寸 0.10×0.10×0.10
+MATERIAL_SPAWN_GAP = 0.02    # 物料生成点相对带面的抬升间隙 (m)
+
+# AGV 承载面 — 以地面为基准, 不复用平台/传送带的 Z 偏移 (方案 §2.2)
+AGV_DECK_Z         = FLOOR_TOP_Z + 0.25              # 0.25 = AGV_SIZE[2]
+
+# 构建期几何断言容差 (方案 §3.2) — 只读校验, 不在构建期偷偷挪对象
+Z_TOLERANCE        = 0.01
 
 # ═══════════════════════════════════════════════════════════════
 # 仿真参数
@@ -101,13 +132,15 @@ UPSTREAM_MAP = {
 WAREHOUSES = {
     "S1": {
         "alias":  "Warehouse_S1_Main",
-        "pos":    (-7.0, 2.0, Z_BASE),
+        "pos":    (-7.0, 2.0),           # 仅 XY; Z 由 top_z 推出
+        "top_z":  FLOOR_TOP_Z + 0.8,     # 顶面高度 = 地面 + 箱体高
         "size":   (1.2, 1.2, 0.8),
         "color":  (0.2, 0.4, 0.9),       # 蓝色 — 主原料库
     },
     "S2": {
         "alias":  "Warehouse_S2_Auxiliary",
-        "pos":    (-7.0, -4.5, Z_BASE),
+        "pos":    (-7.0, -4.5),
+        "top_z":  FLOOR_TOP_Z + 0.8,
         "size":   (1.2, 1.2, 0.8),
         "color":  (0.2, 0.8, 0.8),       # 青色 — 辅助原料/零部件库
     },
@@ -119,39 +152,74 @@ WAREHOUSES = {
 WORK_ISLANDS = {
     "A": {
         "alias":  "Island_A_Assembly",
-        "pos":    (-2.5, 2.0, Z_BASE),
-        "size":   (1.4, 1.4, 0.9),
+        "pos":    (-2.5, 2.0),           # 仅 XY; 平台中心 Z 由 top_z 推出
+        "top_z":  ISLAND_TOP_Z,
+        "size":   (1.4, 1.4, 0.28),
         "color":  (0.2, 0.8, 0.3),       # 绿色 — 前端装配/加工岛 A
     },
     "B": {
         "alias":  "Island_B_Preprocess",
-        "pos":    (-2.5, -1.0, Z_BASE),
-        "size":   (1.4, 1.4, 0.9),
+        "pos":    (-2.5, -1.0),
+        "top_z":  ISLAND_TOP_Z,
+        "size":   (1.4, 1.4, 0.28),
         "color":  (0.9, 0.8, 0.2),       # 黄色 — 前端预处理岛 B
     },
     "C": {
         "alias":  "Island_C_Processing",
-        "pos":    (2.0, 2.0, Z_BASE),
-        "size":   (1.4, 1.4, 0.9),
+        "pos":    (2.0, 2.0),
+        "top_z":  ISLAND_TOP_Z,
+        "size":   (1.4, 1.4, 0.28),
         "color":  (0.9, 0.5, 0.2),       # 橙色 — 中间工序岛 C
     },
     "D": {
         "alias":  "Island_D_QC_Assembly",
-        "pos":    (-2.5, -4.5, Z_BASE),
-        "size":   (1.4, 1.4, 0.9),
+        "pos":    (-2.5, -4.5),
+        "top_z":  ISLAND_TOP_Z,
+        "size":   (1.4, 1.4, 0.28),
         "color":  (0.6, 0.3, 0.8),       # 紫色 — 质检装配岛 D
     },
     "E": {
         "alias":  "Island_E_FinalAssembly",
-        "pos":    (6.0, -0.5, Z_BASE),
-        "size":   (1.6, 1.6, 1.0),
+        "pos":    (6.0, -0.5),
+        "top_z":  ISLAND_TOP_Z_E,
+        "size":   (1.6, 1.6, 0.32),
         "color":  (0.9, 0.2, 0.2),       # 红色 — 最终装配线 E
     },
 }
 
+
+def island_top_z(name: str) -> float:
+    """工作岛台面上表面高度 — Top surface Z of an island platform."""
+    return WORK_ISLANDS[name]["top_z"]
+
+
+def island_center_z(name: str) -> float:
+    """工作岛平台几何中心 Z — Platform center = top - height/2."""
+    cfg_entry = WORK_ISLANDS[name]
+    return cfg_entry["top_z"] - cfg_entry["size"][2] / 2.0
+
+
+def island_pos3(name: str) -> list:
+    """工作岛 [x, y, 中心 z] — 供构建期 setObjectPosition 使用。"""
+    return [WORK_ISLANDS[name]["pos"][0], WORK_ISLANDS[name]["pos"][1],
+            island_center_z(name)]
+
 # ═══════════════════════════════════════════════════════════════
 # 传送带 (Conveyors) — 别名遵循 Conveyor_<Name> 命名 (CoppeliaSim 命名不用 '/')
 # ═══════════════════════════════════════════════════════════════
+# start/end 是**设计端点** (XY)。运行时实际端点由 build_scene 从内置模型的
+# 真实包围盒推导后写回 CONVEYORS[*] 的运行期字段 (方案 §4.2):
+#   actual_length   实际带长 (m, 缩放后实测) = 设计长度
+#   actual_start    入口端世界 [x, y, z]
+#   actual_end      末端世界 [x, y, z]
+#   surface_z       带面上表面世界 Z
+#   direction       入口→末端单位方向 [dx, dy]
+#   width           实际带宽 (m, 随模型等比缩放)
+#   entry_handle    入口 dummy 句柄 (物料生成点)
+#   stop_handle     末端停止区 dummy 句柄 (吸盘取料点)
+#   script_handle   内置 conveyor 脚本句柄 (-1 = 无)
+#   drive_mode      "SCRIPT_DRIVEN" | "PYTHON_PAD_DRIVEN" | "FALLBACK_GEOMETRY"
+# 控制器只允许读取这组实际值, 不得再用配置端点自行推算 (方案 §4.2)。
 CONVEYORS = {
     "S1_to_A": {
         "alias": "Conveyor_S1_to_A",
@@ -183,6 +251,42 @@ CONVEYORS = {
     },
 }
 
+# ── 传送带驱动 (方案 §5.1 / §5.4) ────────────────────────────
+# 内置 `generic conveyor (belt).ttm` 的 Script 是 customization 脚本, 正文只有
+# `require('models.conveyor_customization-3')`, **没有公开函数**, 无法用
+# sim.callScriptFunction。它的外部控制接口是 buffer 属性 (模型自带注释给出):
+#   sim.setBufferProperty(h, 'customData.__ctrl__', sim.packTable({vel=v}))
+#   sim.readCustomTableData(h, '__state__')  → {vel = ..., pos = ...}
+# 4.10 实测 (2026-10-13): 默认 vel=0.1 且 pad 确实移动; 下发 {vel=0} 后
+# __state__.vel → 5e-7, 实测带速 0.0000 m/s; 下发 {vel=0.5} 后实测 0.427 m/s。
+CONVEYOR_CTRL_KEY     = "customData.__ctrl__"
+CONVEYOR_STATE_KEY    = "__state__"
+# 启动探测采样步数: 每个 pad 在一个仿真步内的位移超过该阈值即判为脚本驱动
+CONVEYOR_PROBE_STEPS  = 3
+CONVEYOR_PROBE_MIN_MOVE = 1e-5   # m/步
+
+# 传送带驱动模式 — build_scene 写入 CONVEYORS[*]["drive_mode"]。
+#   SCRIPT_DRIVEN       内置脚本是 pad 的唯一写入者; Python 只用 __ctrl__ 调速
+#   PYTHON_PAD_DRIVEN   脚本不可用/不驱动 → Python 按闭环采样推进 pad
+#   FALLBACK_GEOMETRY   内置模型缺失 → 单一几何体, Python 按 conv_progress 插值
+# 物料**输送机制** — 与履带驱动源正交。4.10 实测无法做摩擦输送 (见
+# factory_controller._move_conveyors_physics 的实测记录), 故物料按实测路径
+# 做运动学输送, 履带视觉由脚本以同一带速驱动。日志里显式标注该机制。
+CONVEYOR_TRANSPORT_KINEMATIC = "KINEMATIC_BELT_TRANSPORT"
+
+CONVEYOR_DRIVE_SCRIPT = "SCRIPT_DRIVEN"
+CONVEYOR_DRIVE_PYTHON = "PYTHON_PAD_DRIVEN"
+CONVEYOR_DRIVE_FALLBACK = "FALLBACK_GEOMETRY"
+
+# 末端吸附等待区 — 物料进入该半径内即被视为到达取料点 (m)
+CONVEYOR_STOP_MARGIN = 0.18
+# 抓取失败 (IK 不可达) 后再次尝试取料的退避时间 (s) — 防止逐帧重试刷屏
+CONVEYOR_PICKUP_RETRY_DELAY = 2.0
+# 入口 dummy 相对带首端的内缩 (m) — 让物料落在带面上而不是端部滚筒外
+CONVEYOR_ENTRY_INSET = 0.10
+# 末端停止区 dummy 相对带尾端的内缩 (m) — 物料停住后仍完全在带面上
+CONVEYOR_STOP_INSET  = 0.08   # 物料半长 0.075 m, 内缩 0.08 保证物料仍完整压在带面上
+
 # ═══════════════════════════════════════════════════════════════
 # 共享 AGV 路径 — Shared AGV Routes
 # ═══════════════════════════════════════════════════════════════
@@ -210,7 +314,7 @@ AGV_ROUTES = {
 # ═══════════════════════════════════════════════════════════════
 # 物料 (Materials)
 # ═══════════════════════════════════════════════════════════════
-MATERIAL_SIZE   = (0.15, 0.15, 0.12)     # 物料方块尺寸
+MATERIAL_SIZE   = (0.10, 0.10, 0.10)     # 物料方块尺寸
 # 物料颜色
 MATERIAL_COLORS = {
     "raw_A":      (0.3, 0.7, 1.0),       # 浅蓝 — 从 S1 供给 A 的原料
@@ -295,50 +399,50 @@ BUILTIN_MODELS = {
 # model_key:    BUILTIN_MODELS 中的键, 决定用哪种机械臂 (一律 robot_arm_ur5)
 # offset:       机械臂基座相对岛中心的 [x, y, z] 偏移（岛局部坐标）
 # euler:        机械臂基座姿态 [alpha, beta, gamma] (弧度)，绕 Z 轴旋转
-# gripper:      夹爪模型键，None 表示不挂夹爪
+# suction:      末端吸盘模型键；不再使用机械夹爪
 ISLAND_ROBOTS = {
     "A": {
         "alias":   "Island_A_Assembly_Robot_A",
         "model_key": "robot_arm_ur5",
-        "offset":  [0.0, 0.35, 0.45],   # 装配臂靠岛后侧
+        "offset":  [-0.50, 0.35, 0.20],  # 向带尾侧靠近, base_z≈0.360, 保证取料点在 UR5 工作半径内
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_robotiq",
+        "suction": "gripper_suction",
     },
     "B": {
         "alias":   "Island_B_Preprocess_Robot_B",
         "model_key": "robot_arm_ur5",   # 统一 UR5 (原 iiwa 7 轴 → 6 轴对齐)
-        "offset":  [0.0, 0.35, 0.45],
+        "offset":  [-0.50, 0.35, 0.20],  # 向带尾侧靠近, base_z≈0.360, 保证取料点在 UR5 工作半径内
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_rg2",
+        "suction": "gripper_suction",
     },
     "C": {
         "alias":   "Island_C_Processing_Robot_C",
-        "model_key": "robot_arm_ur5",   # 统一 UR5 (原 Franka 7 轴 → 6 轴对齐)
-        "offset":  [0.0, 0.35, 0.45],
+        "model_key": "robot_arm_ur5",   # 统一 UR5 (原 Franka 7 轴 → 6 轴对齔)
+        "offset":  [0.0, 0.35, 0.20],   # C 岛无来料传送带, 只做 A→C 后的动作展示
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_robotiq",
+        "suction": "gripper_suction",
     },
     "D": {
         "alias":   "Island_D_QC_Assembly_Robot_D",
         "model_key": "robot_arm_ur5",
-        "offset":  [0.0, 0.35, 0.45],
+        "offset":  [-0.50, 0.35, 0.20],
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_robotiq",
+        "suction": "gripper_suction",
     },
     # E 岛为最终装配线，配双臂：C 线臂 + D 线臂协同装配
     "E_C": {
         "alias":   "Island_E_FinalAssembly_Robot_E_C",
         "model_key": "robot_arm_ur5",
-        "offset":  [-0.5, 0.35, 0.55],   # C 线（左侧）装配臂
+        "offset":  [-0.5, 0.35, 0.20],   # C 线（左侧）装配臂
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_robotiq",
+        "suction": "gripper_suction",
     },
     "E_D": {
         "alias":   "Island_E_FinalAssembly_Robot_E_D",
         "model_key": "robot_arm_ur5",
         "offset":  [0.5, 0.35, 0.55],    # D 线（右侧）装配臂
         "euler":   [0.0, 0.0, 0.0],
-        "gripper": "gripper_robotiq",
+        "suction": "gripper_suction",
     },
 }
 
@@ -401,8 +505,67 @@ ARM_TCP_ALIASES = (
     "connection", "tip", "flange", "linkTip", "tcp", "endpoint",
 )
 
-# 夹爪根对象别名 — build_scene 挂载时统一设为该名 (见 create_robot_arm)
+# 吸盘根对象别名 — build_scene 挂载时统一设为该名
+ARM_SUCTION_ALIAS = "Suction"
+# 旧字段保留供旧场景读取，但新场景不再创建 Gripper 对象。
 ARM_GRIPPER_ALIAS = "Gripper"
+
+# ── 吸盘接入 (方案 §6) — 回退路径: 接近传感器 + 父子绑定 ──────
+# 实测结论 (2026-10-13): `suction pad.ttm` 自带的脚本是 child script,
+# sysCall_sensing 每步枚举全场景 shape 并对**第一个** respondable 且
+# checkProximitySensor 命中的对象做 setObjectParent + setLinkDummy ——
+# 既没有 activate/deactivate 公开函数 (方案 §6.2 的前提不成立), 又会
+# 无条件吸附传送带 pad 等错误对象。故按方案 §6.3 走兼容回退:
+#   剥离 suction 脚本, 保留 Sensor/Link 几何, 由 Python 用
+#   sim.checkProximitySensor 静默检测 + sim.setObjectParent 显式绑定。
+SUCTION_SENSOR_ALIAS   = "Sensor"   # 吸盘模型内的接近传感器叶子名
+SUCTION_LINK_ALIAS     = "Link"     # 吸盘模型内的力传感器 (吸附参考点)
+# 方案 §6.2 的例外开关: 只有当内置 suction 脚本提供公开的 activate/deactivate
+# 函数时才置 True (此时 _strip_model_scripts 会跳过 suction 子树)。
+# 实测该模型**没有**公开函数 → 保持 False, 按 §6.3 回退到传感器 + 父子绑定。
+SUCTION_USE_BUILTIN_SCRIPT = False
+# 连续命中多少帧才认定为"吸住" (防止单帧抖动导致误吸附)
+SUCTION_CONFIRM_FRAMES = 2
+# 物料与吸盘参考点的最大允许距离 (m) — 超过则判定吸附失效
+SUCTION_HOLD_TOLERANCE = 0.05
+# 吸附时物料必须处于的合法状态 (方案 §5.3) — 只有等待取料的物料可被吸附
+SUCTION_ATTACHABLE_STATES = ("WAITING_FOR_SUCTION",)
+
+# ── 末端停料 (方案 §5.3) ─────────────────────────────────────
+# True  = 在每条传送带末端创建 static+respondable 的 PickupStopper 挡停体,
+#         让物料自然停在取料点 (优先方案)
+# False = 一次性冻结: 记录动态属性 → static=1 → resetDynamicObject,
+#         取料后恢复 (方案 §5.3 第 3 条的回退)
+PICKUP_USE_STOPPER     = True
+PICKUP_STOPPER_SIZE    = (0.04, 0.5, 0.16)  # [沿带方向厚度, 带宽, 高度]
+PICKUP_STOPPER_COLOR   = (0.85, 0.85, 0.2)
+
+# ── 机械臂 IK (方案 §7) ──────────────────────────────────────
+# 每台臂建立**一次** RobotArmIKContext 并复用; 禁止每个控制周期重建 IK 环境。
+ARM_IK_METHOD_MAIN     = "pseudo_inverse"        # 主组
+ARM_IK_METHOD_FALLBACK = "damped_least_squares"  # 备用组
+ARM_IK_MAX_ITERATIONS  = 120
+ARM_IK_MAX_STEP        = 0.5      # 每周期最大关节增量 (rad)
+ARM_IK_PRECISION       = 1e-3     # 位置精度要求 (m)
+ARM_IK_CONSTRAINT      = "pose"   # 约束类型: 位置 + 姿态 (吸盘朝下)
+# 取放路径中"抓取点/放置点上方"的抬升高度 (m)。TCP 先到上方点, 再下探。
+ARM_PICK_APPROACH_Z    = 0.15
+# 单个 IK 路径点连续解不出来的上限 — 超过则放弃本次取放, 交给控制器退避重试
+ARM_IK_MAX_ATTEMPTS    = 40
+# IK 到位判据 (TCP 世界坐标与目标的距离, m)
+ARM_IK_ARRIVAL_TOL     = 0.05
+# IK target 每步限幅 (m/步) — 一次跳太远数值 IK 解不出来, 必须逐步逼近
+ARM_IK_TARGET_STEP     = 0.02
+# UR5 标称工作半径 (m) — 构建期用它断言"机械臂底座到取料点"是否可达。
+# 实测教训 (2026-10-13): 原 offset=[0,0.35,0.45] 使 A/B/D 的底座到取料点
+# 距离达 0.89~0.97 m, 超出工作半径 → simIK 主组/阻尼组必然失败。
+ARM_REACH_RADIUS       = 0.85
+ARM_REACH_MARGIN       = 0.05     # 留出的安全余量 (m)
+
+# 末端工具轴线最大倾角 (rad) — 方案 §7 "目标朝向固定为吸盘朝下, 避免吸盘在
+# 抓取时翻转"。IK 用位置约束求解, 翻转风险由这条硬判据在**抓取时刻**挡住:
+# 吸盘 Z 轴相对动作起始姿态偏转超过该角度就拒绝吸附, 动作判为 FAILED。
+ARM_TOOL_MAX_TILT      = 0.35     # ≈20°
 
 ARM_FRAME_DURATION = 0.6   # 单帧插值时长 (秒)
 ARM_IDLE_PERIOD    = 4.0    # IDLE 循环抖动周期 (秒)

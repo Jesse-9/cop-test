@@ -791,7 +791,9 @@ def get_config() -> str:
     """
     import json
     keys = [
-        "FLOOR_SIZE", "FLOOR_POS", "Z_BASE", "SIM_STEP",
+        "FLOOR_SIZE", "FLOOR_POS", "SIM_STEP",
+        "FLOOR_TOP_Z", "ISLAND_TOP_Z", "ISLAND_TOP_Z_E",
+        "CONVEYOR_SURFACE_Z", "MATERIAL_CENTER_Z", "AGV_DECK_Z",
         "CONVEYOR_SPEED", "AGV_SPEED", "MATERIAL_INTERVAL",
         "TOTAL_SIM_TIME", "PROCESS_TIME", "TAKT_TIME",
         "WAREHOUSES", "WORK_ISLANDS", "CONVEYORS",

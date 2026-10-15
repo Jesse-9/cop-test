@@ -59,8 +59,12 @@ def main():
         sys.exit(1)
 
     # 3. 创建主控制器 — Build the factory controller
+    try:
+        sim_ik = connector.client.require("simIK")
+    except Exception:
+        sim_ik = None
     controller = FactoryController(connector.sim, total_time=args.time,
-                                   logger=logger)
+                                   logger=logger, sim_ik=sim_ik)
 
     # 4. 将实际连接器注入到 ZMQ 监控中 — Wire up the real connector
     controller.connector = connector
