@@ -9,6 +9,32 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 > 📖 **MCP 工具**：20 个工具（A 读取/B 诊断/C 控制）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 > 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
 
+## 当前实施范围：阶段一单元闭环
+
+阶段零（参数冻结）与阶段一（单工位单元闭环）已于 2026-10-17 实施并通过验收：
+
+```bash
+# 构建并运行工位目标
+.venv/Scripts/python src/run_stage1.py --target station --time 45
+
+# AGV 载台目标（含 0.5 m 轮速行驶）
+.venv/Scripts/python src/run_stage1.py --target agv --time 45
+
+# 连续运行 / 故障注入
+.venv/Scripts/python src/run_stage1.py --target station --repeat 6 --time 30
+.venv/Scripts/python src/run_stage1.py --target station --fault ik_unreachable
+```
+
+- 验收报告：[docs/implementation/PHASE1_REPORT.md](docs/implementation/PHASE1_REPORT.md)
+- 参数基线：[docs/implementation/PHASE0_BASELINE.md](docs/implementation/PHASE0_BASELINE.md)
+- 实测数据：[docs/measurement/phase0_measurements.json](docs/measurement/phase0_measurements.json)
+
+阶段一实现集中在 `src/stage1/` 包（config / physics / scene / material_manager /
+conveyor_controller / ur5_ik_controller / suction_controller / pioneer_controller /
+unit_controller / run），`src/run_stage1.py` 是兼容入口；安装后也可用
+`uv run run-stage1`。旧版 `build_scene.py` / `factory_controller.py` 仍用于
+历史五岛完整场景，阶段一不调用它们。
+
 ## 核心特性
 
 | 特性 | 说明 |
@@ -184,16 +210,16 @@ uv sync
 #    菜单: Add-ons → ZMQ remote API server → 确认运行在 23000 端口
 
 # 4. 构建场景（首次运行，只需执行一次）
-uv run python src/build_scene.py
+uv run python src/reference/build_scene.py
 #    或用入口脚本: uv run build-scene
 #    只构建某几个岛的机械臂（逐台带动验收）: uv run build-scene --arms A
 
 # 5. 运行仿真（柔性调度 + 节拍追踪 + 异常处理）
-uv run python src/run_simulation.py --time 60
+uv run python src/reference/run_simulation.py --time 60
 #    或用入口脚本: uv run run-simulation --time 60
 
 # 6. 或使用交互菜单
-uv run python src/main.py
+uv run python src/reference/main.py
 ```
 
 ### 远程连接
@@ -201,8 +227,8 @@ uv run python src/main.py
 如果 CoppeliaSim 运行在另一台机器上：
 
 ```bash
-uv run python src/build_scene.py --host 192.168.1.100 --port 23000
-uv run python src/run_simulation.py --host 192.168.1.100 --port 23000
+uv run python src/reference/build_scene.py --host 192.168.1.100 --port 23000
+uv run python src/reference/run_simulation.py --host 192.168.1.100 --port 23000
 ```
 
 ## 项目结构
@@ -210,30 +236,36 @@ uv run python src/run_simulation.py --host 192.168.1.100 --port 23000
 ```
 cop-test/
 ├── pyproject.toml              # uv 项目配置 + 依赖 + 入口脚本 + src 布局声明
-├── .mcp.json                   # MCP 服务器注册 (Claude Code 自动加载, 指向 src/factory_mcp_server.py)
+├── .mcp.json                   # MCP 服务器注册 (Claude Code 自动加载, 指向 src/reference/factory_mcp_server.py)
 ├── CLAUDE.md                   # 项目说明 + 架构 + 已知坑 (Claude Code 上下文)
 ├── README.md                   # 本文档
-├── src/                        # ── 全部源码 (平铺顶层模块, 见下方分类) ──
-│   │  # 基础层
-│   ├── factory_config.py          # 集中配置 (布局/节拍/阈值/路径/机械臂/内置模型)
-│   ├── factory_core.py            # ZMQ 连接+重连/健康监控/步进循环/句柄映射/日志
-│   ├── factory_types.py           # 枚举/数据类/物料生成 (ItemType/AGVState/Material…)
-│   │  # 控制层
-│   ├── factory_controller.py      # 顶层编排器 (13 步固定顺序步进)
-│   ├── factory_island.py          # 工作岛状态机 + 节拍追踪 + 供料门控
-│   ├── factory_agv.py             # 共享 AGV 柔性调度器 (优先级/饥饿升级/阻塞恢复)
-│   ├── factory_exceptions.py      # 统一异常轮询与紧急停止
-│   │  # 视觉层
-│   ├── factory_robot.py           # 历史关键帧兼容层（新取放禁止使用）
-│   ├── ur5_ik_controller.py       # UR5 simIK 与六关节目标
-│   ├── suction_controller.py      # TCP/传感器吸附与释放
-│   ├── pioneer_controller.py      # pioneer p3dx 左右轮控制
-│   │  # 接入层
-│   ├── factory_mcp_server.py      # MCP 服务器 (20 个工具: A 读取/B 诊断/C 控制, 双连接)
-│   │  # 场景 / CLI 入口
-│   ├── build_scene.py             # 场景构建器 (分层命名 + 内置模型回退)
-│   ├── run_simulation.py          # 柔性仿真 CLI 入口
-│   └── main.py                    # 交互菜单入口
+├── src/                        # ── 源码 (两个包 + 兼容入口) ──
+│   ├── stage1/                    # 当前实施范围: 阶段一单元闭环
+│   │   ├── config.py              # 阶段一参数/别名/容差/故障枚举
+│   │   ├── physics.py             # static/kinematic/respondable/mass/friction/mask
+│   │   ├── scene.py               # 单工位场景构建 + 场景契约断言
+│   │   ├── device_handle_map.py   # 启动期唯一别名/句柄表
+│   │   ├── material_manager.py    # 物料 7 状态生命周期
+│   │   ├── conveyor_controller.py # 内置 conveyor 驱动 + HYBRID_DYNAMIC 补偿
+│   │   ├── ur5_ik_controller.py   # simIK 主/备组 + seed 回退
+│   │   ├── suction_controller.py  # 逻辑吸附/释放 + 属性快照
+│   │   ├── pioneer_controller.py  # p3dx 差速轮速
+│   │   ├── unit_controller.py     # §2.11 单步状态机
+│   │   └── run.py                 # 阶段一 CLI 实现
+│   ├── run_stage1.py              # 阶段一兼容入口 (薄包装)
+│   └── reference/                 # 历史五岛完整场景层 (阶段一不调用)
+│       ├── factory_config.py      # 集中配置 (布局/节拍/阈值/路径/机械臂/内置模型)
+│       ├── factory_core.py        # ZMQ 连接+重连/健康监控/步进循环/句柄映射/日志
+│       ├── factory_types.py       # 枚举/数据类/物料生成
+│       ├── factory_controller.py  # 历史顶层编排器
+│       ├── factory_island.py      # 历史工作岛/节拍/供料门控
+│       ├── factory_agv.py         # 历史共享 AGV 调度器
+│       ├── factory_exceptions.py  # 历史异常轮询
+│       ├── factory_robot.py       # 历史关键帧兼容层
+│       ├── factory_mcp_server.py  # MCP 服务器 (20 工具)
+│       ├── build_scene.py         # 历史五岛场景构建器
+│       ├── run_simulation.py      # 历史仿真 CLI
+│       └── main.py                # 交互菜单
 ├── factory-sim.ttt              # 构建好的 CoppeliaSim 场景 (按需跟踪)
 ├── docs/                        # LLM 知识库 (CoppeliaSim wiki / raw 源材料 / outputs)
 │   ├── CLAUDE.md                # 知识库 Schema 与维护规范
@@ -251,7 +283,8 @@ cop-test/
 
 ## 关键配置参数
 
-所有可调参数集中在 [factory_config.py](src/factory_config.py)：
+阶段一可调参数集中在 [stage1/config.py](src/stage1/config.py)；
+历史五岛参数集中在 [reference/factory_config.py](src/reference/factory_config.py)：
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -268,5 +301,5 @@ cop-test/
 | `AGV_SPEED` | 0.8 m/s | AGV 移动速度 |
 | `MATERIAL_INTERVAL` | 3.0 s | 物料产出间隔 |
 
-修改配置后无需重新构建场景 — 直接运行 `uv run python src/run_simulation.py` 即可生效。
-若修改了坐标/尺寸，则需重新运行 `uv run python src/build_scene.py`。
+历史五岛场景: `uv run build-scene` / `uv run run-simulation`。
+阶段一: `uv run run-stage1 --target station`（或 `python src/run_stage1.py`）。

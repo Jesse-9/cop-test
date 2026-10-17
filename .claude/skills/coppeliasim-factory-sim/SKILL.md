@@ -60,9 +60,9 @@ The system follows a **three-tier architecture plus an MCP access layer**:
 │  factory_island.py      — 工作岛/节拍追踪/供料门控   │
 │  factory_agv.py         — 共享 AGV 柔性调度器        │
 │  factory_exceptions.py  — 统一异常处理              │
-│  ur5_ik_controller.py   — UR5 simIK + joint targets   │
-│  suction_controller.py  — TCP/sensor attach-release  │
-│  pioneer_controller.py  — p3dx wheel control         │
+│  stage1/ur5_ik_controller.py — UR5 simIK + joint targets │
+│  stage1/suction_controller.py — TCP/sensor attach-release │
+│  stage1/pioneer_controller.py — p3dx wheel control       │
 │  factory_types.py       — 枚举/数据类/物料           │
 └───────────────┬─────────────────────────────────────┘
                 │ ZMQ Remote API (同步, stepping 模式)
@@ -83,7 +83,7 @@ synchronized — the foundation for precise industrial beat timing.
 
 ## Island Workshop Topology
 
-The standard topology (matches [factory_config.py](../../../src/factory_config.py)):
+The standard topology (matches [factory_config.py](../../../src/reference/factory_config.py)):
 five work islands A–E, two warehouses S1/S2, four conveyors, one shared AGV.
 
 ```
@@ -217,7 +217,7 @@ Each `SIM_STEP` executes this physical workflow order (see
 ## AGV State Machine
 
 The single shared AGV operates with these states (`AGVState` in
-[factory_types.py](../../../src/factory_types.py)):
+[factory_types.py](../../../src/reference/factory_types.py)):
 
 ```
                     ┌──────────┐
@@ -255,7 +255,7 @@ The single shared AGV operates with these states (`AGVState` in
 ## Industrial Beat Alignment
 
 The Python controller maintains a global beat dictionary
-([factory_config.py](../../../src/factory_config.py)):
+([factory_config.py](../../../src/reference/factory_config.py)):
 
 ```python
 TAKT_TIME = {
@@ -267,7 +267,7 @@ TAKT_TIME = {
 }
 ```
 
-**Beat tracking loop** (`BeatTracker` in [factory_island.py](../../../src/factory_island.py)):
+**Beat tracking loop** (`BeatTracker` in [factory_island.py](../../../src/reference/factory_island.py)):
 1. Use `sim.getSimulationTime()` to measure actual processing duration
 2. Compare against `TAKT_TIME[island]`
 3. If |deviation| > `TAKT_DEVIATION_THRESHOLD` (default 1.0s) → WARNING
@@ -307,7 +307,7 @@ Four categories of exceptions, each with defined recovery (see
 
 ## MCP Integration (Claude Code access point)
 
-[factory_mcp_server.py](../../../src/factory_mcp_server.py) is registered via
+[factory_mcp_server.py](../../../src/reference/factory_mcp_server.py) is registered via
 [.mcp.json](../../../.mcp.json); Claude Code auto-loads it in this project. It exposes
 **20 tools** over stdio (FastMCP), with the simulation running in a daemon
 thread. Two ZMQ connections: the main connection (write/control tools + main

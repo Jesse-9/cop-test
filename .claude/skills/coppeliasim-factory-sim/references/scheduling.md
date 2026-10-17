@@ -1,8 +1,8 @@
 # Scheduling & State Machine Reference
 
-> Mirrors [src/factory_agv.py](../../../src/factory_agv.py),
-> [src/factory_island.py](../../../src/factory_island.py),
-> [src/factory_types.py](../../../src/factory_types.py), and
+> Mirrors [src/reference/factory_agv.py](../../../src/reference/factory_agv.py),
+> [src/reference/factory_island.py](../../../src/reference/factory_island.py),
+> [src/reference/factory_types.py](../../../src/reference/factory_types.py), and
 > [docs/wiki/06-工业案例/06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md).
 
 ## AGV State Machine
@@ -213,7 +213,7 @@ class IslandState(Enum):
 
 ## Material Lifecycle Tracking
 
-Each `Material` ([src/factory_types.py](../../../src/factory_types.py)) tracks
+Each `Material` ([src/reference/factory_types.py](../../../src/reference/factory_types.py)) tracks
 its complete lifecycle for end-to-end traceability:
 
 ```

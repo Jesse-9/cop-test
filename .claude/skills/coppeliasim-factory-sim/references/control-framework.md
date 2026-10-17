@@ -1,12 +1,12 @@
 # Python Control Framework Reference
 
 > Mirrors [docs/wiki/06-工业案例/06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md)
-> (factory_core / factory_controller sections) and [src/factory_core.py](../../../src/factory_core.py),
-> [src/factory_controller.py](../../../src/factory_controller.py).
+> (factory_core / factory_controller sections) and [src/reference/factory_core.py](../../../src/reference/factory_core.py),
+> [src/reference/factory_controller.py](../../../src/reference/factory_controller.py).
 
 ## ZMQ Connection with Auto-Reconnect
 
-`CoppeliaConnector` ([src/factory_core.py](../../../src/factory_core.py)) wraps
+`CoppeliaConnector` ([src/reference/factory_core.py](../../../src/reference/factory_core.py)) wraps
 `RemoteAPIClient` with retry logic and a health check. **Important 4.10 quirk**:
 the `coppeliaSimVersion` signal may be `None` in some instance configs, so
 `getStringSignal("coppeliaSimVersion")` returns `None`. The connector handles
@@ -206,10 +206,10 @@ class DeviceHandleMap:  # illustrative — not in src/ today
 
 ## Beat Tracking System
 
-`BeatTracker` ([src/factory_island.py](../../../src/factory_island.py)) validates
+`BeatTracker` ([src/reference/factory_island.py](../../../src/reference/factory_island.py)) validates
 each island's actual processing time against its `TAKT_TIME` target. Runtime
 state per island is the `IslandBeatState` dataclass
-([src/factory_types.py](../../../src/factory_types.py)):
+([src/reference/factory_types.py](../../../src/reference/factory_types.py)):
 
 ```python
 @dataclass
@@ -226,7 +226,7 @@ class IslandBeatState:
 `BeatTracker` API: `start_cycle(island, sim_time)`, `update(island, sim_time, dt)`,
 `check(island) -> 'ok' | 'warn' | 'timeout' | None`.
 
-Logic (thresholds from [factory_config.py](../../../src/factory_config.py)):
+Logic (thresholds from [factory_config.py](../../../src/reference/factory_config.py)):
 - Timeout (checked first, most severe): if `cycle_elapsed > takt_target *
   TAKT_TIMEOUT_FACTOR` (1.5) → set `anomaly`, reset `normal_cycles`, auto-degrade
   by extending `takt_target *= 1.5`, return `"timeout"`
@@ -236,7 +236,7 @@ Logic (thresholds from [factory_config.py](../../../src/factory_config.py)):
 
 ## Logger Configuration
 
-`setup_logger` ([src/factory_core.py](../../../src/factory_core.py)) — dual output:
+`setup_logger` ([src/reference/factory_core.py](../../../src/reference/factory_core.py)) — dual output:
 file at DEBUG, console at INFO:
 
 ```python
@@ -269,7 +269,7 @@ last 50 events — for post-mortem analysis.
 
 ## Configuration Centralization
 
-All tunable parameters live in [src/factory_config.py](../../../src/factory_config.py),
+All tunable parameters live in [src/reference/factory_config.py](../../../src/reference/factory_config.py),
 never hardcoded. Key groups:
 
 ```python

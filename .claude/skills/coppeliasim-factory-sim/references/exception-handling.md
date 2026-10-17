@@ -1,6 +1,6 @@
 # Exception Handling Reference
 
-> Mirrors [src/factory_exceptions.py](../../../src/factory_exceptions.py) and
+> Mirrors [src/reference/factory_exceptions.py](../../../src/reference/factory_exceptions.py) and
 > [docs/wiki/06-工业案例/06-03-src模块参考.md](../../../docs/wiki/06-工业案例/06-03-src模块参考.md).
 
 ## Exception Taxonomy (by severity)
@@ -65,7 +65,7 @@ class ExceptionHandler:
 
 The most critical — without communication the system is blind.
 
-### Detection (`ZMQMonitor`, src/factory_core.py)
+### Detection (`ZMQMonitor`, src/reference/factory_core.py)
 
 ```python
 class ZMQMonitor:
@@ -187,7 +187,7 @@ system.
 
 ## SupplyController (gating)
 
-`SupplyController` ([src/factory_island.py](../../../src/factory_island.py)) is
+`SupplyController` ([src/reference/factory_island.py](../../../src/reference/factory_island.py)) is
 the upstream gate used by timeout and overflow handling. API:
 `pause(source, target)` / `resume(source, target)` / `is_paused(source)` /
 `is_target_paused(target)` / `pause_all_upstream(target)` /

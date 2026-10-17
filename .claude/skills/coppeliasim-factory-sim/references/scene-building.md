@@ -1,7 +1,7 @@
 # Scene Building Reference — CoppeliaSim Island Workshop
 
 > Mirrors [docs/wiki/02-仿真建模/02-01-分层命名场景构建.md](../../../docs/wiki/02-仿真建模/02-01-分层命名场景构建.md)
-> and the real [src/build_scene.py](../../../src/build_scene.py).
+> and the real [src/reference/build_scene.py](../../../src/reference/build_scene.py).
 
 ## Naming: UNDERSCORE aliases, never slash-path getObject
 
@@ -143,7 +143,7 @@ two — `E_C` left, `E_D` right — for paired assembly). Aliases follow
 `Island_E_FinalAssembly_Robot_E_C`).
 
 Production pick, lift, place and release are controlled by `simIK` through
-the dedicated `ur5_ik_controller.py` and `suction_controller.py` modules.
+the dedicated `stage1/ur5_ik_controller.py` and `stage1/suction_controller.py` modules.
 Each arm owns an independent IK environment/group; the IK tip is the center
 of the suction-pad contact face (`SuctionPad_<X>_TCP`), never the UR5 flange
 or an uncalibrated tool origin. A keyframe animation may only be used in a

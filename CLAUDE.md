@@ -7,24 +7,22 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
+│  MCP Tool Layer — reference/factory_mcp_server.py   │  ← Claude Code 接入点
 │  (FastMCP / stdio, 20 个工具, 仿真跑在守护线程)      │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
 │  Python Control Layer                              │
-│  factory_controller.py  — FactoryController (编排)   │
-│  factory_island.py      — 工作岛/节拍追踪/供料门控   │
-│  pioneer_controller.py  — pioneer p3dx 轮速控制       │
-│  ur5_ik_controller.py   — UR5 simIK + 关节目标        │
-│  suction_controller.py  — suction pad/TCP/传感器      │
-│  factory_exceptions.py  — 统一异常处理              │
-│  factory_robot.py       — 历史关键帧兼容层            │
-│  factory_types.py       — 枚举/数据类/物料           │
+│  stage1/ (当前) — 单元闭环: config/physics/scene    │
+│                   material/conveyor/UR5/suction/AGV │
+│                   unit_controller/run              │
+│  reference/ (历史) — factory_controller/island/AGV  │
+│  reference/factory_robot.py — 关键帧兼容层          │
+│  reference/factory_types.py — 枚举/数据类/物料      │
 └───────────────┬─────────────────────────────────────┘
                 │ ZMQ Remote API (同步, stepping 模式)
 ┌───────────────▼─────────────────────────────────────┐
-│  ZeroMQ Remote API Layer — factory_core.py          │
+│  ZeroMQ Remote API Layer — reference/factory_core.py│
 │  CoppeliaConnector / ZMQMonitor / setup_logger      │
 └─────────────────────────────────────────────────────┘
                 │ TCP localhost:23000
@@ -149,24 +147,66 @@
 
 ## 关键模块职责
 
+### 历史五岛完整场景层（旧版，位于 `src/reference/`，阶段一不调用）
+
 | 文件 | 职责 | 核心导出 |
 |------|------|---------|
-| [factory_config.py](src/factory_config.py) | 所有位置/尺寸/节拍/阈值集中配置 | 常量字典 |
-| [factory_core.py](src/factory_core.py) | ZMQ 连接+重连、健康监控、日志 | `CoppeliaConnector`, `ZMQMonitor`, `setup_logger` |
-| [factory_types.py](src/factory_types.py) | 枚举(物料类型/AGV状态/岛状态)、数据类、物料生成 | `ItemType`, `AGVState`, `IslandState`, `Material`, `spawn_material`, `lerp_2d` |
-| [factory_island.py](src/factory_island.py) | 工作岛状态机、节拍追踪、供料门控 | `IslandController`, `BeatTracker`, `SupplyController` |
-| [factory_agv.py](src/factory_agv.py) | 单一共享 AGV + 优先级调度 (B→A 高优先, D→E 低优先, 饥饿可升级) | `AGVScheduler` |
-| [factory_exceptions.py](src/factory_exceptions.py) | 统一异常轮询与紧急停止 | `ExceptionHandler` |
-| [factory_robot.py](src/factory_robot.py) | 历史机械臂设备/关键帧兼容层；新重构必须改用独立 UR5 + simIK + TCP 控制，不得以关键帧伪装 IK 成功 | `RobotArmDevice`, `RobotArmAnimator`（历史接口） |
-| [factory_controller.py](src/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
-| [build_scene.py](src/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
-| [run_simulation.py](src/run_simulation.py) / [main.py](src/main.py) | CLI 入口 | `main()` |
-| [factory_mcp_server.py](src/factory_mcp_server.py) | MCP 服务器, 暴露 20 个工具给 Claude Code (A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
+| [factory_config.py](src/reference/factory_config.py) | 所有位置/尺寸/节拍/阈值集中配置 | 常量字典 |
+| [factory_core.py](src/reference/factory_core.py) | ZMQ 连接+重连、健康监控、日志 | `CoppeliaConnector`, `ZMQMonitor`, `setup_logger` |
+| [factory_types.py](src/reference/factory_types.py) | 枚举(物料类型/AGV状态/岛状态)、数据类、物料生成 | `ItemType`, `AGVState`, `IslandState`, `Material`, `spawn_material`, `lerp_2d` |
+| [factory_island.py](src/reference/factory_island.py) | 工作岛状态机、节拍追踪、供料门控 | `IslandController`, `BeatTracker`, `SupplyController` |
+| [factory_agv.py](src/reference/factory_agv.py) | 单一共享 AGV + 优先级调度 (B→A 高优先, D→E 低优先, 饥饿可升级) | `AGVScheduler` |
+| [factory_exceptions.py](src/reference/factory_exceptions.py) | 统一异常轮询与紧急停止 | `ExceptionHandler` |
+| [factory_robot.py](src/reference/factory_robot.py) | 历史机械臂设备/关键帧兼容层；新重构必须改用独立 UR5 + simIK + TCP 控制，不得以关键帧伪装 IK 成功 | `RobotArmDevice`, `RobotArmAnimator`（历史接口） |
+| [factory_controller.py](src/reference/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
+| [build_scene.py](src/reference/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
+| [run_simulation.py](src/reference/run_simulation.py) / [main.py](src/reference/main.py) | CLI 入口 | `main()` |
+| [factory_mcp_server.py](src/reference/factory_mcp_server.py) | MCP 服务器, 暴露 20 个工具给 Claude Code (A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
 
 > 全部源码平铺在 [src/](src/) 下（基础层 / 控制层 / 视觉层 / 接入层 / CLI 入口），
 > 详见 [README.md](README.md) 的「项目结构」与 [docs/FILE_INDEX.md](docs/FILE_INDEX.md)。
 
-## 单步仿真循环顺序 (重构版 FactoryController.run)
+### 阶段一单元闭环（当前实施范围，2026-10-17 通过）
+
+阶段一严格限定为：一条内置传送带、一个内置 UR5、一个内置 suction pad、
+一个内置 pioneer p3dx、一个指定物料、工位与 AGV 载台两个目标。
+82 项阶段一测试通过；正常流程、60 s 连续运行与六类故障注入均有实机证据。
+入口与证据见 [PHASE1_REPORT.md](docs/implementation/PHASE1_REPORT.md)。
+
+| 文件 | 职责 |
+|------|------|
+| [config.py](src/stage1/config.py) | 阶段一全部位置/别名/模型路径/速度/容差/超时/故障枚举 |
+| [physics.py](src/stage1/physics.py) | static/kinematic/respondable/mass/friction/mask 工具 |
+| [scene.py](src/stage1/scene.py) | 单工位场景构建、脚本处理、传感器、场景契约断言 |
+| [device_handle_map.py](src/stage1/device_handle_map.py) | 启动期唯一别名/句柄表 |
+| [material_manager.py](src/stage1/material_manager.py) | 7 状态物料生命周期与 UID 事件历史 |
+| [conveyor_controller.py](src/stage1/conveyor_controller.py) | 内置 conveyor 驱动 + HYBRID_DYNAMIC 受限补偿 |
+| [ur5_ik_controller.py](src/stage1/ur5_ik_controller.py) | 独立 simIK environment、主/备组、seed 回退、关节目标 |
+| [suction_controller.py](src/stage1/suction_controller.py) | UID/传感器/TCP/倾角/速度检查、属性快照与恢复 |
+| [pioneer_controller.py](src/stage1/pioneer_controller.py) | 差速换算、限幅、加速度斜坡、轮速下发 |
+| [unit_controller.py](src/stage1/unit_controller.py) | §2.11 单步状态机、故障状态与退避重试 |
+| [run.py](src/stage1/run.py) | CLI 实现：构建 → 运行 → 证据采集 → JSON 报告 |
+| [run_stage1.py](src/run_stage1.py) | 兼容入口薄包装 (`python src/run_stage1.py`) |
+
+阶段一模块集中在 `src/stage1/` 包内；安装后也可用 `uv run run-stage1`。
+阶段一不变量：
+
+- conveyor 的 customization 脚本必须保留（pad 的唯一写入者）；物料输送是显式
+  标注的 `HYBRID_DYNAMIC compensation`（4.10 pad 不传递切向速度），且补偿前
+  必须确认物料仍在带面有效高度与横向区内；不得描述为“摩擦力输送”；
+- UR5 与 suction pad 的所有 shape 为 `static=1, respondable=0`（运动学工具 +
+  逻辑吸附）；吸附由 TCP + 吸盘接触传感器 + UID 校验完成；
+- `suction pad.ttm` 的内置脚本已剥离，内置 `Sensor` 改名为
+  `SuctionPad_01_ModelSensor`，另建 `Sensor_SuctionPad_01`；
+- AGV 驱动关节保持 dynamic + velocity，只用 `setJointTargetVelocity`；
+  装卸前必须通过 dock sensor、车体停稳与竖直检查；
+- 载台/挡边是挂在动态车体上的 kinematic shape；载荷保持 dynamic + respondable，
+  验收断言载台 XY/Z 区域与行驶距离。
+
+## 单步仿真循环顺序（历史五岛层 FactoryController.run）
+
+> 阶段一的单步顺序由 [unit_controller.py](src/stage1/unit_controller.py)
+> 实现，见 06-05 §2.11；下表是旧版五岛完整场景的循环，阶段一不调用。
 
 新重构每个 `SIM_STEP` 必须按以下顺序执行；旧版关键帧动画循环仅作为迁移参考，
 不得用于新方案的取放控制：
@@ -191,15 +231,34 @@
 
 ## 入口命令 (venv)
 
+### 阶段一单元闭环（当前）
+
+```bash
+# 构建并运行工位目标 (每次运行自动重建单工位场景)
+.venv/Scripts/python src/run_stage1.py --target station --time 45
+
+# AGV 载台目标 (含 0.5 m 轮速行驶)
+.venv/Scripts/python src/run_stage1.py --target agv --time 45
+
+# 两个目标连续运行 / 60 s 连续运行
+.venv/Scripts/python src/run_stage1.py --target both --time 60
+.venv/Scripts/python src/run_stage1.py --target station --repeat 6 --time 30
+
+# 故障注入
+.venv/Scripts/python src/run_stage1.py --target station --fault ik_unreachable
+```
+
+### 历史五岛完整场景层
+
 ```bash
 # 1. 构建工厂场景 (幂等, 先清场)
-.venv/Scripts/python src/build_scene.py [--host localhost] [--port 23000]
+.venv/Scripts/python src/reference/build_scene.py [--host localhost] [--port 23000]
 
 # 2. 运行柔性生产仿真
-.venv/Scripts/python src/run_simulation.py [--host localhost] [--port 23000] [--time 60] [--log factory_sim.log]
+.venv/Scripts/python src/reference/run_simulation.py [--host localhost] [--port 23000] [--time 60] [--log factory_sim.log]
 
 # 3. 交互菜单
-.venv/Scripts/python src/main.py
+.venv/Scripts/python src/reference/main.py
 ```
 
 或用 uv 入口脚本 (源码已装包, 路径无关):
@@ -210,7 +269,7 @@ uv run run-simulation --time 60
 
 ## MCP 服务器 (给 Claude Code 用)
 
-[factory_mcp_server.py](src/factory_mcp_server.py) 通过 [.mcp.json](.mcp.json) 注册，
+[factory_mcp_server.py](src/reference/factory_mcp_server.py) 通过 [.mcp.json](.mcp.json) 注册，
 Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 
 **CoppeliaSim 控制台实时输出**: CoppeliaSim 自身的控制台消息 (脚本 `print` /
@@ -224,7 +283,7 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
 
 1. **CoppeliaSim 4.10 别名路径陷阱**: `setObjectAlias` 把含 `/` 的路径转成下划线别名
    (如 `/Mobile/AGV_Shared` → `_Mobile_AGV_Shared`)，导致 `getObject(斜杠路径)` 查询失败。
-   代码中用别名匹配方式定位对象 (见 [factory_controller.py:159-213](src/factory_controller.py#L159-L213))。
+   代码中用别名匹配方式定位对象 (见 [factory_controller.py:159-213](src/reference/factory_controller.py#L159-L213))。
 
 2. **coppeliaSimVersion 信号可能为 None**: 部分实例配置下该信号未设置，
    `getStringSignal` 返回 None。`CoppeliaConnector.check_alive()` 已加回退探针
@@ -267,10 +326,10 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
    (实测 2.5s 掉到 z=-24m, 穿过工作台也穿过地板)。挂到 dummy 与挂到 shape 同样会清掉。
    - 视觉上之所以是"从平台上掉下去": 工作岛台面由 `createPrimitiveShape` 建,
      4.10 默认 `respondable=0` (不参与碰撞), 托不住任何东西。
-   - **修复**: [build_scene.py](src/build_scene.py) 的 `load_builtin_model()` 挂父前
+   - **修复**: [build_scene.py](src/reference/build_scene.py) 的 `load_builtin_model()` 挂父前
      记录根 shape 的 `static`, 挂父后写回 `setObjectInt32Param(h, shapeintparam_static, 1)`
      (4.10 的 `static` properties 路径不可用, 只能走 int-param, 见
-     [factory_physics.py](src/factory_physics.py))。已验证写回后 4s 内臂高恒定、
+     [factory_physics.py](src/reference/factory_physics.py))。已验证写回后 4s 内臂高恒定、
      关节正常走到 HOME 并保持。对本就是 dynamic 的模型 (pioneer p3dx) 是空操作;
      传送带 pad (挂的是 dummy 根) 与 `createPrimitiveShape` 造的岛 (kin=0) 不受影响。
    - 修复后需**重新 build 场景** —— 修复前 build 出来的场景里机械臂仍是 dynamic 状态。
@@ -281,7 +340,7 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
    (`getJointPosition`/`getJointTargetPosition` 仍返回标量，只有它是这个形态)。
    `int(元组)` 抛 TypeError，被 `RobotArmDevice.read_modes()` 的兜底 `except`
    吞成 `-1`，于是"设置关节模式后读回校验"恒报不一致 —— 模式是否真的切换成功
-   无法验证。**修复**: [factory_robot.py](src/factory_robot.py) 的 `read_modes()`
+   无法验证。**修复**: [factory_robot.py](src/reference/factory_robot.py) 的 `read_modes()`
    归一化 tuple/list 返回，并把"读回失败(-1)"与"读回不一致"分成两种告警。
    - 常量实测值: `jointmode_kinematic=0` / `jointmode_dependent=4` /
      `jointmode_dynamic=5` —— 与旧版 1/2 不同，一律取 `sim.jointmode_*`，不可写字面量。
@@ -404,3 +463,23 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
       `unset PYTHONHOME`)。
     - 最小复现:
       `PYTHONHOME=<uv 3.11 目录> D:/anaconda3_envs/coopeliasim/python.exe -c "print('OK')"`。
+
+17. **内置 conveyor 默认加速度过小, 物料到站后带面仍滑行 (已修复)**:
+    `generic conveyor (belt).ttm` 的 `customData.__config__.accel` 实测为
+    **0.05 m/s²** (schema 默认 0.01, ttm 存 0.05)。模型脚本用
+    `sim.ruckigVel` 按该加速度做速度规划, 因此 `__ctrl__ {vel=0}` 只是
+    把目标速度设为 0: 0.1 m/s 需约 2 s 停住, 0.2 m/s 接近 4 s, 视觉上
+    就是“物料到了、传送带还在转”。
+    - **修复**: [stage1/scene.py](src/stage1/scene.py) 在构建期 (simulation
+      start 之前) 读取 `customData.__config__`, 写入
+      `accel = CONVEYOR_ACCEL = 2.0 m/s²`、`targetVel = CONVEYOR_SPEED`,
+      模型脚本在 init 时读取该表。
+    - 实测 (0.2 m/s): **0.10 s / 2 个仿真步**停住, pad 滑行 0.010 m;
+      `run_stage1` 的 `conveyor_drive_probe` 记录 `stop_time_s`、
+      `stop_steps`、`stop_pad_moved_m`、`stop_ok`。
+    - **不要把 accel 调到 3.0/5.0**: 虽然一帧停住, 但脚本只在
+      `pos` 变化时才刷新 `__state__`, 会出现速度回读仍为旧值 (实测 3.0
+      时回读 0.05、5.0 时回读 0.2)。2.0 是“快速停车 + 状态可读”的
+      实测折中。
+    - 若替换 conveyor 模型或覆盖 `__config__`, 必须重新构建场景并检查
+      驱动探测的 `stop_ok`。
