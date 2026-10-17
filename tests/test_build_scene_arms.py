@@ -4,8 +4,8 @@
 - 纯运动学改造: 把机械臂整条子树的 shape 设为非动态 (4.10 实测必需, 见 CLAUDE.md 坑 9)。
 """
 
-import build_scene as bs
-import factory_config as cfg
+import reference.build_scene as bs
+import reference.factory_config as cfg
 
 
 ROBOTS = {

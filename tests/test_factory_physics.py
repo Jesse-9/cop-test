@@ -2,7 +2,7 @@
 
 import pytest
 
-from factory_physics import advance_belt_pad_loop, capture_belt_pad_loop
+from reference.factory_physics import advance_belt_pad_loop, capture_belt_pad_loop
 
 
 class FakeBeltSim:

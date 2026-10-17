@@ -17,7 +17,7 @@ class TestRoConnector:
 
 class TestGetObjectPose:
     def test_pose_default_components(self, mcp_server):
-        from factory_mcp_server import get_object_pose
+        from reference.factory_mcp_server import get_object_pose
         r = get_object_pose(alias_or_path="Floor")  # build_scene 创建的地板
         if r.startswith("失败"):
             pytest.skip("场景未构建,跳过")
@@ -26,14 +26,14 @@ class TestGetObjectPose:
         assert "pose" in d or "position" in d
 
     def test_unknown_alias_returns_failure_string(self, mcp_server):
-        from factory_mcp_server import get_object_pose
+        from reference.factory_mcp_server import get_object_pose
         r = get_object_pose(alias_or_path="NoSuchObject_xyz")
         assert r.startswith("失败") or "找不到" in r
 
 
 class TestListObjects:
     def test_list_all(self, mcp_server):
-        from factory_mcp_server import list_objects
+        from reference.factory_mcp_server import list_objects
         r = list_objects()
         if r.startswith("失败"):
             pytest.skip("未连接")
@@ -43,7 +43,7 @@ class TestListObjects:
         assert d["count"] == len(d["objects"])
 
     def test_filter_prefix(self, mcp_server):
-        from factory_mcp_server import list_objects
+        from reference.factory_mcp_server import list_objects
         r = list_objects(filter="Island_*")
         if r.startswith("失败"):
             pytest.skip("未连接")
@@ -54,7 +54,7 @@ class TestListObjects:
 
 class TestReadSignal:
     def test_read_integer_signal(self, mcp_server):
-        from factory_mcp_server import read_signal
+        from reference.factory_mcp_server import read_signal
         server = mcp_server
         server.ensure_ro_connected()
         sim = server.ro_sim
@@ -66,7 +66,7 @@ class TestReadSignal:
         assert d["value"] == 123
 
     def test_read_missing_signal(self, mcp_server):
-        from factory_mcp_server import read_signal
+        from reference.factory_mcp_server import read_signal
         r = read_signal(name="definitely_no_such_signal_xyz")
         d = json.loads(r)
         assert d["value"] is None
@@ -75,8 +75,8 @@ class TestReadSignal:
 
 class TestGetObjectTree:
     def test_tree_of_root(self, mcp_server):
-        from factory_mcp_server import get_object_tree
-        from factory_mcp_server import list_objects
+        from reference.factory_mcp_server import get_object_tree
+        from reference.factory_mcp_server import list_objects
         lo = list_objects(filter="*")
         d_lo = json.loads(lo)
         if not d_lo["objects"]:

@@ -18,6 +18,7 @@ wheels/
 factory_sim.log
 factory_verify_*.log
 factory_arm_*.log
+stage1*.log
 coppelia_console*.log*
 emergency_dump_*.json
 

@@ -10,30 +10,19 @@ dependencies = [
 ]
 
 [project.scripts]
-build-scene = "build_scene:main"
-run-simulation = "run_simulation:main"
+build-scene = "reference.build_scene:main"
+run-simulation = "reference.run_simulation:main"
+run-stage1 = "stage1.run:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+packages = ["stage1", "reference"]
 py-modules = [
-    "build_scene",
-    "run_simulation",
-    "main",
-    "factory_config",
-    "factory_core",
-    "factory_types",
-    "factory_island",
-    "factory_agv",
-    "factory_exceptions",
-    "factory_physics",
-    "factory_robot",
-    "factory_scene",
-    "factory_controller",
-    "factory_mcp_server",
+    "run_stage1",
 ]
 
 [tool.uv]
-# src/ 布局：所有顶层模块在 src/ 下，脚本入口与直接运行均依赖此目录。
+# src/ 布局：stage1 与 reference 为包；run_stage1 为兼容入口薄包装。
 package = true
 
 [dependency-groups]

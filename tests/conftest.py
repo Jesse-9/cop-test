@@ -3,14 +3,14 @@
 import sys
 from pathlib import Path
 
-# 让 tests/ 能 import src/factory_*
+# 让 tests/ 能 import src/ 下的模块 (含 legacy factory_* 与 stage1 包)
 _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 import pytest
-import factory_mcp_server
-from factory_mcp_server import FactoryMCPServer
+import reference.factory_mcp_server as factory_mcp_server
+from reference.factory_mcp_server import FactoryMCPServer
 
 
 def _coppeliasim_up(host: str = "localhost", port: int = 23000,

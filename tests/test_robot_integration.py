@@ -21,10 +21,10 @@ import os
 
 import pytest
 
-import build_scene as bs
-import factory_config as cfg
-from factory_robot import RobotArmAnimator, RobotArmDevice
-from factory_scene import find_by_alias
+import reference.build_scene as bs
+import reference.factory_config as cfg
+from reference.factory_robot import RobotArmAnimator, RobotArmDevice
+from reference.factory_scene import find_by_alias
 
 ISLAND = "A"
 JOINT_INDEX = 0                  # joint1 — 底座回转

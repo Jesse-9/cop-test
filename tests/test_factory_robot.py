@@ -3,8 +3,8 @@
 import logging
 import math
 
-import factory_config as cfg
-from factory_robot import RobotArmAnimator, RobotArmDevice
+import reference.factory_config as cfg
+from reference.factory_robot import RobotArmAnimator, RobotArmDevice
 
 
 class FakeRobotSim:

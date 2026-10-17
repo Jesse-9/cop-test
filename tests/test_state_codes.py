@@ -1,6 +1,6 @@
 # tests/test_state_codes.py
 """状态码映射纯单测 — 无需 CoppeliaSim。"""
-from factory_mcp_server import _STATE_CODE_NAMES
+from reference.factory_mcp_server import _STATE_CODE_NAMES
 
 
 def test_known_codes():

@@ -7,7 +7,7 @@ import pytest
 
 class TestReadConsoleSince:
     def test_reads_from_offset(self, tmp_path):
-        from factory_mcp_server import _read_console_since
+        from reference.factory_mcp_server import _read_console_since
         p = tmp_path / "coppelia_console.log"
         p.write_bytes(b"AAA\nBBB\n")
         r = _read_console_since(p, 4)
@@ -17,7 +17,7 @@ class TestReadConsoleSince:
         assert r["reset"] is False
 
     def test_offset_beyond_eof_resets(self, tmp_path):
-        from factory_mcp_server import _read_console_since
+        from reference.factory_mcp_server import _read_console_since
         p = tmp_path / "coppelia_console.log"
         p.write_text("NEW\n", encoding="utf-8")
         r = _read_console_since(p, 999)
@@ -25,7 +25,7 @@ class TestReadConsoleSince:
         assert r["reset"] is True
 
     def test_negative_offset_resets(self, tmp_path):
-        from factory_mcp_server import _read_console_since
+        from reference.factory_mcp_server import _read_console_since
         p = tmp_path / "coppelia_console.log"
         p.write_text("NEW\n", encoding="utf-8")
         r = _read_console_since(p, -1)
@@ -35,7 +35,7 @@ class TestReadConsoleSince:
 
 class TestTailCoppeliaConsoleTool:
     def test_missing_file(self, tmp_path, monkeypatch):
-        import factory_mcp_server as srv
+        import reference.factory_mcp_server as srv
         monkeypatch.setattr(srv, "_console_log_path",
                             lambda: tmp_path / "nope.log")
         r = srv.tail_coppelia_console()
@@ -43,14 +43,14 @@ class TestTailCoppeliaConsoleTool:
         assert "ConPTY" in r
 
     def test_tail_lines(self, tmp_path, monkeypatch):
-        import factory_mcp_server as srv
+        import reference.factory_mcp_server as srv
         p = tmp_path / "coppelia_console.log"
         p.write_text("l1\nl2\nl3\n", encoding="utf-8")
         monkeypatch.setattr(srv, "_console_log_path", lambda: p)
         assert srv.tail_coppelia_console(lines=2) == "l2\nl3"
 
     def test_incremental_follow(self, tmp_path, monkeypatch):
-        import factory_mcp_server as srv
+        import reference.factory_mcp_server as srv
         p = tmp_path / "coppelia_console.log"
         p.write_text("one\n", encoding="utf-8")
         monkeypatch.setattr(srv, "_console_log_path", lambda: p)
@@ -68,7 +68,7 @@ class TestTailCoppeliaConsoleTool:
 
     def test_default_offset_returns_json(self, tmp_path, monkeypatch):
         """offset=0 (而非 None) 走 JSON 增量分支。"""
-        import factory_mcp_server as srv
+        import reference.factory_mcp_server as srv
         p = tmp_path / "coppelia_console.log"
         p.write_text("", encoding="utf-8")
         monkeypatch.setattr(srv, "_console_log_path", lambda: p)

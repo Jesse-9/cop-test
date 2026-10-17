@@ -22,9 +22,9 @@ _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-import factory_config as cfg
-from factory_types import ItemType, IslandState, Material
-from factory_robot import RobotArmAnimator
+import reference.factory_config as cfg
+from reference.factory_types import ItemType, IslandState, Material
+from reference.factory_robot import RobotArmAnimator
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ def _build_controller(physics_mode: bool, fill_loops: bool = False):
     _move_conveyors / _schedule_agv_tasks / _handle_ac_transfer /
     _handle_ce_transfer 所需的字段,不进入 run().
     """
-    from factory_controller import FactoryController
+    from reference.factory_controller import FactoryController
 
     sim = FakeSim()
     # 给每条传送带填 handle,避免 _move_conveyors 跳过

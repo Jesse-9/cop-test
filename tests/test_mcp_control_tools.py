@@ -8,13 +8,13 @@ class TestPauseResumeFlag:
     def test_flag_default_false(self):
         # controller 未运行时无 flag, 故测 FactoryController 类属性约定
         # 纯源码检查, 无需 CoppeliaSim 连接 → 不取 mcp_server fixture
-        from factory_controller import FactoryController
+        from reference.factory_controller import FactoryController
         import inspect
         src = inspect.getsource(FactoryController.__init__)
         assert "_pause_requested" in src
 
 
-from factory_mcp_server import pause_simulation, resume_simulation, step_simulation
+from reference.factory_mcp_server import pause_simulation, resume_simulation, step_simulation
 
 
 class TestPauseResumeStepN:
@@ -28,7 +28,7 @@ class TestPauseResumeStepN:
     def test_pause_resume_roundtrip(self, mcp_server):
         # 此测试依赖完整场景能跑(已知冻结问题);冻结时 start 后 status 会告警,
         # 测试探测到 sim_time 不推进则 skip 而非 fail。
-        from factory_mcp_server import (start_simulation, stop_simulation,
+        from reference.factory_mcp_server import (start_simulation, stop_simulation,
                                         status)
         start_simulation(total_time=30.0)
         _t.sleep(2.0)
