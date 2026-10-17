@@ -13,23 +13,26 @@ OUT = Path("docs/measurement")
 
 
 def subtree(sim, root):
-    """遍历子树 (root 自身除外)"""
+    """遍历子树 (root 自身除外)。
+
+    4.10 实测: `getObjectChildCount`/`getObjectChild` 在本机 API 中不存在,
+    必须用 `getObjectsInTree` (factory_physics.find_all_belt_pad_shapes 同款用法)。
+    flags=0 只取直接子对象但返回整个树的句柄列表 — 实测返回嵌套全部后代,
+    这里做去重并保持顺序。
+    """
+    try:
+        tree = sim.getObjectsInTree(root, sim.handle_all, 0)
+    except Exception:
+        return []
     out = []
-    stack = [root]
-    while stack:
-        h = stack.pop()
-        try:
-            n = sim.getObjectChildCount(h)
-        except Exception:
+    seen = set()
+    for h in tree or []:
+        if h is None or h < 0 or h == root:
             continue
-        for i in range(n):
-            try:
-                ch = sim.getObjectChild(h, i)
-            except Exception:
-                continue
-            if ch >= 0:
-                out.append(ch)
-                stack.append(ch)
+        if int(h) in seen:
+            continue
+        seen.add(int(h))
+        out.append(int(h))
     return out
 
 
@@ -112,8 +115,11 @@ def main():
     for j in info["joints"]:
         print("  joint", j["alias"], j["handle"])
     report["ur5"] = info
-    sim.removeObject(ur5)
-    print("UR5 移除 OK")
+    try:
+        sim.removeObject(ur5)
+        print("UR5 移除 OK")
+    except Exception as e:
+        print("UR5 移除失败(保留现场):", e)
 
     # ── suction pad ──
     r = sim.loadModel(str(MODEL_BASE / "components/grippers/suction pad.ttm"))
@@ -133,8 +139,11 @@ def main():
     info["child_type_counts"] = types
     print("  child types:", types)
     report["suction_pad"] = info
-    sim.removeObject(sp)
-    print("suction pad 移除 OK")
+    try:
+        sim.removeObject(sp)
+        print("suction pad 移除 OK")
+    except Exception as e:
+        print("suction pad 移除失败(保留现场):", e)
 
     # ── conveyor ──
     r = sim.loadModel(str(MODEL_BASE / "equipment/conveyors/generic conveyor (belt).ttm"))
@@ -158,8 +167,11 @@ def main():
     info["script_children"] = [{"handle": h, "alias": alias(sim, h)}
                                for h in script_children]
     report["conveyor"] = info
-    sim.removeObject(cv)
-    print("conveyor 移除 OK")
+    try:
+        sim.removeObject(cv)
+        print("conveyor 移除 OK")
+    except Exception as e:
+        print("conveyor 移除失败(保留现场):", e)
 
     # ── pioneer p3dx ──
     r = sim.loadModel(str(MODEL_BASE / "robots/mobile/pioneer p3dx.ttm"))
@@ -197,8 +209,11 @@ def main():
                 info.setdefault("wheel_radius_measured", w["wheel_size_xyz"][2] / 2.0)
         print(f"  wheel_radius = {info.get('wheel_radius_measured')}")
     report["pioneer_p3dx"] = info
-    sim.removeObject(agv)
-    print("p3dx 移除 OK")
+    try:
+        sim.removeObject(agv)
+        print("p3dx 移除 OK")
+    except Exception as e:
+        print("p3dx 移除失败(保留现场):", e)
 
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "phase0_measurements.json").write_text(
