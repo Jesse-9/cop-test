@@ -29,6 +29,16 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 - 参数基线：[docs/implementation/PHASE0_BASELINE.md](docs/implementation/PHASE0_BASELINE.md)
 - 实测数据：[docs/measurement/phase0_measurements.json](docs/measurement/phase0_measurements.json)
 
+后续实施顺序已调整为四个阶段：
+
+1. 阶段二：物理与运行基础能力，包括 TCP 外表面接触、碰撞/局部避障、场景构建与
+   仿真启动解耦、统一故障状态和传送带停机验证；
+2. 阶段三：双工位柔性搬运，包括第二工位、任务队列、资源锁和 AGV 调度；
+3. 阶段四：多岛车间，包括 A–E 拓扑、仓库供料、节拍追踪和共享 AGV 调度。
+
+阶段二完成前不进入双工位或多岛扩展。阶段一当前 CLI 仍采用“构建后启动”的耦合流程，
+场景复用和独立启动属于阶段二交付内容。
+
 阶段一实现集中在 `src/stage1/` 包（config / physics / scene / material_manager /
 conveyor_controller / ur5_ik_controller / suction_controller / pioneer_controller /
 unit_controller / run），`src/run_stage1.py` 是兼容入口；安装后也可用
