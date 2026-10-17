@@ -115,7 +115,8 @@ if comm_status == "dead":
 if comm_status == "reconnecting":
     # physics still advances via sim.step(); control logic skipped this step
     return True
-# ... 13-step control logic ...
+# ... physical workflow control logic (sensor → conveyor/material → IK/suction
+#     → pioneer wheel control → handoff/logging) ...
 ```
 
 ## 2. Workstation Timeout (auto-degrade + auto-restore)

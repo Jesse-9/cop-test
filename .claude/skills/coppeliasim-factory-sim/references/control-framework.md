@@ -85,7 +85,7 @@ advances exactly one `SIM_STEP` (default 0.05s). The stepping loop is
 
 ```python
 class FactoryController:
-    """Top-level orchestrator. Drives the fixed 13-step loop each SIM_STEP."""
+    """Top-level orchestrator for the restructured physical workflow."""
 
     def __init__(self, sim, total_time=60.0, log_file="factory_sim.log"):
         self.sim = sim
@@ -94,8 +94,8 @@ class FactoryController:
         self.sim_time = 0.0
         self.step_count = 0
         self.running = False
-        # ... build island controllers, AGVScheduler, ExceptionHandler,
-        #     BeatTracker, SupplyController, RobotArmAnimator, handle maps ...
+        # ... build island controllers, conveyor/material managers, UR5 IK,
+        #     suction and pioneer controllers, scheduler, diagnostics ...
 
     def run(self):
         self.sim.setStepping(True)
@@ -109,7 +109,7 @@ class FactoryController:
         self._shutdown()
 
     def _single_step(self):
-        # The fixed 13-step order — see "Single-Step Loop Order" below
+        # The physical workflow order — see "Single-Step Loop Order" below
         ...
 ```
 
@@ -119,26 +119,29 @@ becomes unreliable and exception detection (which depends on time
 comparisons) produces false positives. Stepping makes every simulated second
 predictable and measurable.
 
-## Single-Step Loop Order (FactoryController.run, 13 steps)
+## Single-Step Loop Order (restructured FactoryController.run)
 
 Each `SIM_STEP` executes this fixed order (matches [CLAUDE.md](../../../CLAUDE.md)):
 
-1. Exception polling (`ExceptionHandler.poll`) — ZMQ comm / workstation
-   timeout / material overflow / AGV congestion
-2. If `comm_paused` → advance physics only (`sim.step()`), skip control logic
-3. Warehouses spawn materials by cadence (`_spawn_from_warehouses`) —
-   S1→A (raw_A), S1→B (raw_B), S2→D (raw_D), gated by `SupplyController`
-4. Conveyors move materials (`_move_conveyors`) — 4 belts
-5. Island processing (`_process_islands`) — update processing time + beat tracking
-6. AGV task scheduling (`_schedule_agv_tasks`) — B→A priority 0, D→E priority 1
-7. AGV state machine advance (`_update_agv`)
-8. A→C rigid transfer (`_handle_ac_transfer`) — not via AGV
-9. C→E conveyor transfer (`_handle_ce_transfer`) — produces SEMI_CE
-10. E island timed assembly (`_check_assembly_at_E`) — SEMI_CE + PART_DE → FINAL
-11. Scene position sync (`_update_scene_positions`) — Python state → CoppeliaSim
-    objects, incl. AGV yaw from displacement vector
-12. Robot arm animation update (`_update_robot_animations`) — visual layer
-13. `sim.step()` advances the physics engine
+1. Poll communication, collision, workstation timeout, material overflow and
+   proximity/dock sensor faults.
+2. If `comm_paused`, issue no new commands and advance only `sim.step()`.
+3. Read conveyor entry/stop, pick, suction and AGV dock sensors; correlate
+   hits with the active material UID/handle.
+4. Advance the `HYBRID_DYNAMIC` conveyors and material lifecycle, applying
+   only bounded, sensor-gated tangential compensation.
+5. Update workstation beats, queues and resource locks.
+6. For executable pick/place tasks, create target poses and call `simIK`;
+   write the six solved UR5 joint targets and validate TCP error, attitude,
+   limits, collision state and tool speed.
+7. Attach, lift, place and release through the suction controller. Restore
+   the material's saved dynamic/respondable, mass, friction and collision
+   properties on release.
+8. Schedule the shared pioneer p3dx and set left/right wheel target speeds;
+   arrival requires stable chassis speed and dock sensor confirmation.
+9. Process A→C, C→E, D→E handoffs and E-side pair assembly.
+10. Append UID state transitions, physical compensation, failures and
+    diagnostics, then call `sim.step()`.
 
 ## Device Handle Mapping (by alias leaf, NOT slash path)
 
@@ -177,6 +180,7 @@ class DeviceHandleMap:  # illustrative — not in src/ today
             "Island_A_Assembly_Robot_A", "Island_B_Preprocess_Robot_B",
             "Island_C_Processing_Robot_C", "Island_D_QC_Assembly_Robot_D",
             "Island_E_FinalAssembly_Robot_E_C", "Island_E_FinalAssembly_Robot_E_D",
+            "SuctionPad_01_TCP",  # extend from the stage-specific alias manifest
             # AGV
             "Mobile_AGV_Shared",
         ]

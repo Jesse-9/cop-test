@@ -29,10 +29,11 @@ Build bottom-up so parent roots exist before children:
 2. Hierarchy roots: `Warehouse`, `Conveyor`, `Island`, `Mobile`, `Part`
 3. Warehouses: `Warehouse_S1_Main`, `Warehouse_S2_Auxiliary`
 4. Conveyors: `Conveyor_S1_to_A`, `Conveyor_S1_to_B`, `Conveyor_S2_to_D`,
-   `Conveyor_C_to_E`
+   `Conveyor_C_to_E` (built from `generic conveyor (belt).ttm`)
 5. Island bases: `Island_A_Assembly` … `Island_E_FinalAssembly`
-6. Robot arms per island (UR5), aliased `Island_<X>_<...>_Robot_<X>`
-7. AGV: `Mobile_AGV_Shared`
+6. Robot arms per island (UR5), each with `SuctionPad_<X>` and
+   `SuctionPad_<X>_TCP` plus a fixed-position proximity sensor
+7. AGV: `Mobile_AGV_Shared` (built from `pioneer p3dx.ttm`)
 8. Part tags: created at runtime (spawned materials), not during scene build
 
 ## Hierarchy Root + Child Creation
@@ -79,7 +80,9 @@ def load_model(sim, model_relative_path: str, target_position: list,
     """Load a built-in model, strip its scripts, reparent, and alias it."""
     full_path = os.path.join(cfg.MODEL_BASE, model_relative_path)
     if not os.path.isfile(full_path):
-        return _fallback_primitive(sim, new_alias, parent_handle)  # 几何体回退
+        raise FileNotFoundError(
+            f"Required production model is missing: {full_path} ({new_alias})"
+        )
 
     model_handle = sim.loadModel(full_path)
 
@@ -126,13 +129,12 @@ def _strip_model_scripts(sim, model_handle: int):
 > residual scripts, then `step_simulation` frame-by-frame to localize the
 > blocker.
 
-## Robot Arm Policy: Unified UR5 (6-axis)
+## Robot Arm Policy: Unified UR5 (6-axis) + simIK + suction pad
 
 All island arms are **UR5** (`cfg.BUILTIN_MODELS["robot_arm_ur5"]` =
 `robots/non-mobile/UR5.ttm`). Never mix in KUKA iiwa or Franka:
 
-- Their 7-axis joint count misaligns with the project's 6-element keyframe
-  arrays (`cfg.ARM_ANIMATIONS`) → animation pose corruption / index overflow.
+- Their 7-axis joint count is incompatible with the six-joint UR5 IK contract.
 - Mixed model scripts trigger the startup freeze above.
 
 Per-island config lives in `cfg.ISLAND_ROBOTS` (A/B/C/D each one arm; E has
@@ -140,12 +142,16 @@ two — `E_C` left, `E_D` right — for paired assembly). Aliases follow
 `Island_<X>_<Name>_Robot_<X>` (e.g. `Island_A_Assembly_Robot_A`,
 `Island_E_FinalAssembly_Robot_E_C`).
 
-Animation is **pure visual** — Python-side keyframe interpolation in
-[factory_robot.py](../../../src/factory_robot.py), no IK, no model scripts.
-`RobotArmAnimator._collect_arm_joints()` scans the scene for joints with a
-full-scene fallback (since `getObjectsInTree` throws "Operation cannot be
-accomplished in current state" when sim is stopped or the subtree contains
-non-queryable objects).
+Production pick, lift, place and release are controlled by `simIK` through
+the dedicated `ur5_ik_controller.py` and `suction_controller.py` modules.
+Each arm owns an independent IK environment/group; the IK tip is the center
+of the suction-pad contact face (`SuctionPad_<X>_TCP`), never the UR5 flange
+or an uncalibrated tool origin. A keyframe animation may only be used in a
+diagnostic demo and must not report a completed material transfer.
+
+The fixed-position sensor is a proximity sensor. A hit is only a physical
+candidate; the controller must also match the active material UID/handle,
+allowed type and workstation ownership before attaching it.
 
 ## Idempotent Clear (clear_scene)
 
@@ -247,11 +253,24 @@ Y-axis ↑
 
 ## Physics / Collision Configuration
 
-- **Conveyors**: Static, non-respondable (materials ride on top via script
-  positioning, not physics)
-- **Island bases**: Static, respondable — collision surface
-- **AGV body**: Script-driven position + orientation (yaw recomputed each
-  frame from the displacement vector; small movements keep prior yaw to
-  avoid jitter — see `factory_controller._update_scene_positions`)
-- **Materials**: Non-respondable, script-driven (purely positional)
-- **Floor**: Static, respondable — ground plane
+- **Conveyors**: the built-in `generic conveyor (belt).ttm`, configured for
+  `HYBRID_DYNAMIC`; its dimensions are measured/scaled only during scene
+  construction and never changed after simulation starts. Any tangential
+  compensation is bounded, sensor-gated and logged.
+- **Island bases**: Static, respondable — collision surface.
+- **AGV body**: the built-in `pioneer p3dx.ttm`, retaining its dynamic body,
+  wheel joints, mass and differential-drive structure. Runtime motion uses
+  left/right wheel `setJointTargetVelocity`; never teleport the chassis with
+  `setObjectPosition`/`setObjectPose`.
+- **Materials**: dynamic + respondable, with explicit mass, friction and
+  collision mask. During a validated suction attachment only, dynamic
+  response is temporarily disabled; release restores all saved properties and
+  calls `resetDynamicObject`.
+- **AGV payload**: remains dynamic + respondable and is transported by tray
+  contact, friction, low side rails and bounded acceleration; parenting alone
+  is not a valid physical transport result.
+- **Floor**: Static, respondable — ground plane.
+
+Production builds must fail loudly when any required built-in model, TCP,
+proximity sensor or wheel joint is missing. Primitive fallback is permitted
+only in an explicitly marked diagnostic scene.

@@ -59,9 +59,11 @@ Implement against the plan, following the skill's conventions:
 - Aliases underscore-only; handles via alias-leaf matching
 - All new arms UR5; strip model scripts on load
 - Tune via [src/factory_config.py](../../../src/factory_config.py), not hardcoded values
-- 13-step loop order preserved if touching `FactoryController`
+- physical workflow order preserved if touching `FactoryController`: sensor
+  polling → `HYBRID_DYNAMIC` material state → simIK/suction → pioneer wheel
+  control → handoff/logging → `sim.step()`
 - If adding an MCP tool: register it, keep the dual-connection discipline,
-  and update the "19 tools" count everywhere it appears (SKILL.md, wiki
+  and update the "20 tools" count everywhere it appears (SKILL.md, wiki
   06-03, MCP_USAGE)
 
 Run the relevant test/verification as you go. Don't leave the scene in a
@@ -92,12 +94,12 @@ change that the docs don't reflect is a defect:
 | [docs/wiki/06-工业案例/06-02-岛式车间柔性生产案例.md](../../../docs/wiki/06-工业案例/06-02-岛式车间柔性生产案例.md) | Topology, loop order, MCP tool count, results changed | Edit |
 | [docs/wiki/02-仿真建模/02-01-分层命名场景构建.md](../../../docs/wiki/02-仿真建模/02-01-分层命名场景构建.md) | Naming, model-loading, clear-scene behavior changed | Edit |
 | [docs/wiki/98-ProjectUsage/MCP_USAGE.md](../../../docs/wiki/98-ProjectUsage/MCP_USAGE.md) | MCP tool added/removed/renamed, or run_lua mechanism changed | Edit |
-| [CLAUDE.md](../../../CLAUDE.md) | Module table, 13-step loop, or a known-issue item changed | Edit |
+| [CLAUDE.md](../../../CLAUDE.md) | Module table, physical workflow, or known-issue item changed | Edit |
 | This skill (SKILL.md + references/) | Anything a future Claude session would need to know to do the same change correctly | Edit |
 
 **Doc-sync checklist** (the exact things that drift):
 - [ ] Module names / class names / method signatures match the code
-- [ ] The "19 tools" count (or whatever the current count is) is consistent
+- [ ] The "20 tools" count (or whatever the current count is) is consistent
       across SKILL.md, wiki 06-02, wiki 06-03, MCP_USAGE
 - [ ] Any new known pitfall is added to CLAUDE.md §已知问题与坑 AND mirrored
       in the relevant skill reference

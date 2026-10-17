@@ -38,7 +38,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   `read_signal` / `get_object_tree` / `inspect_scene_state` / `get_simulation_state`
   / `run_lua`) 走只读连接；其他工具走主连接。
 
-## 19 个工具
+## 20 个工具
 
 ### 连接与场景
 
@@ -63,7 +63,8 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 | `status` | 实时状态: 连接/运行/仿真时间/步数/装配数/AGV/各岛状态/最近错误 | — |
 | `get_config` | 读取 factory_config 关键参数 (节拍/位置/路径/机械臂/阈值) | — |
 | `set_config` | 动态改单个配置 (内存级, 对已构建场景无效, 应在 build 前) | `key` (支持 `TAKT_TIME.A` 点号取值), `value` |
-| `tail_log` | 读 `factory_sim.log` 末尾 N 行 | `lines` (默认 50) |
+| `tail_log` | 读 `factory_sim.log` 末尾 N 行 (Python 控制层日志) | `lines` (默认 50) |
+| `tail_coppelia_console` | 读 `coppelia_console.log` (CoppeliaSim 自身控制台, 需经 ConPTY relay 启动) | `lines` (默认 50), `offset` (字节偏移增量跟随) |
 
 ### A 档 — 读取 (Q1/Q2)
 
@@ -158,6 +159,32 @@ read_signal(name="probe_x")      → 读回 Lua 结果
 > 代码长度上限 8000、危险调用正则审计 (os.execute/io.popen/...需 confirm=True)、
 > dry_run 只审计不执行、超时 (默认 5s) 标记 lingering 拒绝后续重叠调用。
 > 见下方「run_lua 执行机制」节。
+
+### 6. CoppeliaSim 控制台实时日志 (tail_coppelia_console)
+
+CoppeliaSim 自身的控制台输出 (脚本 `print` / `sim.addLog`、插件与 add-on 报错、
+冻结前最后一条消息) 既不在 ZMQ API 里, 也不在 `factory_sim.log` 里。要拿到它,
+必须让 CoppeliaSim 跑在一个伪终端下:
+
+```bash
+.venv/Scripts/python.exe tools/conpty_relay.py --log coppelia_console.log \
+  --cwd "C:/Program Files/CoppeliaRobotics/CoppeliaSimEdu" -- \
+  "C:/Program Files/CoppeliaRobotics/CoppeliaSimEdu/coppeliaSim.exe" \
+  -vscriptinfos -GzmqRemoteApi.rpcPort=23000
+```
+
+relay 把子进程的控制台输出实时写入 `coppelia_console.log` (剥离 ANSI 转义)。
+**普通 stdout 重定向是 4 KB 块缓冲, 小消息可能滞留数秒甚至丢失; ConPTY 才能
+做到准实时 (实测 0.01 s 级)。** 实例不是经 relay 启动时, 本工具会提示日志不存在。
+
+```
+tail_coppelia_console(lines=50)              → 末尾 50 行
+tail_coppelia_console(offset=0)              → JSON {content,next_offset,...}
+tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟随)
+```
+
+> `tail_log` 读的是 Python 控制层 `factory_sim.log`; `tail_coppelia_console`
+> 读的是 CoppeliaSim 引擎/内置脚本一侧, 两者互补。
 
 ## status 返回字段
 
@@ -254,7 +281,7 @@ read_signal(name="probe_x")      → 读回 Lua 结果
 
 不用经过 Claude Code，直接命令行验证服务器：
 ```bash
-# 打印 19 个工具清单
+# 打印 20 个工具清单
 .venv/Scripts/python src/factory_mcp_server.py --inspect
 
 # 直接跑各 CLI (不经 MCP)

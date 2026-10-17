@@ -20,8 +20,11 @@ compatibility:
 Guide for building and controlling industrial-grade factory simulations in
 CoppeliaSim 4.10+ with Python ZeroMQ Remote API control. Focuses on the
 **island-style workshop architecture** used by the real `cop-test` project:
-five work islands, two warehouses, four conveyors, a single shared AGV,
-unified UR5 robot arms, and robust exception handling.
+  The current approved reconstruction uses staged unit-to-island delivery:
+  built-in generic conveyor belts in `HYBRID_DYNAMIC`, six-axis UR5 arms with
+  `simIK` and suction pads, a physical pioneer p3dx AGV, and UID-traceable
+  exception handling. The older five-island topology remains a reference
+  layout only until the staged implementation is accepted.
 
 > This skill mirrors the authoritative wiki and source. When details here and
 > the repo disagree, the repo (CLAUDE.md / `src/` / `docs/wiki/`) wins. See
@@ -48,7 +51,7 @@ The system follows a **three-tier architecture plus an MCP access layer**:
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
-│  (FastMCP / stdio, 19 个工具, 仿真跑在守护线程)      │
+│  (FastMCP / stdio, 20 个工具, 仿真跑在守护线程)      │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -57,7 +60,9 @@ The system follows a **three-tier architecture plus an MCP access layer**:
 │  factory_island.py      — 工作岛/节拍追踪/供料门控   │
 │  factory_agv.py         — 共享 AGV 柔性调度器        │
 │  factory_exceptions.py  — 统一异常处理              │
-│  factory_robot.py       — 机械臂动画 (纯视觉层)      │
+│  ur5_ik_controller.py   — UR5 simIK + joint targets   │
+│  suction_controller.py  — TCP/sensor attach-release  │
+│  pioneer_controller.py  — p3dx wheel control         │
 │  factory_types.py       — 枚举/数据类/物料           │
 └───────────────┬─────────────────────────────────────┘
                 │ ZMQ Remote API (同步, stepping 模式)
@@ -137,7 +142,7 @@ Mobile_AGV_Shared            — Single shared AGV
 the final path segment), never by slash-path `getObject`. See
 [references/control-framework.md](references/control-framework.md) §Handle Mapping.
 
-## Robot Arm Policy: Unified UR5 (6-axis) + Script Stripping
+## Robot Arm Policy: Unified UR5 (6-axis) + simIK + suction pad
 
 All six island arms are **UR5 (6-axis)** — never mix in KUKA iiwa or Franka.
 
@@ -146,13 +151,18 @@ All six island arms are **UR5 (6-axis)** — never mix in KUKA iiwa or Franka.
   `"abort execution Connectivity >> ZMQ remote API server@addOnScript"`.
   Root cause: each built-in model ships its own Lua customization/child
   scripts; multiple script objects contend on the 4.10 ZMQ addOn layer.
-- iiwa/Franka are 7-axis; the project's 6-element keyframe arrays
-  misalign/overflow on 7-axis arms.
+- iiwa/Franka are 7-axis and violate the six-joint UR5 IK contract.
 - `build_scene._strip_model_scripts()` strips each loaded model's script
   sub-objects (matched by `object_script_type` + alias containing "script")
-  right after `sim.loadModel()`, so animation is driven purely by Python-side
-  keyframe interpolation in [factory_robot.py](../../../src/factory_robot.py) — no model
-  scripts involved.
+  right after `sim.loadModel()`. Production motion is driven by `simIK`-solved
+  joint targets and a calibrated `SuctionPad_*_TCP`; keyframe animation is
+  diagnostic-only and cannot report a completed transfer.
+
+Each UR5 has its own IK environment/group and suction-pad contact sensor.
+The TCP dummy is the IK tip and the center of the contact face. A sensor hit
+must be matched to the active material UID/handle and allowed type before
+attachment. Release restores the material's saved dynamic/respondable and
+collision properties.
 
 If a full scene still freezes: `stop_simulation` → `inspect_scene_state` to
 find residual scripts → `step_simulation` frame-by-frame to locate the
@@ -184,25 +194,25 @@ maintains its own sub-state-machine within these phases:
   AGV is IDLE. Produces `PART_DE`
 - E pair-matches `SEMI_CE` + `PART_DE` → spawns `FINAL` (gold)
 
-## Single-Step Simulation Loop Order (FactoryController.run)
+## Single-Step Simulation Loop Order (restructured FactoryController.run)
 
-Each `SIM_STEP` executes this fixed 13-step order (see
+Each `SIM_STEP` executes this physical workflow order (see
 [CLAUDE.md](../../../CLAUDE.md) and
 [references/control-framework.md](references/control-framework.md)):
 
-1. Exception polling (ZMQ comm / workstation timeout / material overflow / AGV congestion)
-2. If comm paused → advance physics only, skip control logic
-3. Warehouses spawn materials by cadence (S1→A, S1→B, S2→D)
-4. Conveyors move materials (4 belts)
-5. Island processing (update processing time + beat tracking)
-6. AGV task scheduling (B→A high priority, D→E low priority)
-7. AGV state machine advance
-8. A→C rigid transfer (not via AGV)
-9. C→E conveyor transfer
-10. E island timed assembly (SEMI_CE + PART_DE → FINAL)
-11. Scene position sync (Python state → CoppeliaSim objects, incl. AGV yaw)
-12. Robot arm animation update (visual layer)
-13. `sim.step()` advances the physics engine
+1. Poll communication, collision, workstation and sensor faults.
+2. If communication is paused, issue no new commands and advance only physics.
+3. Read conveyor, pick, suction and AGV dock sensors; verify material UID.
+4. Advance `HYBRID_DYNAMIC` conveyor/material state with bounded tangential
+   compensation and log every compensation.
+5. Update workstation beats, queues and resource locks.
+6. Solve UR5 targets with `simIK`, validate TCP error, limits, attitude,
+   collision state and speed, then write six joint targets.
+7. Attach/lift/place/release through the suction controller and restore saved
+   material physics properties.
+8. Set pioneer p3dx left/right wheel target speeds; require stable dock arrival.
+9. Process handoffs, assembly, UID lifecycle logs and diagnostics.
+10. `sim.step()` advances the physics engine.
 
 ## AGV State Machine
 
@@ -299,16 +309,30 @@ Four categories of exceptions, each with defined recovery (see
 
 [factory_mcp_server.py](../../../src/factory_mcp_server.py) is registered via
 [.mcp.json](../../../.mcp.json); Claude Code auto-loads it in this project. It exposes
-**19 tools** over stdio (FastMCP), with the simulation running in a daemon
+**20 tools** over stdio (FastMCP), with the simulation running in a daemon
 thread. Two ZMQ connections: the main connection (write/control tools + main
 loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
 
 | Tier | Tools |
 |------|-------|
-| Connect/Scene/Lifecycle/Config (10) | `connect`, `build_scene`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log` |
+| Connect/Scene/Lifecycle/Config (11) | `connect`, `build_scene`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log`, `tail_coppelia_console(lines, offset)` |
 | A — Read (4, via `ro_connector`) | `get_object_pose`, `list_objects`, `read_signal`, `get_object_tree` |
 | B — Diagnose (3) | `inspect_scene_state`, `get_simulation_state`, `run_lua` |
 | C — Control (2) | `pause_simulation`, `resume_simulation` |
+
+> `tail_coppelia_console` reads CoppeliaSim's **own** console output (script
+> `print` / `sim.addLog`, plugin & add-on errors, the last message before a
+> freeze). That log only exists when CoppeliaSim is launched under the ConPTY
+> relay ([tools/conpty_relay.py](../../../tools/conpty_relay.py)) — plain
+> stdout redirection is 4 KB block-buffered and loses small/dying messages.
+> Use `offset` for incremental follow-up reads; `tail_log` remains the
+> Python-control-layer log.
+>
+> The relay strips `PYTHONHOME` / `UV_INTERNAL__PYTHONHOME` before spawning
+> CoppeliaSim: uv-managed venvs export them, and an unrelated `defaultPython`
+> (e.g. Anaconda 3.12) then loads the uv 3.11 stdlib and dies with
+> `SRE module mismatch` → `sandboxScript:error`. Never launch the simulator
+> from a uv shell without that sanitization.
 
 > When the simulation is running, `status` over the main connection may
 > transiently report `connected:false` (the connection is busy with the main
@@ -330,13 +354,15 @@ review checklist, doc-sync table, and commit conventions; the summary:
    Use `EnterPlanMode` for multi-file/behavior-changing work; a verbal plan
    is fine for small mechanical tweaks.
 2. **Execute** — implement per the skill's conventions (underscore aliases,
-   UR5-only arms, script stripping, config-centralized tuning, 13-step loop
-   order). Run verification as you go.
+    UR5-only arms, script stripping, config-centralized tuning, and the
+    sensor → HYBRID_DYNAMIC → simIK/suction → wheel-control workflow. Run
+    verification as you go.
 3. **Review** — verify behavior end-to-end (no `state=8` freeze, no `0 joints`,
    no exception spam); self-read the diff; run `/code-review` or `/simplify`
    on the uncommitted diff. Do not commit yet.
 4. **Update docs** — walk all three truth-sources (wiki 06-02/06-03/02-01,
-   MCP_USAGE, CLAUDE.md, this skill) and update each the change affects.
+    MCP_USAGE, CLAUDE.md, this skill, and 06-04/06-05) and update each the
+    change affects.
    Bump frontmatter `updated:` dates; keep the tool-count and known-pitfall
    claims consistent everywhere.
 5. **Commit** — two scoped commits, **code first then docs**:
@@ -360,8 +386,8 @@ Read [references/scene-building.md](references/scene-building.md). Place all
 objects with **underscore aliases**, establish the hierarchy-root dummies
 (`Warehouse`/`Conveyor`/`Island`/`Mobile`/`Part`), load built-in models with
 `sim.loadModel()`, strip their scripts, and reparent/alias to fit the
-convention. Prefer built-in models; fall back to primitives if a model file
-is missing.
+ convention. Production builds must fail if a required built-in model is
+ missing; primitive fallback is diagnostic-only.
 
 ### Step 2: ZMQ Bridge Initialization
 Read [references/control-framework.md](references/control-framework.md).
@@ -371,9 +397,11 @@ alias-leaf handle map, the `setup_logger`, and the beat dictionary.
 
 ### Step 3: Core Scheduling Loop
 Read [references/scheduling.md](references/scheduling.md). Implement
-`FactoryController.run()`'s 13-step fixed loop, `AGVScheduler` for flexible
-routing, `IslandController` + `BeatTracker` + `SupplyController`, and
-`ExceptionHandler`.
+`FactoryController.run()`'s physical workflow: sensor polling,
+`HYBRID_DYNAMIC` conveyor/material state, `simIK` + suction actions,
+pioneer wheel control, handoffs, and UID logging. Keep
+`IslandController` + `BeatTracker` + `SupplyController` + `ExceptionHandler`
+as supporting services.
 
 ### Step 4: Integration Testing
 Run end-to-end. Inject anomalies (pause an island, block an AGV path, drop
@@ -398,5 +426,5 @@ Before declaring the system complete, verify:
 - [ ] Exception handling is robust: simulated communication loss, material
       congestion, workstation timeout, and material overflow all trigger
       correct detection, logging, and safe recovery (not crash)
-- [ ] MCP 19 tools work; dual-connection keeps read-only diagnostics stable
+- [ ] MCP 20 tools work; dual-connection keeps read-only diagnostics stable
       while the main loop runs

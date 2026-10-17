@@ -18,6 +18,7 @@ wheels/
 factory_sim.log
 factory_verify_*.log
 factory_arm_*.log
+coppelia_console*.log*
 emergency_dump_*.json
 
 # 文档库的 Obsidian 本地状态与插件 (不入库)
