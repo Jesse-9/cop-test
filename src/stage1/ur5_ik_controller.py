@@ -37,13 +37,18 @@ class IKResult:
 
 class Ur5IkController:
     def __init__(self, sim, simIK, arm_root: int, tcp_handle: int,
-                 target_handle: int, scene_joints: list[int]) -> None:
+                 target_handle: int, scene_joints: list[int],
+                 constraint: int | None = None) -> None:
         self.sim = sim
         self.simIK = simIK
         self.arm_root = int(arm_root)
         self.tcp_handle = int(tcp_handle)
         self.target_handle = int(target_handle)
         self.scene_joints = [int(j) for j in scene_joints]
+        # 生产控制使用 constraint_pose; 步骤 1.1 的诊断扫描另建
+        # constraint_position 实例, 用于区分“位置不可达”和“姿态不可达”。
+        self.constraint = (simIK.constraint_pose if constraint is None
+                           else int(constraint))
 
         self.env = -1
         self.group_main = -1
@@ -72,7 +77,7 @@ class Ur5IkController:
         for group in (self.group_main, self.group_backup):
             ret = ik.addElementFromScene(
                 self.env, group, self.arm_root, self.tcp_handle,
-                self.target_handle, ik.constraint_pose)
+                self.target_handle, self.constraint)
             self._maps[group] = self._extract_joint_map(ret, group)
             # 4.10: 第一个返回值是 IK element handle
             element = int(ret[0]) if isinstance(ret, (tuple, list)) else -1

@@ -214,6 +214,8 @@ SUCTION_SETTLE_Z_TOL = 0.02       # 物料中心应高于承载面 5cm 的容差
 
 AGV_WHEEL_RADIUS = 0.0975         # 实测轮直径 0.195 / 2
 AGV_WHEEL_BASE = 0.3310           # 实测左右轮中心距 |0.1655 - (-0.1655)|
+# 实测车体包围盒 0.519 x 0.415 m (phase0_measurements.json), 用于布局压占校验
+AGV_FOOTPRINT_SIZE = (0.519, 0.415)
 AGV_CHASSIS_MIN_Z = -0.1387857600840104
 AGV_CHASSIS_TOP_LOCAL_Z = 0.09823927488851028
 AGV_MAX_LINEAR_VEL = 0.35

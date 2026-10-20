@@ -4,6 +4,7 @@
 和指定物料。子模块:
 
     config                  参数与别名
+    layout                  LayoutSpec / 布局几何校验
     physics                 物理属性工具
     scene                   单工位场景构建
     device_handle_map       启动期句柄表
@@ -19,7 +20,7 @@
 """
 
 __all__ = [
-    "config", "physics", "scene", "device_handle_map", "material_manager",
-    "conveyor_controller", "ur5_ik_controller", "suction_controller",
-    "pioneer_controller", "unit_controller", "run",
+    "config", "layout", "physics", "scene", "device_handle_map",
+    "material_manager", "conveyor_controller", "ur5_ik_controller",
+    "suction_controller", "pioneer_controller", "unit_controller", "run",
 ]

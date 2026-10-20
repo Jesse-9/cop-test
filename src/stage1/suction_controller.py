@@ -193,6 +193,10 @@ class SuctionController:
     def snapshot(self, uid: int):
         return self._snapshots.get(uid)
 
+    def forget(self, uid: int) -> None:
+        """试验清理: 物料对象移除后丢弃其属性快照。"""
+        self._snapshots.pop(int(uid), None)
+
     def _save_snapshot(self, handle: int) -> dict:
         sim = self.sim
         snap = {

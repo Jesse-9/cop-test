@@ -21,6 +21,7 @@ from typing import Optional
 from . import config as cfg
 from . import physics as phys
 from .conveyor_controller import configure_conveyor_model
+from .layout import LayoutSpec, default_layout, validate_layout
 
 KEEP_DEFAULT = {
     "DefaultCamera", "XYZCameraProxy", "XViewCamera", "YViewCamera",
@@ -260,6 +261,7 @@ def _measure_top_run(sim, belt: int, surface_off_hint: float = 0.0):
 @dataclass
 class Stage1Scene:
     sim: object
+    layout: Optional[LayoutSpec] = None
     handles: dict[str, int] = field(default_factory=dict)
     robot_joints: list[int] = field(default_factory=list)
     robot_connection: int = -1
@@ -291,7 +293,8 @@ class Stage1Scene:
     # ── 物料 ────────────────────────────────────────────────
 
     def spawn_material(self, uid: int, alias: str,
-                       position=None) -> int:
+                       position=None, orientation=None) -> int:
+        """生成物料; orientation 为世界四元数 [qx,qy,qz,qw] (可选)."""
         pos = list(cfg.MATERIAL_SPAWN_POS if position is None else position)
         h = int(self.sim.createPrimitiveShape(
             self.sim.primitiveshape_cuboid, list(cfg.MATERIAL_SIZE)))
@@ -299,7 +302,12 @@ class Stage1Scene:
         part_root = self.handle(cfg.ALIASES["roots"][4])  # Part
         if part_root >= 0:
             self.sim.setObjectParent(h, part_root, True)
-        self.sim.setObjectPosition(h, pos, self.sim.handle_world)
+        if orientation is None:
+            self.sim.setObjectPosition(h, pos, self.sim.handle_world)
+        else:
+            self.sim.setObjectPose(
+                h, [*pos, *[float(v) for v in orientation]],
+                self.sim.handle_world)
         color = cfg.MATERIAL_COLORS.get(alias, (0.8, 0.8, 0.8))
         try:
             self.sim.setObjectColor(h, 0,
@@ -388,11 +396,26 @@ class Stage1Scene:
             checks.append({"name": name, "ok": bool(ok), "detail": detail})
             return ok
 
+        if self.layout is not None:
+            layout_report = validate_layout(self.layout)
+            check("layout_static_validation", layout_report["ok"],
+                  f"layout={self.layout.name} "
+                  f"({sum(1 for c in layout_report['checks'] if c['ok'])}"
+                  f"/{len(layout_report['checks'])} checks)")
+
         for alias in cfg.REQUIRED_ALIASES:
             hits = [h for h in all_objects(self.sim)
                     if alias_of(self.sim, h) == alias]
             check(f"alias_unique:{alias}", len(hits) == 1,
                   f"{len(hits)} 个匹配")
+
+        stopper_hits = [h for h in all_objects(self.sim)
+                        if alias_of(self.sim, h) == cfg.ALIASES["conveyor_stopper"]]
+        expected_stopper = bool(self.layout and self.layout.include_stopper)
+        check("stopper_state",
+              (len(stopper_hits) == 1) if expected_stopper
+              else (len(stopper_hits) == 0),
+              f"expected={expected_stopper} found={len(stopper_hits)}")
 
         check("robot_joint_count", len(self.robot_joints) == 6,
               f"{len(self.robot_joints)} 个关节")
@@ -411,6 +434,13 @@ class Stage1Scene:
                 check("pick_zone_inside_top_run",
                       run["min_x"] <= cfg.CONVEYOR_STOP_LOCAL_X <= run["max_x"],
                       f"stop_local={cfg.CONVEYOR_STOP_LOCAL_X:.4f} "
+                      f"run={run['min_x']:.4f}..{run['max_x']:.4f}")
+                sensor_x = (self.layout.pick_sensor_local_x
+                            if self.layout is not None
+                            else cfg.CONVEYOR_STOP_LOCAL_X)
+                check("pick_sensor_inside_top_run",
+                      run["min_x"] <= sensor_x <= run["max_x"],
+                      f"sensor_local={sensor_x:.4f} "
                       f"run={run['min_x']:.4f}..{run['max_x']:.4f}")
             check("conveyor_script_present",
                   self.conveyor_meta.get("script_handle", -1) >= 0,
@@ -441,18 +471,16 @@ class Stage1Scene:
                   abs(local[2] - cfg.TCP_LOCAL_Z) <= 0.005,
                   f"TCP local={[round(v, 5) for v in local]}")
 
-        for name, point in (
-                ("pick", cfg.PICK_TCP_POSE),
-                ("station", cfg.STATION_TCP_POSE),
-                ("agv", cfg.AGV_TCP_POSE)):
-            d = cfg.arm_reach_to(point)
+        layout = self.layout if self.layout is not None else default_layout()
+        for name, point in layout.targets().items():
+            d = math.dist(layout.arm_base, point[:3])
             check(f"arm_reach:{name}", d <= cfg.REACH_LIMIT,
                   f"{d:.3f} m <= {cfg.REACH_LIMIT:.3f} m")
 
         if tcp >= 0:
             z = float(self.sim.getObjectPosition(
                 tcp, self.sim.handle_world)[2])
-            check("tcp_above_island", z > cfg.ISLAND_TOP_Z,
+            check("tcp_above_island", z > layout.island_top_z,
                   f"TCP z={z:.3f}")
 
         ok = all(c["ok"] for c in checks)
@@ -493,13 +521,14 @@ def _find_scripts(sim, root: int) -> list[int]:
     return out
 
 
-def _create_conveyor(sim, parent: int) -> tuple[int, dict]:
+def _create_conveyor(sim, parent: int,
+                     layout: LayoutSpec) -> tuple[int, dict]:
     # conveyor 的 customization 脚本是**唯一** pad 写入者, 必须保留;
     # 只剥离 UR5/suction/p3dx 的脚本 (CLAUDE.md §12/§13).
+    belt_pos = (layout.conveyor_center[0], layout.conveyor_center[1],
+                cfg.CONVEYOR_SURFACE_Z - cfg.CONVEYOR_SURFACE_OFFSET)
     belt = _load_model(sim, "conveyor", cfg.ALIASES["conveyor"],
-                       (cfg.CONVEYOR_CENTER[0], cfg.CONVEYOR_CENTER[1],
-                        cfg.CONVEYOR_SURFACE_Z - cfg.CONVEYOR_SURFACE_OFFSET),
-                       parent, strip_scripts=False)
+                       belt_pos, parent, strip_scripts=False)
 
     # 构建期等比缩放到设计长度 (4.10 scaleObjects 是标量等比缩放)
     bbox = _model_bbox(sim, belt)
@@ -511,10 +540,7 @@ def _create_conveyor(sim, parent: int) -> tuple[int, dict]:
     scale = cfg.CONVEYOR_DESIGN_LENGTH / native_len
     if abs(scale - 1.0) > 1e-6:
         sim.scaleObjects([belt], scale, True)
-        sim.setObjectPosition(
-            belt, [cfg.CONVEYOR_CENTER[0], cfg.CONVEYOR_CENTER[1],
-                   cfg.CONVEYOR_SURFACE_Z - cfg.CONVEYOR_SURFACE_OFFSET],
-            sim.handle_world)
+        sim.setObjectPosition(belt, list(belt_pos), sim.handle_world)
         bbox = _model_bbox(sim, belt)
     actual_length = (bbox[3] - bbox[0]) if bbox else native_len * scale
     actual_width = (bbox[4] - bbox[1]) if bbox else cfg.CONVEYOR_NATIVE_WIDTH * scale
@@ -522,7 +548,7 @@ def _create_conveyor(sim, parent: int) -> tuple[int, dict]:
     run = _measure_top_run(sim, belt)
     # 以实测带面偏移反推模型根高度, 保证带面精确落在 CONVEYOR_SURFACE_Z
     sim.setObjectPosition(
-        belt, [cfg.CONVEYOR_CENTER[0], cfg.CONVEYOR_CENTER[1],
+        belt, [layout.conveyor_center[0], layout.conveyor_center[1],
                cfg.CONVEYOR_SURFACE_Z - run["surface_off"]],
         sim.handle_world)
     run["actual_length"] = actual_length
@@ -559,22 +585,27 @@ def _create_conveyor(sim, parent: int) -> tuple[int, dict]:
     sim.setObjectPosition(stop, [stop_local, 0.0, surface_off],
                           sim.handle_parent)
 
-    # 挡停体: 只挡不推, 位于上表面行程末端之外
-    thk = 0.04
-    stopper_h = 0.16
-    stopper = _create_box(
-        sim, cfg.ALIASES["conveyor_stopper"],
-        (thk, actual_width, stopper_h),
-        (cfg.CONVEYOR_CENTER[0] + run["max_x"] + thk / 2.0,
-         cfg.CONVEYOR_CENTER[1],
-         cfg.CONVEYOR_SURFACE_Z + stopper_h / 2.0),
-        color=(0.85, 0.85, 0.2), parent=belt)
-    run["stopper"] = stopper
+    # 挡停体: 只挡不推, 位于上表面行程末端之外。
+    # 步骤 1.1 的 B/C 组布局在构建期关闭它; 生产布局必须显式声明。
+    if layout.include_stopper:
+        thk = 0.04
+        stopper_h = 0.16
+        stopper = _create_box(
+            sim, cfg.ALIASES["conveyor_stopper"],
+            (thk, actual_width, stopper_h),
+            (layout.conveyor_center[0] + run["max_x"] + thk / 2.0,
+             layout.conveyor_center[1],
+             cfg.CONVEYOR_SURFACE_Z + stopper_h / 2.0),
+            color=(0.85, 0.85, 0.2), parent=belt)
+        run["stopper"] = stopper
+    else:
+        run["stopper"] = -1
 
     # 传感器 (圆柱体积朝下, 覆盖物料顶面但不接触带面)
     _create_cylinder_sensor(
         sim, cfg.ALIASES["pick_sensor"], parent=belt,
-        local_pos=[stop_local, 0.0, cfg.PICK_SENSOR_Z - cfg.CONVEYOR_SURFACE_Z],
+        local_pos=[layout.pick_sensor_local_x, 0.0,
+                   cfg.PICK_SENSOR_Z - cfg.CONVEYOR_SURFACE_Z],
         local_orientation=cfg.PICK_SENSOR_ORIENTATION,
         range_=cfg.PICK_SENSOR_RANGE, radius=cfg.PICK_SENSOR_RADIUS)
     _create_cylinder_sensor(
@@ -624,8 +655,8 @@ def _create_cylinder_sensor(sim, alias: str, parent: int, local_pos,
     return h
 
 
-def _create_robot(sim, island: int) -> dict:
-    arm = _load_model(sim, "ur5", cfg.ALIASES["robot"], cfg.ARM_BASE_POS,
+def _create_robot(sim, island: int, layout: LayoutSpec) -> dict:
+    arm = _load_model(sim, "ur5", cfg.ALIASES["robot"], layout.arm_base,
                       island)
     # 全臂非动态, 否则 kinematic 关节会让连杆自由落体 (CLAUDE.md 坑 9)。
     # 同时关闭机械臂/吸盘的 respondable: 运动学臂不参与动力学位移,
@@ -709,9 +740,9 @@ def _create_robot(sim, island: int) -> dict:
     }
 
 
-def _create_agv(sim, mobile_root: int) -> dict:
+def _create_agv(sim, mobile_root: int, layout: LayoutSpec) -> dict:
     root = _load_model(sim, "pioneer_p3dx", cfg.ALIASES["agv"],
-                       (cfg.AGV_DOCK_POS[0], cfg.AGV_DOCK_POS[1],
+                       (layout.agv_dock[0], layout.agv_dock[1],
                         cfg.AGV_ROOT_Z), mobile_root)
 
     joints = {alias_of(sim, h): h for h in subtree(sim, root)
@@ -724,7 +755,7 @@ def _create_agv(sim, mobile_root: int) -> dict:
     # 载台 (与车体刚性连接, 静态+可响应)
     tray = _create_box(
         sim, cfg.ALIASES["agv_tray"], cfg.AGV_TRAY_SIZE,
-        (cfg.AGV_DOCK_POS[0], cfg.AGV_DOCK_POS[1],
+        (layout.agv_dock[0], layout.agv_dock[1],
          cfg.AGV_ROOT_Z + cfg.AGV_TRAY_CENTER_LOCAL_Z),
         color=(0.55, 0.55, 0.60), parent=root)
     phys.apply_kinematic_shape(sim, tray, respondable=True)
@@ -745,14 +776,14 @@ def _create_agv(sim, mobile_root: int) -> dict:
                                 cfg.AGV_WALL_HEIGHT), 0.0, -off)):
         wall = _create_box(
             sim, cfg.ALIASES[key], size,
-            (cfg.AGV_DOCK_POS[0] + dx, cfg.AGV_DOCK_POS[1] + dy, z_wall),
+            (layout.agv_dock[0] + dx, layout.agv_dock[1] + dy, z_wall),
             color=(0.45, 0.45, 0.50), parent=root)
         phys.apply_kinematic_shape(sim, wall, respondable=True)
         phys.set_friction(sim, wall, cfg.AGV_TRAY_FRICTION)
 
     _create_cylinder_sensor(
         sim, cfg.ALIASES["agv_dock_sensor"], parent=mobile_root,
-        local_pos=[cfg.AGV_DOCK_POS[0], cfg.AGV_DOCK_POS[1],
+        local_pos=[layout.agv_dock[0], layout.agv_dock[1],
                    cfg.AGV_DOCK_SENSOR_Z],
         local_orientation=cfg.PICK_SENSOR_ORIENTATION,
         range_=cfg.AGV_DOCK_SENSOR_RANGE, radius=cfg.AGV_DOCK_SENSOR_RADIUS)
@@ -760,14 +791,28 @@ def _create_agv(sim, mobile_root: int) -> dict:
     return {"root": root, "left": left, "right": right, "tray": tray}
 
 
-def build_scene(sim, clear: bool = True) -> Stage1Scene:
-    """构建阶段一场景并返回句柄/标定信息。"""
+def build_scene(sim, clear: bool = True,
+                layout: Optional[LayoutSpec] = None) -> Stage1Scene:
+    """构建单工位场景并返回句柄/标定信息。
+
+    ``layout`` 默认为阶段一基线; 候选布局必须先通过静态几何校验,
+    失败时在清场之前抛出 ``SceneBuildError``。
+    """
+    layout = default_layout() if layout is None else layout
+    layout_report = validate_layout(layout)
+    if not layout_report["ok"]:
+        failed = [c for c in layout_report["checks"] if not c["ok"]]
+        raise SceneBuildError(
+            f"布局 {layout.name!r} 静态校验失败: " + "; ".join(
+                f"{c['check']}({c['detail']})" for c in failed))
+
     if clear:
         clear_scene(sim)
 
     roots = _create_hierarchy_roots(sim)
-    scene = Stage1Scene(sim=sim)
+    scene = Stage1Scene(sim=sim, layout=layout)
     scene.handles.update({name: h for name, h in roots.items()})
+    scene.build_report["layout"] = layout_report
 
     floor = _create_floor(sim)
     scene.handles[cfg.ALIASES["floor"]] = floor
@@ -775,28 +820,32 @@ def build_scene(sim, clear: bool = True) -> Stage1Scene:
     # 仓库 (视觉/供料来源) 与两个静态平台
     warehouse = _create_box(
         sim, cfg.ALIASES["warehouse"], cfg.WAREHOUSE_SIZE,
-        (cfg.WAREHOUSE_POS[0], cfg.WAREHOUSE_POS[1],
+        (layout.warehouse_pos[0], layout.warehouse_pos[1],
          cfg.WAREHOUSE_SIZE[2] / 2.0),
         color=(0.45, 0.35, 0.25), parent=roots["Warehouse"])
     scene.handles[cfg.ALIASES["warehouse"]] = warehouse
 
     island = _create_box(
-        sim, cfg.ALIASES["island"], cfg.ISLAND_SIZE,
-        (cfg.ISLAND_POS[0], cfg.ISLAND_POS[1], cfg.ISLAND_TOP_Z / 2.0),
+        sim, cfg.ALIASES["island"], layout.island_size,
+        (layout.island_pos[0], layout.island_pos[1],
+         layout.island_top_z / 2.0),
         color=(0.35, 0.40, 0.50), parent=roots["Island"])
     scene.handles[cfg.ALIASES["island"]] = island
 
     station = _create_box(
-        sim, cfg.ALIASES["station"], cfg.STATION_SIZE,
-        (cfg.STATION_POS[0], cfg.STATION_POS[1], cfg.STATION_TOP_Z / 2.0),
+        sim, cfg.ALIASES["station"], layout.station_size,
+        (layout.station_pos[0], layout.station_pos[1],
+         layout.station_top_z / 2.0),
         color=(0.35, 0.45, 0.40), parent=roots["Island"])
     scene.handles[cfg.ALIASES["station"]] = station
 
-    belt, conv_meta = _create_conveyor(sim, roots["Conveyor"])
+    belt, conv_meta = _create_conveyor(sim, roots["Conveyor"], layout)
     scene.handles[cfg.ALIASES["conveyor"]] = belt
     scene.conveyor_meta = conv_meta
+    if conv_meta.get("stopper", -1) >= 0:
+        scene.handles[cfg.ALIASES["conveyor_stopper"]] = conv_meta["stopper"]
 
-    robot = _create_robot(sim, island)
+    robot = _create_robot(sim, island, layout)
     scene.robot_root = robot["arm"]
     scene.robot_connection = robot["connection"]
     scene.robot_joints = robot["joints"]
@@ -809,7 +858,7 @@ def build_scene(sim, clear: bool = True) -> Stage1Scene:
     scene.handles[cfg.ALIASES["tcp"]] = robot["tcp"]
     scene.handles[cfg.ALIASES["suction_sensor"]] = robot["sensor"]
 
-    agv = _create_agv(sim, roots["Mobile"])
+    agv = _create_agv(sim, roots["Mobile"], layout)
     scene.agv_root = agv["root"]
     scene.agv_left_wheel = agv["left"]
     scene.agv_right_wheel = agv["right"]
@@ -819,7 +868,7 @@ def build_scene(sim, clear: bool = True) -> Stage1Scene:
     target = int(sim.createDummy(0.01))
     sim.setObjectAlias(target, cfg.ALIASES["ik_target"])
     sim.setObjectParent(target, roots["Island"], True)
-    sim.setObjectPose(target, [*cfg.PICK_TCP_POSE], sim.handle_world)
+    sim.setObjectPose(target, [*layout.pick_tcp_pose], sim.handle_world)
     scene.handles[cfg.ALIASES["ik_target"]] = target
 
     report = scene.verify()
