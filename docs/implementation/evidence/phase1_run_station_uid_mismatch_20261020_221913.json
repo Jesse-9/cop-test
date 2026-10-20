@@ -1,0 +1,208 @@
+{
+  "timestamp": "20261020_221913",
+  "target": "station",
+  "fault": "uid_mismatch",
+  "layout": "L1_S1",
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09776,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 2876,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01007,
+    "stop_ok": true
+  },
+  "results": [
+    {
+      "target": "station",
+      "task": {
+        "uid": 1,
+        "target": "station",
+        "layout": "L1_S1",
+        "state": "FAILED",
+        "failure_reason": "SENSOR_TIMEOUT: 目标物料未到达取料位",
+        "material_state": "SPAWNED",
+        "compensation_count": 0,
+        "pick_pose": null,
+        "pick_tcp": null,
+        "agv_blocked": false,
+        "events": [
+          [
+            0.8500000000000002,
+            "WAITING_FOR_ITEM: task started"
+          ],
+          [
+            15.85000000000009,
+            "FAILED: SENSOR_TIMEOUT: 目标物料未到达取料位"
+          ]
+        ]
+      },
+      "material": {
+        "pose": [
+          -1.01698,
+          -0.0,
+          0.5,
+          -0.0,
+          -0.0,
+          0.0,
+          1.0
+        ],
+        "expected_pose": [
+          -0.2,
+          1.2,
+          0.35,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "position_error": 1.45944,
+        "physics": {
+          "static": 0,
+          "kinematic": 0,
+          "respondable": 1,
+          "mask": 65535,
+          "mass": 0.1,
+          "friction": 0.6
+        },
+        "dynamic_ok": true,
+        "respondable_ok": true
+      },
+      "tcp": {
+        "pose": [
+          -0.31,
+          0.0631,
+          0.66215,
+          0.0,
+          0.0,
+          0.70711,
+          -0.70711
+        ]
+      },
+      "tool": {
+        "version": "suction_mount_rx180_20261020",
+        "ok": true,
+        "mount_z": 0.04754997428506614,
+        "mount_quaternion": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "flange_protrusion_z": 0.007549934089183821,
+        "link_clearance_design": 0.005,
+        "handles": {
+          "connection": 3024,
+          "pad": 3026,
+          "tcp": 3033,
+          "sensor": 3034,
+          "model_sensor": 3029,
+          "link": 3030
+        },
+        "joint_positions": [
+          0.0,
+          0.0,
+          -1.5707963267948966,
+          0.0,
+          1.5707963267948966,
+          0.0
+        ],
+        "sim_time": 15.900000000000091,
+        "pad_world_pose": [
+          -0.30999982422312355,
+          0.06309969553565438,
+          0.6771498338656965,
+          0.0,
+          0.0,
+          0.7071067811865476,
+          -0.7071067811865476
+        ],
+        "tcp_world_pose": [
+          -0.30999982422312355,
+          0.06309969553565438,
+          0.6621497839095536,
+          0.0,
+          0.0,
+          0.7071067811865476,
+          -0.7071067811865476
+        ],
+        "tcp_in_pad": [
+          0.0,
+          0.0,
+          -0.015000049956142902,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "pad_in_connection": [
+          0.0,
+          0.0,
+          0.047549974285066354,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suction_normal_world": [
+          -0.0,
+          -0.0,
+          -1.0
+        ],
+        "sensor_axis_world": [
+          -1.2246467991473537e-16,
+          1.2246467991473535e-16,
+          -1.0
+        ],
+        "model_sensor_axis_world": [
+          8.742277657347571e-08,
+          0.0,
+          -0.9999999999999964
+        ],
+        "end_link_max_z_in_connection": 0.0075499340891838195,
+        "pad_back_plane_z": 0.012549934089183819,
+        "link_clearance": 0.004999999999999999
+      },
+      "arm_joints": [
+        0.0,
+        0.0,
+        -1.5708,
+        0.0,
+        1.5708,
+        0.0
+      ],
+      "agv": {
+        "pose": [
+          0.39445,
+          0.74986,
+          0.13869,
+          -4e-05,
+          -0.00094,
+          -0.00094,
+          1.0
+        ],
+        "state": "IDLE",
+        "blocked": false,
+        "last_wheel_speeds": [
+          0.0,
+          0.0
+        ]
+      },
+      "conveyor": {
+        "drive_mode": "SCRIPT_DRIVEN",
+        "commanded_velocity": 0.0,
+        "actual_velocity": 4e-05
+      },
+      "sim_time": 15.9,
+      "steps": 301,
+      "ok": false
+    }
+  ],
+  "all_ok": false
+}

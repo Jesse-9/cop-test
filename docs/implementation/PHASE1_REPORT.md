@@ -5,6 +5,11 @@
 **规范来源**: [06-05-柔性工业车间分阶段执行步骤](../wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) §2
 **参数基线**: [PHASE0_BASELINE.md](PHASE0_BASELINE.md) / [phase0_measurements.json](../measurement/phase0_measurements.json)
 
+> **2026-10-20 工具安装修正**：suction pad 的安装方向与 TCP 局部姿态已按
+> [SUCTION_PAD_MOUNT_REVIEW.md](SUCTION_PAD_MOUNT_REVIEW.md) 修正
+> （Rx(π) + `d = 47.55 mm`），并重新执行了 `L1_S1` IK、正常闭环、连续运行和
+> 故障注入。本报告下文关于吸盘/工具安装的描述以该修正文档为准；旧证据保留。
+
 ## 1. 环境
 
 | 项 | 值 |

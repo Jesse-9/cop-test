@@ -1,0 +1,39 @@
+{
+  "timestamp": "20261020_222250",
+  "base": {
+    "geometry_error": null,
+    "tilt_rad": 0.0,
+    "normal": [
+      -0.0,
+      -0.0,
+      -1.0
+    ]
+  },
+  "reversed_pad": {
+    "geometry_error": null,
+    "tilt_rad": 3.141592653589793,
+    "normal": [
+      -0.0,
+      0.0,
+      1.0000000000000004
+    ],
+    "rejected": true
+  },
+  "insufficient_clearance": {
+    "mount_z": 0.03700004019588232,
+    "back_plane_z": 0.0020000000000000018,
+    "end_link_max_z": 0.0075499340891838195,
+    "gap_m": -0.005549934089183818,
+    "required_gap_m": 0.005,
+    "rejected": true
+  },
+  "restored": {
+    "geometry_error": null,
+    "tilt_rad": 0.0,
+    "normal": [
+      -0.0,
+      -0.0,
+      -1.0
+    ]
+  }
+}

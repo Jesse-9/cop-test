@@ -1,0 +1,76 @@
+{
+  "scope": "Offline inference from current stage1 source and recorded snapshot; live scene not read or modified.",
+  "snapshot": "phase1_scene_snapshot_20261020_163555.json",
+  "pad_world": [
+    -0.31,
+    0.0631,
+    0.7247
+  ],
+  "tcp_world": [
+    -0.31,
+    0.0631,
+    0.7397
+  ],
+  "pad_minus_z_contact_axis_world_approx": [
+    0.0,
+    0.0,
+    0.9999966696015656
+  ],
+  "tcp_world_orientation_at_creation": "identity (createDummy + keepInPlace=True, no quaternion override)",
+  "pad_bbox_local_z_m": [
+    -0.015000049956142902,
+    0.03500004019588232
+  ],
+  "mount_cases_in_connection_frame": {
+    "0.0": {
+      "rotation_xyzw": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pad_origin_z_m": 0.03500004019588232,
+      "pad_axial_interval_m": [
+        0.0,
+        0.05000009015202522
+      ],
+      "tcp_z_m": 0.05000009015202522
+    },
+    "0.005": {
+      "rotation_xyzw": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pad_origin_z_m": 0.04000004019588232,
+      "pad_axial_interval_m": [
+        0.0049999999999999975,
+        0.05500009015202522
+      ],
+      "tcp_z_m": 0.05500009015202522
+    },
+    "0.01": {
+      "rotation_xyzw": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pad_origin_z_m": 0.04500004019588232,
+      "pad_axial_interval_m": [
+        0.010000000000000002,
+        0.060000090152025225
+      ],
+      "tcp_z_m": 0.060000090152025225
+    }
+  },
+  "current_pad_body_world_z_relative_to_tcp_m": [
+    -0.05000004,
+    5e-08
+  ],
+  "notes": [
+    "connection +Z must be confirmed as the outward flange axis; final mesh clearance is not measured.",
+    "Proposed g=0.005 m is an example flange-plane gap, not a measured clearance to the robot link."
+  ]
+}
