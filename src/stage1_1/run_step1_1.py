@@ -506,6 +506,8 @@ def _subset_stats(records: list[dict]) -> dict:
         return {key: _stats([r.get(key) for r in records])}
     final_x = [r["material_final_pose"][0] for r in records
                if r.get("material_final_pose")]
+    stop_x = [r["material_stop_pose"][0] for r in records
+              if r.get("material_stop_pose")]
     delay = []
     for r in records:
         if r.get("stop_command_time") is not None \
@@ -519,6 +521,10 @@ def _subset_stats(records: list[dict]) -> dict:
             1 for r in records if r.get("inside_allowed_region")),
         "pad_stop_modes": dict(Counter(
             r.get("pad_stop_mode", "") for r in records)),
+        "stop_command_reasons": dict(Counter(
+            r.get("stop_command_reason", "") for r in records)),
+        "sensor_triggered": sum(
+            1 for r in records if r.get("sensor_trigger_time") is not None),
         "failure_reasons": dict(Counter(
             r.get("failure_reason", "") for r in records
             if r.get("failure_reason"))),
@@ -532,6 +538,7 @@ def _subset_stats(records: list[dict]) -> dict:
              for r in records]),
         "material_settle_time_s": _stats(
             [r.get("material_settle_time_s") for r in records]),
+        "material_stop_x": _stats(stop_x),
         "material_final_x": _stats(final_x),
         "compensation_count": _stats(
             [r.get("compensation_count") for r in records]),

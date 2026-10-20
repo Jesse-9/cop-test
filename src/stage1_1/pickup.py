@@ -84,6 +84,14 @@ def _dist(a, b) -> float:
 
 @dataclass
 class TrialRecord:
+    """单次试验记录 (06-07 §4.4).
+
+    ``success`` 的语义:
+      - A: 停带试验完成且数据完整 (gate_ok 单独记录当前流程是否落入允许区);
+      - B: 等于 gate_ok, 完整取放时还要求放置误差在容差内;
+      - C: 诊断完成 (gate_ok = 是否检测到物理输送)。
+    ``gate_ok`` 是 06-07 §5.3 冻结门槛的结果, 不得用 ``success`` 替代。
+    """
     run_id: str
     group: str
     group_name: str
@@ -142,6 +150,8 @@ class TrialRecord:
     transported: Optional[bool] = None
     reached_detection_zone: Optional[bool] = None
     displacement_x: Optional[float] = None
+    observe_duration_s: Optional[float] = None
+    average_speed_mps: Optional[float] = None
 
     state: str = ""
     success: bool = False
@@ -465,6 +475,9 @@ class PickupTrial:
         self.record.material_final_pose = final
         dx = float(final[0]) - float(self.record.initial_pose[0])
         self.record.displacement_x = round(dx, 5)
+        self.record.observe_duration_s = round(elapsed, 5)
+        self.record.average_speed_mps = (
+            round(dx / elapsed, 5) if elapsed > 1e-9 else None)
         self.record.transported = bool(dx >= cfg.C_TRANSPORT_MIN_DX)
         self.record.reached_detection_zone = bool(
             self.record.sensor_trigger_time is not None)
@@ -496,7 +509,8 @@ class PickupTrial:
         self.record.stop_command_reason = reason
         self._pad_pos_at_command = self._last_pad_pos
         self._pad_prev_pos = self._last_pad_pos
-        self._stop_pose = list(self._last_pos)
+        # 读取 sim 当前位姿: A 组刚刚执行了最后一步补偿, 不能用补偿前的缓存值
+        self._stop_pose = self._pose()
         self._pad_confirm = 0
         self._vel_mismatch = 0
         self._event(f"conveyor stop commanded ({reason}) "

@@ -791,6 +791,24 @@ def _create_agv(sim, mobile_root: int, layout: LayoutSpec) -> dict:
     return {"root": root, "left": left, "right": right, "tray": tray}
 
 
+def _cache_required_handles(sim, scene: "Stage1Scene") -> None:
+    """构建期一次性缓存运行循环要用的句柄 (CLAUDE.md §3)。
+
+    `Stage1Scene.handle()` 在句柄未缓存时会枚举全场景; 传感器/入口/停止区
+    在每步控制循环里被读取, 必须在启动时缓存。找不到的别名保持缺失,
+    由 `verify()` 的契约断言报告。
+    """
+    for key in ("conveyor_entry", "conveyor_stop", "pick_sensor",
+                "exit_sensor", "agv_dock_sensor", "place_target_station",
+                "conveyor_stopper"):
+        alias = cfg.ALIASES[key]
+        if alias in scene.handles:
+            continue
+        h = resolve_alias(sim, alias, required=False)
+        if h >= 0:
+            scene.handles[alias] = h
+
+
 def build_scene(sim, clear: bool = True,
                 layout: Optional[LayoutSpec] = None) -> Stage1Scene:
     """构建单工位场景并返回句柄/标定信息。
@@ -870,6 +888,9 @@ def build_scene(sim, clear: bool = True,
     sim.setObjectParent(target, roots["Island"], True)
     sim.setObjectPose(target, [*layout.pick_tcp_pose], sim.handle_world)
     scene.handles[cfg.ALIASES["ik_target"]] = target
+
+    # 运行循环只读缓存; 构建期做一次全场景解析 (CLAUDE.md §3)
+    _cache_required_handles(sim, scene)
 
     report = scene.verify()
     if not report["ok"]:

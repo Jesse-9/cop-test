@@ -59,6 +59,9 @@ def run_baseline_flow(sim, scene, comp, uid: int,
     materials: MaterialManager = comp["materials"]
     material = scene.spawn_material(uid, f"Part_{uid:04d}")
     materials.register(uid, f"Part_{uid:04d}", sim_handle=material)
+    spawn_time = float(sim.getSimulationTime())
+    spawn_pose = [round(float(v), 5) for v in
+                  sim.getObjectPose(material, sim.handle_world)]
 
     controller = Stage1UnitController(
         sim=sim, scene=scene, materials=materials,
@@ -170,9 +173,17 @@ def run_baseline_flow(sim, scene, comp, uid: int,
 
     final_pose = list(sim.getObjectPose(material, sim.handle_world))
     expected = cfg_station_material_pose()
+    avg_speed_to_sensor = None
+    if hit_pose is not None and first_hit_time is not None:
+        dt = first_hit_time - spawn_time
+        if dt > 1e-9:
+            avg_speed_to_sensor = round(_dist(hit_pose, spawn_pose) / dt, 5)
     return {
         "uid": uid,
         "material_handle": int(material),
+        "material_spawn_pose": spawn_pose,
+        "material_spawn_time": round(spawn_time, 5),
+        "average_speed_to_sensor_mps": avg_speed_to_sensor,
         "task_state": controller.state.name,
         "failure_reason": controller.failure_reason,
         "steps": steps,

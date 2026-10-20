@@ -369,25 +369,28 @@ def quat_rotate(q, v) -> list[float]:
 
 
 def _local_bbox(sim, handle: int):
-    """局部包围盒 (min, max); 先 getShapeBB, 再退回 model bbox 参数。"""
+    """局部包围盒 (min, max); 优先 model bbox (覆盖整棵模型), 再 shape BB。"""
+    names = ("min_x", "min_y", "min_z", "max_x", "max_y", "max_z")
+    vals = []
+    for name in names:
+        param = getattr(sim, f"objfloatparam_modelbbox_{name}", None)
+        if param is None:
+            vals = []
+            break
+        try:
+            vals.append(float(sim.getObjectFloatParam(handle, param)))
+        except Exception:
+            vals = []
+            break
+    if len(vals) == 6:
+        return vals[:3], vals[3:]
     try:
         bb = sim.getShapeBB(handle)
         size = bb[0] if isinstance(bb, (tuple, list)) and len(bb) == 2 else bb
         half = [float(v) / 2.0 for v in size[:3]]
         return [-half[0], -half[1], -half[2]], half
     except Exception:
-        pass
-    names = ("min_x", "min_y", "min_z", "max_x", "max_y", "max_z")
-    vals = []
-    for name in names:
-        param = getattr(sim, f"objfloatparam_modelbbox_{name}", None)
-        if param is None:
-            return None
-        try:
-            vals.append(float(sim.getObjectFloatParam(handle, param)))
-        except Exception:
-            return None
-    return vals[:3], vals[3:]
+        return None
 
 
 def object_bbox_world(sim, handle: int) -> Optional[dict]:
