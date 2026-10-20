@@ -34,8 +34,9 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。连接时同时加载
   `sim` 与 `simIK`（`simIK` 仅供 stage1 使用）。
 - **仿真在守护线程**:
-  - stage1: `start_simulation` 重建阶段一场景 → `start_stepping` → 在 daemon 线程
-    运行 `stage1.run.run_task`，立即返回；任务结束自动写
+  - stage1: `start_simulation` **不重建场景**；只启动当前已加载且已通过
+    `validate_scene` 的工件/场景 → `start_stepping` → 在 daemon 线程运行
+    `stage1.run.run_task`，立即返回；任务结束自动写
     `docs/implementation/runs/phase1_mcp_*.json`。
   - legacy: `FactoryController.run()` 在 daemon 线程运行。
 - **启动探活** (legacy): 启动 5s 后若 `sim_time` 不推进，自动在
@@ -46,26 +47,30 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   `read_signal` / `get_object_tree` / `inspect_scene_state` / `get_simulation_state`
   / `run_lua`) 走只读连接；其他工具走主连接。
 
-## 20 个工具
+## 24 个工具
 
 > 2026-10-20 起默认后端为 `stage1`（阶段一单元闭环）；旧五岛场景通过
-> `backend="legacy"` 显式启用。工具数量不变，`build_scene` / `start_simulation` /
-> `get_config` / `set_config` 增加 `backend` 参数，`start_simulation` 增加
-> `target` / `fault` 参数。
+> `backend="legacy"` 显式启用。步骤 1.2（2026-10-21）新增
+> `save_scene` / `load_scene` / `validate_scene` / `lifecycle_status`；
+> `start_simulation` 不再隐式 build/clear。
 
 ### 连接与场景
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
 | `connect` | 连接 CoppeliaSim ZMQ Remote API | `host` (默认 localhost), `port` (默认 23000) |
-| `build_scene` | 构建场景；默认阶段一单工位，返回 build_report 关键检查 | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
+| `build_scene` | 显式构建场景并执行构建契约；不自动保存工件 | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
+| `save_scene` | 停止态保存为新版本工件；保存后立即重载校验，通过才更新 current | `phase` (`stage1`/`stage2`/`diagnostic`), `parent`, `note`, `protected` |
+| `load_scene` | 停止态加载指定工件并重新解析句柄 | `artifact` (ID/目录名/`current`), `phase` |
+| `validate_scene` | 只读校验当前场景与 manifest (不修复/不补建) | `artifact` (可选, 必须与当前加载一致) |
+| `lifecycle_status` | 生命周期状态/工件/运行锁/允许动作 | — |
 | `disconnect` | 断开连接 (会先停止运行中的仿真) | — |
 
 ### 仿真生命周期
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `start_simulation` | 后台线程启动仿真；stage1 自动重建场景并跑单工位任务 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`), `fault` |
+| `start_simulation` | 后台线程启动仿真；stage1 **只启动当前已加载且已校验的场景**，不重建 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`), `fault` |
 | `stop_simulation` | 停止仿真 (stage1 置 stop 事件并等待收尾, legacy 最多等 5s) | — |
 | `step_simulation` | 单步/多步推进 (stepping 模式) | `n` (默认 1, 上限 1000); stage1 需先 `pause_simulation` |
 
@@ -73,7 +78,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `status` | 实时状态；stage1 返回 unit_state/material_state/agv_state/results，legacy 返回装配数/各岛状态 | — |
+| `status` | 实时状态；stage1 返回 unit_state/material_state/agv_state/results + lifecycle_state/artifact_id/run_id，legacy 返回装配数/各岛状态 | — |
 | `get_config` | 读取配置；stage1 默认返回速度/吸附/工具安装参数，legacy 返回节拍/路径/岛配置 | `backend` (默认 `stage1`) |
 | `set_config` | 动态改单个配置 (内存级；stage1 几何/安装参数需重新 build) | `key` (字典用点号), `value`, `backend` (默认 `stage1`) |
 | `tail_log` | 读 `factory_sim.log` 末尾 N 行 (Python 控制层日志) | `lines` (默认 50) |
@@ -108,14 +113,37 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 > `step_simulation` 见「仿真生命周期」表 (扩展签名, 支持 `n` 多步)。
 > stage1 暂停后 runner 不再并发访问 ZMQ，`step_simulation` 可安全逐帧推进。
 
+## 场景生命周期工作流 (步骤 1.2)
+
+```text
+首次:
+  build_scene → save_scene(phase="stage1") → load_scene("current")
+  → validate_scene → start_simulation → stop_simulation
+
+复用:
+  load_scene("current") → validate_scene → start_simulation → stop_simulation
+```
+
+- `start_simulation` 不再调用 `build_scene`。没有已加载且已校验的场景时返回
+  `INVALID_STATE` / `VALIDATION_FAILED`；运行锁被占用时返回 `RUN_CONFLICT`。
+- `save_scene` 只允许仿真停止态；保存后立即重新加载校验，失败不更新
+  `current.json`。
+- `phase="stage1"` 工件默认 `protected=true`，拒绝覆盖；阶段二使用
+  `phase="stage2"` + `parent=<stage1 artifact id>` 派生副本。
+- 运行中 `build_scene` / `load_scene` / `save_scene` / `validate_scene`
+  与第二路 `start_simulation` 均被拒绝。
+
 ## 典型工作流
 
 ### 1. 阶段一标准流程 (默认 backend=stage1)
 
 ```
 connect                                      → 连接 CoppeliaSim
-build_scene                                  → 构建阶段一单工位场景 (返回 build_report)
-start_simulation(total_time=90, target="station") → 重建场景并跑工位任务
+build_scene                                  → 显式构建阶段一单工位场景 (返回 build_report)
+save_scene(phase="stage1")                   → 保存只读工件 (重载校验通过才更新 current)
+load_scene("current")                        → 从工件恢复场景并重建句柄
+validate_scene                               → 只读校验 manifest/对象/配置/模型
+start_simulation(total_time=90, target="station") → 启动已校验场景 (不重建)
 status                                       → unit_state / material_state / sim_time
 pause_simulation                             → 暂停 runner (连接空闲)
 step_simulation(n=10)                        → 手动逐帧
@@ -356,17 +384,24 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 
 不用经过 Claude Code，直接命令行验证服务器：
 ```bash
-# 打印 20 个工具清单
+# 打印 24 个工具清单
 .venv/Scripts/python src/reference/factory_mcp_server.py --inspect
 
 # 直接跑各 CLI (不经 MCP)
-.venv/Scripts/python src/run_stage1.py --target station --time 30   # 当前 stage1
+.venv/Scripts/python src/run_scene_lifecycle.py load current       # 先加载已校验工件
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 30
+.venv/Scripts/python src/run_stage1.py --target station --time 30   # 兼容: 默认加载 current
 .venv/Scripts/python src/reference/build_scene.py                   # legacy 五岛
 .venv/Scripts/python src/reference/run_simulation.py --time 60
 ```
 
 ## 变更记录
 
+- **2026-10-21（步骤 1.2）**: 新增 `save_scene` / `load_scene` /
+  `validate_scene` / `lifecycle_status`（共 24 工具）；stage1
+  `start_simulation` 不再隐式 build/clear，必须先 build 或 load + validate；
+  场景基线工件位于 `docs/scene_artifacts/`。
 - **2026-10-20**: MCP 默认后端切换为 `stage1`；`build_scene` / `start_simulation` /
   `get_config` / `set_config` 增加 `backend` 参数，`start_simulation` 增加
   `target` / `fault`。stage1 运行结果写入

@@ -8,7 +8,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer — reference/factory_mcp_server.py   │  ← Claude Code 接入点
-│  (FastMCP / stdio, 20 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
+│  (FastMCP / stdio, 24 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -161,7 +161,7 @@
 | [factory_controller.py](src/reference/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
 | [build_scene.py](src/reference/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
 | [run_simulation.py](src/reference/run_simulation.py) / [main.py](src/reference/main.py) | CLI 入口 | `main()` |
-| [factory_mcp_server.py](src/reference/factory_mcp_server.py) | MCP 服务器, 暴露 20 个工具给 Claude Code (默认 stage1 后端, legacy 可选; A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
+| [factory_mcp_server.py](src/reference/factory_mcp_server.py) | MCP 服务器, 暴露 24 个工具给 Claude Code (默认 stage1 后端, legacy 可选; A 读取/B 诊断/C 控制 + 场景工件生命周期 + 双连接) | `FactoryMCPServer`, `mcp` |
 
 > 全部源码平铺在 [src/](src/) 下（基础层 / 控制层 / 视觉层 / 接入层 / CLI 入口），
 > 详见 [README.md](README.md) 的「项目结构」与 [docs/FILE_INDEX.md](docs/FILE_INDEX.md)。
@@ -185,7 +185,9 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
 | [config.py](src/stage1/config.py) | 阶段一全部位置/别名/模型路径/速度/容差/超时/故障枚举 |
 | [layout.py](src/stage1/layout.py) | `LayoutSpec`、候选布局派生坐标与静态几何校验 |
 | [physics.py](src/stage1/physics.py) | static/kinematic/respondable/mass/friction/mask 工具 |
-| [scene.py](src/stage1/scene.py) | 单工位场景构建、脚本处理、传感器、场景契约断言 |
+| [scene.py](src/stage1/scene.py) | 单工位场景构建、脚本处理、传感器、场景契约断言；`adopt_scene()` 加载后重建句柄 |
+| [scene_artifact.py](src/stage1/scene_artifact.py) | 版本化场景工件、manifest schema 1.0、摘要与只读校验 |
+| [lifecycle.py](src/stage1/lifecycle.py) | 生命周期状态机、跨进程会话状态/运行锁、build/save/load/validate/start/stop 与 CLI |
 | [device_handle_map.py](src/stage1/device_handle_map.py) | 启动期唯一别名/句柄表 |
 | [material_manager.py](src/stage1/material_manager.py) | 7 状态物料生命周期与 UID 事件历史 |
 | [conveyor_controller.py](src/stage1/conveyor_controller.py) | 内置 conveyor 驱动 + HYBRID_DYNAMIC 受限补偿 |
@@ -193,8 +195,9 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
 | [suction_controller.py](src/stage1/suction_controller.py) | UID/传感器/TCP/倾角/速度检查、属性快照与恢复 |
 | [pioneer_controller.py](src/stage1/pioneer_controller.py) | 差速换算、限幅、加速度斜坡、轮速下发 |
 | [unit_controller.py](src/stage1/unit_controller.py) | §2.11 单步状态机、故障状态与退避重试 |
-| [run.py](src/stage1/run.py) | CLI 实现：构建 → 运行 → 证据采集 → JSON 报告 |
+| [run.py](src/stage1/run.py) | `run_loaded_scene()`（不 build）+ CLI；默认加载当前工件，`--build` 才重建 |
 | [run_stage1.py](src/run_stage1.py) | 兼容入口薄包装 (`python src/run_stage1.py`) |
+| [run_scene_lifecycle.py](src/run_scene_lifecycle.py) | 步骤 1.2 生命周期 CLI 兼容入口 |
 
 阶段一模块集中在 `src/stage1/` 包内；安装后也可用 `uv run run-stage1`。
 阶段一不变量：
@@ -214,6 +217,45 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
   装卸前必须通过 dock sensor、车体停稳与竖直检查；
 - 载台/挡边是挂在动态车体上的 kinematic shape；载荷保持 dynamic + respondable，
   验收断言载台 XY/Z 区域与行驶距离。
+
+### 步骤 1.2 场景生命周期（2026-10-20/21 通过）
+
+阶段一场景已固化为版本化工件，`start` 不再隐式 build/clear。实现与证据见
+[STEP1_2_REPORT.md](docs/implementation/STEP1_2_REPORT.md) 和
+[06-08](docs/wiki/06-工业案例/06-08-柔性工业车间步骤1.2-场景生命周期与运行入口.md)。
+
+- 工件根目录 `docs/scene_artifacts/<phase>/<layout>/vNNN_<stamp>/`，包含
+  `scene.ttt` / `manifest.json`（schema 1.0）/ `validation.json` /
+  `lifecycle.jsonl`；`.runtime/` 保存会话与运行锁，不入库。
+- 当前只读基线：`stage1/L1_S1/v002_20261020_234403`（protected，130 项只读
+  校验通过，两次 CoppeliaSim 进程重启后均可加载/校验/运行）。阶段二必须
+  从该工件派生 `stage2` 副本，不得覆盖。
+- 状态：`DISCONNECTED` / `CONNECTED_STOPPED` / `SCENE_LOADED` /
+  `SCENE_VALIDATED` / `SIMULATION_RUNNING` / `ERROR`。运行中拒绝
+  build/load/save/validate/重复 start；跨进程由
+  `docs/scene_artifacts/.runtime/run.lock`（PID + run_id）拒绝第二路控制。
+- `prepare_start` 先取运行锁再做只读校验；校验失败释放锁并进入 ERROR。
+- manifest 不含运行时句柄；加载后由 `scene.adopt_scene()` 按 alias 重建
+  句柄。配置摘要、模型 sha256、仿真器版本/引擎、对象 alias/类型/父级/
+  世界坐标、42 项构建契约任一不匹配都会在 start 前失败并输出差异。
+- `save` 默认拒绝“构建后已运行”的非初始位姿；受限快照用
+  `--allow-after-run`，且不得作为基线。受保护工件不再追加 lifecycle 事件。
+
+CLI：
+
+```bash
+.venv/Scripts/python src/run_scene_lifecycle.py build
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage1 --note "..."
+.venv/Scripts/python src/run_scene_lifecycle.py load current
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 45
+.venv/Scripts/python src/run_scene_lifecycle.py stop
+.venv/Scripts/python src/run_scene_lifecycle.py status
+.venv/Scripts/python src/run_scene_lifecycle.py list
+```
+
+全局参数（`--host`/`--port`/`--artifact-root`/`--out-dir`）必须写在子命令之前。
+`run_stage1.py` 默认加载 `current` 工件；`--build` 才显式重建。
 
 ### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
 
@@ -279,8 +321,16 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
 ### 阶段一单元闭环（当前）
 
 ```bash
-# 构建并运行工位目标 (每次运行自动重建单工位场景)
+# 步骤 1.2 生命周期: 首次显式构建 → 保存基线 → 加载/校验 → 运行
+.venv/Scripts/python src/run_scene_lifecycle.py build
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage1 --note "..."
+.venv/Scripts/python src/run_scene_lifecycle.py load current
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 45
+
+# 兼容入口: 默认加载 current 工件; --build 才显式重建并保存新版本
 .venv/Scripts/python src/run_stage1.py --target station --time 45
+.venv/Scripts/python src/run_stage1.py --build --target station --time 45
 
 # AGV 载台目标 (含 0.5 m 轮速行驶)
 .venv/Scripts/python src/run_stage1.py --target agv --time 45
@@ -339,7 +389,10 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
 **默认后端为 `stage1`（当前阶段一实现）**: `build_scene` / `start_simulation` /
 `get_config` / `set_config` 均接受 `backend` 参数；`start_simulation` 额外接受
 `target` (`station`/`agv`/`both`) 与 `fault`。`backend="legacy"` 才运行旧五岛
-`FactoryController`。工具数量仍为 20 个。stage1 运行结果写入
+`FactoryController`。**共 24 个工具**，其中步骤 1.2 新增
+`save_scene` / `load_scene` / `validate_scene` / `lifecycle_status`；
+`start_simulation` 不再隐式 build/clear，必须先 `build_scene` 或
+`load_scene` + `validate_scene`。stage1 运行结果写入
 `docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`。
 
 **CoppeliaSim 控制台实时输出**: CoppeliaSim 自身的控制台消息 (脚本 `print` /
@@ -569,3 +622,22 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
       实测折中。
     - 若替换 conveyor 模型或覆盖 `__config__`, 必须重新构建场景并检查
       驱动探测的 `stop_ok`。
+
+18. **`sim.intparam_engine` 不存在, 物理引擎参数名是 `intparam_dynamic_engine`
+    (步骤 1.2 实测)**: 4.10 的 ZMQ 绑定没有 `intparam_engine` 常量;
+    用 `sim.getInt32Param(sim.intparam_dynamic_engine)` 读取 (实测 0 = bullet)。
+    `sim.getEngineInt32Param(param, -1)` 实测返回 None, 不能用于 manifest。
+    若引擎/版本字段缺失会导致阶段二无法判断物理后端, 必须在工件保存时记录。
+
+19. **`saveScene`/`loadScene` 会替换场景对象, 旧句柄全部失效 (步骤 1.2)**:
+    两者只能在仿真停止态调用; `loadScene` 后必须用
+    `stage1.scene.adopt_scene()` 按 alias 重新解析句柄, 不得复用构建期句柄。
+    `save` 的流程是: 写 `scene.partial.ttt` → `loadScene` 回读 → 只读校验 →
+    `os.replace` 为 `scene.ttt` → 更新 `current.json`; 任何一步失败都不得
+    更新 current 指针。
+
+20. **生命周期 CLI 的全局参数必须写在子命令之前 (argparse 限制)**:
+    `python src/run_scene_lifecycle.py --out-dir runs start ...` 正确;
+    `... start --out-dir runs` 会报未识别参数。跨进程运行锁位于
+    `docs/scene_artifacts/.runtime/run.lock` (PID + run_id), 持有进程死亡后
+    下一次 start 自动清理; 运行中的 `load`/`build` 返回 `RUN_CONFLICT`。

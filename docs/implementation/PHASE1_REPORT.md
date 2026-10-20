@@ -9,6 +9,12 @@
 > [SUCTION_PAD_MOUNT_REVIEW.md](SUCTION_PAD_MOUNT_REVIEW.md) 修正
 > （Rx(π) + `d = 47.55 mm`），并重新执行了 `L1_S1` IK、正常闭环、连续运行和
 > 故障注入。本报告下文关于吸盘/工具安装的描述以该修正文档为准；旧证据保留。
+>
+> **2026-10-21 步骤 1.2 入口变更**：场景构建与仿真启动已解耦，`start` 不再
+> 隐式清场重建。本报告第 1、3 节记录的是步骤 1.2 之前的历史执行方式；
+> 当前运行入口见 [STEP1_2_REPORT.md](STEP1_2_REPORT.md)：
+> `python src/run_scene_lifecycle.py load current && validate && start ...`。
+> 阶段一的功能与验收结论不变。
 
 ## 1. 环境
 

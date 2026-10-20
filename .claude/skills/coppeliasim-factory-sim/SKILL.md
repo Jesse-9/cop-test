@@ -51,7 +51,7 @@ The system follows a **three-tier architecture plus an MCP access layer**:
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
-│  (FastMCP / stdio, 20 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
+│  (FastMCP / stdio, 24 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -309,7 +309,7 @@ Four categories of exceptions, each with defined recovery (see
 
 [factory_mcp_server.py](../../../src/reference/factory_mcp_server.py) is registered via
 [.mcp.json](../../../.mcp.json); Claude Code auto-loads it in this project. It exposes
-**20 tools** over stdio (FastMCP), with the simulation running in a daemon
+**24 tools** over stdio (FastMCP), with the simulation running in a daemon
 thread. Two ZMQ connections: the main connection (write/control tools + main
 loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
 
@@ -317,17 +317,29 @@ loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
 `build_scene`, `start_simulation`, `get_config`, and `set_config` accept a
 `backend` argument (`stage1` default, `legacy` for the five-island reference);
 `start_simulation` also accepts `target` (`station`/`agv`/`both`) and `fault`.
-The stage1 backend rebuilds the scene, starts stepping, and writes results to
+Since step 1.2 (2026-10-21), stage1 `start_simulation` does **not** rebuild:
+it starts only the currently loaded and validated scene/artifact. Use
+`build_scene` (explicit) or `load_scene` + `validate_scene` first.
+`save_scene` / `load_scene` / `validate_scene` / `lifecycle_status` manage
+versioned scene artifacts under `docs/scene_artifacts/` (stage1 baseline
+`stage1/L1_S1/v002_20261020_234403` is protected/read-only).
+The stage1 backend writes results to
 `docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`.
 For stage1, `pause_simulation` also stops the runner from touching ZMQ so
 `step_simulation` can advance frames safely.
 
 | Tier | Tools |
 |------|-------|
-| Connect/Scene/Lifecycle/Config (11) | `connect`, `build_scene`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log`, `tail_coppelia_console(lines, offset)` |
+| Connect/Scene/Lifecycle/Config (15) | `connect`, `build_scene`, `save_scene`, `load_scene`, `validate_scene`, `lifecycle_status`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log`, `tail_coppelia_console(lines, offset)` |
 | A — Read (4, via `ro_connector`) | `get_object_pose`, `list_objects`, `read_signal`, `get_object_tree` |
 | B — Diagnose (3) | `inspect_scene_state`, `get_simulation_state`, `run_lua` |
 | C — Control (2) | `pause_simulation`, `resume_simulation` |
+
+**Scene lifecycle semantics**: `build_scene` → `save_scene` → `load_scene`
+→ `validate_scene` → `start_simulation` → `stop_simulation`. `start` refuses
+to run without a validated scene; while running, build/load/save/validate
+and a second start are rejected by the state machine and the cross-process
+run lock (`docs/scene_artifacts/.runtime/run.lock`).
 
 > `tail_coppelia_console` reads CoppeliaSim's **own** console output (script
 > `print` / `sim.addLog`, plugin & add-on errors, the last message before a
@@ -435,5 +447,5 @@ Before declaring the system complete, verify:
 - [ ] Exception handling is robust: simulated communication loss, material
       congestion, workstation timeout, and material overflow all trigger
       correct detection, logging, and safe recovery (not crash)
-- [ ] MCP 20 tools work (stage1 default, legacy optional); dual-connection keeps read-only diagnostics stable
+- [ ] MCP 24 tools work (stage1 default, legacy optional); dual-connection keeps read-only diagnostics stable
       while the main loop runs

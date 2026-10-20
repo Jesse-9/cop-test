@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-10-21T00:03:57+08:00",
+  "restart": {
+    "method": "sim.quitSimulator() + tools/conpty_relay.py",
+    "old_pid": 25752,
+    "new_pid": 43924,
+    "note": "第二次重启; 验证最终基线 v002 可加载/校验/运行"
+  },
+  "load": {
+    "ok": true,
+    "lifecycle_state": "SCENE_LOADED",
+    "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+    "requires_validation": true
+  },
+  "validate": {
+    "ok": true,
+    "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+    "checks_total": 130,
+    "checks_failed": 0,
+    "differences": 0
+  },
+  "run": {
+    "all_ok": true,
+    "run_id": "run_20261021_000330_efc483",
+    "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+    "target": "station",
+    "results": [
+      {
+        "target": "station",
+        "ok": true,
+        "steps": 255,
+        "sim_time": 13.6
+      }
+    ],
+    "lifecycle": {
+      "lifecycle_state": "SCENE_VALIDATED",
+      "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+      "scene_origin": "ARTIFACT",
+      "manifest_digest": "961c6ff426686b9a633dada0541bc60bd2e908d72d9ddd395eea6af90271dc30",
+      "validated_at": "2026-10-21T00:03:29+08:00",
+      "run_id": null,
+      "pid": null,
+      "host": "localhost",
+      "port": 23000,
+      "last_error": null,
+      "sim_state": 0,
+      "allowed_actions": [
+        "build",
+        "save",
+        "load",
+        "validate",
+        "start"
+      ]
+    }
+  }
+}

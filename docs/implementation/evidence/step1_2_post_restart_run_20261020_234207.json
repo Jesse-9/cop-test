@@ -1,0 +1,426 @@
+{
+  "timestamp": "20261020_234207",
+  "run_id": "run_20261020_234207_e77b81",
+  "artifact_id": "stage1/L1_S1/v001_20261020_233504",
+  "target": "station",
+  "fault": "none",
+  "layout": "L1_S1",
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09776,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 17,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01007,
+    "stop_ok": true
+  },
+  "results": [
+    {
+      "target": "station",
+      "task": {
+        "uid": 1,
+        "target": "station",
+        "layout": "L1_S1",
+        "state": "DONE",
+        "failure_reason": "",
+        "material_state": "RELEASED",
+        "compensation_count": 38,
+        "pick_pose": [
+          -0.29123,
+          0.00023,
+          0.5
+        ],
+        "pick_tcp": [
+          -0.29123,
+          0.00023,
+          0.55,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "agv_blocked": false,
+        "events": [
+          [
+            0.8500000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.012"
+          ],
+          [
+            0.8500000000000002,
+            "WAITING_FOR_ITEM: task started"
+          ],
+          [
+            0.9000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.025"
+          ],
+          [
+            0.9500000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.040"
+          ],
+          [
+            1.0000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.061"
+          ],
+          [
+            1.0500000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.085"
+          ],
+          [
+            1.1000000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.108"
+          ],
+          [
+            1.1500000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.133"
+          ],
+          [
+            1.2000000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.157"
+          ],
+          [
+            1.2500000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.181"
+          ],
+          [
+            1.3000000000000005,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.203"
+          ],
+          [
+            1.3500000000000005,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.226"
+          ],
+          [
+            1.4000000000000006,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.249"
+          ],
+          [
+            1.4500000000000006,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.272"
+          ],
+          [
+            1.5000000000000007,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.296"
+          ],
+          [
+            1.5500000000000007,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.320"
+          ],
+          [
+            1.6000000000000008,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.344"
+          ],
+          [
+            1.6500000000000008,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.366"
+          ],
+          [
+            1.7000000000000008,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.390"
+          ],
+          [
+            1.7500000000000009,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.414"
+          ],
+          [
+            1.800000000000001,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.437"
+          ],
+          [
+            1.850000000000001,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.461"
+          ],
+          [
+            1.900000000000001,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.485"
+          ],
+          [
+            1.950000000000001,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.508"
+          ],
+          [
+            2.000000000000001,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.532"
+          ],
+          [
+            2.0500000000000007,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.556"
+          ],
+          [
+            2.1000000000000005,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.578"
+          ],
+          [
+            2.1500000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.602"
+          ],
+          [
+            2.2,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.626"
+          ],
+          [
+            2.25,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.649"
+          ],
+          [
+            2.3,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.673"
+          ],
+          [
+            2.3499999999999996,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.698"
+          ],
+          [
+            2.3999999999999995,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.722"
+          ],
+          [
+            2.4499999999999993,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.746"
+          ],
+          [
+            2.499999999999999,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.770"
+          ],
+          [
+            2.549999999999999,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.793"
+          ],
+          [
+            2.5999999999999988,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.817"
+          ],
+          [
+            2.6499999999999986,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.840"
+          ],
+          [
+            2.6999999999999984,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m progress=0.864"
+          ],
+          [
+            2.6999999999999984,
+            "STOPPING: conveyor stop commanded (sensor_hit)"
+          ],
+          [
+            2.8999999999999977,
+            "pad stopped: vel=0.0000 m/s step_moved=0.0 stop_travel=0.010002999763328246"
+          ],
+          [
+            2.8999999999999977,
+            "MATERIAL_SETTLING: pad stopped, waiting material stable"
+          ],
+          [
+            3.149999999999997,
+            "material stable at (-0.2912,0.0002,0.5000) tilt=0.000; pick target fixed"
+          ],
+          [
+            3.149999999999997,
+            "APPROACHING: measured pose after active stop"
+          ],
+          [
+            4.899999999999991,
+            "APPROACHING: 阶段 1/1 完成"
+          ],
+          [
+            5.899999999999987,
+            "ATTACHING: motion to APPROACHING done"
+          ],
+          [
+            5.949999999999987,
+            "LIFTING: attached"
+          ],
+          [
+            6.949999999999983,
+            "TRANSFERRING: LIFTING done"
+          ],
+          [
+            11.700000000000031,
+            "TRANSFERRING: 阶段 1/1 完成"
+          ],
+          [
+            12.700000000000045,
+            "PLACING: motion to TRANSFERRING done"
+          ],
+          [
+            12.750000000000046,
+            "RELEASING: at place pose"
+          ],
+          [
+            12.800000000000047,
+            "SETTLING: released, waiting settle"
+          ],
+          [
+            13.550000000000058,
+            "DONE: task complete"
+          ]
+        ]
+      },
+      "material": {
+        "pose": [
+          -0.2,
+          1.2,
+          0.35,
+          0.0,
+          -0.0,
+          0.0,
+          1.0
+        ],
+        "expected_pose": [
+          -0.2,
+          1.2,
+          0.35,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "position_error": 0.0,
+        "physics": {
+          "static": 0,
+          "kinematic": 0,
+          "respondable": 1,
+          "mask": 65535,
+          "mass": 0.1,
+          "friction": 0.6
+        },
+        "dynamic_ok": true,
+        "respondable_ok": true
+      },
+      "tcp": {
+        "pose": [
+          -0.20091,
+          1.19481,
+          0.39823,
+          -3e-05,
+          0.0,
+          2e-05,
+          1.0
+        ]
+      },
+      "tool": {
+        "version": "suction_mount_rx180_20261020",
+        "ok": true,
+        "mount_z": 0.04754997428506614,
+        "mount_quaternion": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "flange_protrusion_z": 0.007549934089183821,
+        "link_clearance_design": 0.005,
+        "handles": {
+          "connection": 112,
+          "pad": 113,
+          "tcp": 119,
+          "sensor": 120,
+          "model_sensor": 115,
+          "link": 116
+        },
+        "joint_positions": [
+          -0.17002130315901992,
+          1.7516470193750462,
+          -0.8318631337431753,
+          -2.4905289881996966,
+          1.5707963267948966,
+          4.542331512152079
+        ],
+        "sim_time": 13.600000000000058,
+        "pad_world_pose": [
+          -0.20090962673612803,
+          1.1948057653777497,
+          0.4132334487448453,
+          -2.5242738263819845e-05,
+          4.334111738224512e-06,
+          1.808253678867167e-05,
+          0.9999999995085208
+        ],
+        "tcp_world_pose": [
+          -0.20090975674621953,
+          1.1948050080907289,
+          0.3982333988083819,
+          -2.5242738263819845e-05,
+          4.334111738224512e-06,
+          1.808253678867167e-05,
+          0.9999999995085208
+        ],
+        "tcp_in_pad": [
+          -2.7755575615628914e-17,
+          -2.220446049250313e-16,
+          -0.015000049956142902,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "pad_in_connection": [
+          -2.7755575615628914e-17,
+          -2.220446049250313e-16,
+          0.0475499742850663,
+          1.0,
+          0.0,
+          1.7712004866291705e-22,
+          0.0
+        ],
+        "suction_normal_world": [
+          -8.667310566702167e-06,
+          -5.0485633246297035e-05,
+          -0.9999999986880392
+        ],
+        "sensor_axis_world": [
+          -8.667310566824628e-06,
+          -5.04856332464195e-05,
+          -0.9999999986880395
+        ],
+        "model_sensor_axis_world": [
+          -8.667313728372408e-06,
+          -5.039821046989195e-05,
+          -0.9999999986924493
+        ],
+        "end_link_max_z_in_connection": 0.0075499340891838195,
+        "pad_back_plane_z": 0.012549934089183819,
+        "link_clearance": 0.004999999999999999
+      },
+      "arm_joints": [
+        -0.17002,
+        1.75165,
+        -0.83186,
+        -2.49053,
+        1.5708,
+        4.54233
+      ],
+      "agv": {
+        "pose": [
+          0.39581,
+          0.74976,
+          0.13869,
+          -4e-05,
+          -0.0009,
+          -0.00058,
+          1.0
+        ],
+        "state": "IDLE",
+        "blocked": false,
+        "last_wheel_speeds": [
+          0.0,
+          0.0
+        ]
+      },
+      "conveyor": {
+        "drive_mode": "SCRIPT_DRIVEN",
+        "commanded_velocity": 0.0,
+        "actual_velocity": 4e-05
+      },
+      "sim_time": 13.6,
+      "steps": 255,
+      "ok": true
+    }
+  ],
+  "all_ok": true
+}

@@ -17,3 +17,12 @@
   `tool_fault_injection_20261020_222250.json`。
 - 步骤 1.1 历史证据：`step1_1_*_20261020_104655.*`。
 - 迁移前的阶段一基线证据：`phase1_*`（无时间戳及 `_20261020_110827`）。
+- 步骤 1.2 场景生命周期（2026-10-20/21）：
+  - `step1_2_lifecycle_checks_20261020_235739.json` — 负向与并发检查
+    （alias 移除、配置摘要不匹配、运行中 load/build 拒绝、基线哈希不变）；
+  - `step1_2_post_restart_reuse_20261020_234207.json` — 第一次 CoppeliaSim
+    进程重启后加载 v001、130 项校验通过并完成 station 任务；
+  - `step1_2_post_restart_reuse_v002_20261021_000357.json` — 第二次重启后
+    对最终基线 v002 的加载/校验/运行；
+  - `step1_2_post_restart_run_*.json` — 对应的完整运行报告（含物料/AGV/
+    传送带证据）。

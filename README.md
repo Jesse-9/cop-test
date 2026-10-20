@@ -6,7 +6,7 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 旧五岛案例仅作为迁移和诊断参考。
 
 > 📖 **使用指南**：从安装到运行的完整流程见 [docs/wiki/98-ProjectUsage/USAGE.md](docs/wiki/98-ProjectUsage/USAGE.md)。
-> 📖 **MCP 工具**：20 个工具（A 读取/B 诊断/C 控制；默认 stage1 后端，legacy 可选）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
+> 📖 **MCP 工具**：24 个工具（A 读取/B 诊断/C 控制 + 场景工件生命周期；默认 stage1 后端，legacy 可选）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 > 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
 
 ## 当前实施范围：阶段一单元闭环
@@ -36,14 +36,40 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 2. 阶段三：双工位柔性搬运，包括第二工位、任务队列、资源锁和 AGV 调度；
 3. 阶段四：多岛车间，包括 A–E 拓扑、仓库供料、节拍追踪和共享 AGV 调度。
 
-阶段二完成前不进入双工位或多岛扩展。阶段一当前 CLI 仍采用“构建后启动”的耦合流程，
-场景复用和独立启动属于阶段二交付内容。
+阶段二完成前不进入双工位或多岛扩展。步骤 1.2（2026-10-21）已把场景构建与
+仿真启动解耦：`start` 不再隐式 build/clear，阶段一基线已保存为只读工件
+`docs/scene_artifacts/stage1/L1_S1/v002_20261020_234403/`。
 
 阶段一实现集中在 `src/stage1/` 包（config / layout / physics / scene /
-material_manager / conveyor_controller / ur5_ik_controller / suction_controller /
-pioneer_controller / unit_controller / run），`src/run_stage1.py` 是兼容入口；
-安装后也可用 `uv run run-stage1`。旧版 `build_scene.py` / `factory_controller.py`
-仍用于历史五岛完整场景，阶段一不调用它们。
+scene_artifact / lifecycle / material_manager / conveyor_controller /
+ur5_ik_controller / suction_controller / pioneer_controller / unit_controller /
+run），`src/run_stage1.py` 与 `src/run_scene_lifecycle.py` 是兼容入口；
+安装后也可用 `uv run run-stage1` / `uv run scene-lifecycle`。旧版
+`build_scene.py` / `factory_controller.py` 仍用于历史五岛完整场景，阶段一不调用它们。
+
+## 步骤 1.2：场景工件与生命周期（2026-10-21 通过）
+
+```bash
+# 显式构建 → 保存只读基线 → 加载 → 只读校验 → 启动
+.venv/Scripts/python src/run_scene_lifecycle.py build
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage1 --note "..."
+.venv/Scripts/python src/run_scene_lifecycle.py load current
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 45
+
+# 状态 / 停止 / 工件列表
+.venv/Scripts/python src/run_scene_lifecycle.py status
+.venv/Scripts/python src/run_scene_lifecycle.py stop
+.venv/Scripts/python src/run_scene_lifecycle.py list
+```
+
+- 报告：[docs/implementation/STEP1_2_REPORT.md](docs/implementation/STEP1_2_REPORT.md)
+- 工件规范：[docs/scene_artifacts/README.md](docs/scene_artifacts/README.md)
+- 执行计划：[06-08](docs/wiki/06-工业案例/06-08-柔性工业车间步骤1.2-场景生命周期与运行入口.md)
+
+`run_stage1.py` 默认加载 `current` 工件；`--build` 才显式重建并保存新版本。
+运行中 `build`/`load`/`save`/`validate` 与第二路 `start` 会被状态机和跨进程
+运行锁拒绝。
 
 ## 步骤 1.1：布局与无挡板取料验证（2026-10-20）
 
@@ -276,7 +302,9 @@ cop-test/
 │   │   ├── config.py              # 阶段一参数/别名/容差/故障枚举
 │   │   ├── layout.py              # LayoutSpec / 候选布局几何校验
 │   │   ├── physics.py             # static/kinematic/respondable/mass/friction/mask
-│   │   ├── scene.py               # 单工位场景构建 + 场景契约断言
+│   │   ├── scene.py               # 单工位场景构建 + 场景契约断言 + adopt_scene
+│   │   ├── scene_artifact.py      # 场景工件/manifest/摘要/只读校验
+│   │   ├── lifecycle.py           # 生命周期状态机/运行锁/build-save-load-validate-start-stop
 │   │   ├── device_handle_map.py   # 启动期唯一别名/句柄表
 │   │   ├── material_manager.py    # 物料 7 状态生命周期
 │   │   ├── conveyor_controller.py # 内置 conveyor 驱动 + HYBRID_DYNAMIC 补偿
@@ -284,7 +312,7 @@ cop-test/
 │   │   ├── suction_controller.py  # 逻辑吸附/释放 + 属性快照
 │   │   ├── pioneer_controller.py  # p3dx 差速轮速
 │   │   ├── unit_controller.py     # §2.11 单步状态机
-│   │   └── run.py                 # 阶段一 CLI 实现
+│   │   └── run.py                 # 阶段一运行 CLI (默认加载工件, --build 才重建)
 │   ├── stage1_1/                  # 步骤 1.1: 布局与无挡板取料验证
 │   │   ├── config.py              # 候选布局/允许抓取区/试验矩阵
 │   │   ├── layout_eval.py         # 场景测量 + simIK 扫描 + 选择
@@ -292,6 +320,7 @@ cop-test/
 │   │   ├── pickup.py              # A/B/C 单步试验控制
 │   │   └── run_step1_1.py         # 步骤 1.1 CLI
 │   ├── run_stage1.py              # 阶段一兼容入口 (薄包装)
+│   ├── run_scene_lifecycle.py     # 步骤 1.2 生命周期 CLI 兼容入口
 │   ├── run_step1_1.py             # 步骤 1.1 兼容入口 (薄包装)
 │   └── reference/                 # 历史五岛完整场景层 (阶段一不调用)
 │       ├── factory_config.py      # 集中配置 (布局/节拍/阈值/路径/机械臂/内置模型)
@@ -302,7 +331,7 @@ cop-test/
 │       ├── factory_agv.py         # 历史共享 AGV 调度器
 │       ├── factory_exceptions.py  # 历史异常轮询
 │       ├── factory_robot.py       # 历史关键帧兼容层
-│       ├── factory_mcp_server.py  # MCP 服务器 (20 工具)
+│       ├── factory_mcp_server.py  # MCP 服务器 (24 工具)
 │       ├── build_scene.py         # 历史五岛场景构建器
 │       ├── run_simulation.py      # 历史仿真 CLI
 │       └── main.py                # 交互菜单
@@ -311,7 +340,8 @@ cop-test/
 │   ├── CLAUDE.md                # 知识库 Schema 与维护规范
 │   ├── raw/                     # 官方手册原始资料 (只读, 不修改)
 │   ├── wiki/                    # 整理后的 CoppeliaSim 维基 (00~99 分类)
-│   │   └── 98-ProjectUsage/     # USAGE.md (安装/运行) + MCP_USAGE.md (20 工具)
+│   │   └── 98-ProjectUsage/     # USAGE.md (安装/运行) + MCP_USAGE.md (24 工具)
+│   ├── scene_artifacts/         # 步骤 1.2 版本化场景工件 (stage1 只读基线)
 │   └── outputs/                 # 研究报告 / QA / 分析
 ├── evals/                       # skill 评测集 (evals.json)
 ├── .claude/skills/             # Claude Code skill 定义 (coppeliasim-factory-sim)

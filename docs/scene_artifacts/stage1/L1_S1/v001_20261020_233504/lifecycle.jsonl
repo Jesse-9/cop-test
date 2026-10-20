@@ -1,0 +1,2 @@
+{"actor": "cli", "artifact_id": "stage1/L1_S1/v001_20261020_233504", "event": "saved", "parent_artifact": null, "protected": true, "scene_sha256": "f034ed154ffb5d01f34d94a2aec959c7abc6480ffa4be1e175f3176d803293bb", "scene_size": 2008725, "source_phase": "stage1", "ts": "2026-10-20T23:35:05+08:00"}
+{"actor": "cli", "artifact_id": "stage1/L1_S1/v001_20261020_233504", "checks": 130, "differences": 0, "event": "validated", "ok": true, "ts": "2026-10-20T23:35:55+08:00"}
