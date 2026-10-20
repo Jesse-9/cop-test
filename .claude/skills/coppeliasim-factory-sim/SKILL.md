@@ -51,7 +51,7 @@ The system follows a **three-tier architecture plus an MCP access layer**:
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer  — factory_mcp_server.py            │  ← Claude Code 接入点
-│  (FastMCP / stdio, 20 个工具, 仿真跑在守护线程)      │
+│  (FastMCP / stdio, 20 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -313,6 +313,15 @@ Four categories of exceptions, each with defined recovery (see
 thread. Two ZMQ connections: the main connection (write/control tools + main
 loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
 
+**Default backend is `stage1`** (the current unit-cell implementation).
+`build_scene`, `start_simulation`, `get_config`, and `set_config` accept a
+`backend` argument (`stage1` default, `legacy` for the five-island reference);
+`start_simulation` also accepts `target` (`station`/`agv`/`both`) and `fault`.
+The stage1 backend rebuilds the scene, starts stepping, and writes results to
+`docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`.
+For stage1, `pause_simulation` also stops the runner from touching ZMQ so
+`step_simulation` can advance frames safely.
+
 | Tier | Tools |
 |------|-------|
 | Connect/Scene/Lifecycle/Config (11) | `connect`, `build_scene`, `disconnect`, `start_simulation`, `stop_simulation`, `step_simulation(n=1, ≤1000)`, `status`, `get_config`, `set_config`, `tail_log`, `tail_coppelia_console(lines, offset)` |
@@ -426,5 +435,5 @@ Before declaring the system complete, verify:
 - [ ] Exception handling is robust: simulated communication loss, material
       congestion, workstation timeout, and material overflow all trigger
       correct detection, logging, and safe recovery (not crash)
-- [ ] MCP 20 tools work; dual-connection keeps read-only diagnostics stable
+- [ ] MCP 20 tools work (stage1 default, legacy optional); dual-connection keeps read-only diagnostics stable
       while the main loop runs

@@ -8,7 +8,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │  MCP Tool Layer — reference/factory_mcp_server.py   │  ← Claude Code 接入点
-│  (FastMCP / stdio, 20 个工具, 仿真跑在守护线程)      │
+│  (FastMCP / stdio, 20 个工具, 默认 stage1 后端, 仿真跑在守护线程) │
 └───────────────┬─────────────────────────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────────────────────────┐
@@ -161,7 +161,7 @@
 | [factory_controller.py](src/reference/factory_controller.py) | 顶层编排器, 按固定顺序驱动每个步进 | `FactoryController` |
 | [build_scene.py](src/reference/build_scene.py) | 场景构建 (分层命名 /Warehouse /Island /Conveyor /Mobile) | `build_scene()`, `clear_scene()` |
 | [run_simulation.py](src/reference/run_simulation.py) / [main.py](src/reference/main.py) | CLI 入口 | `main()` |
-| [factory_mcp_server.py](src/reference/factory_mcp_server.py) | MCP 服务器, 暴露 20 个工具给 Claude Code (A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
+| [factory_mcp_server.py](src/reference/factory_mcp_server.py) | MCP 服务器, 暴露 20 个工具给 Claude Code (默认 stage1 后端, legacy 可选; A 读取/B 诊断/C 控制 + 双连接) | `FactoryMCPServer`, `mcp` |
 
 > 全部源码平铺在 [src/](src/) 下（基础层 / 控制层 / 视觉层 / 接入层 / CLI 入口），
 > 详见 [README.md](README.md) 的「项目结构」与 [docs/FILE_INDEX.md](docs/FILE_INDEX.md)。
@@ -335,6 +335,12 @@ uv run run-simulation --time 60
 
 [factory_mcp_server.py](src/reference/factory_mcp_server.py) 通过 [.mcp.json](.mcp.json) 注册，
 Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
+
+**默认后端为 `stage1`（当前阶段一实现）**: `build_scene` / `start_simulation` /
+`get_config` / `set_config` 均接受 `backend` 参数；`start_simulation` 额外接受
+`target` (`station`/`agv`/`both`) 与 `fault`。`backend="legacy"` 才运行旧五岛
+`FactoryController`。工具数量仍为 20 个。stage1 运行结果写入
+`docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`。
 
 **CoppeliaSim 控制台实时输出**: CoppeliaSim 自身的控制台消息 (脚本 `print` /
 `sim.addLog`、插件与 add-on 报错、冻结前最后一条消息) 不在 ZMQ API 里, 需用

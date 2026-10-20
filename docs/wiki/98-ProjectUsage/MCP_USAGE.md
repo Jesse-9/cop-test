@@ -27,11 +27,19 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 ## 运行模型
 
 - **stdio 传输**: Claude Code 通过启动一个 Python 子进程与服务器通信，无需额外端口。
-- **主连接复用**: 写/控制类工具 (start/stop/step/set_config 等) 与主仿真循环共享一个
-  `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。
-- **仿真在守护线程**: `start_simulation` 调 `FactoryController.run()` 于 daemon 线程，
-  立即返回；`status` / `stop` / `step` 可在运行中实时查询与控制。
-- **启动探活**: 启动 5s 后若 `sim_time` 不推进，自动在 `status.last_error` 写入冻结告警。
+- **双后端**: `build_scene` / `start_simulation` / `get_config` / `set_config` 均有
+  `backend` 参数。默认 `backend="stage1"`（当前阶段一单元闭环实现），
+  `backend="legacy"` 运行旧五岛参考层。
+- **主连接复用**: 写/控制类工具 (start/stop/step/set_config 等) 与当前仿真循环共享一个
+  `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。连接时同时加载
+  `sim` 与 `simIK`（`simIK` 仅供 stage1 使用）。
+- **仿真在守护线程**:
+  - stage1: `start_simulation` 重建阶段一场景 → `start_stepping` → 在 daemon 线程
+    运行 `stage1.run.run_task`，立即返回；任务结束自动写
+    `docs/implementation/runs/phase1_mcp_*.json`。
+  - legacy: `FactoryController.run()` 在 daemon 线程运行。
+- **启动探活** (legacy): 启动 5s 后若 `sim_time` 不推进，自动在
+  `status.last_error` 写入冻结告警。
 - **双连接**: 主连接 (写/控制类工具 + 主仿真循环) 与 `ro_connector` (只读诊断
   工具 + `run_lua`) 隔离，避免运行中诊断工具与主循环互挤 (解决 CLAUDE.md
   「已知问题」第 4 条假断连)。诊断类工具 (`get_object_pose` / `list_objects` /
@@ -40,29 +48,34 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 ## 20 个工具
 
+> 2026-10-20 起默认后端为 `stage1`（阶段一单元闭环）；旧五岛场景通过
+> `backend="legacy"` 显式启用。工具数量不变，`build_scene` / `start_simulation` /
+> `get_config` / `set_config` 增加 `backend` 参数，`start_simulation` 增加
+> `target` / `fault` 参数。
+
 ### 连接与场景
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
 | `connect` | 连接 CoppeliaSim ZMQ Remote API | `host` (默认 localhost), `port` (默认 23000) |
-| `build_scene` | 构建工厂场景 (调 `build_scene.build_scene(sim)`) | `clear` (默认 true, 先清场) |
+| `build_scene` | 构建场景；默认阶段一单工位，返回 build_report 关键检查 | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
 | `disconnect` | 断开连接 (会先停止运行中的仿真) | — |
 
 ### 仿真生命周期
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `start_simulation` | 后台线程启动仿真主循环 | `total_time` (秒, 0=无限直到 stop), `log_file` |
-| `stop_simulation` | 停止仿真 (最多等 5s 收尾) | — |
-| `step_simulation` | 单步/多步推进 (stepping 模式, 需先 start) | `n` (默认 1, 上限 1000) |
+| `start_simulation` | 后台线程启动仿真；stage1 自动重建场景并跑单工位任务 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`), `fault` |
+| `stop_simulation` | 停止仿真 (stage1 置 stop 事件并等待收尾, legacy 最多等 5s) | — |
+| `step_simulation` | 单步/多步推进 (stepping 模式) | `n` (默认 1, 上限 1000); stage1 需先 `pause_simulation` |
 
 ### 状态与配置
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `status` | 实时状态: 连接/运行/仿真时间/步数/装配数/AGV/各岛状态/最近错误 | — |
-| `get_config` | 读取 factory_config 关键参数 (节拍/位置/路径/机械臂/阈值) | — |
-| `set_config` | 动态改单个配置 (内存级, 对已构建场景无效, 应在 build 前) | `key` (支持 `TAKT_TIME.A` 点号取值), `value` |
+| `status` | 实时状态；stage1 返回 unit_state/material_state/agv_state/results，legacy 返回装配数/各岛状态 | — |
+| `get_config` | 读取配置；stage1 默认返回速度/吸附/工具安装参数，legacy 返回节拍/路径/岛配置 | `backend` (默认 `stage1`) |
+| `set_config` | 动态改单个配置 (内存级；stage1 几何/安装参数需重新 build) | `key` (字典用点号), `value`, `backend` (默认 `stage1`) |
 | `tail_log` | 读 `factory_sim.log` 末尾 N 行 (Python 控制层日志) | `lines` (默认 50) |
 | `tail_coppelia_console` | 读 `coppelia_console.log` (CoppeliaSim 自身控制台, 需经 ConPTY relay 启动) | `lines` (默认 50), `offset` (字节偏移增量跟随) |
 
@@ -89,40 +102,63 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `pause_simulation` | 暂停控制逻辑 (物理仍推进, stepping 模式下) | — |
+| `pause_simulation` | 暂停控制逻辑；stage1 同时让 runner 停止访问连接，便于手动 step | — |
 | `resume_simulation` | 恢复控制逻辑 (清 pause 标志) | — |
 
 > `step_simulation` 见「仿真生命周期」表 (扩展签名, 支持 `n` 多步)。
+> stage1 暂停后 runner 不再并发访问 ZMQ，`step_simulation` 可安全逐帧推进。
 
 ## 典型工作流
 
-### 1. 标准仿真流程
-
-让 Claude Code 依次调用：
-```
-connect                          → 连接 CoppeliaSim
-build_scene                      → 构建工厂场景
-start_simulation(total_time=60)  → 启动 60s 仿真
-status                           → 查看推进情况
-tail_log(lines=30)               → 看调度/节拍日志
-stop_simulation                  → 停止
-```
-
-### 2. 调参实验
+### 1. 阶段一标准流程 (默认 backend=stage1)
 
 ```
-get_config                       → 看当前配置
-set_config(key="TAKT_TIME.A", value=4.0)   → 调 A 岛节拍
-set_config(key="CONVEYOR_SPEED", value=0.8)→ 调传送带速度
-build_scene                      → 重新构建 (参数生效)
-start_simulation                 → 跑仿真对比
+connect                                      → 连接 CoppeliaSim
+build_scene                                  → 构建阶段一单工位场景 (返回 build_report)
+start_simulation(total_time=90, target="station") → 重建场景并跑工位任务
+status                                       → unit_state / material_state / sim_time
+pause_simulation                             → 暂停 runner (连接空闲)
+step_simulation(n=10)                        → 手动逐帧
+resume_simulation                            → 恢复
+stop_simulation                              → 停止并写 runs/phase1_mcp_*.json
+```
+
+`target` 可选 `station` / `agv` / `both`；`fault` 可注入
+`ik_unreachable` / `no_target` / `uid_mismatch` / `sensor_disabled` /
+`agv_blocked` / `release_unstable`。
+
+### 2. 旧五岛流程 (backend=legacy)
+
+```
+connect
+build_scene(backend="legacy")                → 构建五岛参考场景
+start_simulation(total_time=60, backend="legacy") → 启动 60s 仿真
+status                                       → 查看推进情况
+tail_log(lines=30)                           → 看调度/节拍日志
+stop_simulation
+```
+
+### 3. 调参实验
+
+```
+# stage1 (默认)
+get_config                                   → 看速度/吸附/工具安装参数
+set_config(key="CONVEYOR_SPEED", value=0.3)  → 调传送带速度
+build_scene                                  → 重新构建 (几何/安装参数生效)
+start_simulation(target="station")
+
+# legacy
+get_config(backend="legacy")
+set_config(key="TAKT_TIME.A", value=4.0, backend="legacy")
+build_scene(backend="legacy")
+start_simulation(backend="legacy")
 ```
 
 > ⚠ `set_config` 修改的是 Python 内存配置，**对已构建的场景物体无效**。
-> 调参后需重新 `build_scene` 才影响场景构建；控制逻辑参数 (节拍/速度/阈值)
+> 调参后需重新 `build_scene` 才影响场景构建；控制逻辑参数 (速度/阈值)
 > 则在下次 `start_simulation` 时生效。
 
-### 3. 冻结排查 (见下方已知问题)
+### 4. 冻结排查 (见下方已知问题)
 
 ```
 start_simulation                 → 启动
@@ -138,7 +174,7 @@ inspect_scene_state(summary=false)→ 全量物体真实位姿, 定位哪个物�
 > 从 CoppeliaSim 物理引擎读**真实**状态与位姿，而非 Python 端逻辑值——
 > 冻结时能直接看到引擎真实落点，定位是物体被推飞、碰撞触发还是脚本阻塞。
 
-### 4. 读取与诊断 (A/B 档, 回答 Q1/Q2)
+### 5. 读取与诊断 (A/B 档, 回答 Q1/Q2)
 
 ```
 list_objects                     → 列场景所有物体 (探索"场景里有什么")
@@ -148,7 +184,7 @@ read_signal(name="console_log")  → 读 Lua 脚本暴露的信号 (Q1 正路)
 inspect_scene_state(summary=false)→ 全量物体位姿快照
 ```
 
-### 5. 远程 Lua 探针 (run_lua)
+### 6. 远程 Lua 探针 (run_lua)
 
 ```
 run_lua(code='sim.setStringSignal("probe_x", tostring(sim.getSimulationTime()))')
@@ -160,7 +196,7 @@ read_signal(name="probe_x")      → 读回 Lua 结果
 > dry_run 只审计不执行、超时 (默认 5s) 标记 lingering 拒绝后续重叠调用。
 > 见下方「run_lua 执行机制」节。
 
-### 6. CoppeliaSim 控制台实时日志 (tail_coppelia_console)
+### 7. CoppeliaSim 控制台实时日志 (tail_coppelia_console)
 
 CoppeliaSim 自身的控制台输出 (脚本 `print` / `sim.addLog`、插件与 add-on 报错、
 冻结前最后一条消息) 既不在 ZMQ API 里, 也不在 `factory_sim.log` 里。要拿到它,
@@ -188,10 +224,45 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 
 ## status 返回字段
 
+### stage1 (默认)
+
+```json
+{
+  "connected": true,
+  "running": true,
+  "backend": "stage1",
+  "scene_built": true,
+  "paused": false,
+  "build_ok": true,
+  "layout": "L1_S1",
+  "tool_version": "suction_mount_rx180_20261020",
+  "sim_time": 3.25,
+  "unit_state": "APPROACHING",
+  "failure_reason": "",
+  "uid": 1,
+  "target": "station",
+  "fault": "none",
+  "agv_blocked": false,
+  "compensation_count": 12,
+  "material_state": "READY_FOR_PICK",
+  "material_handle": 17512,
+  "agv_state": "IDLE",
+  "results": [{"target": "station", "ok": true}],
+  "report_path": "docs/implementation/runs/phase1_mcp_station_none_*.json",
+  "last_error": null
+}
+```
+
+运行中 `status` 不主动访问主连接（避免与 stage1 runner 抢锁）；暂停或结束后
+才补充 `conveyor_velocity`。
+
+### legacy
+
 ```json
 {
   "connected": true,          // ZMQ 连接是否健康
   "running": true,            // 仿真线程是否在跑
+  "backend": "legacy",
   "host": "localhost",
   "port": 23000,
   "last_error": null,         // 最近异常/告警 (冻结时会在此报)
@@ -224,6 +295,9 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 仿真运行中调 `status`，`connected` 可能瞬时为 `false`——因为单 ZMQ 连接被
 主循环占用，`check_alive` 探针瞬时失败。这不是真断连，过几秒再查即可。
 
+> stage1 后端在 runner 运行时直接返回 `connected: true`，不做 `check_alive`
+> 探针，避免与主循环抢锁导致状态查询变慢或假断连。
+>
 > 注: A/B 档只读诊断工具走独立的 `ro_connector`，**不受此问题影响**——
 > 这正是双连接设计的目的 (见上方「运行模型」)。
 
@@ -260,10 +334,11 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 `tests/` 下分两类:
 
 - **纯单测** (不需 CoppeliaSim, 始终过): `test_state_codes.py` (状态码映射表)、
+  `test_mcp_stage1_backend.py` (后端路由/status/config)、
   `test_mcp_diagnose_tools.py::TestAuditLua` (run_lua 护栏审计正则)。
 - **集成测试** (需 CoppeliaSim 在线): `test_mcp_read_tools.py` (A 档 4 工具)、
   `test_mcp_diagnose_tools.py::TestInspectSceneState`/`TestRunLuaExecution`、
-  `test_mcp_control_tools.py` (C 档 pause/resume/step_n)。
+  `test_mcp_control_tools.py` (C 档 pause/resume/step_n；默认 stage1 后端)。
 
 `tests/conftest.py` 的 `mcp_server` fixture **绑定模块级单例** `factory_mcp_server.server`
 (MCP 工具函数通过闭包引用该单例，夹具若建新实例则工具仍操作未连接的单例，
@@ -274,7 +349,7 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 # 跑全量 (CoppeliaSim 离线时集成测试自动 skip)
 .venv/Scripts/python.exe -m pytest tests/ -v
 # 只跑纯单测
-.venv/Scripts/python.exe -m pytest tests/test_state_codes.py tests/test_mcp_diagnose_tools.py::TestAuditLua -v
+.venv/Scripts/python.exe -m pytest tests/test_state_codes.py tests/test_mcp_stage1_backend.py tests/test_mcp_diagnose_tools.py::TestAuditLua -v
 ```
 
 ## 开发调试
@@ -282,9 +357,18 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 不用经过 Claude Code，直接命令行验证服务器：
 ```bash
 # 打印 20 个工具清单
-.venv/Scripts/python src/factory_mcp_server.py --inspect
+.venv/Scripts/python src/reference/factory_mcp_server.py --inspect
 
 # 直接跑各 CLI (不经 MCP)
-.venv/Scripts/python src/build_scene.py
-.venv/Scripts/python src/run_simulation.py --time 60
+.venv/Scripts/python src/run_stage1.py --target station --time 30   # 当前 stage1
+.venv/Scripts/python src/reference/build_scene.py                   # legacy 五岛
+.venv/Scripts/python src/reference/run_simulation.py --time 60
 ```
+
+## 变更记录
+
+- **2026-10-20**: MCP 默认后端切换为 `stage1`；`build_scene` / `start_simulation` /
+  `get_config` / `set_config` 增加 `backend` 参数，`start_simulation` 增加
+  `target` / `fault`。stage1 运行结果写入
+  `docs/implementation/runs/phase1_mcp_*.json`。stage1 `pause_simulation`
+  会让 runner 停止访问 ZMQ，`step_simulation` 可安全逐帧推进。

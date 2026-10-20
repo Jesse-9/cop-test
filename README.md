@@ -6,7 +6,7 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 旧五岛案例仅作为迁移和诊断参考。
 
 > 📖 **使用指南**：从安装到运行的完整流程见 [docs/wiki/98-ProjectUsage/USAGE.md](docs/wiki/98-ProjectUsage/USAGE.md)。
-> 📖 **MCP 工具**：20 个工具（A 读取/B 诊断/C 控制）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
+> 📖 **MCP 工具**：20 个工具（A 读取/B 诊断/C 控制；默认 stage1 后端，legacy 可选）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 > 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
 
 ## 当前实施范围：阶段一单元闭环
