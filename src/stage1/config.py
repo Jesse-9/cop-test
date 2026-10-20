@@ -5,6 +5,8 @@
 
 数值来源:
   docs/measurement/phase0_measurements.json  (CoppeliaSim 4.10.0.0, 2026-10-17)
+  suction pad 安装标定 (2026-10-20): 当前实时场景 shape 包围盒 + 工具轴向测量,
+  见 docs/implementation/SUCTION_PAD_MOUNT_REVIEW.md。
 
 单位约定: m / rad / s / kg。
 坐标约定: X = 主输送方向, Y = 横向, Z = 高度。
@@ -190,12 +192,35 @@ ARM_REACH_RADIUS = 0.85           # UR5 标称工作半径 (安全断言用)
 ARM_SOLVE_PRECISION = [0.01, 0.01]  # simIK element 线性/角度精度
 ARM_IK_MAX_ITERATIONS = 200       # simIK group 最大迭代次数
 
-# 吸盘 TCP: 接触面中心, 相对吸盘根 local Z = 实测包围盒最低点
+# 吸盘 TCP: 接触面中心, 相对吸盘根 local Z = 实测包围盒最低点。
+# 安装翻转后 TCP +Z 与 pad +Z 同向; 真实吸附法向为 pad -Z。
 TCP_LOCAL_Z = -0.015000049956142902
+TCP_LOCAL_POS = (0.0, 0.0, TCP_LOCAL_Z)
+TCP_LOCAL_QUATERNION = (0.0, 0.0, 0.0, 1.0)   # [qx,qy,qz,qw]
 TCP_ALIAS = ALIASES["tcp"]
 
-# 抓取目标位姿: TCP 位于物料顶面中心; 工具 Z 轴朝上 (吸盘接触面朝下)
+# 抓取目标位姿: TCP 位于物料顶面中心; 工具 Z 轴朝上 (真实吸附面朝下)
 TOOL_TARGET_QUATERNION = [0.0, 0.0, 0.0, 1.0]
+
+# ── suction pad 安装变换 (SUCTION_PAD_MOUNT_REVIEW.md 步骤 3) ──────────
+# 模型实测: pad 本地 -Z 是吸附接触方向; Body 的 Z 包围范围
+# [-0.015, +0.035] m。安装时绕 connection X 轴转 π, 使 pad -Z 与
+# connection +Z 同向, 并沿 +Z 平移 d, 避免背部伸入法兰平面。
+# e = 末端 link (link7_visible) 超出 connection 平面的外向突出量:
+#     2026-10-20 实时场景 shape 包围盒测量的保守值 (不是网格净距)。
+# g = 设计间距, 验收前冻结; 改动模型或安装必须重新标定。
+SUCTION_MOUNT_QUATERNION = (1.0, 0.0, 0.0, 0.0)   # Rx(π), [qx,qy,qz,qw]
+SUCTION_BACK_LOCAL_Z = 0.03500004019588232
+SUCTION_FLANGE_PROTRUSION_Z = 0.007549934089183821
+SUCTION_LINK_CLEARANCE = 0.005
+SUCTION_MOUNT_Z = (
+    SUCTION_BACK_LOCAL_Z
+    + SUCTION_FLANGE_PROTRUSION_Z
+    + SUCTION_LINK_CLEARANCE
+)
+SUCTION_TOOL_VERSION = "suction_mount_rx180_20261020"
+SUCTION_MOUNT_POS_TOL = 0.0005    # 安装/TCP/接触点位置校验容差 (m)
+SUCTION_AXIS_DOT_TOL = 0.001      # 轴向共向判据: dot >= 1 - tol
 
 # ═══════════════════════════════════════════════════════════════
 # 吸附与释放 (06-05 §2.9 / CLAUDE.md §6)

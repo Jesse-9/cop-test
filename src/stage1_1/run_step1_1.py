@@ -298,7 +298,8 @@ def _build_components(sim, simIK, scene, logger) -> dict:
         sensor_handle=scene.suction_sensor,
         link_handle=scene.suction_link,
         release_parent=scene.handle(base.ALIASES["roots"][4]),
-        logger=logger)
+        logger=logger,
+        pad_handle=scene.suction_root)
     return {
         "conveyor": conveyor,
         "geometry": BeltGeometry(entry_world, stop_world),

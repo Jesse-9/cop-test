@@ -211,6 +211,71 @@ def _shape_size(sim, handle: int):
         return None
 
 
+# ── 姿态/轴向几何工具 (工具安装契约与证据) ──────────────────────
+
+def _quat_matrix(q) -> tuple[tuple[float, ...], ...]:
+    """四元数 [qx,qy,qz,qw] → 3x3 旋转矩阵 (行主序)."""
+    x, y, z, w = [float(v) for v in q[:4]]
+    return (
+        (1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)),
+        (2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)),
+        (2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)),
+    )
+
+
+def _world_axis(sim, handle: int, axis: int):
+    """对象局部轴 (0=X/1=Y/2=Z) 在世界系中的方向。"""
+    r = _quat_matrix(sim.getObjectQuaternion(handle, sim.handle_world))
+    return (r[0][axis], r[1][axis], r[2][axis])
+
+
+def _dot(a, b) -> float:
+    return sum(float(x) * float(y) for x, y in zip(a, b))
+
+
+def _quat_equivalent(q1, q2, tol: float = 1e-4) -> bool:
+    """q 与 -q 表示同一旋转。"""
+    a = [float(v) for v in q1[:4]]
+    b = [float(v) for v in q2[:4]]
+    same = max(abs(x - y) for x, y in zip(a, b))
+    neg = max(abs(x + y) for x, y in zip(a, b))
+    return min(same, neg) <= tol
+
+
+def _shape_max_z(sim, shape: int, frame: int) -> float:
+    """shape 包围盒在 frame 坐标系中的最大 Z (保守粗筛, 非网格距离)."""
+    pose = list(sim.getObjectPose(shape, frame))
+    size = _shape_size(sim, shape)
+    if size is None:
+        raise SceneBuildError(
+            f"无法读取 shape 包围盒: {alias_of(sim, shape)!r}")
+    r = _quat_matrix(pose[3:])
+    return max(
+        pose[2] + r[2][0] * sx * size[0] / 2.0
+        + r[2][1] * sy * size[1] / 2.0
+        + r[2][2] * sz * size[2] / 2.0
+        for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)
+    )
+
+
+def _end_link_max_z(sim, connection: int) -> float:
+    """connection 上游末端实体 link 在 connection 坐标系的最大 Z.
+
+    只取 connection 的父级子树, 并排除 connection 自身及其子树 (已挂载的
+    吸盘), 避免自引用。使用 shape 包围盒, 结果是保守粗筛而非网格净距。
+    """
+    parent = int(sim.getObjectParent(connection))
+    if parent < 0:
+        raise SceneBuildError("connection 没有父对象, 无法测量末端 link")
+    excluded = {int(connection)} | set(subtree(sim, connection))
+    shapes = [h for h in [parent] + subtree(sim, parent)
+              if h not in excluded
+              and sim.getObjectType(h) == sim.object_shape_type]
+    if not shapes:
+        raise SceneBuildError("connection 上游没有可测量的实体 link shape")
+    return max(_shape_max_z(sim, h, connection) for h in shapes)
+
+
 def _chain_joints(sim, root: int, tip: int) -> list[int]:
     chain, cur = [], int(tip)
     for _ in range(64):
@@ -269,6 +334,7 @@ class Stage1Scene:
     suction_root: int = -1
     tcp: int = -1
     suction_sensor: int = -1
+    suction_model_sensor: int = -1
     suction_link: int = -1
     agv_root: int = -1
     agv_left_wheel: int = -1
@@ -389,6 +455,65 @@ class Stage1Scene:
             })
         return rows
 
+    def tool_geometry(self) -> dict:
+        """工具安装几何快照 (构建报告与运行证据共用)."""
+        sim = self.sim
+        pad, tcp = self.suction_root, self.tcp
+        out = {
+            "version": cfg.SUCTION_TOOL_VERSION,
+            "ok": pad >= 0 and tcp >= 0,
+            "mount_z": cfg.SUCTION_MOUNT_Z,
+            "mount_quaternion": list(cfg.SUCTION_MOUNT_QUATERNION),
+            "flange_protrusion_z": cfg.SUCTION_FLANGE_PROTRUSION_Z,
+            "link_clearance_design": cfg.SUCTION_LINK_CLEARANCE,
+        }
+        if not out["ok"]:
+            out["error"] = "吸盘或 TCP 句柄缺失"
+            return out
+        out["handles"] = {
+            "connection": self.robot_connection,
+            "pad": pad,
+            "tcp": tcp,
+            "sensor": self.suction_sensor,
+            "model_sensor": self.suction_model_sensor,
+            "link": self.suction_link,
+        }
+        out["joint_positions"] = [
+            float(sim.getJointPosition(j)) for j in self.robot_joints]
+        try:
+            out["sim_time"] = float(sim.getSimulationTime())
+        except Exception:
+            out["sim_time"] = None
+        out["pad_world_pose"] = [float(v) for v in sim.getObjectPose(
+            pad, sim.handle_world)]
+        out["tcp_world_pose"] = [float(v) for v in sim.getObjectPose(
+            tcp, sim.handle_world)]
+        out["tcp_in_pad"] = [float(v) for v in sim.getObjectPose(
+            tcp, pad)]
+        if self.robot_connection >= 0:
+            out["pad_in_connection"] = [float(v) for v in sim.getObjectPose(
+                pad, self.robot_connection)]
+        z_pad = _world_axis(sim, pad, 2)
+        out["suction_normal_world"] = [-z_pad[0], -z_pad[1], -z_pad[2]]
+        for name, handle in (("sensor", self.suction_sensor),
+                             ("model_sensor", self.suction_model_sensor)):
+            if handle >= 0:
+                out[f"{name}_axis_world"] = list(
+                    _world_axis(sim, handle, 2))
+        if self.robot_connection >= 0:
+            try:
+                link_max = _end_link_max_z(sim, self.robot_connection)
+                back_plane = cfg.SUCTION_MOUNT_Z - cfg.SUCTION_BACK_LOCAL_Z
+                out["end_link_max_z_in_connection"] = link_max
+                out["pad_back_plane_z"] = back_plane
+                out["link_clearance"] = back_plane - link_max
+            except Exception as exc:
+                out["ok"] = False
+                out["end_link_max_z_in_connection"] = None
+                out["link_clearance"] = None
+                out["clearance_error"] = str(exc)
+        return out
+
     def verify(self) -> dict:
         checks = []
 
@@ -463,10 +588,75 @@ class Stage1Scene:
                   f"mass={mass}")
 
         if tcp >= 0 and self.suction_root >= 0:
-            local = list(self.sim.getObjectPosition(tcp, self.suction_root))
+            pad = self.suction_root
+            local = list(self.sim.getObjectPosition(tcp, pad))
             check("tcp_contact_offset",
-                  abs(local[2] - cfg.TCP_LOCAL_Z) <= 0.005,
-                  f"TCP local={[round(v, 5) for v in local]}")
+                  all(abs(local[i] - cfg.TCP_LOCAL_POS[i])
+                      <= cfg.SUCTION_MOUNT_POS_TOL for i in range(3)),
+                  f"TCP local={[round(v, 5) for v in local]} "
+                  f"期望={list(cfg.TCP_LOCAL_POS)}")
+            tcp_q = self.sim.getObjectQuaternion(tcp, pad)
+            check("tcp_local_orientation",
+                  _quat_equivalent(tcp_q, cfg.TCP_LOCAL_QUATERNION),
+                  f"TCP quat in pad={[round(float(v), 6) for v in tcp_q]}")
+
+            if self.robot_connection >= 0:
+                mount = list(self.sim.getObjectPose(pad, self.robot_connection))
+                expected_mount = [0.0, 0.0, cfg.SUCTION_MOUNT_Z]
+                check(
+                    "pad_mount_pose",
+                    all(abs(mount[i] - expected_mount[i])
+                        <= cfg.SUCTION_MOUNT_POS_TOL for i in range(3))
+                    and _quat_equivalent(mount[3:],
+                                         cfg.SUCTION_MOUNT_QUATERNION),
+                    f"pad in connection={[round(float(v), 6) for v in mount]} "
+                    f"期望 z={cfg.SUCTION_MOUNT_Z:.6f} "
+                    f"quat={list(cfg.SUCTION_MOUNT_QUATERNION)}")
+
+            z_pad = _world_axis(self.sim, pad, 2)
+            z_tcp = _world_axis(self.sim, tcp, 2)
+            check("tcp_pad_axis",
+                  _dot(z_tcp, z_pad) >= 1.0 - cfg.SUCTION_AXIS_DOT_TOL,
+                  f"z_tcp·z_pad={_dot(z_tcp, z_pad):.6f}")
+            check("suction_model_sensor_present",
+                  self.suction_model_sensor >= 0,
+                  f"handle={self.suction_model_sensor}")
+            for name, handle in (
+                    ("suction_sensor_axis", self.suction_sensor),
+                    ("suction_model_sensor_axis", self.suction_model_sensor)):
+                if handle < 0:
+                    continue
+                z_sensor = _world_axis(self.sim, handle, 2)
+                dot = _dot(z_sensor, (-z_pad[0], -z_pad[1], -z_pad[2]))
+                check(name, dot >= 1.0 - cfg.SUCTION_AXIS_DOT_TOL,
+                      f"z_sensor·(-z_pad)={dot:.6f}")
+
+            check("suction_link_present", self.suction_link >= 0,
+                  f"handle={self.suction_link}")
+            if self.suction_link >= 0:
+                marker = list(self.sim.getObjectPosition(
+                    self.suction_link, pad))
+                check("tcp_contact_marker",
+                      math.dist(marker, local) <= cfg.SUCTION_MOUNT_POS_TOL,
+                      f"Link={[round(v, 5) for v in marker]} "
+                      f"TCP={[round(v, 5) for v in local]}")
+
+            if self.robot_connection >= 0:
+                try:
+                    link_max = _end_link_max_z(
+                        self.sim, self.robot_connection)
+                    back_plane = (cfg.SUCTION_MOUNT_Z
+                                  - cfg.SUCTION_BACK_LOCAL_Z)
+                    gap = back_plane - link_max
+                    check("suction_mount_clearance",
+                          gap >= cfg.SUCTION_LINK_CLEARANCE
+                          - cfg.SUCTION_MOUNT_POS_TOL,
+                          f"pad 背面 z={back_plane:.6f} "
+                          f"末端 link max z={link_max:.6f} gap={gap:.6f}")
+                except Exception as exc:
+                    # 未知几何结果不能按通过处理
+                    check("suction_mount_clearance", False,
+                          f"无法测量: {exc}")
 
         layout = self.layout if self.layout is not None else default_layout()
         for name, point in layout.targets().items():
@@ -480,6 +670,7 @@ class Stage1Scene:
             check("tcp_above_island", z > layout.island_top_z,
                   f"TCP z={z:.3f}")
 
+        self.build_report["tool"] = self.tool_geometry()
         ok = all(c["ok"] for c in checks)
         self.build_report["checks"] = checks
         self.build_report["ok"] = ok
@@ -675,10 +866,14 @@ def _create_robot(sim, island: int, layout: LayoutSpec) -> dict:
         sim.setJointMode(j, sim.jointmode_kinematic, 0)
         sim.setJointPosition(j, float(q))
 
-    # 吸盘: 挂到 connection, 接触面朝下
+    # 吸盘: 挂到 connection。内置模型本地 -Z 才是吸附接触方向, 因此绕
+    # connection X 轴转 π, 并沿 +Z 平移 d, 使接触面真正朝外/朝下。
     pad = _load_model(sim, "suction_pad", cfg.ALIASES["suction"],
                       None, connection)
-    sim.setObjectPose(pad, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], connection)
+    sim.setObjectPose(
+        pad,
+        [0.0, 0.0, cfg.SUCTION_MOUNT_Z, *cfg.SUCTION_MOUNT_QUATERNION],
+        connection)
     for h in subtree(sim, pad):
         if sim.getObjectType(h) == sim.object_shape_type:
             phys.set_static(sim, h, True)
@@ -703,7 +898,11 @@ def _create_robot(sim, island: int, layout: LayoutSpec) -> dict:
     tcp = int(sim.createDummy(0.01))
     sim.setObjectAlias(tcp, cfg.ALIASES["tcp"])
     sim.setObjectParent(tcp, pad, True)
-    sim.setObjectPosition(tcp, [0.0, 0.0, cfg.TCP_LOCAL_Z], sim.handle_parent)
+    # 完整指定 TCP 相对 pad 的位姿: +Z 与 pad +Z 同向, 接触点在 pad -Z。
+    sim.setObjectPose(
+        tcp,
+        [*cfg.TCP_LOCAL_POS, *cfg.TCP_LOCAL_QUATERNION],
+        sim.handle_parent)
 
     # 专用吸盘接触传感器: 从 TCP 接触面向下 3cm、半径 6cm 的圆柱体积,
     # 只覆盖物料顶面, 不触及传送带 (带面在 TCP 下方 10cm).
@@ -719,6 +918,7 @@ def _create_robot(sim, island: int, layout: LayoutSpec) -> dict:
         "joints": joints,
         "pad": pad,
         "sensor": sensor,
+        "model_sensor": model_sensor,
         "link": link,
         "tcp": tcp,
     }
@@ -856,6 +1056,7 @@ def build_scene(sim, clear: bool = True,
     scene.suction_root = robot["pad"]
     scene.tcp = robot["tcp"]
     scene.suction_sensor = robot["sensor"]
+    scene.suction_model_sensor = robot["model_sensor"]
     scene.suction_link = robot["link"]
     scene.handles[cfg.ALIASES["robot"]] = robot["arm"]
     scene.handles[cfg.ALIASES["suction"]] = robot["pad"]

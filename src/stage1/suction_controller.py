@@ -1,8 +1,9 @@
 """suction_controller.py — 逻辑吸附与释放 (§2.9 / CLAUDE.md §6).
 
 当前阶段不模拟真空压力。吸附条件是:
-  UID 匹配 → 状态 READY_FOR_PICK → 吸盘传感器命中该 UID → TCP 与物料
-  顶面中心距离 ≤ 容差 → 吸盘轴线倾角 ≤ 阈值 → 物料速度 ≤ 阈值。
+  UID 匹配 → 状态 READY_FOR_PICK → 工具几何一致 (TCP/pad/sensor 轴向)
+  → 吸盘传感器命中该 UID → TCP 与物料顶面中心距离 ≤ 容差 →
+  真实吸盘法向 (-pad Z) 倾角 ≤ 阈值 → 物料速度 ≤ 阈值。
 
 吸附前保存父对象、位姿、static/respondable、质量、摩擦和碰撞掩码;
 吸附期间只关闭物料动态响应 (static=1); 释放后完整恢复并 resetDynamicObject。
@@ -11,7 +12,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from . import config as cfg
 from .material_manager import InvalidTransition, MaterialState
@@ -21,6 +22,7 @@ from .material_manager import InvalidTransition, MaterialState
 ATTACH_OK = "ATTACH_OK"
 REJECT_UID_UNKNOWN = "REJECT_UID_UNKNOWN"
 REJECT_STATE = "REJECT_STATE"
+REJECT_TOOL_GEOMETRY = "REJECT_TOOL_GEOMETRY"
 REJECT_NO_SENSOR_HIT = "REJECT_NO_SENSOR_HIT"
 REJECT_UID_MISMATCH = "REJECT_UID_MISMATCH"
 REJECT_TCP_TOO_FAR = "REJECT_TCP_TOO_FAR"
@@ -51,11 +53,12 @@ class ReleaseResult:
 class SuctionController:
     def __init__(self, sim, manager, tcp_handle: int, sensor_handle: int,
                  link_handle: int = -1, release_parent: int = -1,
-                 logger=None) -> None:
+                 logger=None, pad_handle: int = -1) -> None:
         self.sim = sim
         self.manager = manager
         self.tcp_handle = int(tcp_handle)
         self.sensor_handle = int(sensor_handle)
+        self.pad_handle = int(pad_handle)
         self.link_handle = int(link_handle)
         self.release_parent = int(release_parent)
         self.logger = logger
@@ -75,6 +78,14 @@ class SuctionController:
         if handle is None or handle < 0:
             return AttachResult(REJECT_UID_UNKNOWN,
                                 f"物料 {target_uid} 没有场景句柄")
+
+        # 静态工具装配错误优先于传感器/距离判定, 明确报告且不修改物理状态。
+        try:
+            geometry_error = self._tool_geometry_error()
+        except Exception as exc:
+            geometry_error = f"工具几何读取失败: {exc}"
+        if geometry_error:
+            return AttachResult(REJECT_TOOL_GEOMETRY, geometry_error)
 
         hit = self._sensor_hit(handle)
         if hit is None:
@@ -295,11 +306,48 @@ class SuctionController:
             return _parse_hit(res)
         return int(res) if res not in (None, 0, -1) else None
 
-    def _tool_tilt(self) -> float:
-        q = self.sim.getObjectQuaternion(self.tcp_handle, self.sim.handle_world)
+    def _world_axis(self, handle: int, axis: int):
+        """对象局部轴 (0=X/1=Y/2=Z) 在世界系中的方向。"""
+        q = self.sim.getObjectQuaternion(handle, self.sim.handle_world)
         x, y, z, w = [float(v) for v in q[:4]]
-        zz = 1.0 - 2.0 * (x * x + y * y)
-        return math.acos(max(-1.0, min(1.0, zz)))
+        r = (
+            (1 - 2 * (y * y + z * z), 2 * (x * y - z * w),
+             2 * (x * z + y * w)),
+            (2 * (x * y + z * w), 1 - 2 * (x * x + z * z),
+             2 * (y * z - x * w)),
+            (2 * (x * z - y * w), 2 * (y * z + x * w),
+             1 - 2 * (x * x + y * y)),
+        )
+        return (r[0][axis], r[1][axis], r[2][axis])
+
+    def _tool_geometry_error(self) -> str | None:
+        """检查 TCP/pad/sensor 相对轴向, 失败返回明确几何错误。
+
+        只读取世界矩阵, 不修改任何物理状态。未提供 pad 句柄时直接失败,
+        不退回旧 TCP 判据 —— 否则反装吸盘会被手工转正的 TCP 掩盖。
+        """
+        if self.pad_handle < 0:
+            return "未提供吸盘根句柄, 无法验证真实吸附方向"
+        z_pad = self._world_axis(self.pad_handle, 2)
+        z_tcp = self._world_axis(self.tcp_handle, 2)
+        dot_tcp = sum(a * b for a, b in zip(z_tcp, z_pad))
+        if dot_tcp < 1.0 - cfg.SUCTION_AXIS_DOT_TOL:
+            return (f"TCP +Z 与 pad +Z 不共向 (dot={dot_tcp:.6f}); "
+                    "TCP 局部四元数或安装变换错误")
+        z_sensor = self._world_axis(self.sensor_handle, 2)
+        dot_sensor = -sum(a * b for a, b in zip(z_sensor, z_pad))
+        if dot_sensor < 1.0 - cfg.SUCTION_AXIS_DOT_TOL:
+            return (f"suction sensor +Z 与 pad -Z 不共向 "
+                    f"(dot={dot_sensor:.6f}); 传感器朝向错误")
+        return None
+
+    def _tool_tilt(self) -> float:
+        """真实吸附法向 (-pad Z) 与竖直向下 (world -Z) 的夹角。"""
+        if self.pad_handle < 0:
+            return math.pi
+        z_pad = self._world_axis(self.pad_handle, 2)
+        # (-z_pad)·(0,0,-1) = z_pad[2]
+        return math.acos(max(-1.0, min(1.0, z_pad[2])))
 
     def _contact_gap(self, material_handle: int) -> float:
         p_tcp = self.sim.getObjectPosition(self.tcp_handle, self.sim.handle_world)

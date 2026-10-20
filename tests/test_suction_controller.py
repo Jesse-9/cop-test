@@ -22,6 +22,7 @@ MAT = 100
 TCP = 101
 SENSOR = 102
 LINK = 103
+PAD = 104
 PART_ROOT = 1
 
 
@@ -31,6 +32,9 @@ class FakeSim:
         self.mat_pos = [0.0, 0.0, cfg.MATERIAL_PICK_POS[2]]
         self.tcp_pos = [0.0, 0.0, self.mat_pos[2] + cfg.MATERIAL_HALF_HEIGHT]
         self.tcp_quat = [0.0, 0.0, 0.0, 1.0]
+        # 正确安装: TCP +Z 与 pad +Z 同向; 专用 sensor +Z 与 pad -Z 同向
+        self.pad_quat = [0.0, 0.0, 0.0, 1.0]
+        self.sensor_quat = [1.0, 0.0, 0.0, 0.0]
         self.sensor_hit = MAT
         self.material_speed = 0.0
         self.tool_speed = 0.0
@@ -52,6 +56,10 @@ class FakeSim:
         raise KeyError(handle)
 
     def getObjectQuaternion(self, handle, rel=None):
+        if handle == PAD:
+            return list(self.pad_quat)
+        if handle == SENSOR:
+            return list(self.sensor_quat)
         return list(self.tcp_quat)
 
     def getObjectPose(self, handle, rel=None):
@@ -146,7 +154,8 @@ def _setup(state=MaterialState.READY_FOR_PICK):
         mgr.transition(1, MaterialState.ON_CONVEYOR, 0.1, "belt")
         mgr.transition(1, MaterialState.READY_FOR_PICK, 0.2, "pick")
     c = SuctionController(sim, mgr, tcp_handle=TCP, sensor_handle=SENSOR,
-                          link_handle=LINK, release_parent=PART_ROOT)
+                          link_handle=LINK, release_parent=PART_ROOT,
+                          pad_handle=PAD)
     return sim, mgr, c
 
 
@@ -202,8 +211,13 @@ def test_attach_rejects_tcp_too_far():
 
 def test_attach_rejects_tilted_tool():
     sim, mgr, c = _setup()
-    # 绕 X 轴 90°: 工具 Z 轴水平
-    sim.tcp_quat = [math.sin(math.pi / 4), 0.0, 0.0, math.cos(math.pi / 4)]
+    # 整个工具绕 X 轴 90°: TCP/pad/sensor 相对关系不变, 但真实法向水平
+    q90 = [math.sin(math.pi / 4), 0.0, 0.0, math.cos(math.pi / 4)]
+    q270 = [math.sin(3 * math.pi / 4), 0.0, 0.0,
+            math.cos(3 * math.pi / 4)]
+    sim.tcp_quat = q90
+    sim.pad_quat = q90
+    sim.sensor_quat = q270
     r = c.attach(1, 1.0)
     assert r.code == REJECT_TOO_TILTED
 

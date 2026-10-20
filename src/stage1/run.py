@@ -133,7 +133,8 @@ def build_components(sim, simIK, scene: Stage1Scene, logger):
         sensor_handle=scene.suction_sensor,
         link_handle=scene.suction_link,
         release_parent=scene.handle(cfg.ALIASES["roots"][4]),
-        logger=logger)
+        logger=logger,
+        pad_handle=scene.suction_root)
 
     agv = PioneerController(
         sim, scene.agv_left_wheel, scene.agv_right_wheel,
@@ -204,6 +205,10 @@ def collect_evidence(sim, scene: Stage1Scene, comp, controller,
         agv = comp["agv"]
         agv_pose = agv.pose()
         physics = phys.snapshot_physics(sim, material_handle)
+        try:
+            tool = scene.tool_geometry()
+        except Exception as exc:
+            tool = {"ok": False, "error": f"工具几何采集失败: {exc}"}
     except Exception as exc:
         return {
             "target": target,
@@ -223,6 +228,7 @@ def collect_evidence(sim, scene: Stage1Scene, comp, controller,
             "respondable_ok": physics.get("respondable") == 1,
         },
         "tcp": {"pose": [round(float(v), 5) for v in tcp]},
+        "tool": tool,
         "arm_joints": [round(float(sim.getJointPosition(j)), 5)
                        for j in scene.robot_joints],
         "agv": {
@@ -435,6 +441,15 @@ def main(argv=None) -> int:
             "conveyor": {k: scene.conveyor_meta.get(k)
                          for k in ("actual_length", "surface_z",
                                    "entry_local_x", "stop_local_x")},
+            "tool": {
+                "version": cfg.SUCTION_TOOL_VERSION,
+                "mount_z": round(cfg.SUCTION_MOUNT_Z, 6),
+                "mount_quaternion": list(cfg.SUCTION_MOUNT_QUATERNION),
+                "flange_protrusion_z": cfg.SUCTION_FLANGE_PROTRUSION_Z,
+                "link_clearance_design": cfg.SUCTION_LINK_CLEARANCE,
+                "link_clearance_measured": scene.build_report.get(
+                    "tool", {}).get("link_clearance"),
+            },
         })
     except Exception as exc:
         logger.exception("[SCENE] 构建失败: %s", exc)
@@ -459,6 +474,7 @@ def main(argv=None) -> int:
             "agv_dock": list(scene.layout.agv_dock),
         },
         "scene": scene.describe(),
+        "tool": scene.tool_geometry(),
         "build_report": scene.build_report,
         "measurements": "docs/measurement/phase0_measurements.json",
     }
