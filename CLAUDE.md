@@ -298,6 +298,9 @@
 
 # 全流程 (measure → layout → A/B/C 10 次矩阵)
 .venv/Scripts/python src/run_step1_1.py --phase all --repeats 10
+
+# 从已有证据复算统计
+.venv/Scripts/python docs/measurement/analyze_step1_1.py --stamp <stamp>
 ```
 
 ### 历史五岛完整场景层
