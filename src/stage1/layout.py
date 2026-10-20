@@ -181,6 +181,30 @@ def default_layout() -> LayoutSpec:
     return L1_S1_LAYOUT
 
 
+_TUPLE_FIELDS = {"arm_base", "island_pos", "station_pos", "agv_dock",
+                 "conveyor_center", "warehouse_pos", "island_size",
+                 "station_size"}
+
+
+def layout_from_dict(data: dict) -> LayoutSpec:
+    """从 manifest/JSON 恢复布局; 缺失字段使用 dataclass 默认值。"""
+    if not isinstance(data, dict):
+        raise ValueError("layout 必须是对象")
+    import dataclasses
+    names = {f.name for f in dataclasses.fields(LayoutSpec)}
+    kwargs = {}
+    for key, value in data.items():
+        if key not in names or key == "name":
+            continue
+        if key in _TUPLE_FIELDS and isinstance(value, (list, tuple)):
+            value = tuple(float(v) for v in value)
+        kwargs[key] = value
+    name = str(data.get("name") or data.get("id") or "")
+    if not name:
+        raise ValueError("layout 缺少 name/id")
+    return LayoutSpec(name=name, **kwargs)
+
+
 # ═══════════════════════════════════════════════════════════════
 # 布局校验
 # ═══════════════════════════════════════════════════════════════

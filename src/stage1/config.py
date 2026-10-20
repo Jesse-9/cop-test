@@ -23,6 +23,9 @@ from dataclasses import dataclass
 
 SIM_STEP = 0.05                      # 一个 stepping 步的仿真时长 (s)
 
+# 步骤 1.2: 场景构建器版本; 场景结构/构建逻辑变化时必须递增
+SCENE_BUILDER_VERSION = "stage1_scene_20261020"
+
 MODEL_BASE = r"C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models"
 MODEL_PATHS = {
     "conveyor": "equipment/conveyors/generic conveyor (belt).ttm",

@@ -6,7 +6,9 @@
     config                  参数与别名
     layout                  LayoutSpec / 布局几何校验
     physics                 物理属性工具
-    scene                   单工位场景构建
+    scene                   单工位场景构建 / 加载后句柄重建
+    scene_artifact          场景工件、manifest 与只读校验
+    lifecycle               生命周期状态机与 build/save/load/validate/start/stop
     device_handle_map       启动期句柄表
     material_manager        物料生命周期
     conveyor_controller     传送带驱动与受限补偿
@@ -16,11 +18,13 @@
     unit_controller         §2.11 单步状态机
     run                     CLI 入口
 
-入口: ``python src/run_stage1.py`` 或 ``uv run run-stage1``。
+入口: ``python src/run_scene_lifecycle.py`` (生命周期),
+      ``python src/run_stage1.py`` (兼容运行入口)。
 """
 
 __all__ = [
-    "config", "layout", "physics", "scene", "device_handle_map",
-    "material_manager", "conveyor_controller", "ur5_ik_controller",
-    "suction_controller", "pioneer_controller", "unit_controller", "run",
+    "config", "layout", "physics", "scene", "scene_artifact", "lifecycle",
+    "device_handle_map", "material_manager", "conveyor_controller",
+    "ur5_ik_controller", "suction_controller", "pioneer_controller",
+    "unit_controller", "run",
 ]

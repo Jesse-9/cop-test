@@ -17,6 +17,26 @@ class TestPauseResumeFlag:
 from reference.factory_mcp_server import pause_simulation, resume_simulation, step_simulation
 
 
+@pytest.fixture()
+def stage1_temp_lifecycle(mcp_server, tmp_path):
+    """把 MCP stage1 生命周期指向临时工件目录 (不污染 docs/scene_artifacts)。"""
+    from stage1.lifecycle import LifecycleManager
+
+    srv = mcp_server
+    if srv.is_running():
+        srv.stop()
+    srv.stage1_lifecycle = LifecycleManager(
+        srv.sim, srv.connector.simIK,
+        artifact_root=tmp_path / "artifacts",
+        session_path=tmp_path / "session.json",
+        actor="test",
+        host=srv.connector.host, port=srv.connector.port,
+        report_dir=tmp_path / "runs")
+    yield srv
+    if srv.is_running():
+        srv.stop()
+
+
 class TestPauseResumeStepN:
     def test_step_n_runs_multiple(self, mcp_server):
         # 需仿真已 start; 若未 start 则 step 返回提示
@@ -25,11 +45,23 @@ class TestPauseResumeStepN:
         r = step_simulation(n=3)
         assert "未运行" in r or "失败" in r
 
-    def test_pause_resume_roundtrip(self, mcp_server):
-        # 此测试依赖完整场景能跑(已知冻结问题);冻结时 start 后 status 会告警,
-        # 测试探测到 sim_time 不推进则 skip 而非 fail。
-        from reference.factory_mcp_server import (start_simulation, stop_simulation,
-                                        status)
+    def test_pause_resume_roundtrip(self, stage1_temp_lifecycle):
+        # 步骤 1.2: start 不再隐式 build; 显式 build→save→load→validate。
+        from reference.factory_mcp_server import (build_scene, save_scene,
+                                                  load_scene, validate_scene,
+                                                  start_simulation,
+                                                  stop_simulation, status)
+        srv = stage1_temp_lifecycle
+        built = build_scene()
+        assert "失败" not in built and "build_scene(stage1) 失败" not in built
+        saved = save_scene(phase="diagnostic", protected=False)
+        assert "失败" not in saved
+        loaded = load_scene("current", phase="diagnostic")
+        assert "失败" not in loaded
+        validated = validate_scene()
+        assert "失败" not in validated
+        assert json.loads(validated)["ok"] is True
+
         start_simulation(total_time=30.0)
         _t.sleep(2.0)
         st = json.loads(status())
@@ -42,4 +74,4 @@ class TestPauseResumeStepN:
         rr = resume_simulation()
         assert "失败" not in rr
         stop_simulation()
-        assert getattr(mcp_server, "_run_lua_lingering", False) is False
+        assert getattr(srv, "_run_lua_lingering", False) is False

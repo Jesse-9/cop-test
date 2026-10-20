@@ -21,6 +21,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 
@@ -29,7 +30,7 @@ from . import physics as phys
 from .conveyor_controller import BeltGeometry, ConveyorController
 from .material_manager import MaterialManager
 from .pioneer_controller import PioneerController
-from .scene import Stage1Scene, build_scene, alias_of, subtree
+from .scene import Stage1Scene, alias_of, subtree
 from .unit_controller import Stage1UnitController, UnitTaskState
 from .suction_controller import SuctionController
 from .ur5_ik_controller import Ur5IkController
@@ -437,59 +438,38 @@ def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
 # 主流程
 # ═══════════════════════════════════════════════════════════════
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="阶段一单元闭环运行")
-    ap.add_argument("--host", default="localhost")
-    ap.add_argument("--port", type=int, default=23000)
-    ap.add_argument("--target", choices=("station", "agv", "both"),
-                    default="station")
-    ap.add_argument("--fault", choices=cfg.FAULT_CHOICES,
-                    default=cfg.FAULT_NONE)
-    ap.add_argument("--time", type=float, default=90.0,
-                    help="单任务最大仿真时间 (s)")
-    ap.add_argument("--log", default=cfg.DEFAULT_LOG_FILE)
-    ap.add_argument("--out-dir", default=REPORT_DIR)
-    ap.add_argument("--repeat", type=int, default=1,
-                    help="重复任务次数 (仅单目标; 用于 60s 连续运行)")
-    ap.add_argument("--keep-running", action="store_true")
-    ns = ap.parse_args(argv)
+def run_loaded_scene(sim, simIK, scene: Stage1Scene, *,
+                     target: str = "station", fault: str = cfg.FAULT_NONE,
+                     max_sim_time: float = 90.0, repeat: int = 1,
+                     out_dir=REPORT_DIR, logger,
+                     keep_running: bool = False,
+                     stop_event=None, pause_event=None,
+                     pause_ack_event=None, on_start=None,
+                     run_id: str | None = None,
+                     artifact_id: str | None = None) -> dict:
+    """在**已加载且已校验**的场景上执行任务; 不 build、不清场。
 
-    logger = setup_logger(ns.log)
-    client, sim, simIK = connect(ns.host, ns.port)
+    步骤 1.2 起 start 只允许走这里。返回写入 runs/ 的报告摘要。
+    """
+    if repeat < 1:
+        raise ValueError("repeat 必须 >= 1")
+    if repeat > 1 and target == "both":
+        raise ValueError("repeat>1 只能配合单一目标 (station 或 agv)")
+    if repeat > 1 and target == "agv":
+        raise ValueError("repeat>1 不支持 agv 目标: 任务结束后车体已离开装卸位")
 
-    try:
-        stop_simulation(sim)
-        scene = build_scene(sim, clear=True)
-        logger.info("[SCENE] 构建完成: layout=%s %s", scene.layout.name, {
-            "joints": len(scene.robot_joints),
-            "arm_base": [round(v, 3) for v in scene.layout.arm_base],
-            "station": [round(v, 3) for v in scene.layout.station_pos],
-            "agv_dock": [round(v, 3) for v in scene.layout.agv_dock],
-            "conveyor": {k: scene.conveyor_meta.get(k)
-                         for k in ("actual_length", "surface_z",
-                                   "entry_local_x", "stop_local_x")},
-            "tool": {
-                "version": cfg.SUCTION_TOOL_VERSION,
-                "mount_z": round(cfg.SUCTION_MOUNT_Z, 6),
-                "mount_quaternion": list(cfg.SUCTION_MOUNT_QUATERNION),
-                "flange_protrusion_z": cfg.SUCTION_FLANGE_PROTRUSION_Z,
-                "link_clearance_design": cfg.SUCTION_LINK_CLEARANCE,
-                "link_clearance_measured": scene.build_report.get(
-                    "tool", {}).get("link_clearance"),
-            },
-        })
-    except Exception as exc:
-        logger.exception("[SCENE] 构建失败: %s", exc)
-        return 2
-
-    os.makedirs(ns.out_dir, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
     snapshot = {
         "timestamp": stamp,
+        "run_id": run_id,
+        "artifact_id": artifact_id,
+        "lifecycle_state": "SIMULATION_RUNNING",
         "config": {
-            "target": ns.target,
-            "fault": ns.fault,
-            "max_sim_time": ns.time,
+            "target": target,
+            "fault": fault,
+            "max_sim_time": max_sim_time,
             "sim_step": cfg.SIM_STEP,
             "layout": scene.layout.name,
         },
@@ -505,45 +485,40 @@ def main(argv=None) -> int:
         "build_report": scene.build_report,
         "measurements": "docs/measurement/phase0_measurements.json",
     }
-    with open(os.path.join(ns.out_dir,
-                           f"phase1_scene_snapshot_{stamp}.json"),
+    with open(out_dir / f"phase1_scene_snapshot_{stamp}.json",
               "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
 
     comp = build_components(sim, simIK, scene, logger)
-    notes = prepare_fault(sim, scene, ns.fault, comp["materials"], logger)
+    notes = prepare_fault(sim, scene, fault, comp["materials"], logger)
     for n in notes:
         logger.info("[FAULT] %s", n)
 
     start_stepping(sim)
-    logger.info("[SIM] stepping 启动, sim_time=%.3f", sim.getSimulationTime())
+    logger.info("[SIM] stepping 启动, sim_time=%.3f run_id=%s",
+                sim.getSimulationTime(), run_id)
     drive_probe = probe_conveyor_drive(sim, scene, comp)
     logger.info("[CONVEYOR] 驱动探测: %s", drive_probe)
 
-    if ns.repeat < 1:
-        ap.error("--repeat 必须 >= 1")
-    if ns.repeat > 1 and ns.target == "both":
-        ap.error("--repeat>1 只能配合单一目标 (station 或 agv)")
-    if ns.repeat > 1 and ns.target == "agv":
-        ap.error("--repeat>1 不支持 agv 目标: 任务结束后车体已离开装卸位")
-    targets = ["station", "agv"] if ns.target == "both" else [ns.target]
-    targets = targets * ns.repeat if ns.target != "both" else targets
+    targets = ["station", "agv"] if target == "both" else [target]
+    targets = targets * repeat if target != "both" else targets
     results = []
     try:
-        for idx, target in enumerate(targets, start=1):
+        for idx, tgt in enumerate(targets, start=1):
             uid = idx
             evidence, material = run_task(
-                sim, scene, comp, target, uid, ns.fault, ns.time, logger)
+                sim, scene, comp, tgt, uid, fault, max_sim_time, logger,
+                stop_event=stop_event, pause_event=pause_event,
+                pause_ack_event=pause_ack_event, on_start=on_start)
             results.append(evidence)
             if idx < len(targets):
-                # 保持工位清洁, 便于重复任务/60s 连续运行
                 scene.remove_material(material)
                 comp["materials"].remove(uid)
     except Exception as exc:
         logger.exception("[TASK] 运行异常: %s", exc)
-        results.append({"target": ns.target, "error": str(exc), "ok": False})
+        results.append({"target": target, "error": str(exc), "ok": False})
     finally:
-        if ns.keep_running:
+        if keep_running:
             logger.info("[SIM] --keep-running: 保持运行 (state=%s)",
                         sim.getSimulationState())
         else:
@@ -551,19 +526,104 @@ def main(argv=None) -> int:
 
     summary = {
         "timestamp": stamp,
-        "target": ns.target,
-        "fault": ns.fault,
+        "run_id": run_id,
+        "artifact_id": artifact_id,
+        "target": target,
+        "fault": fault,
         "layout": scene.layout.name,
         "conveyor_drive_probe": drive_probe,
         "results": results,
-        "all_ok": all(r.get("ok") for r in results),
+        "all_ok": bool(results) and all(r.get("ok") for r in results),
     }
-    out = os.path.join(ns.out_dir,
-                       f"phase1_run_{ns.target}_{ns.fault}_{stamp}.json")
+    out = out_dir / f"phase1_run_{target}_{fault}_{stamp}.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
     logger.info("[DONE] 报告写入 %s", out)
+    return summary
+
+
+def _lifecycle_manager(sim, simIK, ns):
+    from .lifecycle import LifecycleManager
+    return LifecycleManager(
+        sim, simIK, host=ns.host, port=ns.port, actor="cli",
+        report_dir=Path(ns.out_dir))
+
+
+def main(argv=None) -> int:
+    """阶段一运行入口。
+
+    默认从当前已保存/已校验工件加载后启动; ``--build`` 显式重建场景。
+    start 本身永远不会隐式 build 或 clear (步骤 1.2 §3.1)。
+    """
+    ap = argparse.ArgumentParser(description="阶段一单元闭环运行")
+    ap.add_argument("--host", default="localhost")
+    ap.add_argument("--port", type=int, default=23000)
+    ap.add_argument("--target", choices=("station", "agv", "both"),
+                    default="station")
+    ap.add_argument("--fault", choices=cfg.FAULT_CHOICES,
+                    default=cfg.FAULT_NONE)
+    ap.add_argument("--time", type=float, default=90.0,
+                    help="单任务最大仿真时间 (s)")
+    ap.add_argument("--log", default=cfg.DEFAULT_LOG_FILE)
+    ap.add_argument("--out-dir", default=REPORT_DIR)
+    ap.add_argument("--repeat", type=int, default=1,
+                    help="重复任务次数 (仅单目标; 用于 60s 连续运行)")
+    ap.add_argument("--keep-running", action="store_true")
+    ap.add_argument("--build", action="store_true",
+                    help="显式重建场景 (build → save 新工件 → start)")
+    ap.add_argument("--artifact", default="current",
+                    help="要加载的工件 ID (默认 current)")
+    ns = ap.parse_args(argv)
+
+    logger = setup_logger(ns.log)
+    client, sim, simIK = connect(ns.host, ns.port)
+    manager = _lifecycle_manager(sim, simIK, ns)
+
+    try:
+        if ns.build:
+            manager.build(clear=True)
+            saved = manager.save(phase="stage1")
+            logger.info("[SCENE] 显式构建并保存工件: %s",
+                        saved.get("artifact_id"))
+        else:
+            manager.load(ns.artifact)
+            manager.validate()
+            logger.info("[SCENE] 已加载并校验工件: %s",
+                        manager.session.artifact_id)
+        prepared = manager.prepare_start(target=ns.target)
+    except Exception as exc:
+        logger.error("[LIFECYCLE] 启动前置失败 (%s): %s",
+                     getattr(exc, "code", "ERROR"), exc)
+        return 3 if getattr(exc, "code", "") == "VALIDATION_FAILED" else 2
+
+    try:
+        summary = run_loaded_scene(
+            sim, simIK, manager.scene,
+            target=ns.target, fault=ns.fault, max_sim_time=ns.time,
+            repeat=ns.repeat, out_dir=Path(ns.out_dir), logger=logger,
+            keep_running=ns.keep_running,
+            run_id=prepared["run_id"],
+            artifact_id=manager.session.artifact_id)
+    except Exception as exc:
+        logger.exception("[TASK] 运行异常: %s", exc)
+        manager.finish_run("FAILED", f"{type(exc).__name__}: {exc}")
+        return 1
+    finally:
+        if not ns.keep_running:
+            try:
+                manager.stop()
+            except Exception as exc:
+                logger.error("[LIFECYCLE] stop 失败: %s", exc)
+                manager.finish_run("STOP_UNCERTAIN", str(exc))
+
+    if ns.keep_running:
+        print(json.dumps({**summary, "lifecycle": manager.summary()},
+                         ensure_ascii=False, indent=2))
+    else:
+        lifecycle = manager.finish_run(
+            "DONE" if summary.get("all_ok") else "FAILED")
+        summary["lifecycle"] = lifecycle
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0 if summary["all_ok"] else 1
 
 

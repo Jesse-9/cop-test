@@ -1086,3 +1086,95 @@ def build_scene(sim, clear: bool = True,
             "场景契约校验失败: " + "; ".join(
                 f"{c['name']}({c['detail']})" for c in failed))
     return scene
+
+
+def adopt_scene(sim, layout: Optional[LayoutSpec] = None) -> Stage1Scene:
+    """把当前已加载的 .ttt 场景重新解析为 Stage1Scene。
+
+    句柄是会话内运行时值: 每次 loadScene 后必须按 alias 重新解析,
+    不得复用上一轮的句柄 (步骤 1.2 §6.7)。本函数只读查询, 不修改场景。
+    """
+    layout = default_layout() if layout is None else layout
+    scene = Stage1Scene(sim=sim, layout=layout)
+
+    for name in cfg.ALIASES["roots"]:
+        scene.handles[name] = resolve_alias(sim, name)
+
+    for key, alias in cfg.ALIASES.items():
+        if key == "roots":
+            continue
+        h = resolve_alias(sim, alias,
+                          required=alias in cfg.REQUIRED_ALIASES)
+        if h >= 0:
+            scene.handles[alias] = h
+
+    arm = scene.handles[cfg.ALIASES["robot"]]
+    connection = -1
+    for h in subtree(sim, arm):
+        if alias_of(sim, h) == "connection":
+            connection = h
+            if sim.getObjectType(h) == sim.object_forcesensor_type:
+                break
+    if connection < 0:
+        raise SceneBuildError("UR5 子树内找不到 connection 末端")
+    joints = _chain_joints(sim, arm, connection)
+    if len(joints) != 6:
+        raise SceneBuildError(f"UR5 关节数不是 6: {len(joints)}")
+
+    pad = scene.handles[cfg.ALIASES["suction"]]
+    model_sensor = -1
+    link = -1
+    for h in subtree(sim, pad):
+        a = alias_of(sim, h)
+        if (a == "SuctionPad_01_ModelSensor"
+                and sim.getObjectType(h) == sim.object_proximitysensor_type):
+            model_sensor = h
+        elif a == "Link" and sim.getObjectType(h) == sim.object_forcesensor_type:
+            link = h
+
+    agv = scene.handles[cfg.ALIASES["agv"]]
+    agv_joints = {alias_of(sim, h): h for h in subtree(sim, agv)
+                  if sim.getObjectType(h) == sim.object_joint_type}
+    left = agv_joints.get("leftMotor", -1)
+    right = agv_joints.get("rightMotor", -1)
+    if left < 0 or right < 0:
+        raise SceneBuildError("pioneer p3dx 找不到 leftMotor/rightMotor")
+
+    belt = scene.handles[cfg.ALIASES["conveyor"]]
+    bbox = _model_bbox(sim, belt)
+    run = _measure_top_run(sim, belt)
+    run["top_run"] = {"min_x": run["min_x"], "max_x": run["max_x"]}
+    run["actual_length"] = (bbox[3] - bbox[0]) if bbox else None
+    run["actual_width"] = (bbox[4] - bbox[1]) if bbox else None
+    scripts = _find_scripts(sim, belt)
+    run["script_handle"] = scripts[0] if scripts else -1
+    run["drive_mode"] = (cfg.DRIVE_SOURCE_SCRIPT if scripts
+                         else "PYTHON_PAD_DRIVEN")
+    try:
+        model_cfg = sim.readCustomTableData(belt, "__config__")
+    except Exception:
+        model_cfg = None
+    if isinstance(model_cfg, dict):
+        run["config_accel"] = model_cfg.get("accel")
+        run["config_target_vel"] = model_cfg.get("targetVel")
+    entry = scene.handles[cfg.ALIASES["conveyor_entry"]]
+    stop = scene.handles[cfg.ALIASES["conveyor_stop"]]
+    run["entry_local_x"] = float(sim.getObjectPosition(entry, belt)[0])
+    run["stop_local_x"] = float(sim.getObjectPosition(stop, belt)[0])
+    run["entry_world"] = list(sim.getObjectPosition(entry, sim.handle_world))
+    run["stop_world"] = list(sim.getObjectPosition(stop, sim.handle_world))
+    run["surface_z"] = cfg.CONVEYOR_SURFACE_Z
+    scene.conveyor_meta = run
+
+    scene.robot_root = arm
+    scene.robot_connection = connection
+    scene.robot_joints = joints
+    scene.suction_root = pad
+    scene.tcp = scene.handles[cfg.ALIASES["tcp"]]
+    scene.suction_sensor = scene.handles[cfg.ALIASES["suction_sensor"]]
+    scene.suction_model_sensor = model_sensor
+    scene.suction_link = link
+    scene.agv_root = agv
+    scene.agv_left_wheel = left
+    scene.agv_right_wheel = right
+    return scene

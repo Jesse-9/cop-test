@@ -109,6 +109,9 @@ class FactoryMCPServer:
         self.stage1_pause_ack = threading.Event()
         self.stage1_results: list[dict] = []
         self.stage1_report_path: Optional[str] = None
+        # ── 步骤 1.2 场景生命周期 (stage1) ─────────────────────
+        self.stage1_lifecycle: Any = None
+        self.stage1_run_id: Optional[str] = None
         # 只读诊断专用连接 — 与主连接隔离,避免与主循环抢锁
         self.ro_connector: Optional[CoppeliaConnector] = None
         self.ro_lock = threading.Lock()
@@ -141,8 +144,27 @@ class FactoryMCPServer:
                 self.last_error = f"无法连接 CoppeliaSim {host}:{port}"
                 raise RuntimeError(self.last_error)
             self.connector = conn
+            self.stage1_lifecycle = None      # 新连接 → 重建生命周期会话
             self.last_error = None
             return True
+
+    def _ensure_lifecycle(self):
+        """返回与当前连接绑定的 stage1 生命周期管理器。"""
+        if self.sim is None:
+            raise RuntimeError("未连接 CoppeliaSim, 先调用 connect")
+        from stage1.lifecycle import LifecycleManager
+
+        if self.stage1_lifecycle is None:
+            self.stage1_lifecycle = LifecycleManager(
+                self.sim, getattr(self.connector, "simIK", None),
+                actor="mcp",
+                host=getattr(self.connector, "host", "localhost"),
+                port=getattr(self.connector, "port", 23000))
+        else:
+            self.stage1_lifecycle.sim = self.sim
+            self.stage1_lifecycle.simIK = getattr(
+                self.connector, "simIK", None)
+        return self.stage1_lifecycle
 
     @property
     def ro_sim(self):
@@ -232,8 +254,8 @@ class FactoryMCPServer:
               fault: str = "none") -> str:
         """启动仿真主循环 (守护线程) — Start simulation in a daemon thread.
 
-        backend="stage1" (默认/当前实现) 重建阶段一场景后运行单工位任务;
-        backend="legacy" 运行旧五岛 FactoryController。
+        backend="stage1" (默认/当前实现) 只启动**已加载且已校验**的场景,
+        不执行 build/clear; backend="legacy" 运行旧五岛 FactoryController。
         """
         if backend == "stage1":
             return self._start_stage1(total_time, log_file, target, fault)
@@ -287,9 +309,14 @@ class FactoryMCPServer:
 
     def _start_stage1(self, total_time: float, log_file: str,
                       target: str, fault: str) -> str:
-        """重建阶段一场景并在守护线程中运行单工位任务."""
+        """启动当前已加载且校验通过的 stage1 场景。
+
+        步骤 1.2 起本方法**不构建、不清场、不加载默认场景**; 调用方必须
+        先显式 build 或 load + validate。
+        """
         from stage1 import config as s1cfg
         from stage1 import run as s1run
+        from stage1.lifecycle import LifecycleError
 
         if target not in ("station", "agv", "both"):
             return f"target 必须是 station/agv/both: {target!r}"
@@ -303,36 +330,49 @@ class FactoryMCPServer:
             simIK = getattr(self.connector, "simIK", None)
             if simIK is None:
                 return "当前连接缺少 simIK 模块, 无法运行 stage1"
-
-        # 每次启动重建场景, 避免上一轮残留物料/传感器状态影响 UID 判定。
-        msg = self.build_scene(clear=True, backend="stage1")
-        if self.stage1_scene is None:
-            return f"阶段一场景未构建: {msg}"
+            manager = self._ensure_lifecycle()
+            try:
+                prepared = manager.prepare_start(target=target)
+            except LifecycleError as exc:
+                self.last_error = f"{exc.code}: {exc}"
+                return (f"start 被拒绝 ({exc.code}): {exc}; "
+                        "请先 build, 或 load + validate 一个场景工件")
+            self.stage1_scene = manager.scene
+            self.stage1_comp = None
+            self.stage1_controller = None
+            self.stage1_results = []
+            self.stage1_report_path = None
+            self.stage1_run_id = prepared.get("run_id")
+            self.stage1_stop.clear()
+            self.stage1_pause.clear()
+            self.stage1_pause_ack.clear()
+            self.backend = "stage1"
+            self.last_error = None
 
         logger = setup_logger(log_file=log_file)
-        comp = s1run.build_components(
-            self.sim, simIK, self.stage1_scene, logger)
-        s1run.start_stepping(self.sim)
+        try:
+            comp = s1run.build_components(
+                self.sim, simIK, manager.scene, logger)
+            s1run.start_stepping(self.sim)
+        except Exception as e:  # noqa: BLE001
+            manager.finish_run("FAILED", f"{type(e).__name__}: {e}")
+            self.last_error = f"stage1 启动失败: {e}"
+            return f"stage1 启动失败: {e}"
         self.stage1_comp = comp
-        self.stage1_stop.clear()
-        self.stage1_pause.clear()
-        self.stage1_pause_ack.clear()
-        self.stage1_results = []
-        self.stage1_report_path = None
-        self.backend = "stage1"
-        self.last_error = None
 
         tt = total_time if total_time and total_time > 0 else 90.0
         t = threading.Thread(
             target=self._run_stage1,
-            args=(target, fault, tt, logger),
+            args=(target, fault, tt, logger, manager),
             name="stage1-mcp-loop",
             daemon=True,
         )
         self.stage1_runner = t
         t.start()
         return (f"阶段一仿真已启动 (backend=stage1, target={target}, "
-                f"fault={fault}, 单任务上限={tt:.1f}s, log={log_file}); "
+                f"fault={fault}, 单任务上限={tt:.1f}s, "
+                f"run_id={self.stage1_run_id}, "
+                f"artifact={manager.session.artifact_id}, log={log_file}); "
                 f"线程={t.name}; 用 status 查询, stop_simulation 停止")
 
     def _on_stage1_controller(self, controller) -> None:
@@ -340,13 +380,15 @@ class FactoryMCPServer:
         self.stage1_controller = controller
 
     def _run_stage1(self, target: str, fault: str,
-                    max_sim_time: float, logger) -> None:
+                    max_sim_time: float, logger, manager) -> None:
         from stage1 import run as s1run
 
+        outcome, error = "DONE", None
         try:
             targets = ["station", "agv"] if target == "both" else [target]
             for idx, tgt in enumerate(targets, start=1):
                 if self.stage1_stop.is_set():
+                    outcome = "STOP_REQUESTED"
                     break
                 evidence, material = s1run.run_task(
                     self.sim, self.stage1_scene, self.stage1_comp,
@@ -361,14 +403,23 @@ class FactoryMCPServer:
                     self.stage1_scene.remove_material(material)
                     self.stage1_comp["materials"].remove(idx)
             self._write_stage1_report(target, fault)
+            if not all(r.get("ok") for r in self.stage1_results):
+                outcome = "FAILED"
         except Exception as e:  # noqa: BLE001 - 线程入口需兜底所有异常
-            self.last_error = f"stage1 run 异常: {type(e).__name__}: {e}"
+            outcome, error = "FAILED", f"{type(e).__name__}: {e}"
+            self.last_error = f"stage1 run 异常: {error}"
             logger.exception("[MCP] stage1 run 异常")
         finally:
             try:
                 s1run.stop_simulation(self.sim)
             except Exception:
                 pass
+            try:
+                manager.finish_run(outcome, error)
+                self.stage1_scene = manager.scene
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("[MCP] finish_run 失败: %s", exc)
+            self.stage1_run_id = None
 
     def _write_stage1_report(self, target: str, fault: str) -> None:
         """把 MCP 触发的阶段一运行结果写入 docs/implementation/runs/."""
@@ -382,6 +433,9 @@ class FactoryMCPServer:
         summary = {
             "timestamp": stamp,
             "backend": "stage1",
+            "run_id": self.stage1_run_id,
+            "artifact_id": (self.stage1_lifecycle.session.artifact_id
+                            if self.stage1_lifecycle is not None else None),
             "target": target,
             "fault": fault,
             "results": self.stage1_results,
@@ -394,20 +448,17 @@ class FactoryMCPServer:
 
     def build_scene(self, clear: bool = True,
                     backend: str = "stage1") -> str:
-        """构建场景 — stage1 (默认/当前实现) 或 legacy 五岛参考层."""
+        """构建场景 — stage1 (默认/当前实现) 或 legacy 五岛参考层.
+
+        stage1 为显式动作: 仅在仿真停止态执行, 完成后状态为
+        SCENE_VALIDATED (构建契约通过), 但 start 仍需当前场景已通过校验。
+        """
         if self.is_running():
             return "仿真运行中, 先 stop_simulation"
         try:
             self.ensure_connected()
         except Exception as e:  # noqa: BLE001
             return f"未连接: {e}"
-
-        # 清理遗留 stepping 状态 (例如上一个客户端异常退出), 否则清场会失败。
-        try:
-            from stage1.run import stop_simulation as stop_stage1_sim
-            stop_stage1_sim(self.sim)
-        except Exception:
-            pass
 
         if backend == "legacy":
             try:
@@ -428,8 +479,9 @@ class FactoryMCPServer:
         if backend != "stage1":
             return f"未知 backend: {backend!r} (可选 stage1/legacy)"
         try:
-            from stage1.scene import build_scene as build_stage1
-            scene = build_stage1(self.sim, clear=clear)
+            manager = self._ensure_lifecycle()
+            manager.build(clear=clear)
+            scene = manager.scene
         except Exception as e:  # noqa: BLE001
             self.last_error = f"build_scene(stage1) 失败: {e}"
             return f"build_scene(stage1) 失败: {e}"
@@ -444,12 +496,74 @@ class FactoryMCPServer:
         payload = {
             "backend": "stage1",
             "ok": bool(report.get("ok")),
+            "lifecycle_state": manager.sm.state.value,
+            "artifact_id": manager.session.artifact_id,
             "layout": scene.layout.name if scene.layout else None,
             "joints": len(scene.robot_joints),
             "tool": scene.tool_geometry(),
             "checks": report.get("checks", []),
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
+
+    # ── 步骤 1.2 场景工件生命周期 ────────────────────────────
+    def save_scene(self, phase: str = "stage1", parent: str | None = None,
+                   note: str = "", protected: bool = True) -> str:
+        if self.is_running():
+            return "仿真运行中, 先 stop_simulation"
+        try:
+            manager = self._ensure_lifecycle()
+            result = manager.save(phase=phase, parent=parent, note=note,
+                                  protected=protected)
+        except Exception as e:  # noqa: BLE001
+            self.last_error = f"save_scene 失败: {e}"
+            return f"save_scene 失败: {type(e).__name__}: {e}"
+        self.backend = "stage1"
+        self.stage1_scene = manager.scene
+        self.stage1_comp = None
+        return json.dumps({"ok": True, **result}, ensure_ascii=False,
+                          indent=2, default=str)
+
+    def load_scene(self, artifact: str = "current",
+                   phase: str | None = None) -> str:
+        if self.is_running():
+            return "仿真运行中, 先 stop_simulation"
+        try:
+            manager = self._ensure_lifecycle()
+            result = manager.load(artifact, phase=phase)
+        except Exception as e:  # noqa: BLE001
+            self.last_error = f"load_scene 失败: {e}"
+            return f"load_scene 失败: {type(e).__name__}: {e}"
+        self.backend = "stage1"
+        self.stage1_scene = manager.scene
+        self.stage1_comp = None
+        self.stage1_controller = None
+        self.stage1_results = []
+        return json.dumps({"ok": True, **result}, ensure_ascii=False,
+                          indent=2, default=str)
+
+    def validate_scene(self, artifact: str | None = None) -> str:
+        try:
+            manager = self._ensure_lifecycle()
+            result = manager.validate(artifact)
+        except Exception as e:  # noqa: BLE001
+            self.last_error = f"validate_scene 失败: {e}"
+            return f"validate_scene 失败: {type(e).__name__}: {e}"
+        return json.dumps({"ok": True, **result}, ensure_ascii=False,
+                          indent=2, default=str)
+
+    def lifecycle_status(self) -> str:
+        try:
+            manager = self._ensure_lifecycle()
+        except Exception as e:  # noqa: BLE001
+            return json.dumps({"ok": False, "error": str(e)},
+                              ensure_ascii=False)
+        try:
+            info = manager.status()
+        except Exception as e:  # noqa: BLE001
+            return json.dumps({"ok": False, "error": str(e),
+                               "lifecycle_state": manager.sm.state.value},
+                              ensure_ascii=False)
+        return json.dumps(info, ensure_ascii=False, indent=2, default=str)
 
     def stop(self) -> str:
         """停止仿真 — Stop stage1 runner or legacy controller loop."""
@@ -460,7 +574,21 @@ class FactoryMCPServer:
                               and self.stage1_runner.is_alive())
             legacy_running = (self.sim_thread is not None
                               and self.sim_thread.is_alive())
-            if not (stage1_running or legacy_running):
+            manager = self.stage1_lifecycle
+            lifecycle_running = (manager is not None and
+                                 manager.sm.state.value
+                                 == "SIMULATION_RUNNING")
+            if not (stage1_running or legacy_running or lifecycle_running):
+                # 可能是上一个客户端崩溃后遗留的外部运行/stepping 状态;
+                # 显式 stop 允许清理它, 但不会删除场景。
+                if manager is not None:
+                    try:
+                        result = manager.stop()
+                        return json.dumps({"ok": True, **result},
+                                          ensure_ascii=False, default=str)
+                    except Exception as e:  # noqa: BLE001
+                        self.last_error = f"stop 异常: {e}"
+                        return f"stop 失败: {e}"
                 return "仿真未在运行"
             if stage1_running:
                 self.stage1_stop.set()
@@ -476,9 +604,25 @@ class FactoryMCPServer:
                 self.stage1_runner.join(timeout=3.0)
             self.stage1_pause.clear()
             self.stage1_pause_ack.clear()
+            if manager is not None and not self.stage1_runner.is_alive():
+                try:
+                    manager.finish_run("STOP_REQUESTED")
+                except Exception as e:  # noqa: BLE001
+                    self.last_error = f"finish_run 异常: {e}"
             return ("已停止 (backend=stage1)"
                     if not self.stage1_runner.is_alive()
                     else "停止信号已发, stage1 线程仍在收尾")
+
+        if manager is not None and lifecycle_running:
+            # 由其他进程 (CLI) 启动的运行: 只停止物理引擎并等待其收尾;
+            # 运行锁由持有进程释放, 本服务不抢占。
+            try:
+                result = manager.stop()
+            except Exception as e:  # noqa: BLE001
+                self.last_error = f"stop 异常: {e}"
+                return f"stop 失败: {e}"
+            return json.dumps({"ok": True, **result},
+                              ensure_ascii=False, default=str)
 
         try:
             # 主动停止 CoppeliaSim 仿真 → run() 内 sim.step() 将抛异常退出
@@ -581,6 +725,29 @@ class FactoryMCPServer:
                 info["results"] = self.stage1_results
             if self.stage1_report_path:
                 info["report_path"] = self.stage1_report_path
+            manager = self.stage1_lifecycle
+            if manager is not None:
+                # 运行中不访问主连接; 这里只读内存/会话状态。
+                try:
+                    lock_owner = manager.run_lock.owner()
+                except Exception:
+                    lock_owner = None
+                info.update({
+                    "lifecycle_state": manager.sm.state.value,
+                    "artifact_id": getattr(manager.session,
+                                           "artifact_id", None),
+                    "scene_origin": getattr(manager.session,
+                                            "scene_origin", None),
+                    "manifest_digest": getattr(manager.session,
+                                               "manifest_digest", None),
+                    "validated_at": getattr(manager.session,
+                                            "validated_at", None),
+                    "run_id": getattr(manager.session, "run_id", None),
+                    "start_in_progress": bool(
+                        lock_owner and manager.sm.state.value
+                        != "SIMULATION_RUNNING"),
+                    "allowed_actions": manager.allowed_actions(),
+                })
             return info
 
         ctrl = self.controller
@@ -812,13 +979,14 @@ def connect(host: str = "localhost", port: int = 23000) -> str:
 
 @mcp.tool()
 def build_scene(clear: bool = True, backend: str = "stage1") -> str:
-    """构建仿真场景 (默认当前阶段一实现)。
+    """显式构建仿真场景 (默认当前阶段一实现)。
 
     backend="stage1" (默认): 构建单工位阶段一场景 (内置 conveyor + UR5 +
-    suction pad + p3dx), 返回 build_report 关键检查;
+    suction pad + p3dx), 执行构建契约校验, 生命周期状态变为
+    SCENE_VALIDATED (scene_origin=BUILT)。
     backend="legacy": 构建旧五岛参考场景 (reference.build_scene)。
 
-    幂等: 默认先清场避免别名冲突。前置: 已 connect。
+    前置: 已 connect 且仿真处于停止态。start_simulation 不会调用本工具。
 
     Args:
         clear:   是否先清空场景, 默认 True (建议保持)。
@@ -831,6 +999,70 @@ def build_scene(clear: bool = True, backend: str = "stage1") -> str:
 
 
 @mcp.tool()
+def save_scene(phase: str = "stage1", parent: str | None = None,
+               note: str = "", protected: bool = True) -> str:
+    """把当前已校验的停止态场景保存为带 manifest 的新版本工件。
+
+    保存后立即重新加载并只读校验; 校验通过才原子更新 current 指针。
+    阶段一工件默认 protected=True, 不允许覆盖。
+
+    Args:
+        phase:     命名空间: "stage1" / "stage2" / "diagnostic"。
+        parent:    父工件 ID (阶段二从阶段一基线派生时必填)。
+        note:      版本说明。
+        protected: 是否设置为只读基线。
+
+    Returns:
+        JSON (artifact_id / 路径 / 校验摘要) 或失败原因。
+    """
+    return server.save_scene(phase=phase, parent=parent, note=note,
+                             protected=protected)
+
+
+@mcp.tool()
+def load_scene(artifact: str = "current", phase: str | None = None) -> str:
+    """在仿真停止态加载指定场景工件 (.ttt) 并重新解析句柄。
+
+    不自动改写、重建或升级模型; 加载后需再调用 validate_scene。
+
+    Args:
+        artifact: 工件 ID (如 stage1/L1_S1/v001_...) / 目录名 / current。
+        phase:    仅在按短名查找时限定命名空间。
+
+    Returns:
+        JSON (lifecycle_state=SCENE_LOADED, requires_validation=true)。
+    """
+    return server.load_scene(artifact=artifact, phase=phase)
+
+
+@mcp.tool()
+def validate_scene(artifact: str | None = None) -> str:
+    """只读校验当前已加载场景与 manifest (不修复/不重命名/不补建)。
+
+    对比场景文件摘要、配置摘要、模型摘要、仿真器版本/引擎、对象
+    alias/类型/父级/位姿和场景契约。任何影响行为的差异都会拒绝 start。
+
+    Args:
+        artifact: 可选; 必须与当前已加载工件一致。
+
+    Returns:
+        JSON {ok, checks, differences, ...}。
+    """
+    return server.validate_scene(artifact=artifact)
+
+
+@mcp.tool()
+def lifecycle_status() -> str:
+    """查询场景生命周期状态、当前工件、运行锁和可用动作。
+
+    Returns:
+        JSON {lifecycle_state, artifact_id, scene_origin, run_id,
+              allowed_actions, artifacts, ...}。
+    """
+    return server.lifecycle_status()
+
+
+@mcp.tool()
 def start_simulation(total_time: float = 0.0,
                      log_file: str = "factory_sim.log",
                      backend: str = "stage1",
@@ -838,10 +1070,12 @@ def start_simulation(total_time: float = 0.0,
                      fault: str = "none") -> str:
     """在后台线程启动仿真主循环。
 
-    backend="stage1" (默认/当前实现): 重建阶段一场景并运行单工位任务;
+    backend="stage1" (默认/当前实现): **不重建场景**; 只启动当前已加载
+    且通过 validate_scene 的场景。没有合格场景时返回明确错误, 请先
+    build_scene 或 load_scene + validate_scene。
     backend="legacy": 运行旧五岛 FactoryController。
 
-    前置: 已 connect。stage1 会自动重建场景并 start stepping。
+    前置: 已 connect, 仿真停止, 当前场景已校验, 无其他控制循环持有运行锁。
 
     Args:
         total_time: stage1 为单任务最大仿真时间 (s, 0→默认 90);
@@ -852,7 +1086,7 @@ def start_simulation(total_time: float = 0.0,
         fault:      stage1 故障注入: "none" 等 (见 stage1.config.FAULT_CHOICES)。
 
     Returns:
-        启动结果描述。
+        启动结果描述 (含 run_id 与 artifact_id)。
     """
     return server.start(total_time, log_file, backend=backend,
                         target=target, fault=fault)
@@ -1443,6 +1677,12 @@ def disconnect() -> str:
     """
     if server.is_running():
         server.stop()
+    if server.stage1_lifecycle is not None:
+        try:
+            server.stage1_lifecycle.disconnect()
+        except Exception:
+            pass
+        server.stage1_lifecycle = None
     server.connector = None
     server.controller = None
     server.sim_thread = None
@@ -1456,6 +1696,7 @@ def disconnect() -> str:
     server.stage1_pause_ack.clear()
     server.stage1_results = []
     server.stage1_report_path = None
+    server.stage1_run_id = None
     # ro_connector 与 _run_lua_lingering 的清零必须持有 ro_lock:
     # 否则并发诊断工具 (get_object_pose 等) 在 ensure_ro_connected() 与
     # sim = server.ro_sim 之间看到 ro_connector 变 None → sim=None → 抛
