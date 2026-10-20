@@ -61,7 +61,8 @@ pioneer_controller / unit_controller / run），`src/run_stage1.py` 是兼容入
 ```
 
 - 执行报告：[docs/implementation/STEP1_1_REPORT.md](docs/implementation/STEP1_1_REPORT.md)
-- 证据：`docs/implementation/step1_1_*_{stamp}.json` / `.jsonl`
+- 运行输出：`docs/implementation/runs/`（每次运行重新生成，不提交）
+- 报告引用的证据：`docs/implementation/evidence/`（提交；见该目录 README）
 - 复算统计：`.venv/Scripts/python docs/measurement/analyze_step1_1.py --stamp <stamp>`
 - 本步骤只做离散 IK 可达性与受控停带可行性，不声明路径无碰撞、运行期急停
   或现实安全认证；这些仍属于阶段二。

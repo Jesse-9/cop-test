@@ -67,7 +67,7 @@
 
 ## 3. 基线场景测量
 
-证据：[step1_1_measure_20261020_104655.json](step1_1_measure_20261020_104655.json)
+证据：[step1_1_measure_20261020_104655.json](evidence/step1_1_measure_20261020_104655.json)
 （CoppeliaSim 4.10.0.0，Bullet，`SIM_STEP=0.05 s`，单位 m/rad）。
 
 | 对象 | 世界位姿/范围 | 说明 |
@@ -95,7 +95,7 @@ conveyor 仍为 `SCRIPT_DRIVEN`，`accel=2.0 m/s²`，脚本句柄有效。
 
 ### 4.1 候选坐标与静态校验
 
-证据：[step1_1_layout_20261020_104655.json](step1_1_layout_20261020_104655.json)。
+证据：[step1_1_layout_20261020_104655.json](evidence/step1_1_layout_20261020_104655.json)。
 
 | 候选 | UR5 基座 (m) | 置物台 (m) | AGV dock (m) | 静态几何 | pose 目标 | 失败目标 |
 |---|---|---|---|---|---|---|
@@ -170,8 +170,8 @@ conveyor 仍为 `SCRIPT_DRIVEN`，`accel=2.0 m/s²`，脚本句柄有效。
 
 ### 5.2 A 组：阶段一当前流程
 
-证据：[step1_1_baseline_flow_20261020_104655.json](step1_1_baseline_flow_20261020_104655.json)、
-[step1_1_trials_A_20261020_104655.jsonl](step1_1_trials_A_20261020_104655.jsonl)。
+证据：[step1_1_baseline_flow_20261020_104655.json](evidence/step1_1_baseline_flow_20261020_104655.json)、
+[step1_1_trials_A_20261020_104655.jsonl](evidence/step1_1_trials_A_20261020_104655.jsonl)。
 
 阶段一完整流程（3 次，入口生成）：
 
@@ -205,7 +205,7 @@ B 组的 sensor 主动停带是必要输入。
 
 ### 5.3 B 组：无挡板主动停带
 
-证据：[step1_1_trials_B_20261020_104655.jsonl](step1_1_trials_B_20261020_104655.jsonl)。
+证据：[step1_1_trials_B_20261020_104655.jsonl](evidence/step1_1_trials_B_20261020_104655.jsonl)。
 
 每个“初始位置 × 10 次”的流程严格为：
 
@@ -244,7 +244,7 @@ sensor 命中 → 校验目标 UID → 发零速 → 等 pad 速度/位姿确认
 
 ### 5.4 C 组：物理输送诊断
 
-证据：[step1_1_trials_C_20261020_104655.jsonl](step1_1_trials_C_20261020_104655.jsonl)。
+证据：[step1_1_trials_C_20261020_104655.jsonl](evidence/step1_1_trials_C_20261020_104655.jsonl)。
 
 - 入口生成 10 次：物料在**关闭位置补偿**的情况下仍从入口前进
   `0.8297–0.8300 m`（10/10，均值 `0.8298 m`）到达检测区，运动阶段约
@@ -337,7 +337,7 @@ B 组每个计划测试条件必须同时满足：
   `--target both --time 60` 已通过：`all_ok=true`、工位误差 `0.000 m`、
   AGV `on_tray=true`/跟随误差 `0.0025 m`、场景 **33/33**、
   conveyor `SCRIPT_DRIVEN` 且 `stop_ok=true`。证据：
-  [phase1_run_both_none_20261020_110827.json](phase1_run_both_none_20261020_110827.json)。
+  [phase1_run_both_none_20261020_110827.json](evidence/phase1_run_both_none_20261020_110827.json)。
 - **PHASE1_REPORT §8-1 需要修订**：当前场景 C 组证明 pad→物料存在物理输送；
   旧“补偿是主要输送”的描述和“4.10 pad 不传递切向速度”的结论不再成立。
   阶段一正常证据（工位/AGV 闭环、故障注入）仍然有效，但其物理解释应改为
@@ -383,15 +383,15 @@ B 组每个计划测试条件必须同时满足：
 
 | 证据 | 文件 |
 |---|---|
-| 基线测量 | [step1_1_measure_20261020_104655.json](step1_1_measure_20261020_104655.json) |
-| 候选布局/IK 扫描/选择/运动验证 | [step1_1_layout_20261020_104655.json](step1_1_layout_20261020_104655.json) |
-| A 组完整流程对照 | [step1_1_baseline_flow_20261020_104655.json](step1_1_baseline_flow_20261020_104655.json) |
-| A 组停带矩阵 | [step1_1_trials_A_20261020_104655.jsonl](step1_1_trials_A_20261020_104655.jsonl) |
-| B 组筛选 + 完整取放 | [step1_1_trials_B_20261020_104655.jsonl](step1_1_trials_B_20261020_104655.jsonl) |
-| C 组物理诊断 | [step1_1_trials_C_20261020_104655.jsonl](step1_1_trials_C_20261020_104655.jsonl) |
-| 汇总 | [step1_1_experiments_20261020_104655.json](step1_1_experiments_20261020_104655.json) |
-| 分析摘要（脚本生成） | [step1_1_analysis_20261020_104655.json](step1_1_analysis_20261020_104655.json) |
-| 阶段一回归 | [phase1_run_both_none_20261020_110827.json](phase1_run_both_none_20261020_110827.json) |
+| 基线测量 | [step1_1_measure_20261020_104655.json](evidence/step1_1_measure_20261020_104655.json) |
+| 候选布局/IK 扫描/选择/运动验证 | [step1_1_layout_20261020_104655.json](evidence/step1_1_layout_20261020_104655.json) |
+| A 组完整流程对照 | [step1_1_baseline_flow_20261020_104655.json](evidence/step1_1_baseline_flow_20261020_104655.json) |
+| A 组停带矩阵 | [step1_1_trials_A_20261020_104655.jsonl](evidence/step1_1_trials_A_20261020_104655.jsonl) |
+| B 组筛选 + 完整取放 | [step1_1_trials_B_20261020_104655.jsonl](evidence/step1_1_trials_B_20261020_104655.jsonl) |
+| C 组物理诊断 | [step1_1_trials_C_20261020_104655.jsonl](evidence/step1_1_trials_C_20261020_104655.jsonl) |
+| 汇总 | [step1_1_experiments_20261020_104655.json](evidence/step1_1_experiments_20261020_104655.json) |
+| 分析摘要（脚本生成） | [step1_1_analysis_20261020_104655.json](evidence/step1_1_analysis_20261020_104655.json) |
+| 阶段一回归 | [phase1_run_both_none_20261020_110827.json](evidence/phase1_run_both_none_20261020_110827.json) |
 | 分析脚本 | [../measurement/analyze_step1_1.py](../measurement/analyze_step1_1.py) |
 
 ## 11. 执行记录（对应 06-07 §8）

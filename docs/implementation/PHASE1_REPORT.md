@@ -91,7 +91,7 @@ conveyor 驱动探测（每次运行开始时执行，结果写入 JSON 的
 
 ## 3. 场景快照
 
-来源：[phase1_scene_snapshot.json](phase1_scene_snapshot.json)。
+来源：[phase1_scene_snapshot.json](evidence/phase1_scene_snapshot.json)。
 
 | 项 | 实测 |
 |---|---|
@@ -159,7 +159,7 @@ AGV 质量存在、TCP 接触面偏移 `local z = -0.015 ± 0.005 m`。
 
 ### 5.1 传送带 → UR5 → 工位
 
-证据：[phase1_run_both_normal.json](phase1_run_both_normal.json)（第 1 个任务）。
+证据：[phase1_run_both_normal.json](evidence/phase1_run_both_normal.json)（第 1 个任务）。
 
 - 任务状态：**DONE**，耗时 `10.75 s`（仿真时间）；
 - 物料 `Part_0001`：`(0.92000, 0.42000, 0.35000)`，与目标误差 `0.000 m`；
@@ -169,7 +169,7 @@ AGV 质量存在、TCP 接触面偏移 `local z = -0.015 ± 0.005 m`。
 
 ### 5.2 传送带 → UR5 → AGV 载台 + 轮速运输
 
-证据：[phase1_run_agv_normal.json](phase1_run_agv_normal.json)。
+证据：[phase1_run_agv_normal.json](evidence/phase1_run_agv_normal.json)。
 
 - 放置任务：**DONE**，耗时 `14.95 s`；
 - 装卸前通过 `Sensor_AGV_Dock` + 车体停稳 + 车体竖直检查；
@@ -192,7 +192,7 @@ AGV 质量存在、TCP 接触面偏移 `local z = -0.015 ± 0.005 m`。
 
 ### 5.4 60 s 连续运行
 
-证据：[phase1_run_soak_6x_station.json](phase1_run_soak_6x_station.json)。
+证据：[phase1_run_soak_6x_station.json](evidence/phase1_run_soak_6x_station.json)。
 
 | 任务 | 结束仿真时间 | 状态 | 关节数 |
 |---|---:|---|---:|
@@ -212,12 +212,12 @@ AGV 质量存在、TCP 接触面偏移 `local z = -0.015 ± 0.005 m`。
 
 | 故障 | 注入方式 | 实测结果 | 证据 |
 |---|---|---|---|
-| 目标未到位 | `FAULT_NO_TARGET`：带速置 0 | `FAILED / SENSOR_TIMEOUT`，未吸附 | [json](phase1_fault_no_target.json) |
-| 目标 UID 不匹配 | 取料位生成 `Part_Wrong` | `FAILED / PICK_MISMATCH`（3.65 s），未吸附 | [json](phase1_fault_uid_mismatch.json) |
-| IK 不可达 | 放置点抬高 1.2 m | `FAILED / IK_FAILED`（线误差 0.629 m）；物料已吸附时终止，不伪造完成 | [json](phase1_fault_ik_unreachable.json) |
-| 传感器无读数 | 移除 `Sensor_PickStation` | `FAILED / SENSOR_TIMEOUT`，未吸附 | [json](phase1_fault_sensor_disabled.json) |
-| AGV 路径受阻 | 放置静态障碍 | 放置 DONE；`AGV_BLOCKED`（travelled 0.1905 m），`agv.state=BLOCKED`，`distance_ok=False` | [json](phase1_fault_agv_blocked.json) |
-| 释放不稳定 | 释放高度 +0.30 m | `FAILED / RELEASE_UNSTABLE`（稳定窗口最大 1.985 m/s） | [json](phase1_fault_release_unstable.json) |
+| 目标未到位 | `FAULT_NO_TARGET`：带速置 0 | `FAILED / SENSOR_TIMEOUT`，未吸附 | [json](evidence/phase1_fault_no_target.json) |
+| 目标 UID 不匹配 | 取料位生成 `Part_Wrong` | `FAILED / PICK_MISMATCH`（3.65 s），未吸附 | [json](evidence/phase1_fault_uid_mismatch.json) |
+| IK 不可达 | 放置点抬高 1.2 m | `FAILED / IK_FAILED`（线误差 0.629 m）；物料已吸附时终止，不伪造完成 | [json](evidence/phase1_fault_ik_unreachable.json) |
+| 传感器无读数 | 移除 `Sensor_PickStation` | `FAILED / SENSOR_TIMEOUT`，未吸附 | [json](evidence/phase1_fault_sensor_disabled.json) |
+| AGV 路径受阻 | 放置静态障碍 | 放置 DONE；`AGV_BLOCKED`（travelled 0.1905 m），`agv.state=BLOCKED`，`distance_ok=False` | [json](evidence/phase1_fault_agv_blocked.json) |
+| 释放不稳定 | 释放高度 +0.30 m | `FAILED / RELEASE_UNSTABLE`（稳定窗口最大 1.985 m/s） | [json](evidence/phase1_fault_release_unstable.json) |
 
 失败路径会同时停带、停 AGV；不会把执行机构留在运动指令上。
 
@@ -315,10 +315,20 @@ MCP 接入以及场景构建/启动解耦；阶段一参数（工位/AGV 放置�
    在重构后的 `build_scene()` 上通过：`all_ok=true`；工位放置误差 `0.000 m`；
    AGV 任务 `on_tray=true`、跟随误差 `0.0025 m`；场景契约 **33/33**；
    conveyor 驱动探测 `SCRIPT_DRIVEN`、`stop_ok=true`。证据：
-   [phase1_run_both_none_20261020_110827.json](phase1_run_both_none_20261020_110827.json)。
+   [phase1_run_both_none_20261020_110827.json](evidence/phase1_run_both_none_20261020_110827.json)。
 6. **生产路径迁移（2026-10-20）**：`L1_S1` 场景与步骤 1.1 B 组流程已迁入
    `src/stage1/`：默认布局改为 L1_S1，场景不构建挡停体；取料改为
    “传感器命中目标 UID → 立即零速 → 带面/物料稳定 → 实测位姿固定 TCP
    目标 → simIK 抓取”。第 1–9 节与上面第 1–5 条描述的是迁移前基线证据，
    保留为历史记录；迁移后的阶段一运行应以新的 `stage1_sim.log` 和
-   `phase1_run_*.json` 为准。
+   `evidence/phase1_run_*.json` 为准。
+
+   **迁移后首轮运行（2026-10-20 16:34–16:36，`ARM_SEED_JOINTS` 已更新）**：
+   工位任务 `all_ok=true`，放置位置误差 `0.000 m`；AGV 任务 2/2
+   `all_ok=true`，`agv_follow_ok=true`。三次运行的实测取料位 X 分别为
+   `-0.30869 / -0.29282 / -0.30851 m`，均在冻结允许区 `[-0.40, -0.19] m` 内。
+   证据：[phase1_run_station_none_20261020_163450.json](evidence/phase1_run_station_none_20261020_163450.json)、
+   [phase1_run_agv_none_20261020_163526.json](evidence/phase1_run_agv_none_20261020_163526.json)、
+   [phase1_run_agv_none_20261020_163555.json](evidence/phase1_run_agv_none_20261020_163555.json)。
+   六类故障注入矩阵尚未在迁移后的 L1_S1 场景重跑；此前故障结果保留为
+   迁移前基线证据（`evidence/phase1_fault_*.json`）。

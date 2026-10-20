@@ -23,6 +23,10 @@ step1_1*.log
 coppelia_console*.log*
 emergency_dump_*.json
 
+# 运行输出与测试临时目录 (证据按需归档到 docs/implementation/evidence/)
+docs/implementation/runs/
+.pytest-tmp/
+
 # 文档库的 Obsidian 本地状态与插件 (不入库)
 docs/.obsidian/
 docs/.claudian/

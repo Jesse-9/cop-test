@@ -439,6 +439,14 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
 `factory_sim.log` — 双输出日志 (文件 DEBUG 级 / 控制台 INFO 级)。紧急停止时写
 `emergency_dump_<timestamp>.json` 保存状态供事后分析。
 
+阶段一/步骤 1.1 的输出约定：
+
+- 原始日志（`stage1_sim.log`、`step1_1.log`、`coppelia_console*.log`）
+  每次运行重新生成，已被 `.gitignore` 排除，不提交；
+- 运行脚本默认写入 `docs/implementation/runs/`（不提交）；
+- 报告/验收记录实际引用的证据才复制到 `docs/implementation/evidence/`
+  并随代码提交，文件名保留原始时间戳；约定见该目录 `README.md`。
+
 10. **传送带长度曾是设计值的 3.2 倍 (已修复)**: `create_conveyor` 用硬编码
     `default_len = 1.0` 计算 `scale_x`, 而内置 `generic conveyor (belt).ttm`
     的 native 长度实测是 **1.216 m**, 于是每条带被放大了 `length/1.0` 倍

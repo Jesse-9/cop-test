@@ -34,7 +34,9 @@ from .unit_controller import Stage1UnitController, UnitTaskState
 from .suction_controller import SuctionController
 from .ur5_ik_controller import Ur5IkController
 
-REPORT_DIR = os.path.join("docs", "implementation")
+# 原始运行输出不入库; 被报告引用的证据按需复制到
+# docs/implementation/evidence/ (见该目录 README)。
+REPORT_DIR = os.path.join("docs", "implementation", "runs")
 
 
 # ═══════════════════════════════════════════════════════════════

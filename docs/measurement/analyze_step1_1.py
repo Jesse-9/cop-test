@@ -2,10 +2,11 @@
 
 用法:
     .venv/Scripts/python.exe docs/measurement/analyze_step1_1.py \
-        --experiments docs/implementation/step1_1_experiments_<stamp>.json \
-        --trials-prefix docs/implementation/step1_1_trials_ \
-        --baseline docs/implementation/step1_1_baseline_flow_<stamp>.json
-    # 或只给 --stamp 20261020_104655, 自动在 docs/implementation 下找文件
+        --experiments docs/implementation/runs/step1_1_experiments_<stamp>.json \
+        --trials-prefix docs/implementation/runs/step1_1_trials_ \
+        --baseline docs/implementation/runs/step1_1_baseline_flow_<stamp>.json
+    # 或只给 --stamp 20261020_104655, 自动在默认目录下找文件
+    # 已归档证据在 docs/implementation/evidence/, 可用 --dir 指定
 
 输出 JSON 到 stdout; 可选 --out 写文件。脚本只用标准库, 不连接仿真。
 """
@@ -184,7 +185,7 @@ def summarize_baseline(records):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="步骤 1.1 证据统计")
     ap.add_argument("--stamp", default=None)
-    ap.add_argument("--dir", default="docs/implementation")
+    ap.add_argument("--dir", default="docs/implementation/runs")
     ap.add_argument("--experiments", default=None)
     ap.add_argument("--baseline", default=None)
     ap.add_argument("--trials-prefix", default=None)

@@ -20,7 +20,9 @@ from stage1.layout import L1_S1_LAYOUT, LayoutSpec
 # ═══════════════════════════════════════════════════════════════
 
 CONFIG_VERSION = "step1.1-2026-10-20"
-EVIDENCE_DIR = "docs/implementation"
+# 原始运行输出不入库; 报告引用的证据按需复制到
+# docs/implementation/evidence/ (见该目录 README)。
+EVIDENCE_DIR = "docs/implementation/runs"
 EVIDENCE_PREFIX = "step1_1"
 LOG_FILE = "step1_1.log"
 REPORT_FILE = "docs/implementation/STEP1_1_REPORT.md"
