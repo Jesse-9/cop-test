@@ -1,8 +1,12 @@
 """layout.py — 场景布局描述与几何校验 (步骤 1.1 §3).
 
-`LayoutSpec` 把机械臂基座、岛体、置物台、AGV 装卸点和挡停体开关集中为
-一个不可变对象。`stage1.scene.build_scene(sim, layout=...)` 只读取该对象,
-不修改任何模块级常量; 默认布局严格复现阶段一基线。
+`LayoutSpec` 把机械臂基座、岛体、置物台和 AGV 装卸点集中为一个不可变对象。
+`stage1.scene.build_scene(sim, layout=...)` 只读取该对象, 不修改任何模块级常量。
+
+当前生产布局是步骤 1.1 选定的 **L1_S1**: UR5 侧装于传送带 +Y 侧,
+置物台位于机械臂后方, AGV 装卸点与机械臂同侧; 场景不设挡停体。
+`include_stopper` 仅为步骤 1.1 A 组历史证据保留的元数据, 当前构建器不再
+创建挡停体。
 
 坐标约定: X = 输送方向, Y = 横向, Z = 高度; 单位 m / rad。
 """
@@ -60,7 +64,8 @@ class LayoutSpec:
     station_pos: tuple[float, float]
     agv_dock: tuple[float, float]
     conveyor_center: tuple[float, float] = tuple(cfg.CONVEYOR_CENTER)
-    include_stopper: bool = True
+    # 历史步骤 1.1 A 组的挡停体标记; 当前 stage1 构建器不再创建挡停体。
+    include_stopper: bool = False
     pick_sensor_local_x: float = cfg.CONVEYOR_STOP_LOCAL_X
     warehouse_pos: tuple[float, float] = tuple(cfg.WAREHOUSE_POS)
     island_size: tuple[float, float, float] = tuple(cfg.ISLAND_SIZE)
@@ -99,6 +104,22 @@ class LayoutSpec:
     def agv_tcp_pose(self) -> list[float]:
         return cfg.tcp_pose_above(self.agv_material_pose)
 
+    def tcp_pose_for_target(self, target: str) -> list[float]:
+        """放置目标 (station / agv) 对应的 TCP 世界位姿。"""
+        if target == "station":
+            return list(self.station_tcp_pose)
+        if target == "agv":
+            return list(self.agv_tcp_pose)
+        raise ValueError(f"未知目标: {target!r} (可用: station / agv)")
+
+    def material_pose_for_target(self, target: str) -> list[float]:
+        """放置完成时物料中心的世界位姿 (含单位四元数)。"""
+        if target == "station":
+            return [*self.station_material_pose, 0.0, 0.0, 0.0, 1.0]
+        if target == "agv":
+            return [*self.agv_material_pose, 0.0, 0.0, 0.0, 1.0]
+        raise ValueError(f"未知目标: {target!r} (可用: station / agv)")
+
     def targets(self) -> dict[str, list[float]]:
         """阶段一保留的三个 TCP 目标。"""
         return {
@@ -136,23 +157,28 @@ class LayoutSpec:
         return rect_of(cfg.FLOOR_CENTER[:2], cfg.FLOOR_SIZE[:2])
 
 
+# 当前生产布局: 步骤 1.1 选定结果 (2026-10-20)。
+# 坐标来自 06-07 候选矩阵; 传送带轴向和取料传感器位置不变。
+L1_S1_LAYOUT = LayoutSpec(
+    name="L1_S1",
+    arm_base=(-0.20, 0.55, cfg.ISLAND_TOP_Z),
+    island_pos=(-0.20, 0.55),
+    station_pos=(-0.20, 1.20),
+    agv_dock=(0.40, 0.75),
+    conveyor_center=tuple(cfg.CONVEYOR_CENTER),
+    include_stopper=False,
+    pick_sensor_local_x=cfg.CONVEYOR_STOP_LOCAL_X,
+    warehouse_pos=tuple(cfg.WAREHOUSE_POS),
+    island_size=tuple(cfg.ISLAND_SIZE),
+    station_size=tuple(cfg.STATION_SIZE),
+    island_top_z=cfg.ISLAND_TOP_Z,
+    station_top_z=cfg.STATION_TOP_Z,
+)
+
+
 def default_layout() -> LayoutSpec:
-    """阶段一基线布局; `build_scene()` 未显式传 layout 时使用。"""
-    return LayoutSpec(
-        name="stage1_baseline",
-        arm_base=tuple(cfg.ARM_BASE_POS),
-        island_pos=tuple(cfg.ISLAND_POS),
-        station_pos=tuple(cfg.STATION_POS),
-        agv_dock=tuple(cfg.AGV_DOCK_POS),
-        conveyor_center=tuple(cfg.CONVEYOR_CENTER),
-        include_stopper=True,
-        pick_sensor_local_x=cfg.CONVEYOR_STOP_LOCAL_X,
-        warehouse_pos=tuple(cfg.WAREHOUSE_POS),
-        island_size=tuple(cfg.ISLAND_SIZE),
-        station_size=tuple(cfg.STATION_SIZE),
-        island_top_z=cfg.ISLAND_TOP_Z,
-        station_top_z=cfg.STATION_TOP_Z,
-    )
+    """当前生产布局 L1_S1; `build_scene()` 未显式传 layout 时使用。"""
+    return L1_S1_LAYOUT
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -1,13 +1,14 @@
 """tests/test_stage1_layout.py — LayoutSpec 派生坐标与几何校验.
 
-纯逻辑, 不需要 CoppeliaSim。步骤 1.1 的候选布局以 `LayoutSpec` 描述;
-默认值必须严格复现阶段一基线, 否则场景回归会静默漂移。
+纯逻辑, 不需要 CoppeliaSim。步骤 1.1 选定的 L1_S1 是当前生产布局;
+其坐标和派生目标必须与场景/控制器的假设一致。
 """
 
 import math
 
 from stage1 import config as cfg
 from stage1.layout import (
+    L1_S1_LAYOUT,
     LayoutSpec,
     default_layout,
     overlap_rects,
@@ -16,20 +17,40 @@ from stage1.layout import (
 )
 
 
-def test_default_layout_reproduces_stage1_baseline():
+def test_default_layout_is_l1_s1():
     layout = default_layout()
-    assert layout.name == "stage1_baseline"
-    assert layout.arm_base == tuple(cfg.ARM_BASE_POS)
-    assert layout.island_pos == tuple(cfg.ISLAND_POS)
-    assert layout.station_pos == tuple(cfg.STATION_POS)
-    assert layout.agv_dock == tuple(cfg.AGV_DOCK_POS)
+    assert layout == L1_S1_LAYOUT
+    assert layout.name == "L1_S1"
+    assert layout.arm_base == (-0.20, 0.55, cfg.ISLAND_TOP_Z)
+    assert layout.island_pos == (-0.20, 0.55)
+    assert layout.station_pos == (-0.20, 1.20)
+    assert layout.agv_dock == (0.40, 0.75)
     assert layout.conveyor_center == tuple(cfg.CONVEYOR_CENTER)
-    assert layout.include_stopper is True
+    assert layout.include_stopper is False
     assert layout.pick_sensor_local_x == cfg.CONVEYOR_STOP_LOCAL_X
 
 
-def test_default_layout_derived_poses_match_stage1_config():
+def test_default_layout_derived_poses_use_l1_s1_coordinates():
     layout = default_layout()
+    assert layout.pick_material_pose == tuple(cfg.MATERIAL_PICK_POS)
+    assert layout.pick_tcp_pose == list(cfg.PICK_TCP_POSE)
+    assert layout.station_material_pose[:2] == (-0.20, 1.20)
+    assert layout.agv_material_pose[:2] == (0.40, 0.75)
+    assert layout.tcp_pose_for_target("station") == layout.station_tcp_pose
+    assert layout.tcp_pose_for_target("agv") == layout.agv_tcp_pose
+    assert layout.material_pose_for_target("station") == [
+        *layout.station_material_pose, 0.0, 0.0, 0.0, 1.0]
+
+
+def test_historical_baseline_layout_derived_poses_match_config():
+    layout = LayoutSpec(
+        name="stage1_baseline",
+        arm_base=tuple(cfg.ARM_BASE_POS),
+        island_pos=tuple(cfg.ISLAND_POS),
+        station_pos=tuple(cfg.STATION_POS),
+        agv_dock=tuple(cfg.AGV_DOCK_POS),
+        include_stopper=True,
+    )
     assert layout.pick_material_pose == tuple(cfg.MATERIAL_PICK_POS)
     assert layout.pick_tcp_pose == list(cfg.PICK_TCP_POSE)
     assert layout.station_material_pose == tuple(cfg.STATION_MATERIAL_POSE)

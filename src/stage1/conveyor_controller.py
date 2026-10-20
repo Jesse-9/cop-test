@@ -3,10 +3,10 @@
 驱动: 内置 `generic conveyor (belt).ttm` 的 customization 脚本通过
 `customData.__ctrl__` buffer 属性调速 (4.10 实测; 无公开脚本函数)。
 
-物料输送: 4.10 的 pad 不会把切向速度传给 dynamic 物料 (实测 <0.01 m/10s),
-因此采用 HYBRID_DYNAMIC 的受限补偿: 先让物理接触生效, 再沿带面切线按
-"带速 × dt" 的上限显式推进。补偿不改变物料的 dynamic/respondable 属性,
-且每一步都校验物料仍在有效区; 超出偏差阈值立即进入 FAULT。
+物料输送: 当前 stage1 场景的 pad→物料存在真实物理输送 (步骤 1.1 C 组
+实测 ≈0.20 m/s), 但补偿仍按“带速 × dt”每步无条件叠加, 实测总速度约
+0.38 m/s。阶段二必须改为“仅在物料落后于带速时补偿”并重测摩擦; 在
+此之前保留 HYBRID_DYNAMIC 的受限补偿和有效区校验。
 """
 
 from __future__ import annotations
@@ -100,6 +100,9 @@ def transport_step(position, geometry: BeltGeometry, belt_speed: float,
 
     保留物理引擎给出的横向/高度坐标 (y/z), 只改沿带方向的分量;
     物料仍保持 dynamic + respondable。
+
+    注意: 当前实现不判断物料是否已经被物理输送带到目标进度, 每步都会
+    叠加该增量 (阶段二修正项; 见模块 docstring)。
     """
     max_step = cfg.CONVEYOR_MAX_COMPENSATION_STEP if max_step is None else max_step
     progress = geometry.progress(position)

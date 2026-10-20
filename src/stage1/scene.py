@@ -410,12 +410,9 @@ class Stage1Scene:
                   f"{len(hits)} 个匹配")
 
         stopper_hits = [h for h in all_objects(self.sim)
-                        if alias_of(self.sim, h) == cfg.ALIASES["conveyor_stopper"]]
-        expected_stopper = bool(self.layout and self.layout.include_stopper)
-        check("stopper_state",
-              (len(stopper_hits) == 1) if expected_stopper
-              else (len(stopper_hits) == 0),
-              f"expected={expected_stopper} found={len(stopper_hits)}")
+                        if alias_of(self.sim, h) == cfg.LEGACY_STOPPER_ALIAS]
+        check("no_stopper", len(stopper_hits) == 0,
+              f"当前生产场景不构建挡停体, found={len(stopper_hits)}")
 
         check("robot_joint_count", len(self.robot_joints) == 6,
               f"{len(self.robot_joints)} 个关节")
@@ -585,21 +582,8 @@ def _create_conveyor(sim, parent: int,
     sim.setObjectPosition(stop, [stop_local, 0.0, surface_off],
                           sim.handle_parent)
 
-    # 挡停体: 只挡不推, 位于上表面行程末端之外。
-    # 步骤 1.1 的 B/C 组布局在构建期关闭它; 生产布局必须显式声明。
-    if layout.include_stopper:
-        thk = 0.04
-        stopper_h = 0.16
-        stopper = _create_box(
-            sim, cfg.ALIASES["conveyor_stopper"],
-            (thk, actual_width, stopper_h),
-            (layout.conveyor_center[0] + run["max_x"] + thk / 2.0,
-             layout.conveyor_center[1],
-             cfg.CONVEYOR_SURFACE_Z + stopper_h / 2.0),
-            color=(0.85, 0.85, 0.2), parent=belt)
-        run["stopper"] = stopper
-    else:
-        run["stopper"] = -1
+    # 当前生产场景不构建挡停体: 物料由 Sensor_PickStation 触发零速,
+    # 停稳后按实测位姿抓取 (步骤 1.1 B 组流程)。
 
     # 传感器 (圆柱体积朝下, 覆盖物料顶面但不接触带面)
     _create_cylinder_sensor(
@@ -799,8 +783,7 @@ def _cache_required_handles(sim, scene: "Stage1Scene") -> None:
     由 `verify()` 的契约断言报告。
     """
     for key in ("conveyor_entry", "conveyor_stop", "pick_sensor",
-                "exit_sensor", "agv_dock_sensor", "place_target_station",
-                "conveyor_stopper"):
+                "exit_sensor", "agv_dock_sensor", "place_target_station"):
         alias = cfg.ALIASES[key]
         if alias in scene.handles:
             continue
@@ -813,8 +796,9 @@ def build_scene(sim, clear: bool = True,
                 layout: Optional[LayoutSpec] = None) -> Stage1Scene:
     """构建单工位场景并返回句柄/标定信息。
 
-    ``layout`` 默认为阶段一基线; 候选布局必须先通过静态几何校验,
-    失败时在清场之前抛出 ``SceneBuildError``。
+    ``layout`` 默认为当前生产布局 L1_S1; 候选布局必须先通过静态几何
+    校验, 失败时在清场之前抛出 ``SceneBuildError``。当前构建器不创建
+    挡停体 (步骤 1.1 B 组流程)。
     """
     layout = default_layout() if layout is None else layout
     layout_report = validate_layout(layout)
@@ -829,6 +813,10 @@ def build_scene(sim, clear: bool = True,
 
     roots = _create_hierarchy_roots(sim)
     scene = Stage1Scene(sim=sim, layout=layout)
+    if layout.include_stopper:
+        scene.warnings.append(
+            f"布局 {layout.name!r} 的 include_stopper 标记为历史证据保留; "
+            "当前 stage1 场景不构建挡停体")
     scene.handles.update({name: h for name, h in roots.items()})
     scene.build_report["layout"] = layout_report
 
@@ -860,8 +848,6 @@ def build_scene(sim, clear: bool = True,
     belt, conv_meta = _create_conveyor(sim, roots["Conveyor"], layout)
     scene.handles[cfg.ALIASES["conveyor"]] = belt
     scene.conveyor_meta = conv_meta
-    if conv_meta.get("stopper", -1) >= 0:
-        scene.handles[cfg.ALIASES["conveyor_stopper"]] = conv_meta["stopper"]
 
     robot = _create_robot(sim, island, layout)
     scene.robot_root = robot["arm"]

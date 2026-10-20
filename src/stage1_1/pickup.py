@@ -144,6 +144,7 @@ class TrialRecord:
     place_position_error_m: Optional[float] = None
 
     stopper_present: bool = False
+    stopper_requested: bool = False
     compensation_enabled: bool = True
     compensation_count: int = 0
     compensation_amount_m: float = 0.0
@@ -231,7 +232,8 @@ class PickupTrial:
             initial_x=self.initial_x,
             initial_yaw=self.initial_yaw,
             material_uid=self.uid,
-            stopper_present=bool(self.spec["stopper"]),
+            stopper_present=False,          # stage1 构建器已移除挡停体
+            stopper_requested=bool(self.spec["stopper"]),
             compensation_enabled=bool(self.spec["compensation"]),
         )
 

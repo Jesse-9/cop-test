@@ -178,6 +178,10 @@ def _setup(target="station", pick_hit=True, ik_ok=True, reject_attach=False):
     mgr.transition(1, MaterialState.ON_CONVEYOR, 0.1, "belt")
     if pick_hit:
         scene.pick_hits.add(MAT)
+        # 传感器命中时物料已停在允许抓取区内 (B 组流程按实测位姿抓取)
+        sim.material_pose = [-0.30, 0.0,
+                             cfg.CONVEYOR_SURFACE_Z + cfg.MATERIAL_HALF_HEIGHT,
+                             0.0, 0.0, 0.0, 1.0]
     scene.suction_hits.add(MAT)
     ik = FakeIK(ok=ik_ok)
     suction = FakeSuction(mgr, reject=reject_attach)
@@ -242,7 +246,9 @@ def test_sensor_disabled_times_out_without_attach():
     _run_until_done(c, sim)
     assert c.state is UnitTaskState.FAILED
     assert suction.attach_uids == []
-    assert "超时" in c.failure_reason or "sensor" in c.failure_reason.lower()
+    reason = c.failure_reason
+    assert ("超时" in reason or "sensor" in reason.lower()
+            or "NO_SENSOR_TRIGGER" in reason)
 
 
 def test_attach_rejection_fails_task():

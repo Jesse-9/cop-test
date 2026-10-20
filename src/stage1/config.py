@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 # ═══════════════════════════════════════════════════════════════
 # 仿真与模型
@@ -42,7 +43,6 @@ ALIASES = {
     "conveyor": "Conveyor_In",
     "conveyor_entry": "Conveyor_In_Entry",
     "conveyor_stop": "Conveyor_In_PickupStop",
-    "conveyor_stopper": "Conveyor_In_PickupStopper",
     "pick_sensor": "Sensor_PickStation",
     "exit_sensor": "Sensor_ConveyorExit",
     # 工位 / 机械臂 / 吸盘
@@ -72,6 +72,9 @@ REQUIRED_ALIASES = [
     ALIASES["suction_sensor"], ALIASES["ik_target"], ALIASES["agv"],
     ALIASES["agv_tray"], ALIASES["agv_dock_sensor"],
 ]
+
+# 旧阶段一场景的挡停体别名。生产场景不再构建它, 仅用于断言旧对象未残留。
+LEGACY_STOPPER_ALIAS = "Conveyor_In_PickupStopper"
 
 # ═══════════════════════════════════════════════════════════════
 # 地面与静态平台 (06-05 §2.3)
@@ -113,14 +116,14 @@ CONVEYOR_MAX_STOP_TIME = 3 * SIM_STEP                  # 0.15 s 停车验收上�
 CONVEYOR_ENTRY_INSET = 0.10     # 入口相对上表面行程首端内缩 (m)
 CONVEYOR_STOP_INSET = 0.08      # 停止区相对上表面行程末端内缩 (m)
 
-# HYBRID_DYNAMIC: 物理接触优先; 4.10 中 pad 不传递切向速度时, 沿带面切线
-# 做受限补偿。补偿步长不得超过带速 * dt, 且必须仍在有效区内。
+# HYBRID_DYNAMIC: 物理接触优先。步骤 1.1 C 组实测当前场景 pad→物料存在
+# 真实物理输送 (≈0.20 m/s); 补偿仅用于物料落后于带速时, 沿带面切线做
+# 受限补偿。补偿步长不得超过带速 * dt, 且必须仍在有效区内。
 TRANSPORT_MODE = "HYBRID_DYNAMIC"
 DRIVE_SOURCE_SCRIPT = "SCRIPT_DRIVEN"
 CONVEYOR_MAX_COMPENSATION_STEP = CONVEYOR_SPEED * SIM_STEP
 CONVEYOR_MAX_LATERAL_ERROR = 0.04  # 物料偏离带中心线的上限 (m)
 CONVEYOR_FAULT_DROP_Z = 0.15    # 物料低于带面该值 → CONVEYOR_FAULT
-CONVEYOR_STOP_CONFIRM_STEPS = 3 # 到站后连续命中传感器帧数
 
 # 内置 conveyor 的控制接口 (模型自带注释; 4.10 实测)
 CONVEYOR_CTRL_KEY = "customData.__ctrl__"
@@ -170,7 +173,7 @@ MATERIAL_COLORS = {
 # UR5 与 simIK (06-05 §2.6–§2.9)
 # ═══════════════════════════════════════════════════════════════
 
-ARM_SEED_JOINTS = [0.0, -math.pi / 2, math.pi / 2, 0.0, 0.0, 0.0]
+ARM_SEED_JOINTS = [0.0, 0.0, -math.pi / 2, 0.0, math.pi / 2, 0.0]
 ARM_JOINT_LIMIT = (-2.0 * math.pi, 2.0 * math.pi)   # 实测模型区间
 ARM_JOINT_TARGET_VEL = 1.5        # rad/s
 ARM_JOINT_TARGET_ACCEL = 6.0      # rad/s²
@@ -209,6 +212,24 @@ SUCTION_SETTLE_GRACE_STEPS = 2    # 忽略释放/换父后的第一帧速度瞬�
 SUCTION_SETTLE_Z_TOL = 0.02       # 物料中心应高于承载面 5cm 的容差 (m)
 
 # ═══════════════════════════════════════════════════════════════
+# 无挡板取料: 传感器触发停带 → 物料稳定 → 实测位姿抓取
+# (步骤 1.1 B 组流程, 2026-10-20 迁移为阶段一生产流程)
+# ═══════════════════════════════════════════════════════════════
+
+PICK_STOP_VEL_TOL = 0.01          # 带面速度回读上限 (m/s)
+PICK_STOP_POS_TOL = 0.002         # 连续两步 pad 局部位移上限 (m)
+PICK_STOP_CONFIRM_STEPS = 2       # 连续确认步数
+PICK_STOP_TIMEOUT = 3.0           # 等待带面停止上限 (s)
+
+# 物料稳定判据使用“每步位移 + 线速度”, 而不是距停带命令的总位移:
+# 停带瞬间的最后一次补偿 (≤1 cm) 不应让物料永远判为不稳定。
+MATERIAL_STABLE_SPEED_TOL = SUCTION_MAX_ATTACH_SPEED   # 0.05 m/s
+MATERIAL_STABLE_POS_TOL = 0.005   # 单步位移上限 (m)
+MATERIAL_STABLE_STEPS = 5         # 连续稳定步数
+MATERIAL_SETTLE_TIMEOUT = 3.0     # 等待物料稳定上限 (s)
+MATERIAL_MAX_TILT = 0.15          # 抓取前物料最大倾角 (rad)
+
+# ═══════════════════════════════════════════════════════════════
 # pioneer p3dx (06-05 §2.10)
 # ═══════════════════════════════════════════════════════════════
 
@@ -244,8 +265,10 @@ AGV_TRAY_XY_TOL = 0.12            # 载荷相对载台中心的 XY 容差 (m)
 AGV_TRAY_Z_TOL = 0.03             # 载荷高度相对载台顶面的容差 (m)
 
 # ═══════════════════════════════════════════════════════════════
-# 放置目标
+# 放置目标 (历史阶段一基线坐标)
 # ═══════════════════════════════════════════════════════════════
+# 生产流程使用 `layout.LayoutSpec` 的派生目标; 下面这组常量保留给
+# 步骤 1.1 A 组/历史回归对照, 不再被 stage1 控制循环直接使用。
 
 # 物料中心的世界目标位姿
 STATION_MATERIAL_POSE = (
@@ -258,6 +281,35 @@ AGV_MATERIAL_POSE = (
 # 物料中心距带面/台面的竖直距离
 MATERIAL_HALF_HEIGHT = MATERIAL_SIZE[2] / 2.0
 MATERIAL_PLACE_TOL = 0.03          # 工位放置完成的位置容差 (m)
+
+# ═══════════════════════════════════════════════════════════════
+# 允许抓取区域 (步骤 1.1 §5.1, 运行前冻结)
+# ═══════════════════════════════════════════════════════════════
+# 该区域不是 proximity sensor 的检测体积, 也不能用 sensor 体积替代。
+# X 上限 -0.19 m 由带面末端 -0.12 m 再留 2 cm 边缘余量得到;
+# 下限 -0.40 m 覆盖传感器触发点与旧的行程停止点。
+
+
+@dataclass(frozen=True)
+class PickRegion:
+    x: tuple[float, float]
+    y: tuple[float, float]
+    z_center: float
+    z_tol: float
+
+    def contains(self, pose) -> bool:
+        """pose 至少包含世界 (x, y, z); 四元数部分忽略。"""
+        return (self.x[0] - 1e-9 <= float(pose[0]) <= self.x[1] + 1e-9
+                and self.y[0] - 1e-9 <= float(pose[1]) <= self.y[1] + 1e-9
+                and abs(float(pose[2]) - self.z_center) <= self.z_tol + 1e-9)
+
+
+ALLOWED_PICK_REGION = PickRegion(
+    x=(-0.40, -0.19),
+    y=(-0.04, 0.04),
+    z_center=CONVEYOR_SURFACE_Z + MATERIAL_HALF_HEIGHT,
+    z_tol=0.02,
+)
 
 # ═══════════════════════════════════════════════════════════════
 # 任务与超时
@@ -331,6 +383,8 @@ STATION_TCP_POSE = tcp_pose_above(STATION_MATERIAL_POSE)
 AGV_TCP_POSE = tcp_pose_above(AGV_MATERIAL_POSE)
 
 
+# 历史基线目标解析; 生产流程改用 `LayoutSpec.tcp_pose_for_target` /
+# `LayoutSpec.material_pose_for_target`。
 def target_tcp_pose(target: str) -> list[float]:
     """按目标名返回 TCP 放置位姿; target ∈ {station, agv}."""
     if target == "station":

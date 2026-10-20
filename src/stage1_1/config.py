@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from stage1 import config as base
-from stage1.layout import LayoutSpec, default_layout
+from stage1.layout import L1_S1_LAYOUT, LayoutSpec
 
 # ═══════════════════════════════════════════════════════════════
 # 版本与证据
@@ -48,8 +48,7 @@ _ARM_L2 = dict(
 )
 
 CANDIDATE_LAYOUTS: tuple[LayoutSpec, ...] = (
-    LayoutSpec(name="L1_S1", station_pos=(-0.20, 1.20),
-               include_stopper=False, **_ARM_L1),
+    L1_S1_LAYOUT,
     LayoutSpec(name="L1_S2", station_pos=(-0.80, 0.90),
                include_stopper=False, **_ARM_L1),
     LayoutSpec(name="L2_S1", station_pos=(-0.20, -1.20),
@@ -58,8 +57,16 @@ CANDIDATE_LAYOUTS: tuple[LayoutSpec, ...] = (
                include_stopper=False, **_ARM_L2),
 )
 
-# 阶段一基线仅用于 A 组对照与回归, 不参与候选选择。
-BASELINE_LAYOUT = default_layout()
+# 历史阶段一基线布局, 仅用于步骤 1.1 A 组对照与回归记录。
+# 迁移后 stage1 场景不再构建挡停体; `include_stopper` 只是历史标记。
+BASELINE_LAYOUT = LayoutSpec(
+    name="stage1_baseline",
+    arm_base=tuple(base.ARM_BASE_POS),
+    island_pos=tuple(base.ISLAND_POS),
+    station_pos=tuple(base.STATION_POS),
+    agv_dock=tuple(base.AGV_DOCK_POS),
+    include_stopper=True,
+)
 
 # ═══════════════════════════════════════════════════════════════
 # 允许抓取区域 (06-07 §5.1) — 运行前冻结

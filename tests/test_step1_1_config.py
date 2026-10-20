@@ -132,5 +132,11 @@ def test_stability_thresholds_match_stage1_contract():
     assert cfg.MATERIAL_MAX_TILT <= base.SUCTION_TILT_TOL
 
 
-def test_baseline_layout_is_stage1_default():
-    assert cfg.BASELINE_LAYOUT == default_layout()
+def test_baseline_layout_is_historical_stage1_baseline():
+    assert cfg.BASELINE_LAYOUT.name == "stage1_baseline"
+    assert cfg.BASELINE_LAYOUT.arm_base == tuple(base.ARM_BASE_POS)
+    assert cfg.BASELINE_LAYOUT.station_pos == tuple(base.STATION_POS)
+    assert cfg.BASELINE_LAYOUT.agv_dock == tuple(base.AGV_DOCK_POS)
+    assert cfg.BASELINE_LAYOUT.include_stopper is True
+    assert cfg.CANDIDATE_LAYOUTS[0].name == "L1_S1"
+    assert default_layout() == cfg.CANDIDATE_LAYOUTS[0]

@@ -3,16 +3,19 @@
 固定执行顺序 (sim.step() 永远最后):
   1. 读取通信/仿真状态
   2. conveyor 驱动 + HYBRID_DYNAMIC 物料输送
-  3. 读取 Sensor_PickStation
-  4. 推进任务状态机
-  5. simIK 求解 + 关节目标
-  6. TCP/吸盘传感器确认 + 吸附
-  7. 抬升 / 转运 / 放置
-  8. 释放 + 稳定等待
-  9. AGV 轮速
- 10. 事件日志
- 11. sim.step()
+  3. 读取 Sensor_PickStation; 命中目标 UID 立即下发零速
+  4. 推进任务状态机:
+       停带确认 → 物料稳定 → 读取实测位姿 → simIK 抓取
+  5. TCP/吸盘传感器确认 + 吸附
+  6. 抬升 / 转运 / 放置
+  7. 释放 + 稳定等待
+  8. AGV 轮速
+  9. 事件日志
+ 10. sim.step()
 
+抓取流程采用步骤 1.1 B 组结论: 不设挡停体, 传感器命中后主动停带,
+等待带面和物料稳定, 再按仿真器实测位姿生成 TCP 目标。抓取目标在
+停稳时刻固定一次, 后续接近/抬升都复用该目标。
 传感器命中只表示物理条件满足; 吸附必须同时匹配当前任务 UID。
 """
 
@@ -26,13 +29,17 @@ from typing import Optional
 
 from . import config as cfg
 from .conveyor_controller import BeltGeometry, TransportFault, compensation_allowed, transport_step
+from .layout import default_layout
 from .material_manager import MaterialState
 from .pioneer_controller import AGVState
+from .scene import alias_of, subtree
 
 
 class UnitTaskState(Enum):
     IDLE              = auto()
     WAITING_FOR_ITEM  = auto()
+    STOPPING          = auto()
+    MATERIAL_SETTLING = auto()
     APPROACHING       = auto()
     ATTACHING         = auto()
     LIFTING           = auto()
@@ -57,6 +64,17 @@ class PickMismatch:
     expected_handle: int
 
 
+def _dist3(a, b) -> float:
+    return math.sqrt(sum((float(a[i]) - float(b[i])) ** 2 for i in range(3)))
+
+
+def quat_tilt(q) -> float:
+    """物体局部 Z 轴与世界 Z 轴的夹角 (rad)。"""
+    x, y = float(q[0]), float(q[1])
+    zz = max(-1.0, min(1.0, 1.0 - 2.0 * (x * x + y * y)))
+    return math.acos(zz)
+
+
 _MOTION_STATES = {
     UnitTaskState.APPROACHING: UnitTaskState.ATTACHING,
     UnitTaskState.LIFTING: UnitTaskState.TRANSFERRING,
@@ -68,6 +86,7 @@ class Stage1UnitController:
     def __init__(self, sim, scene, materials, conveyor, belt_geometry: BeltGeometry,
                  ik, suction, agv=None, target: str = "station", uid: int = 1,
                  fault: str = cfg.FAULT_NONE,
+                 layout=None,
                  logger: Optional[logging.Logger] = None,
                  pick_timeout: Optional[float] = None,
                  task_timeout: Optional[float] = None) -> None:
@@ -82,6 +101,7 @@ class Stage1UnitController:
         self.target = target
         self.uid = uid
         self.fault = fault
+        self.layout = default_layout() if layout is None else layout
         self.logger = logger
         self.pick_timeout = cfg.PICK_SENSOR_TIMEOUT if pick_timeout is None else pick_timeout
         self.task_timeout = cfg.TASK_TIMEOUT if task_timeout is None else task_timeout
@@ -90,7 +110,6 @@ class Stage1UnitController:
         self.failure_reason = ""
         self.last_mismatch: Optional[PickMismatch] = None
         self.sim_time = 0.0
-        self.at_stop = False
         self.agv_blocked = False
         self.compensation_count = 0
         self.event_log: list[tuple[float, str]] = []
@@ -110,7 +129,6 @@ class Stage1UnitController:
         self._settle_step = 0
         self._mismatch_logged = False
         self._mismatch_since: Optional[float] = None
-        self._stop_confirm = 0
         self._dock_wait_since: Optional[float] = None
         self._attach_wait_since: Optional[float] = None
         self._agv_started = False
@@ -118,6 +136,19 @@ class Stage1UnitController:
         self._agv_material_start: Optional[list[float]] = None
         self._agv_started_at = 0.0
         self._agv_done = False
+
+        # 停带 → 稳定 → 实测位姿 (B 组流程)
+        self._pick_tcp: Optional[list[float]] = None
+        self._pick_pose: Optional[list[float]] = None
+        self._stop_command_time: Optional[float] = None
+        self._pad_handle: Optional[int] = None   # None=未查找, -1=未找到
+        self._pad_pos_at_stop: Optional[list[float]] = None
+        self._pad_prev_pos: Optional[list[float]] = None
+        self._pad_confirm = 0
+        self._vel_mismatch = 0
+        self._stable_prev_pos: Optional[list[float]] = None
+        self._stable_count = 0
+        self._settle_started_at: Optional[float] = None
 
     # ── 单步 ────────────────────────────────────────────────
 
@@ -196,8 +227,10 @@ class Stage1UnitController:
             rec.transition_to(MaterialState.ON_CONVEYOR, self.sim_time,
                               "entered conveyor effective zone")
         if step.at_stop:
-            self.at_stop = True
-            self.conveyor.stop(cfg.ALIASES["conveyor"])
+            # B 组流程只允许传感器命中触发停带。物料走到行程末端仍未命中,
+            # 必须立即失败并停带, 不能继续把物料带出带尾。
+            self._fail("NO_SENSOR_TRIGGER_AT_STOP: "
+                       "物料到达停止区但传感器未命中目标")
 
     # ── 3. 取料传感器 ───────────────────────────────────────
 
@@ -209,20 +242,13 @@ class Stage1UnitController:
             return
         expected = int(rec.sim_handle)
         hits = self.scene.pick_sensor_hits(self.materials.handles())
-        if expected in hits and self.at_stop:
-            self._stop_confirm += 1
-            if self._stop_confirm < cfg.CONVEYOR_STOP_CONFIRM_STEPS:
-                return
+        if expected in hits:
+            # 步骤 1.1 B 组: 传感器命中目标 UID 即下发零速, 不等行程进度。
             self.last_mismatch = None
             self._mismatch_logged = False
             self._mismatch_since = None
-            if rec.state is MaterialState.ON_CONVEYOR:
-                rec.transition_to(MaterialState.READY_FOR_PICK, self.sim_time,
-                                  "Sensor_PickStation confirmed UID")
-            self.conveyor.stop(cfg.ALIASES["conveyor"])
-            self._begin_motion(UnitTaskState.APPROACHING)
+            self._command_pick_stop("sensor_hit")
             return
-        self._stop_confirm = 0
         if hits and expected not in hits:
             wrong = int(hits[0])
             self.last_mismatch = PickMismatch(
@@ -240,6 +266,125 @@ class Stage1UnitController:
             self.last_mismatch = PickMismatch(
                 self.sim_time, MismatchReason.NO_HIT, -1, expected)
         self._mismatch_since = None
+
+    # ── 3b. 主动停带与物料稳定 (步骤 1.1 B 组) ──────────────
+
+    def _command_pick_stop(self, reason: str) -> None:
+        """传感器命中目标后主动零速; 记录停带时刻与 pad 参考位姿。"""
+        if self._stop_command_time is not None:
+            return
+        self.conveyor.stop(cfg.ALIASES["conveyor"])
+        self._stop_command_time = self.sim_time
+        self._pad_pos_at_stop = self._pad_position()
+        self._pad_prev_pos = self._pad_pos_at_stop
+        self._pad_confirm = 0
+        self._vel_mismatch = 0
+        self._enter(UnitTaskState.STOPPING,
+                    f"conveyor stop commanded ({reason})")
+
+    def _advance_stopping(self) -> None:
+        """等待带面实际停止; 速度回读不可信时用 pad 位姿差确认。"""
+        if self._stop_command_time is None:
+            self._command_pick_stop("unspecified")
+            return
+        if self.sim_time - self._stop_command_time > cfg.PICK_STOP_TIMEOUT:
+            self._fail("PAD_STOP_TIMEOUT: 带面未在限时内停止")
+            return
+
+        vel = self._pad_velocity()
+        pos = self._pad_position()
+        moved = None
+        pos_ok = True
+        if pos is not None and self._pad_prev_pos is not None:
+            moved = _dist3(pos, self._pad_prev_pos)
+            pos_ok = moved <= cfg.PICK_STOP_POS_TOL
+        self._pad_prev_pos = pos
+        vel_ok = vel <= cfg.PICK_STOP_VEL_TOL
+
+        if pos_ok and not vel_ok:
+            self._vel_mismatch += 1
+        else:
+            self._vel_mismatch = 0
+        # 速度回读可信时以速度为主; 若 pad 已连续多步不动而回读仍非零,
+        # 视为回读不可信, 改用位姿差确认 (06-07 §4.3-3)。
+        velocity_trusted = (vel_ok
+                            or self._vel_mismatch < cfg.PICK_STOP_CONFIRM_STEPS)
+        if pos_ok and (vel_ok or not velocity_trusted):
+            self._pad_confirm += 1
+        else:
+            self._pad_confirm = 0
+        if self._pad_confirm < cfg.PICK_STOP_CONFIRM_STEPS:
+            return
+
+        rec = self.materials.by_uid(self.uid)
+        if rec is None or rec.sim_handle is None:
+            self._fail("UID_NOT_REGISTERED")
+            return
+        stop_travel = (_dist3(pos, self._pad_pos_at_stop)
+                       if pos is not None and self._pad_pos_at_stop is not None
+                       else None)
+        self._event(f"pad stopped: vel={vel:.4f} m/s "
+                    f"step_moved={moved} stop_travel={stop_travel}")
+        self._settle_started_at = self.sim_time
+        self._stable_count = 0
+        self._stable_prev_pos = self._material_position(rec.sim_handle)
+        self._enter(UnitTaskState.MATERIAL_SETTLING,
+                    "pad stopped, waiting material stable")
+
+    def _advance_material_settling(self) -> None:
+        """连续稳定若干步后读取实测位姿并固定抓取目标。"""
+        rec = self.materials.by_uid(self.uid)
+        if rec is None or rec.sim_handle is None:
+            self._fail("UID_NOT_REGISTERED")
+            return
+
+        speed = self._material_speed(rec.sim_handle)
+        pos = self._material_position(rec.sim_handle)
+        step_moved = (_dist3(pos, self._stable_prev_pos)
+                      if self._stable_prev_pos is not None else 0.0)
+        self._stable_prev_pos = list(pos)
+        if (speed <= cfg.MATERIAL_STABLE_SPEED_TOL
+                and step_moved <= cfg.MATERIAL_STABLE_POS_TOL):
+            self._stable_count += 1
+        else:
+            self._stable_count = 0
+
+        if self._stable_count < cfg.MATERIAL_STABLE_STEPS:
+            if (self._settle_started_at is not None
+                    and self.sim_time - self._settle_started_at
+                    > cfg.MATERIAL_SETTLE_TIMEOUT):
+                self._fail(
+                    "MATERIAL_SETTLE_TIMEOUT: 物料未在限时内稳定 "
+                    f"(speed={speed:.3f} m/s, step={step_moved:.4f} m)")
+            return
+
+        pose = [float(v) for v in
+                self.sim.getObjectPose(rec.sim_handle, self.sim.handle_world)]
+        tilt = quat_tilt(pose[3:7])
+        if not cfg.ALLOWED_PICK_REGION.contains(pose):
+            self._fail(
+                "OUT_OF_ALLOWED_REGION: 物料停稳后不在允许抓取区 "
+                f"(x={pose[0]:.4f}, y={pose[1]:.4f}, z={pose[2]:.4f})")
+            return
+        if tilt > cfg.MATERIAL_MAX_TILT:
+            self._fail(f"MATERIAL_TILT: 物料倾斜 {tilt:.3f} rad")
+            return
+
+        self._pick_pose = pose
+        self._pick_tcp = [pose[0], pose[1],
+                          pose[2] + cfg.MATERIAL_HALF_HEIGHT,
+                          *cfg.TOOL_TARGET_QUATERNION]
+        if rec.state is MaterialState.SPAWNED:
+            rec.transition_to(MaterialState.ON_CONVEYOR, self.sim_time,
+                              "settled on conveyor")
+        if rec.state is MaterialState.ON_CONVEYOR:
+            rec.transition_to(MaterialState.READY_FOR_PICK, self.sim_time,
+                              "stopped and stable, measured pose")
+        self._event(
+            f"material stable at ({pose[0]:.4f},{pose[1]:.4f},"
+            f"{pose[2]:.4f}) tilt={tilt:.3f}; pick target fixed")
+        self._begin_motion(UnitTaskState.APPROACHING,
+                           "measured pose after active stop")
 
     # ── 4-8. 任务状态机 ─────────────────────────────────────
 
@@ -268,6 +413,14 @@ class Stage1UnitController:
                     self._fail("PICK_MISMATCH: 目标 UID 未到达取料位")
                 else:
                     self._fail("SENSOR_TIMEOUT: 目标物料未到达取料位")
+            return
+
+        if self.state is UnitTaskState.STOPPING:
+            self._advance_stopping()
+            return
+
+        if self.state is UnitTaskState.MATERIAL_SETTLING:
+            self._advance_material_settling()
             return
 
         if self.state in _MOTION_STATES:
@@ -320,12 +473,11 @@ class Stage1UnitController:
             return
 
         if self.state is UnitTaskState.RELEASING:
-            pose = self._place_pose()
-            material_pose = cfg.material_pose_for_target(self.target)
+            material_pose = self._material_pose_for_target()
             if self.fault == cfg.FAULT_RELEASE_UNSTABLE:
                 material_pose[2] += 0.30
-            support_z = (cfg.STATION_TOP_Z if self.target == "station"
-                         else cfg.AGV_TRAY_TOP_Z)
+            support_z = (self.layout.station_top_z
+                         if self.target == "station" else cfg.AGV_TRAY_TOP_Z)
             self._settle_max_speed = 0.0
             self._settle_step = 0
             result = self.suction.release(self.uid, self.sim_time,
@@ -365,7 +517,8 @@ class Stage1UnitController:
                 if rec is not None and rec.sim_handle is not None:
                     z = float(self.sim.getObjectPosition(
                         rec.sim_handle, self.sim.handle_world)[2])
-                    support = (cfg.STATION_TOP_Z if self.target == "station"
+                    support = (self.layout.station_top_z
+                               if self.target == "station"
                                else cfg.AGV_TRAY_TOP_Z)
                     if z - cfg.MATERIAL_HALF_HEIGHT < \
                             support - cfg.SUCTION_SETTLE_Z_TOL:
@@ -382,6 +535,9 @@ class Stage1UnitController:
         先到目标点上方 ARM_APPROACH_CLEARANCE, 再垂直下探; 避免机械臂
         从侧面扫过把物料推离取料位 (4.10 实测会发生)。
         """
+        if state is UnitTaskState.APPROACHING and self._pick_tcp is None:
+            self._fail("PICK_TARGET_MISSING: 未读取到实测抓取目标")
+            return
         self.state = state
         self._stages = self._stages_for(state)
         self._stage_index = 0
@@ -391,22 +547,16 @@ class Stage1UnitController:
         self._event(f"{state.name}: {reason or 'motion started'}")
 
     def _stages_for(self, state: UnitTaskState) -> list[list[float]]:
-        rec = self.materials.by_uid(self.uid)
         if state is UnitTaskState.APPROACHING:
-            pose = list(self.sim.getObjectPose(rec.sim_handle,
-                                               self.sim.handle_world))
-            pick = [pose[0], pose[1], pose[2] + cfg.MATERIAL_HALF_HEIGHT,
-                    *cfg.TOOL_TARGET_QUATERNION]
+            # 抓取目标在停稳时刻固定一次, 接近与下探使用同一目标,
+            # 不在运动过程中重新读取物料位姿。
+            pick = list(self._pick_tcp)
             pre = list(pick)
             pre[2] += cfg.ARM_APPROACH_CLEARANCE
             return [pre, pick]
         if state is UnitTaskState.LIFTING:
-            pose = list(self.sim.getObjectPose(rec.sim_handle,
-                                               self.sim.handle_world))
-            lift = [pose[0], pose[1],
-                    pose[2] + cfg.MATERIAL_HALF_HEIGHT
-                    + cfg.ARM_APPROACH_CLEARANCE,
-                    *cfg.TOOL_TARGET_QUATERNION]
+            lift = list(self._pick_tcp)
+            lift[2] += cfg.ARM_APPROACH_CLEARANCE
             return [lift]
         if state is UnitTaskState.TRANSFERRING:
             place = self._place_pose()
@@ -461,12 +611,15 @@ class Stage1UnitController:
                 self._fail("IK_TIMEOUT: 关节未在超时内收敛")
 
     def _place_pose(self) -> list[float]:
-        pose = cfg.target_tcp_pose(self.target)
+        pose = self.layout.tcp_pose_for_target(self.target)
         if self.fault == cfg.FAULT_IK_UNREACHABLE:
             pose[0] += cfg.FAULT_IK_OFFSET[0]
             pose[1] += cfg.FAULT_IK_OFFSET[1]
             pose[2] += cfg.FAULT_IK_OFFSET[2]
         return pose
+
+    def _material_pose_for_target(self) -> list[float]:
+        return self.layout.material_pose_for_target(self.target)
 
     # ── 9. AGV ──────────────────────────────────────────────
 
@@ -555,6 +708,53 @@ class Stage1UnitController:
         except Exception:
             return 0.0
 
+    def _material_position(self, handle: int) -> list[float]:
+        try:
+            return [float(v) for v in
+                    self.sim.getObjectPosition(handle, self.sim.handle_world)]
+        except Exception:
+            return [0.0, 0.0, 0.0]
+
+    def _pad_velocity(self) -> float:
+        try:
+            return float(self.conveyor.read_actual_velocity(
+                cfg.ALIASES["conveyor"]))
+        except Exception:
+            return 0.0
+
+    def _pad_position(self) -> Optional[list[float]]:
+        """一个 pad 相对传送带根的位姿; 句柄在首次使用时查找并缓存。
+
+        内置 conveyor 脚本会在仿真启动时重建 pad, 因此不能使用构建期句柄。
+        """
+        if self._pad_handle is None:
+            self._pad_handle = self._find_pad()
+        if self._pad_handle < 0:
+            return None
+        try:
+            belt = self.scene.handle(cfg.ALIASES["conveyor"])
+            return [float(v) for v in
+                    self.sim.getObjectPosition(self._pad_handle, belt)]
+        except Exception:
+            self._pad_handle = -1
+            return None
+
+    def _find_pad(self) -> int:
+        try:
+            belt = self.scene.handle(cfg.ALIASES["conveyor"])
+        except Exception:
+            return -1
+        if belt < 0:
+            return -1
+        for h in subtree(self.sim, belt):
+            try:
+                if (self.sim.getObjectType(h) == self.sim.object_shape_type
+                        and alias_of(self.sim, h) == "pad"):
+                    return int(h)
+            except Exception:
+                continue
+        return -1
+
     def _agv_position(self):
         try:
             return list(self.agv.position())
@@ -583,13 +783,19 @@ class Stage1UnitController:
         if self._retry_at is None or self.sim_time < self._retry_at:
             return
         rec = self.materials.by_uid(self.uid)
-        if rec is None or rec.state not in (
-                MaterialState.READY_FOR_PICK, MaterialState.ON_CONVEYOR):
+        if rec is None or rec.state is not MaterialState.READY_FOR_PICK:
             return
+        if self._pick_tcp is None:
+            return
+        # 停带流程已经把物料固定在允许区内; 重试只重新求解/执行接近运动,
+        # 不得重新启动传送带或重新测量位姿。
         self._retry_at = None
         self._motion_started = False
+        self._stages = []
+        self._motion_pose = None
+        self._motion_cmd = None
         self.failure_reason = ""
-        self._enter(UnitTaskState.WAITING_FOR_ITEM, "retry after IK failure")
+        self._begin_motion(UnitTaskState.APPROACHING, "retry after IK failure")
 
     def _fail(self, reason: str) -> None:
         if self.state is UnitTaskState.FAILED:
@@ -604,6 +810,7 @@ class Stage1UnitController:
                 self.agv.stop()
             except Exception:
                 pass
+        self._retry_at = None
         self.state = UnitTaskState.FAILED
         self.failure_reason = reason
         self._event(f"FAILED: {reason}")
@@ -638,10 +845,15 @@ class Stage1UnitController:
         return {
             "uid": self.uid,
             "target": self.target,
+            "layout": self.layout.name,
             "state": self.state.name,
             "failure_reason": self.failure_reason,
             "material_state": rec.state.value if rec else None,
             "compensation_count": self.compensation_count,
+            "pick_pose": ([round(float(v), 5) for v in self._pick_pose[:3]]
+                          if self._pick_pose is not None else None),
+            "pick_tcp": ([round(float(v), 5) for v in self._pick_tcp]
+                         if self._pick_tcp is not None else None),
             "agv_blocked": self.agv_blocked,
             "events": list(self.event_log),
         }
@@ -650,7 +862,8 @@ class Stage1UnitController:
     def finished(self) -> bool:
         """任务是否已经结束 (AGV 目标还需等待轮速行驶完成)."""
         if self.state is UnitTaskState.FAILED:
-            return True
+            # IK 失败在重试窗口内时任务未结束。
+            return self._retry_at is None
         if self.state is not UnitTaskState.DONE:
             return False
         if self.target == "agv" and self.agv is not None:

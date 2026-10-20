@@ -641,7 +641,10 @@ def run_experiment_phase(sim, simIK, selected_layout, stamp: str,
         summary["groups"][group] = {
             "spec": cfg.GROUP_SPECS[group],
             "scene_layout": group_layout.name,
-            "stopper_present": group_layout.include_stopper,
+            # 迁移后 stage1 构建器不再创建挡停体; 保留 request 字段以区分
+            # 历史 A 组配置与当前实际场景。
+            "stopper_requested": group_layout.include_stopper,
+            "stopper_present": False,
             "build_ok": scene.build_report.get("ok"),
             "trial_file": trial_path,
             "summary": aggregate_trials(records),

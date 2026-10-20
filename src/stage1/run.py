@@ -163,7 +163,7 @@ def prepare_fault(sim, scene: Stage1Scene, fault: str,
             notes.append("已移除 Sensor_PickStation (传感器无读数)")
     elif fault == cfg.FAULT_UID_MISMATCH:
         wrong = scene.spawn_material(99, "Part_Wrong",
-                                     position=cfg.MATERIAL_PICK_POS)
+                                     position=scene.layout.pick_material_pose)
         materials.register(99, "Part_Wrong", sim_handle=wrong)
         notes.append("已在取料位生成非目标物料 Part_Wrong (uid=99)")
     elif fault == cfg.FAULT_AGV_BLOCKED:
@@ -171,7 +171,8 @@ def prepare_fault(sim, scene: Stage1Scene, fault: str,
             sim.primitiveshape_cuboid, [0.20, 0.50, 0.30]))
         sim.setObjectAlias(obs, "Fault_AGV_Obstacle")
         sim.setObjectPosition(
-            obs, [cfg.AGV_DOCK_POS[0] + 0.55, cfg.AGV_DOCK_POS[1], 0.15],
+            obs, [scene.layout.agv_dock[0] + 0.55,
+                  scene.layout.agv_dock[1], 0.15],
             sim.handle_world)
         phys.apply_static_shape(sim, obs, respondable=True)
         notes.append("已放置 AGV 路径障碍 Fault_AGV_Obstacle")
@@ -196,7 +197,7 @@ def collect_evidence(sim, scene: Stage1Scene, comp, controller,
     """采集证据; 仿真被外部停止/对象被移除时返回最小证据而不是抛异常。"""
     try:
         mat_pose = sim.getObjectPose(material_handle, sim.handle_world)
-        expected = cfg.material_pose_for_target(target)
+        expected = scene.layout.material_pose_for_target(target)
         tcp = sim.getObjectPose(scene.tcp, sim.handle_world)
         agv = comp["agv"]
         agv_pose = agv.pose()
@@ -340,7 +341,8 @@ def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
         sim=sim, scene=scene, materials=materials,
         conveyor=comp["conveyor"], belt_geometry=comp["geometry"],
         ik=comp["ik"], suction=comp["suction"], agv=comp["agv"],
-        target=target, uid=uid, fault=fault, logger=logger)
+        target=target, uid=uid, fault=fault, layout=scene.layout,
+        logger=logger)
 
     agv_start_pose = comp["agv"].pose()
     material_start_pos = list(sim.getObjectPosition(material, sim.handle_world))
@@ -423,8 +425,11 @@ def main(argv=None) -> int:
     try:
         stop_simulation(sim)
         scene = build_scene(sim, clear=True)
-        logger.info("[SCENE] 构建完成: %s", {
+        logger.info("[SCENE] 构建完成: layout=%s %s", scene.layout.name, {
             "joints": len(scene.robot_joints),
+            "arm_base": [round(v, 3) for v in scene.layout.arm_base],
+            "station": [round(v, 3) for v in scene.layout.station_pos],
+            "agv_dock": [round(v, 3) for v in scene.layout.agv_dock],
             "conveyor": {k: scene.conveyor_meta.get(k)
                          for k in ("actual_length", "surface_z",
                                    "entry_local_x", "stop_local_x")},
@@ -442,6 +447,14 @@ def main(argv=None) -> int:
             "fault": ns.fault,
             "max_sim_time": ns.time,
             "sim_step": cfg.SIM_STEP,
+            "layout": scene.layout.name,
+        },
+        "layout": {
+            "name": scene.layout.name,
+            "arm_base": list(scene.layout.arm_base),
+            "island_pos": list(scene.layout.island_pos),
+            "station_pos": list(scene.layout.station_pos),
+            "agv_dock": list(scene.layout.agv_dock),
         },
         "scene": scene.describe(),
         "build_report": scene.build_report,
@@ -495,6 +508,7 @@ def main(argv=None) -> int:
         "timestamp": stamp,
         "target": ns.target,
         "fault": ns.fault,
+        "layout": scene.layout.name,
         "conveyor_drive_probe": drive_probe,
         "results": results,
         "all_ok": all(r.get("ok") for r in results),
