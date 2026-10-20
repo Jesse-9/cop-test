@@ -104,6 +104,8 @@ class CoppeliaConnector:
         self.timeout = timeout
         self.client = None
         self.sim = None
+        # simIK 供 stage1 的 UR5 IK 控制使用; 旧版控制层不使用。
+        self.simIK = None
 
     def connect(self) -> bool:
         """建立连接 — Establish ZMQ connection with retry logic.
@@ -119,6 +121,11 @@ class CoppeliaConnector:
             try:
                 self.client = RemoteAPIClient(host=self.host, port=self.port)
                 self.sim = self.client.require("sim")
+                try:
+                    self.simIK = self.client.require("simIK")
+                except Exception:
+                    # 旧版/裁剪版 CoppeliaSim 可能没有 simIK; 仅影响 stage1。
+                    self.simIK = None
                 version = self._read_version()
                 if version:
                     print(f"[OK] 已连接 CoppeliaSim {version} (attempt {attempt})")

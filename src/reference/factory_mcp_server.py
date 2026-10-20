@@ -45,10 +45,12 @@ import time as wall_time
 from pathlib import Path
 from typing import Any, Optional
 
-# 确保本脚本所在目录在 sys.path 上, 以便 import factory_* 模块
+# 确保本脚本所在目录和 src/ 在 sys.path 上, 以便 import factory_* / stage1
 _HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+_SRC = _HERE.parent
+for _p in (_HERE, _SRC):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
@@ -95,6 +97,18 @@ class FactoryMCPServer:
         self.sim_thread: Optional[threading.Thread] = None
         self.last_error: Optional[str] = None
         self._lock = threading.Lock()
+        # 当前后端: "stage1" (默认/当前实现) 或 "legacy" (旧五岛参考层)
+        self.backend: Optional[str] = None
+        # ── stage1 后端状态 ────────────────────────────────────
+        self.stage1_scene: Any = None
+        self.stage1_comp: Any = None
+        self.stage1_controller: Any = None
+        self.stage1_runner: Optional[threading.Thread] = None
+        self.stage1_stop = threading.Event()
+        self.stage1_pause = threading.Event()
+        self.stage1_pause_ack = threading.Event()
+        self.stage1_results: list[dict] = []
+        self.stage1_report_path: Optional[str] = None
         # 只读诊断专用连接 — 与主连接隔离,避免与主循环抢锁
         self.ro_connector: Optional[CoppeliaConnector] = None
         self.ro_lock = threading.Lock()
@@ -158,10 +172,13 @@ class FactoryMCPServer:
 
     # ── 仿真生命周期 — Simulation lifecycle ───────────────────
     def is_running(self) -> bool:
-        """仿真是否正在运行 — True if the sim thread is alive."""
-        return (self.sim_thread is not None
-                and self.sim_thread.is_alive()
-                and self.controller is not None)
+        """仿真是否正在运行 — True if either backend loop is alive."""
+        legacy = (self.sim_thread is not None
+                  and self.sim_thread.is_alive()
+                  and self.controller is not None)
+        stage1 = (self.stage1_runner is not None
+                  and self.stage1_runner.is_alive())
+        return bool(legacy or stage1)
 
     def _run_controller(self, total_time: float, log_file: str):
         """守护线程入口 — Run the controller loop (daemon thread entry).
@@ -210,18 +227,21 @@ class FactoryMCPServer:
                 "或简化场景 (减少机械臂) 定位阻塞脚本。"
             )
 
-    def start(self, total_time: float, log_file: str) -> str:
+    def start(self, total_time: float, log_file: str,
+              backend: str = "stage1", target: str = "station",
+              fault: str = "none") -> str:
         """启动仿真主循环 (守护线程) — Start simulation in a daemon thread.
 
-        前置: 必须已 connect 且场景已 build。若已有仿真在运行则拒绝。
-
-        Args:
-            total_time: 仿真总时长 (秒), 0 表示无限运行 (此处用大数近似)。
-            log_file:   日志文件路径。
-
-        Returns:
-            启动结果描述字符串。
+        backend="stage1" (默认/当前实现) 重建阶段一场景后运行单工位任务;
+        backend="legacy" 运行旧五岛 FactoryController。
         """
+        if backend == "stage1":
+            return self._start_stage1(total_time, log_file, target, fault)
+        if backend == "legacy":
+            return self._start_legacy(total_time, log_file)
+        return f"未知 backend: {backend!r} (可选 stage1/legacy)"
+
+    def _start_legacy(self, total_time: float, log_file: str) -> str:
         with self._lock:
             if self.is_running():
                 return "仿真已在运行中, 先 stop 再启动"
@@ -239,6 +259,7 @@ class FactoryMCPServer:
             ctrl.zmq_monitor.connector = self.connector
             ctrl.zmq_monitor.last_response = 0.0
             self.controller = ctrl
+            self.backend = "legacy"
             self.last_error = None
 
             t = threading.Thread(
@@ -259,34 +280,217 @@ class FactoryMCPServer:
             )
             watcher.start()
 
-            return (f"仿真已启动 (total_time={total_time}s, "
+            return (f"仿真已启动 (backend=legacy, total_time={total_time}s, "
                     f"log={log_file}), 线程={t.name}; "
                     f"{self.PROGRESS_WATCH_SECONDS:.0f}s 后将探活, "
                     f"用 status 查看推进情况")
 
-    def stop(self) -> str:
-        """停止仿真 — Stop the running simulation.
+    def _start_stage1(self, total_time: float, log_file: str,
+                      target: str, fault: str) -> str:
+        """重建阶段一场景并在守护线程中运行单工位任务."""
+        from stage1 import config as s1cfg
+        from stage1 import run as s1run
 
-        现有 FactoryController.run() 的退出条件是 sim_time >= total_time,
-        本方法通过 sim.stopSimulation() 触发循环内异常从而退出,
-        或等待线程自然结束。
-        """
+        if target not in ("station", "agv", "both"):
+            return f"target 必须是 station/agv/both: {target!r}"
+        if fault not in s1cfg.FAULT_CHOICES:
+            return f"fault 必须是 {s1cfg.FAULT_CHOICES}: {fault!r}"
+        with self._lock:
+            if self.is_running():
+                return "仿真已在运行中, 先 stop 再启动"
+            if self.sim is None:
+                return "未连接 CoppeliaSim, 先调用 connect"
+            simIK = getattr(self.connector, "simIK", None)
+            if simIK is None:
+                return "当前连接缺少 simIK 模块, 无法运行 stage1"
+
+        # 每次启动重建场景, 避免上一轮残留物料/传感器状态影响 UID 判定。
+        msg = self.build_scene(clear=True, backend="stage1")
+        if self.stage1_scene is None:
+            return f"阶段一场景未构建: {msg}"
+
+        logger = setup_logger(log_file=log_file)
+        comp = s1run.build_components(
+            self.sim, simIK, self.stage1_scene, logger)
+        s1run.start_stepping(self.sim)
+        self.stage1_comp = comp
+        self.stage1_stop.clear()
+        self.stage1_pause.clear()
+        self.stage1_pause_ack.clear()
+        self.stage1_results = []
+        self.stage1_report_path = None
+        self.backend = "stage1"
+        self.last_error = None
+
+        tt = total_time if total_time and total_time > 0 else 90.0
+        t = threading.Thread(
+            target=self._run_stage1,
+            args=(target, fault, tt, logger),
+            name="stage1-mcp-loop",
+            daemon=True,
+        )
+        self.stage1_runner = t
+        t.start()
+        return (f"阶段一仿真已启动 (backend=stage1, target={target}, "
+                f"fault={fault}, 单任务上限={tt:.1f}s, log={log_file}); "
+                f"线程={t.name}; 用 status 查询, stop_simulation 停止")
+
+    def _on_stage1_controller(self, controller) -> None:
+        """run_task 创建控制器后的回调, 供 status 读取实时状态."""
+        self.stage1_controller = controller
+
+    def _run_stage1(self, target: str, fault: str,
+                    max_sim_time: float, logger) -> None:
+        from stage1 import run as s1run
+
+        try:
+            targets = ["station", "agv"] if target == "both" else [target]
+            for idx, tgt in enumerate(targets, start=1):
+                if self.stage1_stop.is_set():
+                    break
+                evidence, material = s1run.run_task(
+                    self.sim, self.stage1_scene, self.stage1_comp,
+                    tgt, idx, fault, max_sim_time, logger,
+                    stop_event=self.stage1_stop,
+                    pause_event=self.stage1_pause,
+                    pause_ack_event=self.stage1_pause_ack,
+                    on_start=self._on_stage1_controller,
+                )
+                self.stage1_results.append(evidence)
+                if idx < len(targets):
+                    self.stage1_scene.remove_material(material)
+                    self.stage1_comp["materials"].remove(idx)
+            self._write_stage1_report(target, fault)
+        except Exception as e:  # noqa: BLE001 - 线程入口需兜底所有异常
+            self.last_error = f"stage1 run 异常: {type(e).__name__}: {e}"
+            logger.exception("[MCP] stage1 run 异常")
+        finally:
+            try:
+                s1run.stop_simulation(self.sim)
+            except Exception:
+                pass
+
+    def _write_stage1_report(self, target: str, fault: str) -> None:
+        """把 MCP 触发的阶段一运行结果写入 docs/implementation/runs/."""
+        from datetime import datetime
+        from stage1 import run as s1run
+
+        os.makedirs(s1run.REPORT_DIR, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(
+            s1run.REPORT_DIR, f"phase1_mcp_{target}_{fault}_{stamp}.json")
+        summary = {
+            "timestamp": stamp,
+            "backend": "stage1",
+            "target": target,
+            "fault": fault,
+            "results": self.stage1_results,
+            "all_ok": bool(self.stage1_results) and all(
+                r.get("ok") for r in self.stage1_results),
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+        self.stage1_report_path = path
+
+    def build_scene(self, clear: bool = True,
+                    backend: str = "stage1") -> str:
+        """构建场景 — stage1 (默认/当前实现) 或 legacy 五岛参考层."""
+        if self.is_running():
+            return "仿真运行中, 先 stop_simulation"
+        try:
+            self.ensure_connected()
+        except Exception as e:  # noqa: BLE001
+            return f"未连接: {e}"
+
+        # 清理遗留 stepping 状态 (例如上一个客户端异常退出), 否则清场会失败。
+        try:
+            from stage1.run import stop_simulation as stop_stage1_sim
+            stop_stage1_sim(self.sim)
+        except Exception:
+            pass
+
+        if backend == "legacy":
+            try:
+                import reference.build_scene as bs
+                if clear:
+                    bs.clear_scene(self.sim)
+                bs.build_scene(self.sim)
+                self.backend = "legacy"
+                self.stage1_scene = None
+                self.stage1_comp = None
+                self.stage1_controller = None
+                self.stage1_results = []
+                return "场景构建完成 (backend=legacy 五岛)"
+            except Exception as e:  # noqa: BLE001
+                self.last_error = f"build_scene(legacy) 失败: {e}"
+                return f"build_scene(legacy) 失败: {e}"
+
+        if backend != "stage1":
+            return f"未知 backend: {backend!r} (可选 stage1/legacy)"
+        try:
+            from stage1.scene import build_scene as build_stage1
+            scene = build_stage1(self.sim, clear=clear)
+        except Exception as e:  # noqa: BLE001
+            self.last_error = f"build_scene(stage1) 失败: {e}"
+            return f"build_scene(stage1) 失败: {e}"
+
+        self.backend = "stage1"
+        self.stage1_scene = scene
+        self.stage1_comp = None
+        self.stage1_controller = None
+        self.stage1_results = []
+        self.last_error = None
+        report = scene.build_report or {}
+        payload = {
+            "backend": "stage1",
+            "ok": bool(report.get("ok")),
+            "layout": scene.layout.name if scene.layout else None,
+            "joints": len(scene.robot_joints),
+            "tool": scene.tool_geometry(),
+            "checks": report.get("checks", []),
+        }
+        return json.dumps(payload, ensure_ascii=False, indent=2)
+
+    def stop(self) -> str:
+        """停止仿真 — Stop stage1 runner or legacy controller loop."""
         with self._lock:
             # 重置 run_lua lingering 标志 (stop 后场景已重置)
             self._run_lua_lingering = False
-            if not self.is_running():
-                # 即使 controller 已置 None 但线程还在收尾, 也算未运行
+            stage1_running = (self.stage1_runner is not None
+                              and self.stage1_runner.is_alive())
+            legacy_running = (self.sim_thread is not None
+                              and self.sim_thread.is_alive())
+            if not (stage1_running or legacy_running):
                 return "仿真未在运行"
-            try:
-                # 主动停止 CoppeliaSim 仿真 → run() 内 sim.step() 将抛异常退出
-                self.sim.stopSimulation()
-            except Exception as e:  # noqa: BLE001
-                self.last_error = f"stop 异常: {e}"
+            if stage1_running:
+                self.stage1_stop.set()
 
-            # 释放锁, 等待线程退出 (最多 5s)
+        if stage1_running:
+            self.stage1_runner.join(timeout=8.0)
+            if self.stage1_runner.is_alive():
+                # run_task 每步检查 stop; 若卡在单次调用, 用 stopSimulation 强制退出
+                try:
+                    self.sim.stopSimulation()
+                except Exception as e:  # noqa: BLE001
+                    self.last_error = f"stop 异常: {e}"
+                self.stage1_runner.join(timeout=3.0)
+            self.stage1_pause.clear()
+            self.stage1_pause_ack.clear()
+            return ("已停止 (backend=stage1)"
+                    if not self.stage1_runner.is_alive()
+                    else "停止信号已发, stage1 线程仍在收尾")
+
+        try:
+            # 主动停止 CoppeliaSim 仿真 → run() 内 sim.step() 将抛异常退出
+            self.sim.stopSimulation()
+        except Exception as e:  # noqa: BLE001
+            self.last_error = f"stop 异常: {e}"
+
+        # 释放锁, 等待线程退出 (最多 5s)
         if self.sim_thread is not None:
             self.sim_thread.join(timeout=5.0)
-        return "已停止" if not self.is_running() else "停止信号已发, 线程仍在收尾"
+        return "已停止 (backend=legacy)" if not self.is_running() \
+            else "停止信号已发, 线程仍在收尾"
 
     def step_once(self) -> str:
         """单步推进仿真 — Advance the simulation by one physics step.
@@ -309,16 +513,77 @@ class FactoryMCPServer:
     def status(self) -> dict:
         """采集当前仿真状态 — Gather live status for the status tool."""
         running = self.is_running()
-        connected = (self.connector is not None
-                     and self.connector.check_alive()) if self.connector else False
-        ctrl = self.controller
+        if running and self.backend == "stage1":
+            # 主连接被 stage1 runner 独占; 探活会与主循环抢锁, 直接视为已连接。
+            connected = True
+        else:
+            connected = (self.connector is not None
+                         and self.connector.check_alive()
+                         ) if self.connector else False
         info: dict[str, Any] = {
             "connected": connected,
             "running": running,
+            "backend": self.backend,
             "host": self.connector.host if self.connector else None,
             "port": self.connector.port if self.connector else None,
             "last_error": self.last_error,
         }
+        if self.backend == "stage1" or self.stage1_scene is not None:
+            info["backend"] = "stage1"
+            info["scene_built"] = self.stage1_scene is not None
+            info["paused"] = self.stage1_pause.is_set()
+            if self.stage1_scene is not None:
+                report = self.stage1_scene.build_report or {}
+                info["build_ok"] = bool(report.get("ok"))
+                info["layout"] = (self.stage1_scene.layout.name
+                                  if self.stage1_scene.layout else None)
+                info["tool_version"] = cfg_suction_tool_version()
+            ctrl = self.stage1_controller
+            if ctrl is not None:
+                sim_time = float(ctrl.sim_time)
+                if self.stage1_pause.is_set():
+                    # runner 已暂停, 连接空闲; 报告手动 step 后的真实时间。
+                    try:
+                        sim_time = float(self.sim.getSimulationTime())
+                    except Exception:
+                        pass
+                info.update({
+                    "sim_time": round(sim_time, 3),
+                    "unit_state": ctrl.state.name,
+                    "failure_reason": ctrl.failure_reason,
+                    "uid": ctrl.uid,
+                    "target": ctrl.target,
+                    "fault": ctrl.fault,
+                    "agv_blocked": bool(getattr(ctrl, "agv_blocked", False)),
+                    "compensation_count": int(
+                        getattr(ctrl, "compensation_count", 0)),
+                })
+                rec = (ctrl.materials.by_uid(ctrl.uid)
+                       if ctrl.materials is not None else None)
+                if rec is not None:
+                    info["material_state"] = rec.state.value
+                    info["material_handle"] = rec.sim_handle
+                agv = getattr(ctrl, "agv", None)
+                if agv is not None:
+                    info["agv_state"] = getattr(
+                        agv.state, "name", str(agv.state))
+                if not running:
+                    # 运行中不额外访问主连接; 暂停/结束后再读带速。
+                    try:
+                        aliases = ctrl.conveyor.aliases()
+                        if aliases:
+                            info["conveyor_velocity"] = round(float(
+                                ctrl.conveyor.read_actual_velocity(
+                                    aliases[0])), 4)
+                    except Exception:
+                        pass
+            if self.stage1_results:
+                info["results"] = self.stage1_results
+            if self.stage1_report_path:
+                info["report_path"] = self.stage1_report_path
+            return info
+
+        ctrl = self.controller
         if ctrl is not None:
             info.update({
                 "sim_time": round(ctrl.sim_time, 3),
@@ -331,6 +596,15 @@ class FactoryMCPServer:
                 },
             })
         return info
+
+
+def cfg_suction_tool_version() -> Optional[str]:
+    """stage1 工具版本 (供 status 显示, 避免在 status 内重复 import)."""
+    try:
+        from stage1 import config as s1cfg
+        return getattr(s1cfg, "SUCTION_TOOL_VERSION", None)
+    except Exception:
+        return None
 
 
 # 进程级单例 — module-level singleton backing the MCP tools
@@ -537,57 +811,51 @@ def connect(host: str = "localhost", port: int = 23000) -> str:
 
 
 @mcp.tool()
-def build_scene(clear: bool = True) -> str:
-    """在 CoppeliaSim 中构建岛式车间工厂场景。
+def build_scene(clear: bool = True, backend: str = "stage1") -> str:
+    """构建仿真场景 (默认当前阶段一实现)。
 
-    调用 build_scene.build_scene() 构建仓库/工作岛/传送带/共享AGV/机械臂,
-    遵循 /Warehouse /Island /Conveyor /Mobile 分层命名, 优先使用内置模型,
-    不存在时回退到基本几何体。幂等: 默认先清场避免别名冲突
-    (CoppeliaSim 4.10 setObjectAlias 把斜杠路径转下划线)。
+    backend="stage1" (默认): 构建单工位阶段一场景 (内置 conveyor + UR5 +
+    suction pad + p3dx), 返回 build_report 关键检查;
+    backend="legacy": 构建旧五岛参考场景 (reference.build_scene)。
 
-    前置: 已 connect。
+    幂等: 默认先清场避免别名冲突。前置: 已 connect。
 
     Args:
-        clear: 是否先清空场景, 默认 True (建议保持)。
+        clear:   是否先清空场景, 默认 True (建议保持)。
+        backend: 场景实现, "stage1" (默认) 或 "legacy"。
 
     Returns:
-        构建结果摘要 (对象数量等) 或失败原因。
+        构建结果摘要 (JSON) 或失败原因。
     """
-    try:
-        server.ensure_connected()
-    except Exception as e:  # noqa: BLE001
-        return f"未连接: {e}"
-    try:
-        import reference.build_scene as bs
-        sim = server.sim
-        if clear:
-            bs.clear_scene(sim)
-        bs.build_scene(sim)
-        return "场景构建完成"
-    except Exception as e:  # noqa: BLE001
-        server.last_error = f"build_scene 失败: {e}"
-        return f"build_scene 失败: {e}"
+    return server.build_scene(clear=clear, backend=backend)
 
 
 @mcp.tool()
 def start_simulation(total_time: float = 0.0,
-                     log_file: str = "factory_sim.log") -> str:
-    """在后台线程启动工厂仿真主循环。
+                     log_file: str = "factory_sim.log",
+                     backend: str = "stage1",
+                     target: str = "station",
+                     fault: str = "none") -> str:
+    """在后台线程启动仿真主循环。
 
-    调用 FactoryController.run() 驱动仓库产出/传送带/工作岛/AGV 调度/
-    节拍追踪/异常处理。仿真在守护线程中运行, 本调用立即返回,
-    可用 status 实时查询、用 stop 停止。
+    backend="stage1" (默认/当前实现): 重建阶段一场景并运行单工位任务;
+    backend="legacy": 运行旧五岛 FactoryController。
 
-    前置: 已 connect 且已 build_scene。
+    前置: 已 connect。stage1 会自动重建场景并 start stepping。
 
     Args:
-        total_time: 仿真总时长 (秒), 0 表示无限运行直到 stop。
-        log_file:   日志文件路径, 默认 factory_sim.log。
+        total_time: stage1 为单任务最大仿真时间 (s, 0→默认 90);
+                    legacy 为仿真总时长 (0=无限直到 stop)。
+        log_file:   日志文件路径。
+        backend:    "stage1" (默认) 或 "legacy"。
+        target:     stage1 目标: "station" / "agv" / "both"。
+        fault:      stage1 故障注入: "none" 等 (见 stage1.config.FAULT_CHOICES)。
 
     Returns:
         启动结果描述。
     """
-    return server.start(total_time, log_file)
+    return server.start(total_time, log_file, backend=backend,
+                        target=target, fault=fault)
 
 
 @mcp.tool()
@@ -606,7 +874,8 @@ def stop_simulation() -> str:
 def step_simulation(n: int = 1) -> str:
     """单步或多步推进仿真 (stepping 模式)。
 
-    在仿真已启动的前提下, 推进 n 个 SIM_STEP (每个默认 0.05s)。
+    legacy: 仿真运行中可直接推进;
+    stage1: 必须先 pause_simulation, 否则会与守护线程重复步进。
     n 上限 1000 防失控。
 
     Args:
@@ -616,7 +885,13 @@ def step_simulation(n: int = 1) -> str:
     """
     if server.sim is None:
         return "未连接 CoppeliaSim, 先调用 connect"
-    if not server.is_running():
+    stage1_paused = (server.backend == "stage1"
+                     and server.stage1_pause.is_set())
+    if server.backend == "stage1" and not stage1_paused:
+        if not server.is_running():
+            return "仿真未运行, 先调用 start_simulation"
+        return "stage1 运行中, 先 pause_simulation 再单步"
+    if server.backend != "stage1" and not server.is_running():
         return "仿真未运行, 先调用 start_simulation"
     try:
         n = max(1, min(int(n), 1000))
@@ -634,16 +909,27 @@ def step_simulation(n: int = 1) -> str:
 
 @mcp.tool()
 def pause_simulation() -> str:
-    """暂停仿真控制逻辑 (stepping 模式下)。
+    """暂停仿真控制逻辑。
 
-    置 controller._pause_requested=True, 主循环只推进物理引擎、跳过控制逻辑
-    (区别于 zmq_monitor.comm_paused 的通信故障降级)。resume 清标志恢复。
+    stage1: 置 stage1_pause 事件, runner 停止访问 ZMQ 连接; 暂停期间用
+    step_simulation 手动推进物理, resume 后恢复自动循环。
+    legacy: 置 controller._pause_requested=True, 物理仍推进。
+    resume 清除。
 
     Returns:
         操作结果 + 暂停时 sim_time。
     """
     if not server.is_running():
         return "仿真未运行, 先调用 start_simulation"
+    if server.backend == "stage1":
+        server.stage1_pause.set()
+        acked = server.stage1_pause_ack.wait(timeout=2.0)
+        ctrl = server.stage1_controller
+        t = float(getattr(ctrl, "sim_time", 0.0)) if ctrl is not None else 0.0
+        tail = ("runner 已停止访问连接" if acked
+                else "等待 runner 暂停超时, 暂勿 step")
+        return (f"已请求暂停 stage1 控制逻辑 @ sim_time={t:.3f}s; {tail}; "
+                "用 step_simulation 手动推进, resume_simulation 恢复")
     ctrl = server.controller
     if ctrl is None:
         return "失败: controller 不存在"
@@ -663,6 +949,10 @@ def resume_simulation() -> str:
     """
     if not server.is_running():
         return "仿真未运行"
+    if server.backend == "stage1":
+        server.stage1_pause.clear()
+        server.stage1_pause_ack.clear()
+        return "已恢复 stage1 控制逻辑 (pause 标志已清除)"
     ctrl = server.controller
     if ctrl is None:
         return "失败: controller 不存在"
@@ -674,8 +964,9 @@ def resume_simulation() -> str:
 def status() -> str:
     """查询仿真实时状态。
 
-    返回连接状态、是否运行中、仿真时间、步数、装配完成数、物料总数、
-    AGV 状态、各工作岛状态 (A/B/C/D/E), 以及最近一次错误。
+    stage1: backend/running/paused/sim_time/unit_state/failure_reason/uid/
+    material_state/agv_state/conveyor_velocity/results/report_path;
+    legacy: 连接/运行/仿真时间/步数/装配数/AGV/各岛状态/最近错误。
 
     Returns:
         JSON 格式的状态摘要字符串。
@@ -781,16 +1072,33 @@ def inspect_scene_state(summary: bool = True) -> str:
 
 
 @mcp.tool()
-def get_config() -> str:
-    """读取当前仿真配置 (factory_config)。
+def get_config(backend: str = "stage1") -> str:
+    """读取当前仿真配置。
 
-    返回关键参数: 节拍 TAKT_TIME、各设备位置/尺寸、传送带/AGV 路径、
-    机械臂配置、异常阈值。用于让 Claude Code 理解场景结构后再调参。
+    backend="stage1" (默认): stage1.config 的位置/速度/吸附/工具安装参数;
+    backend="legacy": 旧五岛 factory_config (节拍/路径/岛配置)。
 
     Returns:
         JSON 格式的配置摘要。
     """
     import json
+    if backend == "stage1":
+        from stage1 import config as s1cfg
+        keys = [
+            "SIM_STEP", "CONVEYOR_SPEED", "CONVEYOR_ACCEL",
+            "SUCTION_CONTACT_TOL", "SUCTION_MAX_ATTACH_SPEED",
+            "SUCTION_MAX_TOOL_SPEED", "SUCTION_TILT_TOL",
+            "SUCTION_RELEASE_MAX_SPEED", "SUCTION_SETTLE_STEPS",
+            "SUCTION_MOUNT_Z", "SUCTION_MOUNT_QUATERNION",
+            "SUCTION_MOUNT_POS_TOL", "SUCTION_TOOL_VERSION",
+            "TCP_LOCAL_POS", "TCP_LOCAL_QUATERNION",
+            "ARM_SEED_JOINTS", "ARM_TCP_POS_TOL", "ARM_TCP_ANG_TOL",
+            "AGV_WHEEL_RADIUS", "AGV_WHEEL_BASE",
+            "MATERIAL_SIZE", "MATERIAL_HALF_HEIGHT",
+            "ALIASES", "REQUIRED_ALIASES", "FAULT_CHOICES",
+        ]
+        out = {k: getattr(s1cfg, k, "<未定义>") for k in keys}
+        return json.dumps(out, ensure_ascii=False, indent=2, default=str)
     keys = [
         "FLOOR_SIZE", "FLOOR_POS", "SIM_STEP",
         "FLOOR_TOP_Z", "ISLAND_TOP_Z", "ISLAND_TOP_Z_E",
@@ -808,32 +1116,40 @@ def get_config() -> str:
 
 
 @mcp.tool()
-def set_config(key: str, value: Any) -> str:
-    """动态修改单个仿真配置参数 (factory_config 模块属性)。
+def set_config(key: str, value: Any, backend: str = "stage1") -> str:
+    """动态修改单个仿真配置参数 (内存级)。
 
-    警告: 仅修改 Python 端内存配置, 已构建的场景对象不会自动更新;
-    通常应在 build_scene 之前调用以影响场景构建, 或在 start 之前影响控制逻辑。
-    修改后可用 get_config 确认。常见可调项: TOTAL_SIM_TIME, PROCESS_TIME,
-    CONVEYOR_SPEED, AGV_SPEED, MATERIAL_INTERVAL, TAKT_TIME['A'..'E']。
+    警告: 已构建的场景对象不会自动更新; stage1 的几何/安装参数
+    (SUCTION_MOUNT_*, CONVEYOR_* 等) 需要重新 build_scene 才生效。
+    backend="stage1" (默认) 修改 stage1.config; backend="legacy" 修改
+    reference.factory_config。
 
     Args:
-        key:   factory_config 中的属性名, 如 "CONVEYOR_SPEED"。
-               对 TAKT_TIME 等字典, 用点号取值: key="TAKT_TIME.A"。
-        value: 新值 (数字/字符串/列表/字典), 由 JSON 反序列化得到。
+        key:     配置属性名, 如 "CONVEYOR_SPEED"; 对字典用点号:
+                 key="ALIASES.conveyor" 或 legacy 的 "TAKT_TIME.A"。
+        value:   新值 (数字/字符串/列表/字典)。
+        backend: "stage1" (默认) 或 "legacy"。
 
     Returns:
         修改结果描述 (旧值→新值)。
     """
     try:
+        if backend == "stage1":
+            from stage1 import config as target_cfg
+        elif backend == "legacy":
+            target_cfg = cfg
+        else:
+            return f"未知 backend: {backend!r} (可选 stage1/legacy)"
         if "." in key:
             mod_attr, dict_key = key.split(".", 1)
-            container = getattr(cfg, mod_attr)
+            container = getattr(target_cfg, mod_attr)
             old = container.get(dict_key, "<无>")
             container[dict_key] = value
-            return f"cfg.{mod_attr}['{dict_key}']: {old!r} → {value!r}"
-        old = getattr(cfg, key, "<未定义>")
-        setattr(cfg, key, value)
-        return f"cfg.{key}: {old!r} → {value!r}"
+            return (f"{backend}.{mod_attr}['{dict_key}']: "
+                    f"{old!r} → {value!r}")
+        old = getattr(target_cfg, key, "<未定义>")
+        setattr(target_cfg, key, value)
+        return f"{backend}.{key}: {old!r} → {value!r}"
     except Exception as e:  # noqa: BLE001
         return f"set_config 失败: {e}"
 
@@ -1130,6 +1446,16 @@ def disconnect() -> str:
     server.connector = None
     server.controller = None
     server.sim_thread = None
+    server.backend = None
+    server.stage1_scene = None
+    server.stage1_comp = None
+    server.stage1_controller = None
+    server.stage1_runner = None
+    server.stage1_stop.clear()
+    server.stage1_pause.clear()
+    server.stage1_pause_ack.clear()
+    server.stage1_results = []
+    server.stage1_report_path = None
     # ro_connector 与 _run_lua_lingering 的清零必须持有 ro_lock:
     # 否则并发诊断工具 (get_object_pose 等) 在 ensure_ro_connected() 与
     # sim = server.ro_sim 之间看到 ro_connector 变 None → sim=None → 抛

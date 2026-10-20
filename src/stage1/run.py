@@ -337,7 +337,19 @@ def probe_conveyor_drive(sim, scene: Stage1Scene, comp, steps: int = 10) -> dict
 # ═══════════════════════════════════════════════════════════════
 
 def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
-             fault: str, max_sim_time: float, logger) -> dict:
+             fault: str, max_sim_time: float, logger,
+             stop_event=None, pause_event=None, pause_ack_event=None,
+             on_start=None) -> tuple[dict, int]:
+    """执行单个搬运任务。
+
+    stop_event/pause_event/on_start 供 MCP 守护线程复用:
+      - stop_event 置位 → 立即标记 STOP_REQUESTED 并退出;
+      - pause_event 置位 → 暂停整个控制循环 (不并发访问 ZMQ 连接),
+        由外部 step_simulation 手动推进物理引擎;
+      - pause_ack_event 在 runner 真正停止访问连接后置位, 供 MCP 等待;
+      - on_start(controller) 在控制器创建后回调, 供外部查询实时状态。
+    CLI 路径不传这些参数, 行为保持不变。
+    """
     materials: MaterialManager = comp["materials"]
     material = scene.spawn_material(uid, f"Part_{uid:04d}")
     materials.register(uid, f"Part_{uid:04d}", sim_handle=material)
@@ -351,6 +363,8 @@ def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
         ik=comp["ik"], suction=comp["suction"], agv=comp["agv"],
         target=target, uid=uid, fault=fault, layout=scene.layout,
         logger=logger)
+    if on_start is not None:
+        on_start(controller)
 
     agv_start_pose = comp["agv"].pose()
     material_start_pos = list(sim.getObjectPosition(material, sim.handle_world))
@@ -359,6 +373,17 @@ def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
     wall_deadline = time.time() + max(120.0, max_sim_time * 6.0)
     steps = 0
     while not controller.finished:
+        if stop_event is not None and stop_event.is_set():
+            controller._fail("STOP_REQUESTED")
+            break
+        if pause_event is not None and pause_event.is_set():
+            # 暂停整个 runner: 不碰 ZMQ 连接, 由外部 step_simulation 推物理。
+            if pause_ack_event is not None:
+                pause_ack_event.set()
+            time.sleep(0.01)
+            continue
+        if pause_ack_event is not None:
+            pause_ack_event.clear()
         controller.step()
         steps += 1
         if sim.getSimulationTime() - task_start_sim_time > max_sim_time:
@@ -373,6 +398,8 @@ def run_task(sim, scene: Stage1Scene, comp, target: str, uid: int,
     if target == "agv":
         # 等车体停稳后再取最终位姿
         for _ in range(60):
+            if stop_event is not None and stop_event.is_set():
+                break
             if comp["agv"].is_stopped():
                 break
             comp["agv"].stop()
