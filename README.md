@@ -49,7 +49,8 @@ pioneer_controller / unit_controller / run），`src/run_stage1.py` 是兼容入
 
 步骤 1.1 在阶段一与阶段二之间收敛 UR5/置物台布局，并用 A/B/C 对照试验评估
 “移除挡停体、sensor 主动停带、按实测位姿抓取”的可行性。实现集中在
-`src/stage1_1/`，不改变阶段一默认布局与生产控制。
+`src/stage1_1/`。**2026-10-20 起，选定布局 `L1_S1` 与 B 组流程已迁移到
+`src/stage1/` 生产路径；阶段一场景不构建挡停体。**
 
 ```bash
 # 基线场景测量 / 候选布局 simIK 扫描 / A/B/C 试验矩阵

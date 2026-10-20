@@ -173,6 +173,13 @@
 82 项阶段一测试通过；正常流程、60 s 连续运行与六类故障注入均有实机证据。
 入口与证据见 [PHASE1_REPORT.md](docs/implementation/PHASE1_REPORT.md)。
 
+**2026-10-20 起生产布局切换为步骤 1.1 选定的 `L1_S1`，取料流程切换为 B 组：**
+UR5 基座 `(-0.20, 0.55, 0.30)`、置物台 `(-0.20, 1.20)`、AGV dock `(0.40, 0.75)`；
+场景**不构建挡停体**。`Sensor_PickStation` 命中目标 UID 后立即下发
+conveyor 零速，等待带面和物料稳定，再按仿真器实测位姿生成一次固定的
+TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与挡停体
+仅作为步骤 1.1 A 组历史证据保留，不再是生产场景。
+
 | 文件 | 职责 |
 |------|------|
 | [config.py](src/stage1/config.py) | 阶段一全部位置/别名/模型路径/速度/容差/超时/故障枚举 |
@@ -210,9 +217,11 @@
 
 ### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
 
-阶段一与阶段二之间的输入收敛，**不改变阶段一默认布局和生产控制**。
-`stage1.scene.build_scene(sim, layout=LayoutSpec(...))` 可选传入候选布局；
-不传时严格使用阶段一基线。
+阶段一与阶段二之间的输入收敛。**其选定布局 `L1_S1` 与 B 组取料流程已于
+2026-10-20 迁移到 `src/stage1/` 生产路径**；本包保留为试验矩阵、冻结门槛
+和历史证据的复现入口，不再代表当前生产控制。
+`stage1.scene.build_scene(sim, layout=LayoutSpec(...))` 仍可显式传入候选
+布局；不传时使用生产布局 `L1_S1`。
 
 | 文件 | 职责 |
 |------|------|
@@ -498,7 +507,9 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
       (`ARM_REACH_RADIUS - ARM_REACH_MARGIN`)。
     - ⚠ 取料点是**末端停止区 dummy**, 不是传送带末端: 早期用"距末端半径"判到站,
       物料会停在距停止点多达 0.18 m 处, 使实际抓取点刚好越过可达边界
-      (0.733 → 0.85 m)。现在到站判据用**行程进度** `conv_progress >= 1.0`。
+      (0.733 → 0.85 m)。旧阶段一按**行程进度** `conv_progress >= 1.0` 判停带;
+      2026-10-20 迁移后改为 `Sensor_PickStation` 命中目标 UID 即停带,
+      行程末端只作为未命中故障的保护边界。
 
 15. **simIK 在 4.10 的实际返回形态**: `simIK.handleGroup` 返回 **三元组**
     `(resultCode, reason, [linearError, angularError])`, `result_success = 1`。
