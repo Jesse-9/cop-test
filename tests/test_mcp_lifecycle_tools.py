@@ -42,6 +42,10 @@ class FakeManager:
         return {"lifecycle_state": "SCENE_VALIDATED",
                 "allowed_actions": ["start", "load"]}
 
+    def stop(self):
+        self.calls.append(("stop",))
+        return {"lifecycle_state": "SCENE_VALIDATED", "stopped": True}
+
     def allowed_actions(self):
         return ["start", "load"]
 
@@ -108,3 +112,11 @@ def test_lifecycle_tools_return_error_when_not_connected():
     assert srv.sim is None
     out = srv.lifecycle_status()
     assert "error" in json.loads(out)
+
+
+def test_stop_without_local_runner_delegates_to_lifecycle():
+    """显式 stop 也应清理外部/遗留运行, 而不是直接返回“未运行”。"""
+    srv, manager = _server()
+    out = json.loads(srv.stop())
+    assert out["stopped"] is True
+    assert manager.calls == [("stop",)]

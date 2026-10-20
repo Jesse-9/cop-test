@@ -14,8 +14,11 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 阶段零（参数冻结）与阶段一（单工位单元闭环）已于 2026-10-17 实施并通过验收：
 
 ```bash
-# 构建并运行工位目标
+# 运行工位目标 (默认加载 current 工件; 首次需先按步骤 1.2 构建/保存)
 .venv/Scripts/python src/run_stage1.py --target station --time 45
+
+# 显式重建并保存新版本后运行
+.venv/Scripts/python src/run_stage1.py --build --target station --time 45
 
 # AGV 载台目标（含 0.5 m 轮速行驶）
 .venv/Scripts/python src/run_stage1.py --target agv --time 45

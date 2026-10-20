@@ -153,13 +153,13 @@ python src/run_scene_lifecycle.py list
 
 | 文件 | 数量 | 内容 |
 |---|---|---|
-| `tests/test_scene_artifact.py` | 19 | 版本递增、路径越界、current 原子指针、protected/force、manifest schema、alias 格式/重复、配置摘要差异、原子写入、只读位 |
+| `tests/test_scene_artifact.py` | 20 | 版本递增、路径越界、current 原子指针、protected/force、manifest schema、alias 格式/重复、配置摘要差异、原子写入、只读位 |
 | `tests/test_scene_lifecycle_state.py` | 20 | 状态迁移矩阵、运行中拒绝、ERROR 恢复、会话持久化、运行锁独占/陈旧锁/只释放自己的锁 |
-| `tests/test_scene_lifecycle_manager.py` | 14 | build/load/validate/start/save 前置条件、锁先于校验、校验失败释放锁、保存后 current、基线保护 |
+| `tests/test_scene_lifecycle_manager.py` | 16 | build/load/validate/start/save 前置条件、锁先于校验、校验失败释放锁、保存后 current、基线保护 |
 | `tests/test_scene_lifecycle_contract.py` | 4 | CLI/MCP 动作名一致、24 工具、start 文档明确不隐式 build |
-| `tests/test_mcp_lifecycle_tools.py` | 7 | MCP save/load/validate/status 路由与运行中拒绝 |
+| `tests/test_mcp_lifecycle_tools.py` | 8 | MCP save/load/validate/status 路由与运行中拒绝 |
 | `tests/test_mcp_stage1_backend.py` | 9 | stage1 路由、start 不调用 build、status 生命周期字段 |
-| 全量 `pytest -q` | 273 passed / 3 skipped | 3 skipped 为需显式重建完整五岛场景的历史集成测试 |
+| 全量 `pytest -q` | 277 passed / 3 skipped | 3 skipped 为需显式重建完整五岛场景的历史集成测试 |
 
 ### 6.2 真实 CoppeliaSim 验收
 
