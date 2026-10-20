@@ -1,0 +1,1201 @@
+{
+  "timestamp": "20261020_104655",
+  "config_version": "step1.1-2026-10-20",
+  "git": {
+    "commit": "e9bc45abd3ce82c710fa91b6cf5aaf2baa94aea3",
+    "branch": "codex/step1.1-layout-pickup",
+    "dirty": true
+  },
+  "phase": "measure",
+  "baseline_layout": "stage1_baseline",
+  "allowed_pick_region": {
+    "x": [
+      -0.4,
+      -0.19
+    ],
+    "y": [
+      -0.04,
+      0.04
+    ],
+    "z_center": 0.5,
+    "z_tol": 0.02
+  },
+  "candidate_coordinates": [
+    {
+      "name": "L1_S1",
+      "arm_base": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "island_pos": [
+        -0.2,
+        0.55
+      ],
+      "station_pos": [
+        -0.2,
+        1.2
+      ],
+      "station_tcp": [
+        -0.2,
+        1.2,
+        0.39999999999999997,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "agv_dock": [
+        0.4,
+        0.75
+      ],
+      "agv_tcp": [
+        0.4,
+        0.75,
+        0.35702503497252064,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "include_stopper": false,
+      "pick_sensor_local_x": 0.42
+    },
+    {
+      "name": "L1_S2",
+      "arm_base": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "island_pos": [
+        -0.2,
+        0.55
+      ],
+      "station_pos": [
+        -0.8,
+        0.9
+      ],
+      "station_tcp": [
+        -0.8,
+        0.9,
+        0.39999999999999997,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "agv_dock": [
+        0.4,
+        0.75
+      ],
+      "agv_tcp": [
+        0.4,
+        0.75,
+        0.35702503497252064,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "include_stopper": false,
+      "pick_sensor_local_x": 0.42
+    },
+    {
+      "name": "L2_S1",
+      "arm_base": [
+        -0.2,
+        -0.55,
+        0.3
+      ],
+      "island_pos": [
+        -0.2,
+        -0.55
+      ],
+      "station_pos": [
+        -0.2,
+        -1.2
+      ],
+      "station_tcp": [
+        -0.2,
+        -1.2,
+        0.39999999999999997,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "agv_dock": [
+        0.4,
+        -0.75
+      ],
+      "agv_tcp": [
+        0.4,
+        -0.75,
+        0.35702503497252064,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "include_stopper": false,
+      "pick_sensor_local_x": 0.42
+    },
+    {
+      "name": "L2_S2",
+      "arm_base": [
+        -0.2,
+        -0.55,
+        0.3
+      ],
+      "island_pos": [
+        -0.2,
+        -0.55
+      ],
+      "station_pos": [
+        -0.8,
+        -0.9
+      ],
+      "station_tcp": [
+        -0.8,
+        -0.9,
+        0.39999999999999997,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "agv_dock": [
+        0.4,
+        -0.75
+      ],
+      "agv_tcp": [
+        0.4,
+        -0.75,
+        0.35702503497252064,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "include_stopper": false,
+      "pick_sensor_local_x": 0.42
+    }
+  ],
+  "build_report": {
+    "layout": {
+      "ok": true,
+      "checks": [
+        {
+          "check": "arm_base_on_island",
+          "ok": true,
+          "detail": "arm=(0.42, 0.0, 0.3) island=(0.42, 0.0) top_z=0.3"
+        },
+        {
+          "check": "island_vs_conveyor",
+          "ok": true,
+          "detail": "(0.12, -0.3, 0.72, 0.3) vs (-1.228, -0.1, -0.012, 0.1)"
+        },
+        {
+          "check": "island_vs_warehouse",
+          "ok": true,
+          "detail": "(0.12, -0.3, 0.72, 0.3) vs (-1.195, 0.245, -0.845, 0.595)"
+        },
+        {
+          "check": "station_vs_conveyor",
+          "ok": true,
+          "detail": "(0.72, 0.22, 1.12, 0.62) vs (-1.228, -0.1, -0.012, 0.1)"
+        },
+        {
+          "check": "station_vs_island",
+          "ok": true,
+          "detail": "(0.72, 0.22, 1.12, 0.62) vs (0.12, -0.3, 0.72, 0.3)"
+        },
+        {
+          "check": "station_vs_agv",
+          "ok": true,
+          "detail": "(0.72, 0.22, 1.12, 0.62) vs (0.1605, -0.8275, 0.6795, -0.4125)"
+        },
+        {
+          "check": "station_vs_warehouse",
+          "ok": true,
+          "detail": "(0.72, 0.22, 1.12, 0.62) vs (-1.195, 0.245, -0.845, 0.595)"
+        },
+        {
+          "check": "agv_vs_conveyor",
+          "ok": true,
+          "detail": "(0.1605, -0.8275, 0.6795, -0.4125) vs (-1.228, -0.1, -0.012, 0.1)"
+        },
+        {
+          "check": "agv_vs_island",
+          "ok": true,
+          "detail": "(0.1605, -0.8275, 0.6795, -0.4125) vs (0.12, -0.3, 0.72, 0.3)"
+        },
+        {
+          "check": "agv_vs_station",
+          "ok": true,
+          "detail": "(0.1605, -0.8275, 0.6795, -0.4125) vs (0.72, 0.22, 1.12, 0.62)"
+        },
+        {
+          "check": "agv_vs_warehouse",
+          "ok": true,
+          "detail": "(0.1605, -0.8275, 0.6795, -0.4125) vs (-1.195, 0.245, -0.845, 0.595)"
+        },
+        {
+          "check": "floor_bounds:island",
+          "ok": true,
+          "detail": "(0.12, -0.3, 0.72, 0.3) in (-4.0, -3.0, 4.0, 3.0)"
+        },
+        {
+          "check": "floor_bounds:station",
+          "ok": true,
+          "detail": "(0.72, 0.22, 1.12, 0.62) in (-4.0, -3.0, 4.0, 3.0)"
+        },
+        {
+          "check": "floor_bounds:agv",
+          "ok": true,
+          "detail": "(0.1605, -0.8275, 0.6795, -0.4125) in (-4.0, -3.0, 4.0, 3.0)"
+        },
+        {
+          "check": "arm_reach:pick",
+          "ok": true,
+          "detail": "0.669 m <= 0.800 m"
+        },
+        {
+          "check": "arm_reach:station",
+          "ok": true,
+          "detail": "0.661 m <= 0.800 m"
+        },
+        {
+          "check": "arm_reach:agv",
+          "ok": true,
+          "detail": "0.623 m <= 0.800 m"
+        }
+      ],
+      "layout": "stage1_baseline"
+    },
+    "checks": [
+      {
+        "name": "layout_static_validation",
+        "ok": true,
+        "detail": "layout=stage1_baseline (17/17 checks)"
+      },
+      {
+        "name": "alias_unique:Floor",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Warehouse_Raw",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Conveyor_In",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Conveyor_In_Entry",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Conveyor_In_PickupStop",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Sensor_PickStation",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Island_A",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Island_A_Station",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Robot_UR5_01",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:SuctionPad_01",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:SuctionPad_01_TCP",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Sensor_SuctionPad_01",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:IK_Target_01",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Mobile_AGV_P3DX",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:AGV_LoadTray",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "alias_unique:Sensor_AGV_Dock",
+        "ok": true,
+        "detail": "1 个匹配"
+      },
+      {
+        "name": "stopper_state",
+        "ok": true,
+        "detail": "expected=True found=1"
+      },
+      {
+        "name": "robot_joint_count",
+        "ok": true,
+        "detail": "6 个关节"
+      },
+      {
+        "name": "tcp_exists",
+        "ok": true,
+        "detail": "handle=4814"
+      },
+      {
+        "name": "conveyor_length",
+        "ok": true,
+        "detail": "设计=1.2160 实测=1.2160000030199831"
+      },
+      {
+        "name": "pick_zone_inside_top_run",
+        "ok": true,
+        "detail": "stop_local=0.4200 run=-0.4972..0.5000"
+      },
+      {
+        "name": "pick_sensor_inside_top_run",
+        "ok": true,
+        "detail": "sensor_local=0.4200 run=-0.4972..0.5000"
+      },
+      {
+        "name": "conveyor_script_present",
+        "ok": true,
+        "detail": "script_handle=4656"
+      },
+      {
+        "name": "conveyor_accel",
+        "ok": true,
+        "detail": "accel=2.0 (期望 2.0)"
+      },
+      {
+        "name": "conveyor_stop_time",
+        "ok": true,
+        "detail": "0.100 s <= 0.150 s"
+      },
+      {
+        "name": "agv_drive_joint_dynamic",
+        "ok": true,
+        "detail": "mode=5 (期望 5)"
+      },
+      {
+        "name": "agv_mass_present",
+        "ok": true,
+        "detail": "mass=16.0"
+      },
+      {
+        "name": "tcp_contact_offset",
+        "ok": true,
+        "detail": "TCP local=[0.0, 0.0, -0.015]"
+      },
+      {
+        "name": "arm_reach:pick",
+        "ok": true,
+        "detail": "0.669 m <= 0.800 m"
+      },
+      {
+        "name": "arm_reach:station",
+        "ok": true,
+        "detail": "0.661 m <= 0.800 m"
+      },
+      {
+        "name": "arm_reach:agv",
+        "ok": true,
+        "detail": "0.623 m <= 0.800 m"
+      },
+      {
+        "name": "tcp_above_island",
+        "ok": true,
+        "detail": "TCP z=0.861"
+      }
+    ],
+    "ok": true
+  },
+  "measurement": {
+    "layout": "stage1_baseline",
+    "units": {
+      "length": "m",
+      "angle": "rad"
+    },
+    "conveyor": {
+      "actual_length": 1.2160000030199831,
+      "actual_width": 0.2000000029802324,
+      "entry_local_x": -0.39722983510661114,
+      "stop_local_x": 0.42,
+      "entry_world": [
+        -1.0172298351066111,
+        0.0,
+        0.45
+      ],
+      "stop_world": [
+        -0.2,
+        0.0,
+        0.45
+      ],
+      "surface_z": 0.45,
+      "script_handle": 4656,
+      "drive_mode": "SCRIPT_DRIVEN",
+      "config_accel": 2.0
+    },
+    "objects": [
+      {
+        "alias": "AGV_LoadTray",
+        "handle": 4858,
+        "type": 0,
+        "parent": "Mobile_AGV_P3DX",
+        "world_pos": [
+          0.42,
+          -0.62,
+          0.247
+        ],
+        "bbox": {
+          "local_min": [
+            -0.15,
+            -0.15,
+            -0.01
+          ],
+          "local_max": [
+            0.15,
+            0.15,
+            0.01
+          ],
+          "world_min": [
+            0.27,
+            -0.77,
+            0.23703
+          ],
+          "world_max": [
+            0.57,
+            -0.47,
+            0.25703
+          ]
+        }
+      },
+      {
+        "alias": "Conveyor",
+        "handle": 4647,
+        "type": 4,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bbox": {
+          "local_min": [
+            -1.228,
+            -0.1,
+            -0.005
+          ],
+          "local_max": [
+            0.005,
+            0.1,
+            0.61
+          ],
+          "world_min": [
+            -1.228,
+            -0.1,
+            -0.005
+          ],
+          "world_max": [
+            0.005,
+            0.1,
+            0.61
+          ]
+        }
+      },
+      {
+        "alias": "Conveyor_In",
+        "handle": 4655,
+        "type": 4,
+        "parent": "Conveyor",
+        "world_pos": [
+          -0.62,
+          0.0,
+          0.45
+        ],
+        "bbox": {
+          "local_min": [
+            -0.608,
+            -0.1,
+            -0.213
+          ],
+          "local_max": [
+            0.608,
+            0.1,
+            0.16
+          ],
+          "world_min": [
+            -1.228,
+            -0.1,
+            0.237
+          ],
+          "world_max": [
+            -0.012,
+            0.1,
+            0.61
+          ]
+        }
+      },
+      {
+        "alias": "Conveyor_In_Entry",
+        "handle": 4728,
+        "type": 4,
+        "parent": "Conveyor_In",
+        "world_pos": [
+          -1.0172,
+          0.0,
+          0.45
+        ],
+        "bbox": {
+          "local_min": [
+            -0.01,
+            -0.01,
+            -0.01
+          ],
+          "local_max": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "world_min": [
+            -1.02723,
+            -0.01,
+            0.44
+          ],
+          "world_max": [
+            -1.00723,
+            0.01,
+            0.46
+          ]
+        }
+      },
+      {
+        "alias": "Conveyor_In_PickupStop",
+        "handle": 4729,
+        "type": 4,
+        "parent": "Conveyor_In",
+        "world_pos": [
+          -0.2,
+          0.0,
+          0.45
+        ],
+        "bbox": {
+          "local_min": [
+            -0.01,
+            -0.01,
+            -0.01
+          ],
+          "local_max": [
+            0.01,
+            0.01,
+            0.01
+          ],
+          "world_min": [
+            -0.21,
+            -0.01,
+            0.44
+          ],
+          "world_max": [
+            -0.19,
+            0.01,
+            0.46
+          ]
+        }
+      },
+      {
+        "alias": "Conveyor_In_PickupStopper",
+        "handle": 4730,
+        "type": 0,
+        "parent": "Conveyor_In",
+        "world_pos": [
+          -0.1,
+          0.0,
+          0.53
+        ],
+        "bbox": {
+          "local_min": [
+            -0.02,
+            -0.1,
+            -0.08
+          ],
+          "local_max": [
+            0.02,
+            0.1,
+            0.08
+          ],
+          "world_min": [
+            -0.12,
+            -0.1,
+            0.45
+          ],
+          "world_max": [
+            -0.08,
+            0.1,
+            0.61
+          ]
+        }
+      },
+      {
+        "alias": "Floor",
+        "handle": 4651,
+        "type": 0,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          -0.05
+        ],
+        "bbox": {
+          "local_min": [
+            -4.0,
+            -3.0,
+            -0.05
+          ],
+          "local_max": [
+            4.0,
+            3.0,
+            0.05
+          ],
+          "world_min": [
+            -4.0,
+            -3.0,
+            -0.1
+          ],
+          "world_max": [
+            4.0,
+            3.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "alias": "IK_Target_01",
+        "handle": 4864,
+        "type": 4,
+        "parent": "Island",
+        "world_pos": [
+          -0.2,
+          0.0,
+          0.55
+        ],
+        "bbox": {
+          "local_min": [
+            -0.005,
+            -0.005,
+            -0.005
+          ],
+          "local_max": [
+            0.005,
+            0.005,
+            0.005
+          ],
+          "world_min": [
+            -0.205,
+            -0.005,
+            0.545
+          ],
+          "world_max": [
+            -0.195,
+            0.005,
+            0.555
+          ]
+        }
+      },
+      {
+        "alias": "Island",
+        "handle": 4648,
+        "type": 4,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bbox": {
+          "local_min": [
+            -0.205,
+            -0.48507,
+            -0.005
+          ],
+          "local_max": [
+            1.12,
+            0.62,
+            0.90595
+          ],
+          "world_min": [
+            -0.205,
+            -0.48507,
+            -0.005
+          ],
+          "world_max": [
+            1.12,
+            0.62,
+            0.90595
+          ]
+        }
+      },
+      {
+        "alias": "Island_A",
+        "handle": 4653,
+        "type": 0,
+        "parent": "Island",
+        "world_pos": [
+          0.42,
+          0.0,
+          0.15
+        ],
+        "bbox": {
+          "local_min": [
+            -0.3,
+            -0.3,
+            -0.15
+          ],
+          "local_max": [
+            0.3,
+            0.3,
+            0.15
+          ],
+          "world_min": [
+            0.12,
+            -0.3,
+            0.0
+          ],
+          "world_max": [
+            0.72,
+            0.3,
+            0.3
+          ]
+        }
+      },
+      {
+        "alias": "Island_A_Station",
+        "handle": 4654,
+        "type": 0,
+        "parent": "Island",
+        "world_pos": [
+          0.92,
+          0.42,
+          0.15
+        ],
+        "bbox": {
+          "local_min": [
+            -0.2,
+            -0.2,
+            -0.15
+          ],
+          "local_max": [
+            0.2,
+            0.2,
+            0.15
+          ],
+          "world_min": [
+            0.72,
+            0.22,
+            0.0
+          ],
+          "world_max": [
+            1.12,
+            0.62,
+            0.3
+          ]
+        }
+      },
+      {
+        "alias": "Mobile",
+        "handle": 4649,
+        "type": 4,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bbox": {
+          "local_min": [
+            -0.005,
+            -0.8275,
+            -0.005
+          ],
+          "local_max": [
+            0.67947,
+            0.005,
+            0.3025
+          ],
+          "world_min": [
+            -0.005,
+            -0.8275,
+            -0.005
+          ],
+          "world_max": [
+            0.67947,
+            0.005,
+            0.3025
+          ]
+        }
+      },
+      {
+        "alias": "Mobile_AGV_P3DX",
+        "handle": 4816,
+        "type": 0,
+        "parent": "Mobile",
+        "world_pos": [
+          0.42,
+          -0.62,
+          0.1388
+        ],
+        "bbox": {
+          "local_min": [
+            -0.2595,
+            -0.2075,
+            -0.09824
+          ],
+          "local_max": [
+            0.2595,
+            0.2075,
+            0.09824
+          ],
+          "world_min": [
+            0.1605,
+            -0.8275,
+            0.04055
+          ],
+          "world_max": [
+            0.6795,
+            -0.4125,
+            0.23703
+          ]
+        }
+      },
+      {
+        "alias": "Part",
+        "handle": 4650,
+        "type": 4,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bbox": {
+          "local_min": [
+            -0.005,
+            -0.005,
+            -0.005
+          ],
+          "local_max": [
+            0.005,
+            0.005,
+            0.005
+          ],
+          "world_min": [
+            -0.005,
+            -0.005,
+            -0.005
+          ],
+          "world_max": [
+            0.005,
+            0.005,
+            0.005
+          ]
+        }
+      },
+      {
+        "alias": "Robot_UR5_01",
+        "handle": 4785,
+        "type": 0,
+        "parent": "Island_A",
+        "world_pos": [
+          0.42,
+          0.0,
+          0.3
+        ],
+        "bbox": {
+          "local_min": [
+            -0.07263,
+            -0.07263,
+            -0.01465
+          ],
+          "local_max": [
+            0.07263,
+            0.07263,
+            0.01465
+          ],
+          "world_min": [
+            0.34737,
+            -0.07263,
+            0.28535
+          ],
+          "world_max": [
+            0.49263,
+            0.07263,
+            0.31465
+          ]
+        }
+      },
+      {
+        "alias": "Sensor_AGV_Dock",
+        "handle": 4863,
+        "type": 5,
+        "parent": "Mobile",
+        "world_pos": [
+          0.42,
+          -0.62,
+          0.3
+        ],
+        "bbox": {
+          "local_min": [
+            -0.0025,
+            -0.0025,
+            -0.0025
+          ],
+          "local_max": [
+            0.0025,
+            0.0025,
+            0.0025
+          ],
+          "world_min": [
+            0.4175,
+            -0.6225,
+            0.2975
+          ],
+          "world_max": [
+            0.4225,
+            -0.6175,
+            0.3025
+          ]
+        }
+      },
+      {
+        "alias": "Sensor_PickStation",
+        "handle": 4731,
+        "type": 5,
+        "parent": "Conveyor_In",
+        "world_pos": [
+          -0.2,
+          0.0,
+          0.6
+        ],
+        "bbox": {
+          "local_min": [
+            -0.0025,
+            -0.0025,
+            -0.0025
+          ],
+          "local_max": [
+            0.0025,
+            0.0025,
+            0.0025
+          ],
+          "world_min": [
+            -0.2025,
+            -0.0025,
+            0.5975
+          ],
+          "world_max": [
+            -0.1975,
+            0.0025,
+            0.6025
+          ]
+        }
+      },
+      {
+        "alias": "Sensor_SuctionPad_01",
+        "handle": 4815,
+        "type": 5,
+        "parent": "SuctionPad_01_TCP",
+        "world_pos": [
+          0.25,
+          -0.4251,
+          0.8615
+        ],
+        "bbox": {
+          "local_min": [
+            -0.0025,
+            -0.0025,
+            -0.0025
+          ],
+          "local_max": [
+            0.0025,
+            0.0025,
+            0.0025
+          ],
+          "world_min": [
+            0.24755,
+            -0.4276,
+            0.85895
+          ],
+          "world_max": [
+            0.25255,
+            -0.4226,
+            0.86395
+          ]
+        }
+      },
+      {
+        "alias": "SuctionPad_01",
+        "handle": 4807,
+        "type": 0,
+        "parent": "connection",
+        "world_pos": [
+          0.235,
+          -0.4251,
+          0.8615
+        ],
+        "bbox": {
+          "local_min": [
+            -0.02416,
+            -0.02416,
+            -0.015
+          ],
+          "local_max": [
+            0.02416,
+            0.02416,
+            0.015
+          ],
+          "world_min": [
+            0.22005,
+            -0.44926,
+            0.83729
+          ],
+          "world_max": [
+            0.25005,
+            -0.40094,
+            0.88561
+          ]
+        }
+      },
+      {
+        "alias": "SuctionPad_01_TCP",
+        "handle": 4814,
+        "type": 4,
+        "parent": "SuctionPad_01",
+        "world_pos": [
+          0.25,
+          -0.4251,
+          0.8615
+        ],
+        "bbox": {
+          "local_min": [
+            -0.005,
+            -0.005,
+            -0.005
+          ],
+          "local_max": [
+            0.005,
+            0.005,
+            0.005
+          ],
+          "world_min": [
+            0.24505,
+            -0.4301,
+            0.85645
+          ],
+          "world_max": [
+            0.25505,
+            -0.4201,
+            0.86645
+          ]
+        }
+      },
+      {
+        "alias": "Warehouse",
+        "handle": 4646,
+        "type": 4,
+        "parent": "",
+        "world_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bbox": {
+          "local_min": [
+            -1.195,
+            -0.005,
+            -0.005
+          ],
+          "local_max": [
+            0.005,
+            0.595,
+            0.25
+          ],
+          "world_min": [
+            -1.195,
+            -0.005,
+            -0.005
+          ],
+          "world_max": [
+            0.005,
+            0.595,
+            0.25
+          ]
+        }
+      },
+      {
+        "alias": "Warehouse_Raw",
+        "handle": 4652,
+        "type": 0,
+        "parent": "Warehouse",
+        "world_pos": [
+          -1.02,
+          0.42,
+          0.125
+        ],
+        "bbox": {
+          "local_min": [
+            -0.175,
+            -0.175,
+            -0.125
+          ],
+          "local_max": [
+            0.175,
+            0.175,
+            0.125
+          ],
+          "world_min": [
+            -1.195,
+            0.245,
+            0.0
+          ],
+          "world_max": [
+            -0.845,
+            0.595,
+            0.25
+          ]
+        }
+      }
+    ]
+  }
+}

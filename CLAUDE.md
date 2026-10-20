@@ -176,6 +176,7 @@
 | 文件 | 职责 |
 |------|------|
 | [config.py](src/stage1/config.py) | 阶段一全部位置/别名/模型路径/速度/容差/超时/故障枚举 |
+| [layout.py](src/stage1/layout.py) | `LayoutSpec`、候选布局派生坐标与静态几何校验 |
 | [physics.py](src/stage1/physics.py) | static/kinematic/respondable/mass/friction/mask 工具 |
 | [scene.py](src/stage1/scene.py) | 单工位场景构建、脚本处理、传感器、场景契约断言 |
 | [device_handle_map.py](src/stage1/device_handle_map.py) | 启动期唯一别名/句柄表 |
@@ -191,9 +192,12 @@
 阶段一模块集中在 `src/stage1/` 包内；安装后也可用 `uv run run-stage1`。
 阶段一不变量：
 
-- conveyor 的 customization 脚本必须保留（pad 的唯一写入者）；物料输送是显式
-  标注的 `HYBRID_DYNAMIC compensation`（4.10 pad 不传递切向速度），且补偿前
-  必须确认物料仍在带面有效高度与横向区内；不得描述为“摩擦力输送”；
+- conveyor 的 customization 脚本必须保留（pad 的唯一写入者）；物料输送必须显式
+  标注驱动来源。**步骤 1.1 C 组实测（2026-10-20）**表明当前 stage1 场景在关闭
+  位置补偿后物料仍能从入口前进约 0.83 m/5 s（≈0.20 m/s），即 pad→物料存在真实
+  物理输送；因此不得再把“4.10 pad 不传递切向速度”当作当前事实。补偿必须只在
+  物料落后于带速时施加，并在日志中区分物理输送与补偿；当前“每步固定补偿 1 cm”
+  与物理输送叠加会使物料约 0.38 m/s 前进，是 A 组越程的直接原因，阶段二必须修正。
 - UR5 与 suction pad 的所有 shape 为 `static=1, respondable=0`（运动学工具 +
   逻辑吸附）；吸附由 TCP + 吸盘接触传感器 + UID 校验完成；
 - `suction pad.ttm` 的内置脚本已剥离，内置 `Sensor` 改名为
@@ -202,6 +206,37 @@
   装卸前必须通过 dock sensor、车体停稳与竖直检查；
 - 载台/挡边是挂在动态车体上的 kinematic shape；载荷保持 dynamic + respondable，
   验收断言载台 XY/Z 区域与行驶距离。
+
+### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
+
+阶段一与阶段二之间的输入收敛，**不改变阶段一默认布局和生产控制**。
+`stage1.scene.build_scene(sim, layout=LayoutSpec(...))` 可选传入候选布局；
+不传时严格使用阶段一基线。
+
+| 文件 | 职责 |
+|------|------|
+| [config.py](src/stage1_1/config.py) | 候选布局、冻结的允许抓取区、试验矩阵与门槛 |
+| [layout_eval.py](src/stage1_1/layout_eval.py) | 场景测量、31 个离散 TCP 目标 simIK 扫描、边界余量、选择规则 |
+| [baseline.py](src/stage1_1/baseline.py) | 阶段一当前流程的 sensor→零速时序对照 |
+| [pickup.py](src/stage1_1/pickup.py) | A/B/C 单步试验：sensor→UID→零速→pad 停止→物料稳定→实测位姿→IK |
+| [run_step1_1.py](src/stage1_1/run_step1_1.py) | `measure` / `layout` / `experiment` / `all` CLI |
+| [run_step1_1.py](src/run_step1_1.py) | 兼容入口薄包装 |
+
+入口：
+```bash
+.venv/Scripts/python src/run_step1_1.py --phase all --repeats 10
+```
+
+不变量：
+
+- 允许抓取区在试验前冻结，不得按观察结果放宽；判定同时检查 UID、最终位姿、
+  物料稳定、pad 停止、IK 和吸附前置条件；
+- “sensor 命中”与“仿真器 ground-truth 位姿”是两个不同来源，报告不得混写；
+- 只声明离散 IK 可达，不声明路径无碰撞；碰撞/急停/越程验收属于阶段二；
+- 最低/最高速度未冻结时只记录为待冻结参数，不自行扩大试验范围。
+
+报告与证据：`docs/implementation/STEP1_1_REPORT.md`、
+`docs/implementation/step1_1_*_{stamp}.json{,l}`。
 
 ## 单步仿真循环顺序（历史五岛层 FactoryController.run）
 
@@ -246,6 +281,22 @@
 
 # 故障注入
 .venv/Scripts/python src/run_stage1.py --target station --fault ik_unreachable
+```
+
+### 步骤 1.1 布局与无挡板取料验证
+
+```bash
+# 基线场景测量 / 候选布局 simIK 扫描
+.venv/Scripts/python src/run_step1_1.py --phase measure
+.venv/Scripts/python src/run_step1_1.py --phase layout
+
+# 指定已选布局跑 A/B/C 试验; 省略 --selected-layout 时自动先扫描
+.venv/Scripts/python src/run_step1_1.py --phase experiment --selected-layout L1_S1
+.venv/Scripts/python src/run_step1_1.py --phase experiment --selected-layout L1_S1 \
+  --groups B --repeats 1          # 冒烟
+
+# 全流程 (measure → layout → A/B/C 10 次矩阵)
+.venv/Scripts/python src/run_step1_1.py --phase all --repeats 10
 ```
 
 ### 历史五岛完整场景层
@@ -409,6 +460,12 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
       **`HYBRID_DYNAMIC`**：优先依靠动态接触和摩擦；物理输送不足时才允许
       沿带面切向的限速补偿，并必须记录补偿原因。不得把旧的
       `KINEMATIC_BELT_TRANSPORT` 当作新方案模式。
+    - **2026-10-20 步骤 1.1 C 组复测（重要修正）**: 在 `stage1` 当前场景中
+      关闭位置补偿后，入口物料 **10/10 前进 0.8298 m 到达检测区**
+      (≈0.20 m/s)，说明当前配置下 pad→物料确实存在物理输送。旧结论只适用于
+      旧实验控制器/配置，不得再作为当前实现的依据。同一轮 A 组从入口到
+      sensor 的平均速度约 **0.38 m/s ≈ 带速 + 补偿步率**，是补偿与物理输送
+      叠加的直接证据；阶段二必须改为“仅在物料落后于带速时补偿”并重测摩擦。
     - 履带的**驱动源**仍按方案 §5.1 做一次性启动探测: 有脚本且 pad 确实在动
       → `SCRIPT_DRIVEN` (Python 只用 `__ctrl__` 调速, 不碰 pad 位姿); 否则剥离
       脚本转 `PYTHON_PAD_DRIVEN`; 没有内置模型则为 `FALLBACK_GEOMETRY`。

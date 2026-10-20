@@ -39,11 +39,30 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 阶段二完成前不进入双工位或多岛扩展。阶段一当前 CLI 仍采用“构建后启动”的耦合流程，
 场景复用和独立启动属于阶段二交付内容。
 
-阶段一实现集中在 `src/stage1/` 包（config / physics / scene / material_manager /
-conveyor_controller / ur5_ik_controller / suction_controller / pioneer_controller /
-unit_controller / run），`src/run_stage1.py` 是兼容入口；安装后也可用
-`uv run run-stage1`。旧版 `build_scene.py` / `factory_controller.py` 仍用于
-历史五岛完整场景，阶段一不调用它们。
+阶段一实现集中在 `src/stage1/` 包（config / layout / physics / scene /
+material_manager / conveyor_controller / ur5_ik_controller / suction_controller /
+pioneer_controller / unit_controller / run），`src/run_stage1.py` 是兼容入口；
+安装后也可用 `uv run run-stage1`。旧版 `build_scene.py` / `factory_controller.py`
+仍用于历史五岛完整场景，阶段一不调用它们。
+
+## 步骤 1.1：布局与无挡板取料验证（2026-10-20）
+
+步骤 1.1 在阶段一与阶段二之间收敛 UR5/置物台布局，并用 A/B/C 对照试验评估
+“移除挡停体、sensor 主动停带、按实测位姿抓取”的可行性。实现集中在
+`src/stage1_1/`，不改变阶段一默认布局与生产控制。
+
+```bash
+# 基线场景测量 / 候选布局 simIK 扫描 / A/B/C 试验矩阵
+.venv/Scripts/python src/run_step1_1.py --phase measure
+.venv/Scripts/python src/run_step1_1.py --phase layout
+.venv/Scripts/python src/run_step1_1.py --phase experiment --selected-layout L1_S1
+.venv/Scripts/python src/run_step1_1.py --phase all --repeats 10
+```
+
+- 执行报告：[docs/implementation/STEP1_1_REPORT.md](docs/implementation/STEP1_1_REPORT.md)
+- 证据：`docs/implementation/step1_1_*_{stamp}.json` / `.jsonl`
+- 本步骤只做离散 IK 可达性与受控停带可行性，不声明路径无碰撞、运行期急停
+  或现实安全认证；这些仍属于阶段二。
 
 ## 核心特性
 
@@ -249,9 +268,10 @@ cop-test/
 ├── .mcp.json                   # MCP 服务器注册 (Claude Code 自动加载, 指向 src/reference/factory_mcp_server.py)
 ├── CLAUDE.md                   # 项目说明 + 架构 + 已知坑 (Claude Code 上下文)
 ├── README.md                   # 本文档
-├── src/                        # ── 源码 (两个包 + 兼容入口) ──
+├── src/                        # ── 源码 (三个包 + 兼容入口) ──
 │   ├── stage1/                    # 当前实施范围: 阶段一单元闭环
 │   │   ├── config.py              # 阶段一参数/别名/容差/故障枚举
+│   │   ├── layout.py              # LayoutSpec / 候选布局几何校验
 │   │   ├── physics.py             # static/kinematic/respondable/mass/friction/mask
 │   │   ├── scene.py               # 单工位场景构建 + 场景契约断言
 │   │   ├── device_handle_map.py   # 启动期唯一别名/句柄表
@@ -262,7 +282,14 @@ cop-test/
 │   │   ├── pioneer_controller.py  # p3dx 差速轮速
 │   │   ├── unit_controller.py     # §2.11 单步状态机
 │   │   └── run.py                 # 阶段一 CLI 实现
+│   ├── stage1_1/                  # 步骤 1.1: 布局与无挡板取料验证
+│   │   ├── config.py              # 候选布局/允许抓取区/试验矩阵
+│   │   ├── layout_eval.py         # 场景测量 + simIK 扫描 + 选择
+│   │   ├── baseline.py            # 阶段一当前流程停带时序对照
+│   │   ├── pickup.py              # A/B/C 单步试验控制
+│   │   └── run_step1_1.py         # 步骤 1.1 CLI
 │   ├── run_stage1.py              # 阶段一兼容入口 (薄包装)
+│   ├── run_step1_1.py             # 步骤 1.1 兼容入口 (薄包装)
 │   └── reference/                 # 历史五岛完整场景层 (阶段一不调用)
 │       ├── factory_config.py      # 集中配置 (布局/节拍/阈值/路径/机械臂/内置模型)
 │       ├── factory_core.py        # ZMQ 连接+重连/健康监控/步进循环/句柄映射/日志
@@ -313,3 +340,6 @@ cop-test/
 
 历史五岛场景: `uv run build-scene` / `uv run run-simulation`。
 阶段一: `uv run run-stage1 --target station`（或 `python src/run_stage1.py`）。
+步骤 1.1: 候选布局/冻结允许区/试验矩阵集中在
+[stage1_1/config.py](src/stage1_1/config.py)；入口
+`uv run run-step1-1 --phase all --repeats 10`（或 `python src/run_step1_1.py`）。

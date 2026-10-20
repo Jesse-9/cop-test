@@ -1,0 +1,2196 @@
+{
+  "experiments": "docs/implementation\\step1_1_experiments_20261020_104655.json",
+  "selected_layout": "L1_S1",
+  "matrix": {
+    "speeds_mps": [
+      0.2
+    ],
+    "speeds_pending": [
+      "min",
+      "max"
+    ],
+    "initial_positions": {
+      "front": -0.32,
+      "middle": -0.255,
+      "rear": -0.21
+    },
+    "repeats_per_combo": 10,
+    "yaw_offsets": [
+      -0.02,
+      0.0,
+      0.02
+    ],
+    "groups": {
+      "A": {
+        "name": "A_baseline_stopper",
+        "description": "保留挡停体, HYBRID_DYNAMIC 补偿, 阶段一当前停带判据",
+        "stopper": true,
+        "compensation": true,
+        "stop_mode": "progress",
+        "positions": [
+          "front",
+          "middle",
+          "rear"
+        ],
+        "repeats": 10
+      },
+      "B": {
+        "name": "B_no_stopper_active_stop",
+        "description": "移除挡停体, 传感器命中后主动零速, 等待稳定后按实测位姿抓取",
+        "stopper": false,
+        "compensation": true,
+        "stop_mode": "sensor",
+        "positions": [
+          "front",
+          "middle",
+          "rear"
+        ],
+        "repeats": 10
+      },
+      "C": {
+        "name": "C_physics_diagnosis",
+        "description": "移除挡停体, 关闭位置补偿, 仅观察动态物料与带面相互作用",
+        "stopper": false,
+        "compensation": false,
+        "stop_mode": "none",
+        "positions": [
+          "front",
+          "middle",
+          "rear"
+        ],
+        "repeats": 10
+      }
+    },
+    "c_entry_repeats": 10,
+    "full_pick_validations": 1,
+    "baseline_flow_runs": 3
+  },
+  "groups": {
+    "A": {
+      "trial_file": "docs/implementation\\step1_1_trials_A_20261020_104655.jsonl",
+      "summary": {
+        "total": 30,
+        "states": {
+          "DONE": 30
+        },
+        "success": 30,
+        "gate_ok": 10,
+        "failure_reasons": {},
+        "by_phase": {
+          "A_stop_matrix": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 10,
+            "inside_allowed_region": 10,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 30,
+            "sensor_to_stop_delay_s": {
+              "n": 30,
+              "min": 0.0,
+              "max": 0.35,
+              "mean": 0.16667
+            },
+            "pad_stop_duration_s": {
+              "n": 30,
+              "min": 0.15,
+              "max": 0.2,
+              "mean": 0.18333
+            },
+            "pad_stop_distance_m": {
+              "n": 30,
+              "min": 0.0025,
+              "max": 0.0102,
+              "mean": 0.00751
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 30,
+              "min": 0.015,
+              "max": 0.1473,
+              "mean": 0.07859
+            },
+            "material_settle_time_s": {
+              "n": 30,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 30,
+              "min": -0.2,
+              "max": -0.19285,
+              "mean": -0.19795
+            },
+            "material_final_x": {
+              "n": 30,
+              "min": -0.19501,
+              "max": -0.1727,
+              "mean": -0.18305
+            },
+            "material_final_z": {
+              "n": 30,
+              "min": 0.5,
+              "max": 0.50049,
+              "mean": 0.50007
+            },
+            "compensation_count": {
+              "n": 30,
+              "min": 1.0,
+              "max": 7.0,
+              "mean": 4.0
+            },
+            "average_speed_mps": {
+              "n": 30,
+              "min": 0.01666,
+              "max": 0.11331,
+              "mean": 0.06566
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 30
+            }
+          }
+        },
+        "by_position": {
+          "front": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 0,
+            "inside_allowed_region": 0,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": {
+              "n": 10,
+              "min": 0.35,
+              "max": 0.35,
+              "mean": 0.35
+            },
+            "pad_stop_duration_s": {
+              "n": 10,
+              "min": 0.2,
+              "max": 0.2,
+              "mean": 0.2
+            },
+            "pad_stop_distance_m": {
+              "n": 10,
+              "min": 0.01,
+              "max": 0.0102,
+              "mean": 0.01004
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 10,
+              "min": 0.14487,
+              "max": 0.1473,
+              "mean": 0.1463
+            },
+            "material_settle_time_s": {
+              "n": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 10,
+              "min": -0.19527,
+              "max": -0.19285,
+              "mean": -0.19385
+            },
+            "material_final_x": {
+              "n": 10,
+              "min": -0.17513,
+              "max": -0.1727,
+              "mean": -0.17369
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50049,
+              "mean": 0.50017
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 7.0,
+              "max": 7.0,
+              "mean": 7.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.11144,
+              "max": 0.11331,
+              "mean": 0.11255
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 10
+            }
+          },
+          "middle": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 0,
+            "inside_allowed_region": 0,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": {
+              "n": 10,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_duration_s": {
+              "n": 10,
+              "min": 0.2,
+              "max": 0.2,
+              "mean": 0.2
+            },
+            "pad_stop_distance_m": {
+              "n": 10,
+              "min": 0.01,
+              "max": 0.01,
+              "mean": 0.01
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 10,
+              "min": 0.07367,
+              "max": 0.07486,
+              "mean": 0.07446
+            },
+            "material_settle_time_s": {
+              "n": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 10,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18133,
+              "max": -0.18012,
+              "mean": -0.18047
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50033,
+              "mean": 0.50004
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 4.0,
+              "max": 4.0,
+              "mean": 4.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.06697,
+              "max": 0.06807,
+              "mean": 0.06776
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 10
+            }
+          },
+          "rear": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 10,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 10,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 10,
+              "min": 0.0025,
+              "max": 0.0025,
+              "mean": 0.0025
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 10,
+              "min": 0.015,
+              "max": 0.01501,
+              "mean": 0.015
+            },
+            "material_settle_time_s": {
+              "n": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 10,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "material_final_x": {
+              "n": 10,
+              "min": -0.19501,
+              "max": -0.19499,
+              "mean": -0.195
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.5,
+              "mean": 0.5
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 1.0,
+              "max": 1.0,
+              "mean": 1.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.01666,
+              "max": 0.01668,
+              "mean": 0.01667
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 10
+            }
+          }
+        }
+      },
+      "recorded_summary": {
+        "total": 30,
+        "success": 30,
+        "gate_ok": 10,
+        "inside_allowed_region": 10,
+        "pad_stop_modes": {
+          "velocity+position": 30
+        },
+        "stop_command_reasons": {
+          "progress>=1.0": 30
+        },
+        "sensor_triggered": 30,
+        "failure_reasons": {},
+        "sensor_to_stop_command_delay_s": {
+          "count": 30,
+          "min": 0.0,
+          "max": 0.35,
+          "mean": 0.16667
+        },
+        "pad_stop_duration_s": {
+          "count": 30,
+          "min": 0.15,
+          "max": 0.2,
+          "mean": 0.18333
+        },
+        "pad_stop_distance_m": {
+          "count": 30,
+          "min": 0.0025,
+          "max": 0.0102,
+          "mean": 0.00751
+        },
+        "material_displacement_from_trigger_m": {
+          "count": 30,
+          "min": 0.015,
+          "max": 0.1473,
+          "mean": 0.07859
+        },
+        "material_settle_time_s": {
+          "count": 30,
+          "min": 0.25,
+          "max": 0.25,
+          "mean": 0.25
+        },
+        "material_stop_x": {
+          "count": 30,
+          "min": -0.2,
+          "max": -0.19285,
+          "mean": -0.19795
+        },
+        "material_final_x": {
+          "count": 30,
+          "min": -0.19501,
+          "max": -0.1727,
+          "mean": -0.18305
+        },
+        "compensation_count": {
+          "count": 30,
+          "min": 1.0,
+          "max": 7.0,
+          "mean": 4.0
+        },
+        "place_position_error_m": null,
+        "transported": 0,
+        "reached_detection_zone": 0,
+        "by_phase": {
+          "A_stop_matrix": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 10,
+            "inside_allowed_region": 10,
+            "pad_stop_modes": {
+              "velocity+position": 30
+            },
+            "stop_command_reasons": {
+              "progress>=1.0": 30
+            },
+            "sensor_triggered": 30,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 30,
+              "min": 0.0,
+              "max": 0.35,
+              "mean": 0.16667
+            },
+            "pad_stop_duration_s": {
+              "count": 30,
+              "min": 0.15,
+              "max": 0.2,
+              "mean": 0.18333
+            },
+            "pad_stop_distance_m": {
+              "count": 30,
+              "min": 0.0025,
+              "max": 0.0102,
+              "mean": 0.00751
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 30,
+              "min": 0.015,
+              "max": 0.1473,
+              "mean": 0.07859
+            },
+            "material_settle_time_s": {
+              "count": 30,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 30,
+              "min": -0.2,
+              "max": -0.19285,
+              "mean": -0.19795
+            },
+            "material_final_x": {
+              "count": 30,
+              "min": -0.19501,
+              "max": -0.1727,
+              "mean": -0.18305
+            },
+            "compensation_count": {
+              "count": 30,
+              "min": 1.0,
+              "max": 7.0,
+              "mean": 4.0
+            },
+            "place_position_error_m": null,
+            "transported": 0,
+            "reached_detection_zone": 0
+          }
+        },
+        "by_position": {
+          "front": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 0,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "velocity+position": 10
+            },
+            "stop_command_reasons": {
+              "progress>=1.0": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 10,
+              "min": 0.35,
+              "max": 0.35,
+              "mean": 0.35
+            },
+            "pad_stop_duration_s": {
+              "count": 10,
+              "min": 0.2,
+              "max": 0.2,
+              "mean": 0.2
+            },
+            "pad_stop_distance_m": {
+              "count": 10,
+              "min": 0.01,
+              "max": 0.0102,
+              "mean": 0.01004
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 10,
+              "min": 0.14487,
+              "max": 0.1473,
+              "mean": 0.1463
+            },
+            "material_settle_time_s": {
+              "count": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 10,
+              "min": -0.19527,
+              "max": -0.19285,
+              "mean": -0.19385
+            },
+            "material_final_x": {
+              "count": 10,
+              "min": -0.17513,
+              "max": -0.1727,
+              "mean": -0.17369
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 7.0,
+              "max": 7.0,
+              "mean": 7.0
+            },
+            "place_position_error_m": null,
+            "transported": 0,
+            "reached_detection_zone": 0
+          },
+          "middle": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 0,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "velocity+position": 10
+            },
+            "stop_command_reasons": {
+              "progress>=1.0": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 10,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_duration_s": {
+              "count": 10,
+              "min": 0.2,
+              "max": 0.2,
+              "mean": 0.2
+            },
+            "pad_stop_distance_m": {
+              "count": 10,
+              "min": 0.01,
+              "max": 0.01,
+              "mean": 0.01
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 10,
+              "min": 0.07367,
+              "max": 0.07486,
+              "mean": 0.07446
+            },
+            "material_settle_time_s": {
+              "count": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 10,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18133,
+              "max": -0.18012,
+              "mean": -0.18047
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 4.0,
+              "max": 4.0,
+              "mean": 4.0
+            },
+            "place_position_error_m": null,
+            "transported": 0,
+            "reached_detection_zone": 0
+          },
+          "rear": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 10,
+            "pad_stop_modes": {
+              "velocity+position": 10
+            },
+            "stop_command_reasons": {
+              "progress>=1.0": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 10,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 10,
+              "min": 0.0025,
+              "max": 0.0025,
+              "mean": 0.0025
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 10,
+              "min": 0.015,
+              "max": 0.01501,
+              "mean": 0.015
+            },
+            "material_settle_time_s": {
+              "count": 10,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 10,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "material_final_x": {
+              "count": 10,
+              "min": -0.19501,
+              "max": -0.19499,
+              "mean": -0.195
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 1.0,
+              "max": 1.0,
+              "mean": 1.0
+            },
+            "place_position_error_m": null,
+            "transported": 0,
+            "reached_detection_zone": 0
+          }
+        }
+      }
+    },
+    "B": {
+      "trial_file": "docs/implementation\\step1_1_trials_B_20261020_104655.jsonl",
+      "summary": {
+        "total": 33,
+        "states": {
+          "DONE": 33
+        },
+        "success": 33,
+        "gate_ok": 33,
+        "failure_reasons": {},
+        "by_phase": {
+          "B_full_pick": {
+            "total": 3,
+            "success": 3,
+            "gate_ok": 3,
+            "inside_allowed_region": 3,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 3,
+            "sensor_to_stop_delay_s": {
+              "n": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 3,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 3,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 3,
+              "min": 0.005,
+              "max": 0.005,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "n": 3,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 3,
+              "min": -0.32,
+              "max": -0.21,
+              "mean": -0.26167
+            },
+            "material_final_x": {
+              "n": 3,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "material_final_z": {
+              "n": 3,
+              "min": 0.35,
+              "max": 0.35,
+              "mean": 0.35
+            },
+            "compensation_count": {
+              "n": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 3,
+              "min": 0.0007,
+              "max": 0.00889,
+              "mean": 0.00455
+            },
+            "place_position_error_m": {
+              "n": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 3
+            }
+          },
+          "B_precheck": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 30,
+            "inside_allowed_region": 30,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 30,
+            "sensor_to_stop_delay_s": {
+              "n": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 30,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 30,
+              "min": 0.00253,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 30,
+              "min": 0.00497,
+              "max": 0.00502,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "n": 30,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 30,
+              "min": -0.32073,
+              "max": -0.21,
+              "mean": -0.26135
+            },
+            "material_final_x": {
+              "n": 30,
+              "min": -0.31575,
+              "max": -0.20498,
+              "mean": -0.25635
+            },
+            "material_final_z": {
+              "n": 30,
+              "min": 0.5,
+              "max": 0.5,
+              "mean": 0.5
+            },
+            "compensation_count": {
+              "n": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 30,
+              "min": 0.00106,
+              "max": 0.00403,
+              "mean": 0.00133
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 30
+            }
+          }
+        },
+        "by_position": {
+          "front": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 11,
+            "sensor_to_stop_delay_s": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 11,
+              "min": 0.00253,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 11,
+              "min": 0.00499,
+              "max": 0.005,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "n": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 11,
+              "min": -0.32073,
+              "max": -0.30889,
+              "mean": -0.31906
+            },
+            "material_final_x": {
+              "n": 11,
+              "min": -0.31575,
+              "max": -0.2,
+              "mean": -0.30361
+            },
+            "material_final_z": {
+              "n": 11,
+              "min": 0.35,
+              "max": 0.5,
+              "mean": 0.48636
+            },
+            "compensation_count": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 11,
+              "min": 0.00106,
+              "max": 0.00889,
+              "mean": 0.00218
+            },
+            "place_position_error_m": {
+              "n": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 11
+            }
+          },
+          "middle": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 11,
+            "sensor_to_stop_delay_s": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 11,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 11,
+              "min": 0.00497,
+              "max": 0.005,
+              "mean": 0.00499
+            },
+            "material_settle_time_s": {
+              "n": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 11,
+              "min": -0.25574,
+              "max": -0.255,
+              "mean": -0.25507
+            },
+            "material_final_x": {
+              "n": 11,
+              "min": -0.25074,
+              "max": -0.2,
+              "mean": -0.24553
+            },
+            "material_final_z": {
+              "n": 11,
+              "min": 0.35,
+              "max": 0.5,
+              "mean": 0.48636
+            },
+            "compensation_count": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 11,
+              "min": 0.00106,
+              "max": 0.00407,
+              "mean": 0.00149
+            },
+            "place_position_error_m": {
+              "n": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 11
+            }
+          },
+          "rear": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "transported": 0,
+            "reached_detection_zone": 0,
+            "sensor_triggered": 11,
+            "sensor_to_stop_delay_s": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "n": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "n": 11,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "n": 11,
+              "min": 0.00497,
+              "max": 0.00502,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "n": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "n": 11,
+              "min": -0.21,
+              "max": -0.21,
+              "mean": -0.21
+            },
+            "material_final_x": {
+              "n": 11,
+              "min": -0.20503,
+              "max": -0.2,
+              "mean": -0.20455
+            },
+            "material_final_z": {
+              "n": 11,
+              "min": 0.35,
+              "max": 0.5,
+              "mean": 0.48636
+            },
+            "compensation_count": {
+              "n": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 11,
+              "min": 0.0007,
+              "max": 0.00125,
+              "mean": 0.0012
+            },
+            "place_position_error_m": {
+              "n": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "velocity+position": 11
+            }
+          }
+        }
+      },
+      "recorded_summary": {
+        "total": 33,
+        "success": 33,
+        "gate_ok": 33,
+        "inside_allowed_region": 33,
+        "pad_stop_modes": {
+          "velocity+position": 33
+        },
+        "stop_command_reasons": {
+          "sensor_hit": 33
+        },
+        "sensor_triggered": 33,
+        "failure_reasons": {},
+        "sensor_to_stop_command_delay_s": {
+          "count": 33,
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0
+        },
+        "pad_stop_duration_s": {
+          "count": 33,
+          "min": 0.15,
+          "max": 0.15,
+          "mean": 0.15
+        },
+        "pad_stop_distance_m": {
+          "count": 33,
+          "min": 0.00253,
+          "max": 0.00256,
+          "mean": 0.00256
+        },
+        "material_displacement_from_trigger_m": {
+          "count": 33,
+          "min": 0.00497,
+          "max": 0.00502,
+          "mean": 0.005
+        },
+        "material_settle_time_s": {
+          "count": 33,
+          "min": 0.25,
+          "max": 0.25,
+          "mean": 0.25
+        },
+        "material_stop_x": {
+          "count": 33,
+          "min": -0.32073,
+          "max": -0.21,
+          "mean": -0.26137
+        },
+        "material_final_x": {
+          "count": 33,
+          "min": -0.31575,
+          "max": -0.2,
+          "mean": -0.25123
+        },
+        "compensation_count": {
+          "count": 33,
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0
+        },
+        "place_position_error_m": {
+          "count": 3,
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0
+        },
+        "transported": 0,
+        "reached_detection_zone": 0,
+        "by_phase": {
+          "B_full_pick": {
+            "total": 3,
+            "success": 3,
+            "gate_ok": 3,
+            "inside_allowed_region": 3,
+            "pad_stop_modes": {
+              "velocity+position": 3
+            },
+            "stop_command_reasons": {
+              "sensor_hit": 3
+            },
+            "sensor_triggered": 3,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 3,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 3,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 3,
+              "min": 0.005,
+              "max": 0.005,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "count": 3,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 3,
+              "min": -0.32,
+              "max": -0.21,
+              "mean": -0.26167
+            },
+            "material_final_x": {
+              "count": 3,
+              "min": -0.2,
+              "max": -0.2,
+              "mean": -0.2
+            },
+            "compensation_count": {
+              "count": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": {
+              "count": 3,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "transported": 0,
+            "reached_detection_zone": 0
+          },
+          "B_precheck": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 30,
+            "inside_allowed_region": 30,
+            "pad_stop_modes": {
+              "velocity+position": 30
+            },
+            "stop_command_reasons": {
+              "sensor_hit": 30
+            },
+            "sensor_triggered": 30,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 30,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 30,
+              "min": 0.00253,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 30,
+              "min": 0.00497,
+              "max": 0.00502,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "count": 30,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 30,
+              "min": -0.32073,
+              "max": -0.21,
+              "mean": -0.26135
+            },
+            "material_final_x": {
+              "count": 30,
+              "min": -0.31575,
+              "max": -0.20498,
+              "mean": -0.25635
+            },
+            "compensation_count": {
+              "count": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 0,
+            "reached_detection_zone": 0
+          }
+        },
+        "by_position": {
+          "front": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "pad_stop_modes": {
+              "velocity+position": 11
+            },
+            "stop_command_reasons": {
+              "sensor_hit": 11
+            },
+            "sensor_triggered": 11,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 11,
+              "min": 0.00253,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 11,
+              "min": 0.00499,
+              "max": 0.005,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "count": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 11,
+              "min": -0.32073,
+              "max": -0.30889,
+              "mean": -0.31906
+            },
+            "material_final_x": {
+              "count": 11,
+              "min": -0.31575,
+              "max": -0.2,
+              "mean": -0.30361
+            },
+            "compensation_count": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": {
+              "count": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "transported": 0,
+            "reached_detection_zone": 0
+          },
+          "middle": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "pad_stop_modes": {
+              "velocity+position": 11
+            },
+            "stop_command_reasons": {
+              "sensor_hit": 11
+            },
+            "sensor_triggered": 11,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 11,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 11,
+              "min": 0.00497,
+              "max": 0.005,
+              "mean": 0.00499
+            },
+            "material_settle_time_s": {
+              "count": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 11,
+              "min": -0.25574,
+              "max": -0.255,
+              "mean": -0.25507
+            },
+            "material_final_x": {
+              "count": 11,
+              "min": -0.25074,
+              "max": -0.2,
+              "mean": -0.24553
+            },
+            "compensation_count": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": {
+              "count": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "transported": 0,
+            "reached_detection_zone": 0
+          },
+          "rear": {
+            "total": 11,
+            "success": 11,
+            "gate_ok": 11,
+            "inside_allowed_region": 11,
+            "pad_stop_modes": {
+              "velocity+position": 11
+            },
+            "stop_command_reasons": {
+              "sensor_hit": 11
+            },
+            "sensor_triggered": 11,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "pad_stop_duration_s": {
+              "count": 11,
+              "min": 0.15,
+              "max": 0.15,
+              "mean": 0.15
+            },
+            "pad_stop_distance_m": {
+              "count": 11,
+              "min": 0.00256,
+              "max": 0.00256,
+              "mean": 0.00256
+            },
+            "material_displacement_from_trigger_m": {
+              "count": 11,
+              "min": 0.00497,
+              "max": 0.00502,
+              "mean": 0.005
+            },
+            "material_settle_time_s": {
+              "count": 11,
+              "min": 0.25,
+              "max": 0.25,
+              "mean": 0.25
+            },
+            "material_stop_x": {
+              "count": 11,
+              "min": -0.21,
+              "max": -0.21,
+              "mean": -0.21
+            },
+            "material_final_x": {
+              "count": 11,
+              "min": -0.20503,
+              "max": -0.2,
+              "mean": -0.20455
+            },
+            "compensation_count": {
+              "count": 11,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": {
+              "count": 1,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "transported": 0,
+            "reached_detection_zone": 0
+          }
+        }
+      }
+    },
+    "C": {
+      "trial_file": "docs/implementation\\step1_1_trials_C_20261020_104655.jsonl",
+      "summary": {
+        "total": 40,
+        "states": {
+          "DONE": 40
+        },
+        "success": 40,
+        "gate_ok": 33,
+        "failure_reasons": {},
+        "by_phase": {
+          "C_entry": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "transported": 10,
+            "reached_detection_zone": 10,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18408,
+              "max": -0.18388,
+              "mean": -0.18401
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50017,
+              "mean": 0.50003
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.17727,
+              "max": 0.17731,
+              "mean": 0.17728
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 10
+            }
+          },
+          "C_physics_position": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 23,
+            "inside_allowed_region": 0,
+            "transported": 23,
+            "reached_detection_zone": 30,
+            "sensor_triggered": 30,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 30,
+              "min": -0.18885,
+              "max": -0.18172,
+              "mean": -0.18517
+            },
+            "material_final_z": {
+              "n": 30,
+              "min": 0.5,
+              "max": 0.50023,
+              "mean": 0.50003
+            },
+            "compensation_count": {
+              "n": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 30,
+              "min": 0.0215,
+              "max": 0.11119,
+              "mean": 0.07146
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 30
+            }
+          }
+        },
+        "by_position": {
+          "entry": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "transported": 10,
+            "reached_detection_zone": 10,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18408,
+              "max": -0.18388,
+              "mean": -0.18401
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50017,
+              "mean": 0.50003
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.17727,
+              "max": 0.17731,
+              "mean": 0.17728
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 10
+            }
+          },
+          "front": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "transported": 10,
+            "reached_detection_zone": 10,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18885,
+              "max": -0.18657,
+              "mean": -0.18696
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.5002,
+              "mean": 0.50004
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.11014,
+              "max": 0.11119,
+              "mean": 0.11095
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 10
+            }
+          },
+          "middle": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "transported": 10,
+            "reached_detection_zone": 10,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18197,
+              "max": -0.18172,
+              "mean": -0.18181
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50023,
+              "mean": 0.50002
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.08114,
+              "max": 0.08142,
+              "mean": 0.08133
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 10
+            }
+          },
+          "rear": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 3,
+            "inside_allowed_region": 0,
+            "transported": 3,
+            "reached_detection_zone": 10,
+            "sensor_triggered": 10,
+            "sensor_to_stop_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "n": 10,
+              "min": -0.18712,
+              "max": -0.18652,
+              "mean": -0.18673
+            },
+            "material_final_z": {
+              "n": 10,
+              "min": 0.5,
+              "max": 0.50015,
+              "mean": 0.50002
+            },
+            "compensation_count": {
+              "n": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "average_speed_mps": {
+              "n": 10,
+              "min": 0.0215,
+              "max": 0.02245,
+              "mean": 0.02212
+            },
+            "place_position_error_m": null,
+            "failure_reasons": {},
+            "pad_stop_modes": {
+              "": 10
+            }
+          }
+        }
+      },
+      "recorded_summary": {
+        "total": 40,
+        "success": 40,
+        "gate_ok": 33,
+        "inside_allowed_region": 0,
+        "pad_stop_modes": {
+          "": 40
+        },
+        "stop_command_reasons": {
+          "": 40
+        },
+        "sensor_triggered": 40,
+        "failure_reasons": {},
+        "sensor_to_stop_command_delay_s": null,
+        "pad_stop_duration_s": null,
+        "pad_stop_distance_m": null,
+        "material_displacement_from_trigger_m": null,
+        "material_settle_time_s": null,
+        "material_stop_x": null,
+        "material_final_x": {
+          "count": 40,
+          "min": -0.18885,
+          "max": -0.18172,
+          "mean": -0.18488
+        },
+        "compensation_count": {
+          "count": 40,
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0
+        },
+        "place_position_error_m": null,
+        "transported": 33,
+        "reached_detection_zone": 40,
+        "by_phase": {
+          "C_entry": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 10
+            },
+            "stop_command_reasons": {
+              "": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18408,
+              "max": -0.18388,
+              "mean": -0.18401
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 10,
+            "reached_detection_zone": 10
+          },
+          "C_physics_position": {
+            "total": 30,
+            "success": 30,
+            "gate_ok": 23,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 30
+            },
+            "stop_command_reasons": {
+              "": 30
+            },
+            "sensor_triggered": 30,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 30,
+              "min": -0.18885,
+              "max": -0.18172,
+              "mean": -0.18517
+            },
+            "compensation_count": {
+              "count": 30,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 23,
+            "reached_detection_zone": 30
+          }
+        },
+        "by_position": {
+          "front": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 10
+            },
+            "stop_command_reasons": {
+              "": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18885,
+              "max": -0.18657,
+              "mean": -0.18696
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 10,
+            "reached_detection_zone": 10
+          },
+          "middle": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 10
+            },
+            "stop_command_reasons": {
+              "": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18197,
+              "max": -0.18172,
+              "mean": -0.18181
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 10,
+            "reached_detection_zone": 10
+          },
+          "rear": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 3,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 10
+            },
+            "stop_command_reasons": {
+              "": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18712,
+              "max": -0.18652,
+              "mean": -0.18673
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 3,
+            "reached_detection_zone": 10
+          },
+          "entry": {
+            "total": 10,
+            "success": 10,
+            "gate_ok": 10,
+            "inside_allowed_region": 0,
+            "pad_stop_modes": {
+              "": 10
+            },
+            "stop_command_reasons": {
+              "": 10
+            },
+            "sensor_triggered": 10,
+            "failure_reasons": {},
+            "sensor_to_stop_command_delay_s": null,
+            "pad_stop_duration_s": null,
+            "pad_stop_distance_m": null,
+            "material_displacement_from_trigger_m": null,
+            "material_settle_time_s": null,
+            "material_stop_x": null,
+            "material_final_x": {
+              "count": 10,
+              "min": -0.18408,
+              "max": -0.18388,
+              "mean": -0.18401
+            },
+            "compensation_count": {
+              "count": 10,
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0
+            },
+            "place_position_error_m": null,
+            "transported": 10,
+            "reached_detection_zone": 10
+          }
+        }
+      }
+    }
+  },
+  "baseline_flow": [
+    {
+      "uid": 1,
+      "state": "DONE",
+      "ok": true,
+      "sensor_hit_time": 2.1,
+      "sensor_hit_x": -0.31399,
+      "zero_time": 2.4,
+      "zero_x": -0.1975,
+      "zero_before_sensor": false,
+      "sensor_to_zero_delay_s": 0.3,
+      "hit_to_zero_displacement_m": 0.11649,
+      "pad_stop_time": 2.6,
+      "pad_stop_duration_s": 0.2,
+      "pad_stop_distance_m": 0.01,
+      "average_speed_to_sensor_mps": 0.38017,
+      "place_error_m": 0.0,
+      "speed_commands": [
+        [
+          0.25,
+          0.2
+        ],
+        [
+          2.4,
+          0.0
+        ],
+        [
+          2.45,
+          0.2
+        ],
+        [
+          2.45,
+          0.0
+        ],
+        [
+          2.5,
+          0.2
+        ],
+        [
+          2.5,
+          0.0
+        ]
+      ]
+    },
+    {
+      "uid": 2,
+      "state": "DONE",
+      "ok": true,
+      "sensor_hit_time": 12.0,
+      "sensor_hit_x": -0.32158,
+      "zero_time": 12.3,
+      "zero_x": -0.2,
+      "zero_before_sensor": false,
+      "sensor_to_zero_delay_s": 0.3,
+      "hit_to_zero_displacement_m": 0.12158,
+      "pad_stop_time": 12.5,
+      "pad_stop_duration_s": 0.2,
+      "pad_stop_distance_m": 0.01,
+      "average_speed_to_sensor_mps": 0.37607,
+      "place_error_m": 0.0,
+      "speed_commands": [
+        [
+          10.15,
+          0.2
+        ],
+        [
+          12.3,
+          0.0
+        ],
+        [
+          12.35,
+          0.2
+        ],
+        [
+          12.35,
+          0.0
+        ],
+        [
+          12.4,
+          0.2
+        ],
+        [
+          12.4,
+          0.0
+        ]
+      ]
+    },
+    {
+      "uid": 3,
+      "state": "DONE",
+      "ok": true,
+      "sensor_hit_time": 26.4,
+      "sensor_hit_x": -0.32091,
+      "zero_time": 26.7,
+      "zero_x": -0.2,
+      "zero_before_sensor": false,
+      "sensor_to_zero_delay_s": 0.3,
+      "hit_to_zero_displacement_m": 0.12091,
+      "pad_stop_time": 26.9,
+      "pad_stop_duration_s": 0.2,
+      "pad_stop_distance_m": 0.01025,
+      "average_speed_to_sensor_mps": 0.37643,
+      "place_error_m": 0.0,
+      "speed_commands": [
+        [
+          24.55,
+          0.2
+        ],
+        [
+          26.7,
+          0.0
+        ],
+        [
+          26.75,
+          0.2
+        ],
+        [
+          26.75,
+          0.0
+        ],
+        [
+          26.8,
+          0.2
+        ],
+        [
+          26.8,
+          0.0
+        ]
+      ]
+    }
+  ]
+}
