@@ -25,4 +25,6 @@
   - `step1_2_post_restart_reuse_v002_20261021_000357.json` — 第二次重启后
     对最终基线 v002 的加载/校验/运行；
   - `step1_2_post_restart_run_*.json` — 对应的完整运行报告（含物料/AGV/
-    传送带证据）。
+    传送带证据）；
+  - `step1_2_deferred_items_20261021_091500.json` — 暂缓项补齐：UR5 关节
+    模式、`--keep-running` 后台/回收、死亡 PID 锁清理、alias 索引性能。

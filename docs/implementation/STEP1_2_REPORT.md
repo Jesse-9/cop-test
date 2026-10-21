@@ -70,7 +70,7 @@ manifest schema 1.0 记录：
 - 布局 `L1_S1` 与 26 个对象的 alias/类型/父 alias/世界坐标（无运行时句柄）；
 - conveyor 几何、TCP/吸盘安装几何、物料/AGV 物理参数；
 - conveyor 脚本保留、UR5/suction/p3dx 脚本剥离、吸盘模型传感器改名；
-- 构建器版本与 42 项构建契约检查；
+- 构建器版本与 43 项构建契约检查（v002 manifest 保存时记录 42 项；加载校验执行当前 43 项，含 UR5 关节模式）；
 - 场景文件 sha256 与大小。
 
 `validate_scene` 只读比较：场景文件摘要、schema、配置摘要（逐键差异）、
@@ -155,11 +155,12 @@ python src/run_scene_lifecycle.py list
 |---|---|---|
 | `tests/test_scene_artifact.py` | 20 | 版本递增、路径越界、current 原子指针、protected/force、manifest schema、alias 格式/重复、配置摘要差异、原子写入、只读位 |
 | `tests/test_scene_lifecycle_state.py` | 20 | 状态迁移矩阵、运行中拒绝、ERROR 恢复、会话持久化、运行锁独占/陈旧锁/只释放自己的锁 |
-| `tests/test_scene_lifecycle_manager.py` | 16 | build/load/validate/start/save 前置条件、锁先于校验、校验失败释放锁、保存后 current、基线保护 |
+| `tests/test_scene_lifecycle_manager.py` | 19 | build/load/validate/start/save 前置条件、锁先于校验、校验失败释放锁、保存后 current、基线保护 |
 | `tests/test_scene_lifecycle_contract.py` | 4 | CLI/MCP 动作名一致、24 工具、start 文档明确不隐式 build |
+| `tests/test_scene_contract.py` | 3（新增） | UR5 关节模式契约：全部 kinematic、拒绝 dynamic、兼容 4.10 元组返回 |
 | `tests/test_mcp_lifecycle_tools.py` | 8 | MCP save/load/validate/status 路由与运行中拒绝 |
 | `tests/test_mcp_stage1_backend.py` | 9 | stage1 路由、start 不调用 build、status 生命周期字段 |
-| 全量 `pytest -q` | 277 passed / 3 skipped | 3 skipped 为需显式重建完整五岛场景的历史集成测试 |
+| 全量 `pytest -q` | 283 passed / 3 skipped | 3 skipped 为需显式重建完整五岛场景的历史集成测试 |
 
 ### 6.2 真实 CoppeliaSim 验收
 
@@ -172,6 +173,9 @@ python src/run_scene_lifecycle.py list
 | 修改 `MATERIAL_MASS` | `VALIDATION_FAILED`，差异 `saved=0.1 current=1.1`，状态 ERROR | 同上 |
 | 运行中 load/build | 均 `RUN_CONFLICT`，场景未被替换；运行本身 `all_ok=true` | 同上 |
 | 基线保护 | 全部检查前后 scene sha256 不变 | 同上 |
+| `--keep-running` 后台 | 释放运行锁, `background=true`, 仿真保持运行；第二路 start 被 `INVALID_STATE` 拒绝；`stop` 回收为 `SCENE_VALIDATED` | 2026-10-21 实机验收 |
+| 持有进程被强杀 | `status` 自动清理死锁文件并报告 `stale_run=true`；仿真停止时自动恢复 `SCENE_VALIDATED` | 2026-10-21 实机验收 |
+| UR5 关节模式 | 加载校验执行新增 `ur5_joint_modes`，43/43 构建契约通过 | 2026-10-21 实机验收 |
 
 负向检查脚本可复现：`python docs/measurement/check_step1_2.py`。
 
@@ -182,6 +186,7 @@ python src/run_scene_lifecycle.py list
 - `docs/implementation/evidence/step1_2_post_restart_run_20261020_234207.json`
 - `docs/implementation/evidence/step1_2_post_restart_reuse_v002_20261021_000357.json`
 - `docs/implementation/evidence/step1_2_post_restart_run_v002_20261021_000357.json`
+- `docs/implementation/evidence/step1_2_deferred_items_20261021_091500.json`
 - `docs/scene_artifacts/stage1/L1_S1/v002_20261020_234403/`
 
 ## 7. 决策与偏差记录
@@ -194,6 +199,9 @@ python src/run_scene_lifecycle.py list
 | 受保护工件不追加 `lifecycle.jsonl` | 保证阶段一基线文件哈希不变 | 运行/校验事件只写 `.runtime/lifecycle.jsonl` |
 | v001 保留不删除 | 保留首次正式保存的审计历史 | `list` 会显示两个版本；current 明确指向 v002 |
 | `stage1` 与 `stage2` 命名空间由 CLI/MCP 参数显式指定 | 防止 legacy 后端静默接管工件 | 调用方必须传 `--phase` |
+| `--keep-running` 释放运行锁并标记 `background=true` | CLI 退出后不存在控制循环, 继续持锁会误导第二路 start | 后台仿真需显式 `stop` 才能重新 start |
+| `refresh()` 自动清理死亡 PID 锁；仿真已停时自动恢复状态 | 强杀/崩溃后不能要求人工删锁 | 仿真仍在运行时只报告 `stale_run`，需 `stop` 停止 |
+| `adopt_scene`/`verify` 改为一次 alias 索引 | 原实现每个 alias 全场景枚举, 实测启动前开销 36 s | 实测降至约 3 s；行为不变 |
 
 ## 8. 已知边界与阶段二交接
 
@@ -206,3 +214,23 @@ python src/run_scene_lifecycle.py list
   父工件摘要与差异。
 - 任何布局、模型、物理参数或构建逻辑变化都必须重新 build/save 新版本，
   旧工件的配置/模型摘要会拒绝 start。
+
+
+## 9. 暂缓项补齐（2026-10-21）
+
+阶段一报告中的三个暂缓项已全部完成：
+
+1. **UR5 关节模式**：`scene.arm_joint_modes_ok()` 归一化 4.10 的
+   `(mode, options)` 返回；`Stage1Scene.verify()` 增加 `ur5_joint_modes`
+   检查（43 项构建契约）。v002 加载校验实测 `modes=[0,0,0,0,0,0]` 并通过。
+2. **`--keep-running` 遗留锁**：CLI 退出前调用 `enter_background()` 释放
+   `run.lock`，会话保持 `SIMULATION_RUNNING` 且 `background=true`；第二路
+   start 返回 `INVALID_STATE`，`stop` 停止并恢复 `SCENE_VALIDATED`。
+   `refresh()` 现在会清理任何死亡 PID 的锁文件；持有进程被强杀后
+   `status` 报告 `stale_run=true`，仿真已停时自动恢复状态。
+3. **历史 PHASE1_REPORT 命令**：新增“当前复现命令（步骤 1.2 起）”，
+   原命令保留并明确标注为 2026-10-17 历史执行记录。
+
+附带修正：`adopt_scene()`、`Stage1Scene.verify()`、`describe()` 和
+`_cache_required_handles()` 改为一次 alias 索引，启动前场景恢复从实测
+**36 s 降至约 3 s**；全量测试从 147 s 降至 34 s。行为契约不变。

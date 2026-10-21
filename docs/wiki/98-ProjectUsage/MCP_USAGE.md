@@ -132,6 +132,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   `phase="stage2"` + `parent=<stage1 artifact id>` 派生副本。
 - 运行中 `build_scene` / `load_scene` / `save_scene` / `validate_scene`
   与第二路 `start_simulation` 均被拒绝。
+- CLI `--keep-running` 退出前释放运行锁并标记 `background=true`；
+  `stop` 负责停止并回收。持有进程崩溃/被强杀后，`lifecycle_status`
+  会清理死亡 PID 的锁文件并以 `stale_run=true` 报告；仿真已停时自动恢复
+  `SCENE_VALIDATED`。
 
 ## 典型工作流
 

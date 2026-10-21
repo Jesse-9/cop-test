@@ -56,10 +56,13 @@
 | [suction_controller.py](../../src/stage1/suction_controller.py) | UID/传感器/TCP/倾角/速度检查，属性快照与恢复 |
 | [pioneer_controller.py](../../src/stage1/pioneer_controller.py) | 差速换算、限幅、加速度斜坡、轮速下发 |
 | [unit_controller.py](../../src/stage1/unit_controller.py) | §2.11 单步状态机与故障处理 |
-| [run.py](../../src/stage1/run.py) | CLI 实现：构建 → 运行 → 证据采集 → JSON 报告 |
-| [run_stage1.py](../../src/run_stage1.py) | 兼容入口薄包装 |
+| [scene_artifact.py](../../src/stage1/scene_artifact.py) | 步骤 1.2 场景工件/manifest/只读校验（后续新增） |
+| [lifecycle.py](../../src/stage1/lifecycle.py) | 步骤 1.2 生命周期状态机/运行锁（后续新增） |
+| [run.py](../../src/stage1/run.py) | 运行入口：`run_loaded_scene()`（不 build）+ 证据采集 + JSON 报告 |
+| [run_stage1.py](../../src/run_stage1.py) | 兼容入口薄包装（默认加载 current 工件，`--build` 才重建） |
+| [run_scene_lifecycle.py](../../src/run_scene_lifecycle.py) | 步骤 1.2 生命周期 CLI（后续新增） |
 
-运行命令：
+历史运行命令（2026-10-17 验收时，步骤 1.2 之前；保留作为执行记录）：
 
 ```bash
 # 工位目标
@@ -76,6 +79,23 @@
 
 # 故障注入（示例）
 .venv/Scripts/python.exe src/run_stage1.py --target station --fault ik_unreachable
+```
+
+当前复现命令（步骤 1.2 起，使用已保存的只读工件）：
+
+```bash
+# 加载 → 校验 → 运行（不重建场景）
+.venv/Scripts/python.exe src/run_scene_lifecycle.py load current
+.venv/Scripts/python.exe src/run_scene_lifecycle.py validate
+.venv/Scripts/python.exe src/run_scene_lifecycle.py start --target station --time 45
+
+# 兼容入口（默认加载 current；--build 才显式重建并保存新版本）
+.venv/Scripts/python.exe src/run_stage1.py --target agv --time 45
+.venv/Scripts/python.exe src/run_stage1.py --build --target station --time 45
+
+# 故障注入
+.venv/Scripts/python.exe src/run_scene_lifecycle.py start --target station \
+  --fault ik_unreachable
 ```
 
 ### 2.1 内置模型脚本策略

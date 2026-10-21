@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-10-21T09:15:00+08:00",
+  "phase": "step1.2 deferred items",
+  "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+  "ur5_joint_modes": {
+    "ok": true,
+    "modes": [0, 0, 0, 0, 0, 0],
+    "build_contract_checks": 43,
+    "validation_ok": true,
+    "validation_checks": 130
+  },
+  "keep_running": {
+    "run_all_ok": true,
+    "lifecycle_state": "SIMULATION_RUNNING",
+    "background": true,
+    "run_id": null,
+    "lock_owner": null,
+    "second_start_code": "INVALID_STATE",
+    "stop_lifecycle_state": "SCENE_VALIDATED",
+    "stop_background": false,
+    "stop_sim_state": 0
+  },
+  "stale_run": {
+    "stale_run": true,
+    "stale_lock_cleared": {
+      "pid": 40400,
+      "run_id": "run_20261021_091459_1bd546"
+    },
+    "sim_state_after_crash": 0,
+    "recovered_state": "SCENE_VALIDATED",
+    "lock_file_removed": true
+  },
+  "performance": {
+    "adopt_scene_s": 2.06,
+    "verify_s": 0.95,
+    "before_total_s": 36.0,
+    "full_suite_s": 34.07
+  },
+  "tests": {
+    "full_suite": "283 passed / 3 skipped",
+    "lifecycle_tests": 80
+  }
+}

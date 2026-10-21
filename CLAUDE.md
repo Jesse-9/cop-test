@@ -237,9 +237,14 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
 - `prepare_start` 先取运行锁再做只读校验；校验失败释放锁并进入 ERROR。
 - manifest 不含运行时句柄；加载后由 `scene.adopt_scene()` 按 alias 重建
   句柄。配置摘要、模型 sha256、仿真器版本/引擎、对象 alias/类型/父级/
-  世界坐标、42 项构建契约任一不匹配都会在 start 前失败并输出差异。
+  世界坐标、43 项构建契约任一不匹配都会在 start 前失败并输出差异。
 - `save` 默认拒绝“构建后已运行”的非初始位姿；受限快照用
   `--allow-after-run`，且不得作为基线。受保护工件不再追加 lifecycle 事件。
+- `--keep-running` 在 CLI 退出前释放运行锁并标记 `background=true`；
+  第二路 start 被拒绝，`stop` 负责停止并回收。`refresh()` 自动清理死亡
+  PID 的锁文件，`status` 以 `stale_run` 报告崩溃遗留的运行。
+- `Stage1Scene.verify()` 含 43 项构建契约，其中 `ur5_joint_modes` 检查
+  六关节全部 kinematic（4.10 `getJointMode` 返回二元组已归一化）。
 
 CLI：
 
