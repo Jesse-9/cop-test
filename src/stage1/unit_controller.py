@@ -524,7 +524,12 @@ class Stage1UnitController:
                             support - cfg.SUCTION_SETTLE_Z_TOL:
                         self._fail("RELEASE_FAILED: 物料穿透承载面")
                         return
-                self._enter(UnitTaskState.DONE, "task complete")
+                next_state = self._settling_complete_state()
+                if self.state is not UnitTaskState.FAILED:
+                    self._enter(
+                        next_state,
+                        "task complete" if next_state is UnitTaskState.DONE
+                        else "settling complete")
             return
 
     # ── 运动 ────────────────────────────────────────────────
@@ -818,6 +823,10 @@ class Stage1UnitController:
             self.logger.warning("[UNIT] uid=%s 任务失败: %s", self.uid, reason)
 
     # ── 日志/工具 ───────────────────────────────────────────
+
+    def _settling_complete_state(self):
+        """稳定窗口结束后进入的状态; 阶段二覆盖为 RETREATING."""
+        return UnitTaskState.DONE
 
     def _enter(self, state: UnitTaskState, reason: str) -> None:
         self.state = state

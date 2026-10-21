@@ -110,7 +110,10 @@ def sha256_file(path: Path) -> str:
 def _jsonable(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in sorted(value.items())}
-    if isinstance(value, (list, tuple, set, frozenset)):
+    if isinstance(value, (set, frozenset)):
+        # set/frozenset 的迭代顺序受哈希随机化影响; 必须排序保证摘要稳定
+        return [_jsonable(v) for v in sorted(value, key=repr)]
+    if isinstance(value, (list, tuple)):
         return [_jsonable(v) for v in value]
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return _jsonable(dataclasses.asdict(value))

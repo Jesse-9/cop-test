@@ -28,3 +28,24 @@
     传送带证据）；
   - `step1_2_deferred_items_20261021_091500.json` — 暂缓项补齐：UR5 关节
     模式、`--keep-running` 后台/回收、死亡 PID 锁清理、alias 索引性能。
+
+- 阶段二物理约束与运动规划（2026-10-21，工件
+  `stage2/L1_S1/v009_20261021_190527`）：
+  - `phase2_run_station_none_20261021_190559.json` — 正常 station：
+    DONE，物料位置误差 0.00062 m；
+  - `phase2_run_agv_none_20261021_190741.json` — 正常 agv：载荷在载台，
+    轮速行驶 0.5022 m，跟随误差 0.0087 m；
+  - `phase2_run_both_none_20261021_190928.json` — station+agv 两任务
+    DONE（UID 1/2），无串任务；
+  - `phase2_run_station_runtime_obstacle_20261021_191237.json` — 运行期
+    受控障碍：`SAFETY_LATCH: COLLISION`，对象对
+    `link3_visible <-> Fault_Runtime_Obstacle`，停止确认 4e-5 m/s；
+  - `stage2_path_rejection_20261021_121749.json` — 两端安全、中段
+    `PATH_COLLISION`（`Body <-> Fault_Runtime_Obstacle`），移除后恢复；
+  - `stage2_inventory_20261021_104837.json` — P2-0 真实几何/4.10 碰撞
+    API 盘点（collection self-collision indicator 实测无效、conveyor 粗
+    代理 `shape`）；
+  - `stage2_ik_candidates_20261021_105624.json` — 多解 IK 安全分支
+    （pick/station/agv）；
+  - `phase2_mcp_station_none_20261021_191502.json` — MCP 按工件
+    `source_phase` 路由到阶段二 runner 的 station 运行。

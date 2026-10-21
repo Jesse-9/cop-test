@@ -1,0 +1,138 @@
+{
+  "timestamp": "20261021_121749",
+  "q_start": [
+    0.0,
+    0.0,
+    -1.5708,
+    0.0,
+    1.5708,
+    0.0
+  ],
+  "q_goal": [
+    -2.9756,
+    -0.3832,
+    -1.3995,
+    0.2119,
+    1.5709,
+    1.7368
+  ],
+  "baseline": {
+    "status": "OK",
+    "samples": 87,
+    "first_failure": null,
+    "message": "",
+    "min_distance": null
+  },
+  "segment": {
+    "tcp_mid": [
+      -0.77282,
+      0.61272,
+      0.6129
+    ],
+    "tcp_mid_to_start": 0.7202,
+    "tcp_mid_to_end": 0.8226
+  },
+  "hazard": {
+    "handle": 420,
+    "size": [
+      0.05,
+      0.05,
+      0.05
+    ]
+  },
+  "blocked": {
+    "status": "PATH_COLLISION",
+    "samples": 42,
+    "first_failure": {
+      "status": "PATH_COLLISION",
+      "q": [
+        -1.4186,
+        -0.182688,
+        -1.489134,
+        0.101022,
+        1.570848,
+        0.828009
+      ],
+      "tcp": [
+        -0.772308,
+        0.573497,
+        0.615525
+      ],
+      "results": [
+        {
+          "name": "robot_vs_workcell",
+          "state": "COLLISION",
+          "pair": [
+            410,
+            420
+          ],
+          "pair_aliases": [
+            "Body",
+            "Fault_Runtime_Obstacle"
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        {
+          "name": "robot_vs_parts",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        {
+          "name": "robot_distance_margin",
+          "state": "NEAR",
+          "pair": [
+            410,
+            420
+          ],
+          "pair_aliases": [
+            "Body",
+            "Fault_Runtime_Obstacle"
+          ],
+          "distance": 0.0,
+          "threshold": 0.005,
+          "message": ""
+        }
+      ],
+      "contact": null,
+      "message": "robot_vs_workcell 碰撞对 (410, 420) ('Body', 'Fault_Runtime_Obstacle') load=None"
+    },
+    "message": "路径 t=0.477 失败: robot_vs_workcell 碰撞对 (410, 420) ('Body', 'Fault_Runtime_Obstacle') load=None",
+    "min_distance": null
+  },
+  "blocked_pair": {
+    "name": "robot_vs_workcell",
+    "state": "COLLISION",
+    "pair": [
+      410,
+      420
+    ],
+    "pair_aliases": [
+      "Body",
+      "Fault_Runtime_Obstacle"
+    ],
+    "distance": null,
+    "threshold": null,
+    "message": ""
+  },
+  "endpoints_ok_with_hazard": true,
+  "restored": {
+    "status": "OK",
+    "samples": 87,
+    "first_failure": null,
+    "message": "",
+    "min_distance": null
+  },
+  "ok": true
+}

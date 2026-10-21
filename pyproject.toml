@@ -13,14 +13,16 @@ dependencies = [
 build-scene = "reference.build_scene:main"
 run-simulation = "reference.run_simulation:main"
 run-stage1 = "stage1.run:main"
+run-stage2 = "stage2.run:main"
 run-step1-1 = "stage1_1.run_step1_1:main"
 scene-lifecycle = "stage1.lifecycle:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["stage1", "stage1_1", "reference"]
+packages = ["stage1", "stage1_1", "stage2", "reference"]
 py-modules = [
     "run_stage1",
+    "run_stage2",
     "run_step1_1",
     "run_scene_lifecycle",
 ]

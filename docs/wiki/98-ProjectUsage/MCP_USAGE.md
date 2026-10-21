@@ -27,9 +27,11 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 ## 运行模型
 
 - **stdio 传输**: Claude Code 通过启动一个 Python 子进程与服务器通信，无需额外端口。
-- **双后端**: `build_scene` / `start_simulation` / `get_config` / `set_config` 均有
-  `backend` 参数。默认 `backend="stage1"`（当前阶段一单元闭环实现），
-  `backend="legacy"` 运行旧五岛参考层。
+- **双后端 + 阶段二路由**: `build_scene` / `start_simulation` / `get_config` /
+  `set_config` 均有 `backend` 参数。默认 `backend="stage1"`（当前阶段一
+  单元闭环实现），`backend="legacy"` 运行旧五岛参考层。加载 stage2 工件后，
+  `start_simulation` 按 manifest `source_phase` 自动路由到阶段二 runner，
+  复用同一生命周期与运行锁。
 - **主连接复用**: 写/控制类工具 (start/stop/step/set_config 等) 与当前仿真循环共享一个
   `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。连接时同时加载
   `sim` 与 `simIK`（`simIK` 仅供 stage1 使用）。
@@ -38,6 +40,9 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
     `validate_scene` 的工件/场景 → `start_stepping` → 在 daemon 线程运行
     `stage1.run.run_task`，立即返回；任务结束自动写
     `docs/implementation/runs/phase1_mcp_*.json`。
+  - stage2: 当前工件 `source_phase=stage2` 时，同一入口在 daemon 线程运行
+    `stage2.run.run_task_stage2`（规划/碰撞/联锁），写
+    `docs/implementation/runs/phase2_mcp_*.json`；会话资源在结束时销毁。
   - legacy: `FactoryController.run()` 在 daemon 线程运行。
 - **启动探活** (legacy): 启动 5s 后若 `sim_time` 不推进，自动在
   `status.last_error` 写入冻结告警。
@@ -122,6 +127,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 复用:
   load_scene("current") → validate_scene → start_simulation → stop_simulation
+
+阶段二:
+  load_scene("current", phase="stage2") → validate_scene
+  → start_simulation(target="station") → stop_simulation
 ```
 
 - `start_simulation` 不再调用 `build_scene`。没有已加载且已校验的场景时返回
@@ -133,7 +142,8 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 - `save_scene` 只允许仿真停止态；保存后立即重新加载校验，失败不更新
   `current.json`。
 - `phase="stage1"` 工件默认 `protected=true`，拒绝覆盖；阶段二使用
-  `phase="stage2"` + `parent=<stage1 artifact id>` 派生副本。
+  `phase="stage2"` + `parent=<stage1 artifact id>` 派生副本。CLI `save`
+  默认对所有 phase 设 `protected=true`；需要可变诊断副本时加 `--no-protect`。
 - 运行中 `build_scene` / `load_scene` / `save_scene` / `validate_scene`
   与第二路 `start_simulation` 均被拒绝。
 - CLI `--keep-running` 退出前释放运行锁并标记 `background=true`；

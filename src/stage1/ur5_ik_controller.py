@@ -183,6 +183,44 @@ class Ur5IkController:
         return IKResult(True, joints, result_code, reason, precision, False,
                         f"{label} 求解成功", used_seed=seed is not None)
 
+    def solve_candidates(self, target_pose: list[float],
+                         seeds: list[list[float]],
+                         max_candidates: int = 8,
+                         dedupe_tol: float = 0.05) -> list[IKResult]:
+        """用给定初值枚举同一目标位姿的多个 IK 解 (阶段二多解规划用).
+
+        - 只写 IK 环境的关节初值, 不写场景关节;
+        - 每个 seed 先主组伪逆, 失败再阻尼备用组;
+        - 返回成功且关节在限位内的解, 按 q 距离去重;
+        - 默认阶段一调用路径 (``solve``) 完全不变。
+        """
+        if not self.initialized:
+            return []
+        self.sim.setObjectPose(self.target_handle, list(target_pose),
+                               self.sim.handle_world)
+        out: list[IKResult] = []
+        max_candidates = max(1, int(max_candidates))
+        for seed in seeds:
+            values = [float(v) for v in seed]
+            if len(values) != len(self.scene_joints):
+                continue
+            result = self._try_group(self.group_main, "主组(seed)", seed=values)
+            if not result.success:
+                result = self._try_group(
+                    self.group_backup, "备用组(seed)", seed=values)
+                result.used_backup = True
+            if not result.success:
+                continue
+            if not self.joints_within_limits(result.joints):
+                continue
+            if any(_joint_distance(result.joints, other.joints) <= dedupe_tol
+                   for other in out):
+                continue
+            out.append(result)
+            if len(out) >= max_candidates:
+                break
+        return out
+
     def _read_group_joint_positions(self, group: int) -> list[float] | None:
         mapping = self._maps.get(group, {})
         values: list[float] = []
@@ -198,13 +236,15 @@ class Ur5IkController:
 
     # ── 下发 / 校验 ─────────────────────────────────────────
 
-    def apply_joints(self, joints: list[float]) -> None:
+    def apply_joints(self, joints: list[float],
+                     motion: list[float] | None = None) -> None:
         if len(joints) != len(self.scene_joints):
             raise IKError(
                 f"关节数不匹配: {len(joints)} != {len(self.scene_joints)}")
-        motion = [cfg.ARM_JOINT_TARGET_VEL,
-                  cfg.ARM_JOINT_TARGET_ACCEL,
-                  cfg.ARM_JOINT_TARGET_JERK]
+        if motion is None:
+            motion = [cfg.ARM_JOINT_TARGET_VEL,
+                      cfg.ARM_JOINT_TARGET_ACCEL,
+                      cfg.ARM_JOINT_TARGET_JERK]
         for j, q in zip(self.scene_joints, joints):
             self.sim.setJointTargetPosition(j, float(q), motion)
 
@@ -275,6 +315,10 @@ def _parse_handle_result(ret) -> tuple[int, int, list[float]]:
     if isinstance(ret, (tuple, list)) and len(ret) >= 3:
         return int(ret[0]), int(ret[1]), list(ret[2])
     return int(ret), 0, []
+
+
+def _joint_distance(a, b) -> float:
+    return math.sqrt(sum((float(x) - float(y)) ** 2 for x, y in zip(a, b)))
 
 
 def _lin(precision) -> float:

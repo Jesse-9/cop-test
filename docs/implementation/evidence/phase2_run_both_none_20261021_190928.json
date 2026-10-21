@@ -1,0 +1,4627 @@
+{
+  "timestamp": "20261021_190928",
+  "run_id": "run_20261021_190924_682f89",
+  "artifact_id": "stage2/L1_S1/v009_20261021_190527",
+  "phase": "stage2",
+  "target": "both",
+  "fault": "none",
+  "layout": "L1_S1",
+  "stage2_runtime": {
+    "controller_id": "stage2.unit_controller.Stage2UnitController",
+    "contract_version": "stage2_contract_20261021",
+    "cup_radius": 0.023579,
+    "shadow": {
+      "root_alias": "Shadow_UR5_01",
+      "joints": 6,
+      "link_aliases": [
+        "link1_visible",
+        "link2_visible",
+        "link3_visible",
+        "link4_visible",
+        "link5_visible",
+        "link6_visible",
+        "link7_visible"
+      ],
+      "pad_body": 200,
+      "load_alias": "Shadow_Load_01",
+      "shape_count": 18,
+      "visibility_hidden": true,
+      "policy": "session_resource"
+    },
+    "collections": [],
+    "startup": {
+      "fk": {
+        "ok": true,
+        "pos_tol": 0.0001,
+        "ang_tol": 0.001,
+        "joints": [
+          0.0,
+          0.0,
+          -1.570796,
+          0.0,
+          1.570796,
+          0.0
+        ],
+        "links": [
+          {
+            "link": "link1_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link2_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link3_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link4_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link5_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link6_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link7_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "tcp",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          }
+        ]
+      },
+      "cup_radius_measured": 0.023579,
+      "cup_radius_design": 0.0235795,
+      "query_semantics": {
+        "overlap": {
+          "name": "probe_overlap",
+          "state": "COLLISION",
+          "pair": [
+            207,
+            208
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "separated": {
+          "name": "probe_separated",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "distance_with_threshold": {
+          "name": "probe_distance_threshold",
+          "state": "NEAR",
+          "pair": [
+            207,
+            209
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": 0.3,
+          "threshold": 0.5,
+          "message": ""
+        },
+        "distance_outside_threshold": {
+          "name": "probe_distance_outside",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": 0.01,
+          "message": ""
+        },
+        "distance_exact": {
+          "name": "probe_distance_exact",
+          "state": "NEAR",
+          "pair": [
+            207,
+            209
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": 0.3,
+          "threshold": 0.0,
+          "message": ""
+        },
+        "collidable_false": {
+          "name": "probe_collidable_false",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "ok": true
+      },
+      "self_pairs": 15,
+      "collections": {
+        "stage2_shadow": 8,
+        "stage2_shadow_links": 7,
+        "stage2_shadow_no_base": 7,
+        "stage2_workcell": 59,
+        "stage2_mount": 1,
+        "stage2_workcell_mount": 60,
+        "stage2_parts": 0,
+        "stage2_target": 0,
+        "stage2_shadow_load": 1
+      },
+      "excluded": [
+        {
+          "alias": "shape",
+          "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+        }
+      ],
+      "workcell_aliases": [
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "Island_A_Station",
+        "Warehouse_Raw",
+        "Floor",
+        "visible",
+        "AGV_LoadTray",
+        "AGV_TrayWall_Front",
+        "AGV_TrayWall_Back",
+        "AGV_TrayWall_Left",
+        "AGV_TrayWall_Right"
+      ],
+      "shadow_hidden": true
+    }
+  },
+  "runtime_destroy": {
+    "hazards_removed": 0,
+    "shadow_removed": 4,
+    "leftover": []
+  },
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09776,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 17,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01007,
+    "stop_ok": true
+  },
+  "results": [
+    {
+      "target": "station",
+      "task": {
+        "uid": 1,
+        "target": "station",
+        "layout": "L1_S1",
+        "state": "DONE",
+        "failure_reason": "",
+        "material_state": "RELEASED",
+        "compensation_count": 4,
+        "pick_pose": [
+          -0.3075,
+          0.00015,
+          0.5
+        ],
+        "pick_tcp": [
+          -0.3075,
+          0.00015,
+          0.55,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "agv_blocked": false,
+        "events": [
+          [
+            0.8500000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+          ],
+          [
+            0.8500000000000002,
+            "WAITING_FOR_ITEM: task started"
+          ],
+          [
+            0.9000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0097 m (physical=0.0003, shortfall=0.0097)"
+          ],
+          [
+            0.9500000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+          ],
+          [
+            1.0000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0028 m (physical=0.0072, shortfall=0.0028)"
+          ],
+          [
+            4.249999999999993,
+            "STOPPING: conveyor stop commanded (sensor_hit)"
+          ],
+          [
+            4.399999999999992,
+            "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 4.249999999999993, 'material_start': [-0.32765, 9e-05, 0.5], 'material_end': [-0.3075, 0.00015, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02015, 'lateral_drift': 7e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+          ],
+          [
+            4.399999999999992,
+            "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+          ],
+          [
+            4.6499999999999915,
+            "material stable at (-0.3075,0.0002,0.5000) tilt=0.000; surface contact target fixed"
+          ],
+          [
+            4.6499999999999915,
+            "APPROACHING: measured pose after active stop"
+          ],
+          [
+            4.699999999999991,
+            "PLAN DIRECT_OK strategy=direct segments=2 samples=47 wall=1.70s"
+          ],
+          [
+            11.100000000000023,
+            "ATTACHING: approach complete"
+          ],
+          [
+            11.150000000000023,
+            "LIFTING: attached"
+          ],
+          [
+            11.200000000000024,
+            "PLAN DIRECT_OK strategy=direct segments=1 samples=31 wall=1.30s"
+          ],
+          [
+            14.200000000000067,
+            "TRANSFERRING: lift complete"
+          ],
+          [
+            14.250000000000068,
+            "PLAN DIRECT_OK strategy=direct segments=4 samples=133 wall=3.98s"
+          ],
+          [
+            33.10000000000026,
+            "PLACING: transfer complete"
+          ],
+          [
+            33.150000000000254,
+            "RELEASING: at place pose"
+          ],
+          [
+            33.20000000000025,
+            "SETTLING: released, waiting settle"
+          ],
+          [
+            34.000000000000206,
+            "RETREATING: 抬升撤离 (drift=0.0004 m)"
+          ],
+          [
+            34.000000000000206,
+            "RETREATING: settling complete"
+          ],
+          [
+            34.0500000000002,
+            "PLAN DIRECT_OK strategy=direct segments=1 samples=33 wall=1.00s"
+          ],
+          [
+            36.850000000000044,
+            "DONE: retreat complete"
+          ]
+        ],
+        "controller_id": "stage2.unit_controller.Stage2UnitController",
+        "stage2": true,
+        "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+        },
+        "plan": {
+          "status": "DIRECT_OK",
+          "strategy": "direct",
+          "waypoints": [
+            [
+              -2.971523,
+              -0.521555,
+              -1.599367,
+              0.551872,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.510115,
+              -1.590011,
+              0.531076,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.499176,
+              -1.580021,
+              0.510146,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.488642,
+              -1.569504,
+              0.489096,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.478519,
+              -1.558461,
+              0.467929,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.468814,
+              -1.546888,
+              0.446651,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.45953,
+              -1.534785,
+              0.425265,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.450673,
+              -1.52215,
+              0.403772,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.442249,
+              -1.508978,
+              0.382177,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.434263,
+              -1.495267,
+              0.360479,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.426718,
+              -1.481013,
+              0.33868,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.419621,
+              -1.466211,
+              0.316781,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.412975,
+              -1.450855,
+              0.294779,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.406786,
+              -1.434939,
+              0.272674,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.401059,
+              -1.418455,
+              0.250463,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.3958,
+              -1.401395,
+              0.228143,
+              1.570796,
+              1.740714
+            ],
+            [
+              -2.971523,
+              -0.391013,
+              -1.383748,
+              0.205711,
+              1.570796,
+              1.740714
+            ]
+          ],
+          "segments": [
+            {
+              "name": "retreat",
+              "cartesian": true,
+              "q_start": [
+                -2.971523,
+                -0.3958,
+                -1.401395,
+                0.228143,
+                1.570796,
+                1.740714
+              ],
+              "q_end": [
+                -2.971523,
+                -0.391013,
+                -1.383748,
+                0.205711,
+                1.570796,
+                1.740714
+              ],
+              "samples": 16
+            }
+          ],
+          "message": "1 段通过粗筛与最终复核",
+          "samples": 33,
+          "configs": 33,
+          "wall_s": 1.0,
+          "attempts": [
+            {
+              "strategy": "direct",
+              "status": "DIRECT_OK",
+              "message": "1 段通过粗筛与最终复核"
+            }
+          ],
+          "goal_pose": [
+            -0.20009,
+            1.200448,
+            0.550782,
+            0.00086,
+            0.000148,
+            7.6e-05,
+            1.0
+          ],
+          "final_contact": false,
+          "strict_orientation": false
+        },
+        "stop": {
+          "status": "OK",
+          "command_time": 4.249999999999993,
+          "material_start": [
+            -0.32765,
+            9e-05,
+            0.5
+          ],
+          "material_end": [
+            -0.3075,
+            0.00015,
+            0.5
+          ],
+          "belt_speed_before": 0.2,
+          "latency": 0.15,
+          "overrun": 0.02015,
+          "lateral_drift": 7e-05,
+          "height_drift": 4e-05,
+          "steps": 4,
+          "speed_source": "model_state",
+          "speed_valid": true,
+          "pad_still": true,
+          "message": "零速停带且越程/漂移在容差内"
+        },
+        "stability": {
+          "stable": true,
+          "count": 5,
+          "step_moved": 0.0,
+          "speed": 0.0,
+          "drift": 4e-06,
+          "elapsed": 0.25,
+          "timed_out": false
+        },
+        "compensation": {
+          "count": 4,
+          "long_compensation": false,
+          "overspeed_steps": 0
+        },
+        "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 1,
+          "signed_distance": 0.000358,
+          "lateral_offset": 7.5e-05,
+          "offset_xy": [
+            1e-06,
+            7.5e-05
+          ],
+          "normal_angle": 0.000641,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+            "center_world": [
+              -0.307496,
+              0.000154,
+              0.55
+            ],
+            "normal_world": [
+              -0.0,
+              -0.0,
+              1.0
+            ],
+            "half_u": 0.05,
+            "half_v": 0.05,
+            "top_z_local": 0.05
+          },
+          "tool_position": [
+            -0.307495,
+            0.00023,
+            0.550358
+          ],
+          "tool_normal": [
+            3e-06,
+            -0.000641,
+            -1.0
+          ]
+        },
+        "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+            -2.971523,
+            -0.391088,
+            -1.385289,
+            0.206275,
+            1.570796,
+            1.740714
+          ],
+          "links": [
+            {
+              "link": "link1_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link2_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link3_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link4_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link5_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link6_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link7_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "tcp",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            }
+          ]
+        },
+        "attach_transform": [
+          -1e-06,
+          -4.3e-05,
+          -0.050358,
+          -0.000321,
+          -1e-06,
+          -9.6e-05,
+          -1.0
+        ],
+        "release": {
+          "pose": [
+            -0.200106,
+            1.200491,
+            0.350425,
+            -0.001181,
+            -0.000149,
+            -0.000172,
+            -0.999999
+          ]
+        },
+        "pick_box": {
+          "min": [
+            -0.05,
+            -0.05,
+            -0.05
+          ],
+          "max": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        }
+      },
+      "material": {
+        "pose": [
+          -0.20012,
+          1.20062,
+          0.35,
+          0.0,
+          0.0,
+          0.00017,
+          1.0
+        ],
+        "expected_pose": [
+          -0.2,
+          1.2,
+          0.35,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "position_error": 0.00063,
+        "physics": {
+          "static": 0,
+          "kinematic": 0,
+          "respondable": 1,
+          "mask": 65535,
+          "mass": 0.1,
+          "friction": 0.6
+        },
+        "dynamic_ok": true,
+        "respondable_ok": true
+      },
+      "tcp": {
+        "pose": [
+          -0.20004,
+          1.20016,
+          0.55007,
+          0.00034,
+          6e-05,
+          8e-05,
+          1.0
+        ]
+      },
+      "tool": {
+        "version": "suction_mount_rx180_20261020",
+        "ok": true,
+        "mount_z": 0.04754997428506614,
+        "mount_quaternion": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "flange_protrusion_z": 0.007549934089183821,
+        "link_clearance_design": 0.005,
+        "handles": {
+          "connection": 112,
+          "pad": 113,
+          "tcp": 119,
+          "sensor": 120,
+          "model_sensor": 115,
+          "link": 116
+        },
+        "joint_positions": [
+          -2.9715232139787986,
+          -0.39108772520754737,
+          -1.385289302262781,
+          0.206274790910323,
+          1.5707963267948966,
+          1.740713865214089
+        ],
+        "sim_time": 36.90000000000004,
+        "pad_world_pose": [
+          -0.20003817272112925,
+          1.2001463453420012,
+          0.565066648080609,
+          0.0003420427565969386,
+          5.8711679989220666e-05,
+          7.59505912541758e-05,
+          0.9999999368955975
+        ],
+        "tcp_world_pose": [
+          -0.20003993485663688,
+          1.2001566065244498,
+          0.5500666017376874,
+          0.0003420427565969386,
+          5.8711679989220666e-05,
+          7.59505912541758e-05,
+          0.9999999368955975
+        ],
+        "tcp_in_pad": [
+          2.7755575615628914e-17,
+          -2.220446049250313e-16,
+          -0.015000049956143013,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "pad_in_connection": [
+          -2.7755575615628914e-17,
+          0.0,
+          0.04754997428506624,
+          1.0,
+          0.0,
+          1.674213559807328e-21,
+          0.0
+        ],
+        "suction_normal_world": [
+          -0.00011747530926770586,
+          0.0006840765516514523,
+          -0.9999997591193825
+        ],
+        "sensor_axis_world": [
+          -0.00011747530926782829,
+          0.0006840765516513298,
+          -0.9999997591193828
+        ],
+        "model_sensor_axis_world": [
+          -0.0001174753225438165,
+          0.0006841639744065588,
+          -0.9999997590595737
+        ],
+        "end_link_max_z_in_connection": 0.007549934089184038,
+        "pad_back_plane_z": 0.012549934089183819,
+        "link_clearance": 0.004999999999999781
+      },
+      "arm_joints": [
+        -2.97152,
+        -0.39109,
+        -1.38529,
+        0.20627,
+        1.5708,
+        1.74071
+      ],
+      "agv": {
+        "pose": [
+          0.38697,
+          0.74955,
+          0.13869,
+          -4e-05,
+          -0.00091,
+          -0.00195,
+          1.0
+        ],
+        "state": "IDLE",
+        "blocked": false,
+        "last_wheel_speeds": [
+          0.0,
+          0.0
+        ]
+      },
+      "conveyor": {
+        "drive_mode": "SCRIPT_DRIVEN",
+        "commanded_velocity": 0.0,
+        "actual_velocity": 4e-05
+      },
+      "sim_time": 36.9,
+      "steps": 721,
+      "stage2": {
+        "controller": {
+          "uid": 1,
+          "target": "station",
+          "layout": "L1_S1",
+          "state": "DONE",
+          "failure_reason": "",
+          "material_state": "RELEASED",
+          "compensation_count": 4,
+          "pick_pose": [
+            -0.3075,
+            0.00015,
+            0.5
+          ],
+          "pick_tcp": [
+            -0.3075,
+            0.00015,
+            0.55,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "agv_blocked": false,
+          "events": [
+            [
+              0.8500000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+            ],
+            [
+              0.8500000000000002,
+              "WAITING_FOR_ITEM: task started"
+            ],
+            [
+              0.9000000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0097 m (physical=0.0003, shortfall=0.0097)"
+            ],
+            [
+              0.9500000000000003,
+              "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+            ],
+            [
+              1.0000000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0028 m (physical=0.0072, shortfall=0.0028)"
+            ],
+            [
+              4.249999999999993,
+              "STOPPING: conveyor stop commanded (sensor_hit)"
+            ],
+            [
+              4.399999999999992,
+              "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 4.249999999999993, 'material_start': [-0.32765, 9e-05, 0.5], 'material_end': [-0.3075, 0.00015, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02015, 'lateral_drift': 7e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+            ],
+            [
+              4.399999999999992,
+              "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+            ],
+            [
+              4.6499999999999915,
+              "material stable at (-0.3075,0.0002,0.5000) tilt=0.000; surface contact target fixed"
+            ],
+            [
+              4.6499999999999915,
+              "APPROACHING: measured pose after active stop"
+            ],
+            [
+              4.699999999999991,
+              "PLAN DIRECT_OK strategy=direct segments=2 samples=47 wall=1.70s"
+            ],
+            [
+              11.100000000000023,
+              "ATTACHING: approach complete"
+            ],
+            [
+              11.150000000000023,
+              "LIFTING: attached"
+            ],
+            [
+              11.200000000000024,
+              "PLAN DIRECT_OK strategy=direct segments=1 samples=31 wall=1.30s"
+            ],
+            [
+              14.200000000000067,
+              "TRANSFERRING: lift complete"
+            ],
+            [
+              14.250000000000068,
+              "PLAN DIRECT_OK strategy=direct segments=4 samples=133 wall=3.98s"
+            ],
+            [
+              33.10000000000026,
+              "PLACING: transfer complete"
+            ],
+            [
+              33.150000000000254,
+              "RELEASING: at place pose"
+            ],
+            [
+              33.20000000000025,
+              "SETTLING: released, waiting settle"
+            ],
+            [
+              34.000000000000206,
+              "RETREATING: 抬升撤离 (drift=0.0004 m)"
+            ],
+            [
+              34.000000000000206,
+              "RETREATING: settling complete"
+            ],
+            [
+              34.0500000000002,
+              "PLAN DIRECT_OK strategy=direct segments=1 samples=33 wall=1.00s"
+            ],
+            [
+              36.850000000000044,
+              "DONE: retreat complete"
+            ]
+          ],
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "stage2": true,
+          "safety": {
+            "engaged": false,
+            "code": "",
+            "reason": "",
+            "sim_time": null,
+            "details": {},
+            "stop_commanded": false,
+            "stop_command_ok": null,
+            "stop_confirmed": false,
+            "stop_checks": 0,
+            "stop_speed": null,
+            "stop_source": ""
+          },
+          "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "direct",
+            "waypoints": [
+              [
+                -2.971523,
+                -0.521555,
+                -1.599367,
+                0.551872,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.510115,
+                -1.590011,
+                0.531076,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.499176,
+                -1.580021,
+                0.510146,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.488642,
+                -1.569504,
+                0.489096,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.478519,
+                -1.558461,
+                0.467929,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.468814,
+                -1.546888,
+                0.446651,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.45953,
+                -1.534785,
+                0.425265,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.450673,
+                -1.52215,
+                0.403772,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.442249,
+                -1.508978,
+                0.382177,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.434263,
+                -1.495267,
+                0.360479,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.426718,
+                -1.481013,
+                0.33868,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.419621,
+                -1.466211,
+                0.316781,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.412975,
+                -1.450855,
+                0.294779,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.406786,
+                -1.434939,
+                0.272674,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.401059,
+                -1.418455,
+                0.250463,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.3958,
+                -1.401395,
+                0.228143,
+                1.570796,
+                1.740714
+              ],
+              [
+                -2.971523,
+                -0.391013,
+                -1.383748,
+                0.205711,
+                1.570796,
+                1.740714
+              ]
+            ],
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "q_start": [
+                  -2.971523,
+                  -0.3958,
+                  -1.401395,
+                  0.228143,
+                  1.570796,
+                  1.740714
+                ],
+                "q_end": [
+                  -2.971523,
+                  -0.391013,
+                  -1.383748,
+                  0.205711,
+                  1.570796,
+                  1.740714
+                ],
+                "samples": 16
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核",
+            "samples": 33,
+            "configs": 33,
+            "wall_s": 1.0,
+            "attempts": [
+              {
+                "strategy": "direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核"
+              }
+            ],
+            "goal_pose": [
+              -0.20009,
+              1.200448,
+              0.550782,
+              0.00086,
+              0.000148,
+              7.6e-05,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false
+          },
+          "stop": {
+            "status": "OK",
+            "command_time": 4.249999999999993,
+            "material_start": [
+              -0.32765,
+              9e-05,
+              0.5
+            ],
+            "material_end": [
+              -0.3075,
+              0.00015,
+              0.5
+            ],
+            "belt_speed_before": 0.2,
+            "latency": 0.15,
+            "overrun": 0.02015,
+            "lateral_drift": 7e-05,
+            "height_drift": 4e-05,
+            "steps": 4,
+            "speed_source": "model_state",
+            "speed_valid": true,
+            "pad_still": true,
+            "message": "零速停带且越程/漂移在容差内"
+          },
+          "stability": {
+            "stable": true,
+            "count": 5,
+            "step_moved": 0.0,
+            "speed": 0.0,
+            "drift": 4e-06,
+            "elapsed": 0.25,
+            "timed_out": false
+          },
+          "compensation": {
+            "count": 4,
+            "long_compensation": false,
+            "overspeed_steps": 0
+          },
+          "contact": {
+            "valid": true,
+            "reasons": [],
+            "uid": 1,
+            "signed_distance": 0.000358,
+            "lateral_offset": 7.5e-05,
+            "offset_xy": [
+              1e-06,
+              7.5e-05
+            ],
+            "normal_angle": 0.000641,
+            "within_face": true,
+            "cup_covered": true,
+            "cup_radius": 0.023579,
+            "surface": {
+              "center_world": [
+                -0.307496,
+                0.000154,
+                0.55
+              ],
+              "normal_world": [
+                -0.0,
+                -0.0,
+                1.0
+              ],
+              "half_u": 0.05,
+              "half_v": 0.05,
+              "top_z_local": 0.05
+            },
+            "tool_position": [
+              -0.307495,
+              0.00023,
+              0.550358
+            ],
+            "tool_normal": [
+              3e-06,
+              -0.000641,
+              -1.0
+            ]
+          },
+          "fk": {
+            "ok": true,
+            "pos_tol": 0.0001,
+            "ang_tol": 0.001,
+            "joints": [
+              -2.971523,
+              -0.391088,
+              -1.385289,
+              0.206275,
+              1.570796,
+              1.740714
+            ],
+            "links": [
+              {
+                "link": "link1_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link2_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link3_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link4_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link5_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link6_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link7_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "tcp",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              }
+            ]
+          },
+          "attach_transform": [
+            -1e-06,
+            -4.3e-05,
+            -0.050358,
+            -0.000321,
+            -1e-06,
+            -9.6e-05,
+            -1.0
+          ],
+          "release": {
+            "pose": [
+              -0.200106,
+              1.200491,
+              0.350425,
+              -0.001181,
+              -0.000149,
+              -0.000172,
+              -0.999999
+            ]
+          },
+          "pick_box": {
+            "min": [
+              -0.05,
+              -0.05,
+              -0.05
+            ],
+            "max": [
+              0.05,
+              0.05,
+              0.05
+            ]
+          }
+        },
+        "runtime": {
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "contract_version": "stage2_contract_20261021",
+          "cup_radius": 0.023579,
+          "shadow": {
+            "root_alias": "Shadow_UR5_01",
+            "joints": 6,
+            "link_aliases": [
+              "link1_visible",
+              "link2_visible",
+              "link3_visible",
+              "link4_visible",
+              "link5_visible",
+              "link6_visible",
+              "link7_visible"
+            ],
+            "pad_body": 200,
+            "load_alias": "Shadow_Load_01",
+            "shape_count": 18,
+            "visibility_hidden": true,
+            "policy": "session_resource"
+          },
+          "collections": [
+            {
+              "name": "stage2_shadow",
+              "roles": "影子 UR5 全部可见连杆 + 吸盘 Body",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_links",
+              "roles": "影子 UR5 连杆 (不含吸盘)",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_no_base",
+              "roles": "除 link1 外的连杆 + 吸盘 Body (安装平台检查)",
+              "items": [
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell",
+              "roles": "conveyor pads/工位台面/仓库/地面/AGV 车体与载台",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_mount",
+              "roles": "UR5 安装平台 Island_A (仅 link1 固定安装接触)",
+              "items": [
+                {
+                  "alias": "Island_A",
+                  "role": "mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell_mount",
+              "roles": "工作区 + 安装平台; 用于除 link1 外的全部机器人 shape",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A",
+                  "role": "workcell_mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_parts",
+              "roles": "非目标动态物料",
+              "items": []
+            },
+            {
+              "name": "stage2_target",
+              "roles": "当前目标物料",
+              "items": []
+            },
+            {
+              "name": "stage2_shadow_load",
+              "roles": "影子载荷 (仅带载检查)",
+              "items": [
+                {
+                  "alias": "Shadow_Load_01",
+                  "role": "load",
+                  "what": "single"
+                }
+              ]
+            }
+          ],
+          "startup": {
+            "fk": {
+              "ok": true,
+              "pos_tol": 0.0001,
+              "ang_tol": 0.001,
+              "joints": [
+                0.0,
+                0.0,
+                -1.570796,
+                0.0,
+                1.570796,
+                0.0
+              ],
+              "links": [
+                {
+                  "link": "link1_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link2_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link3_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link4_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link5_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link6_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link7_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "tcp",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                }
+              ]
+            },
+            "cup_radius_measured": 0.023579,
+            "cup_radius_design": 0.0235795,
+            "query_semantics": {
+              "overlap": {
+                "name": "probe_overlap",
+                "state": "COLLISION",
+                "pair": [
+                  207,
+                  208
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "separated": {
+                "name": "probe_separated",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "distance_with_threshold": {
+                "name": "probe_distance_threshold",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.5,
+                "message": ""
+              },
+              "distance_outside_threshold": {
+                "name": "probe_distance_outside",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": 0.01,
+                "message": ""
+              },
+              "distance_exact": {
+                "name": "probe_distance_exact",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.0,
+                "message": ""
+              },
+              "collidable_false": {
+                "name": "probe_collidable_false",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "ok": true
+            },
+            "self_pairs": 15,
+            "collections": {
+              "stage2_shadow": 8,
+              "stage2_shadow_links": 7,
+              "stage2_shadow_no_base": 7,
+              "stage2_workcell": 59,
+              "stage2_mount": 1,
+              "stage2_workcell_mount": 60,
+              "stage2_parts": 0,
+              "stage2_target": 0,
+              "stage2_shadow_load": 1
+            },
+            "excluded": [
+              {
+                "alias": "shape",
+                "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+              }
+            ],
+            "workcell_aliases": [
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "Island_A_Station",
+              "Warehouse_Raw",
+              "Floor",
+              "visible",
+              "AGV_LoadTray",
+              "AGV_TrayWall_Front",
+              "AGV_TrayWall_Back",
+              "AGV_TrayWall_Left",
+              "AGV_TrayWall_Right"
+            ],
+            "shadow_hidden": true
+          }
+        },
+        "hazard_injected": false
+      },
+      "ok": true
+    },
+    {
+      "target": "agv",
+      "task": {
+        "uid": 2,
+        "target": "agv",
+        "layout": "L1_S1",
+        "state": "DONE",
+        "failure_reason": "",
+        "material_state": "RELEASED",
+        "compensation_count": 4,
+        "pick_pose": [
+          -0.30746,
+          0.00026,
+          0.5
+        ],
+        "pick_tcp": [
+          -0.30746,
+          0.00026,
+          0.55,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "agv_blocked": false,
+        "events": [
+          [
+            36.90000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+          ],
+          [
+            36.90000000000004,
+            "WAITING_FOR_ITEM: task started"
+          ],
+          [
+            36.95000000000004,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+          ],
+          [
+            37.000000000000036,
+            "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+          ],
+          [
+            37.05000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0027 m (physical=0.0073, shortfall=0.0027)"
+          ],
+          [
+            40.29999999999985,
+            "STOPPING: conveyor stop commanded (sensor_hit)"
+          ],
+          [
+            40.44999999999984,
+            "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 40.29999999999985, 'material_start': [-0.32757, 0.00029, 0.5], 'material_end': [-0.30746, 0.00026, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02011, 'lateral_drift': 3e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+          ],
+          [
+            40.44999999999984,
+            "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+          ],
+          [
+            40.699999999999825,
+            "material stable at (-0.3075,0.0003,0.5000) tilt=0.000; surface contact target fixed"
+          ],
+          [
+            40.699999999999825,
+            "APPROACHING: measured pose after active stop"
+          ],
+          [
+            40.74999999999982,
+            "PLAN DIRECT_OK strategy=direct segments=2 samples=59 wall=1.70s"
+          ],
+          [
+            52.39999999999916,
+            "ATTACHING: approach complete"
+          ],
+          [
+            52.44999999999916,
+            "LIFTING: attached"
+          ],
+          [
+            52.499999999999154,
+            "PLAN DIRECT_OK strategy=direct segments=1 samples=31 wall=1.11s"
+          ],
+          [
+            55.499999999998984,
+            "TRANSFERRING: lift complete"
+          ],
+          [
+            55.54999999999898,
+            "PLAN DIRECT_OK strategy=direct segments=4 samples=164 wall=4.22s"
+          ],
+          [
+            76.5499999999978,
+            "PLACING: transfer complete"
+          ],
+          [
+            76.59999999999779,
+            "RELEASING: at place pose"
+          ],
+          [
+            76.64999999999779,
+            "SETTLING: released, waiting settle"
+          ],
+          [
+            77.44999999999774,
+            "RETREATING: 抬升撤离 (drift=0.0005 m)"
+          ],
+          [
+            77.44999999999774,
+            "RETREATING: settling complete"
+          ],
+          [
+            77.49999999999774,
+            "PLAN DIRECT_OK strategy=direct segments=1 samples=33 wall=1.12s"
+          ],
+          [
+            80.24999999999758,
+            "DONE: retreat complete"
+          ],
+          [
+            83.89999999999738,
+            "AGV 轮速行驶完成: 0.505 m / 3.65 s"
+          ]
+        ],
+        "controller_id": "stage2.unit_controller.Stage2UnitController",
+        "stage2": true,
+        "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+        },
+        "plan": {
+          "status": "DIRECT_OK",
+          "strategy": "direct",
+          "waypoints": [
+            [
+              -1.423983,
+              0.952297,
+              0.945563,
+              2.813158,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.94343,
+              0.937455,
+              2.830133,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.935275,
+              0.928041,
+              2.847701,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.927533,
+              0.917896,
+              2.865589,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.920212,
+              0.907003,
+              2.883803,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.913326,
+              0.895341,
+              2.90235,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.90689,
+              0.882889,
+              2.921238,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.900919,
+              0.869619,
+              2.94048,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.895431,
+              0.855501,
+              2.960085,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.890445,
+              0.840503,
+              2.98007,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.885982,
+              0.824584,
+              3.000451,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.882068,
+              0.8077,
+              3.021249,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.87873,
+              0.789799,
+              3.042489,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.875998,
+              0.770821,
+              3.064198,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.87391,
+              0.750696,
+              3.086411,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.872507,
+              0.729341,
+              3.109169,
+              1.570796,
+              -2.994781
+            ],
+            [
+              -1.423983,
+              0.871839,
+              0.706657,
+              3.132521,
+              1.570796,
+              -2.994781
+            ]
+          ],
+          "segments": [
+            {
+              "name": "retreat",
+              "cartesian": true,
+              "q_start": [
+                -1.423983,
+                0.872507,
+                0.729341,
+                3.109169,
+                1.570796,
+                -2.994781
+              ],
+              "q_end": [
+                -1.423983,
+                0.871839,
+                0.706657,
+                3.132521,
+                1.570796,
+                -2.994781
+              ],
+              "samples": 16
+            }
+          ],
+          "message": "1 段通过粗筛与最终复核",
+          "samples": 33,
+          "configs": 33,
+          "wall_s": 1.125,
+          "attempts": [
+            {
+              "strategy": "direct",
+              "status": "DIRECT_OK",
+              "message": "1 段通过粗筛与最终复核"
+            }
+          ],
+          "goal_pose": [
+            0.400356,
+            0.749975,
+            0.507415,
+            0.0001,
+            -0.000678,
+            0.0,
+            1.0
+          ],
+          "final_contact": false,
+          "strict_orientation": false
+        },
+        "stop": {
+          "status": "OK",
+          "command_time": 40.29999999999985,
+          "material_start": [
+            -0.32757,
+            0.00029,
+            0.5
+          ],
+          "material_end": [
+            -0.30746,
+            0.00026,
+            0.5
+          ],
+          "belt_speed_before": 0.2,
+          "latency": 0.15,
+          "overrun": 0.02011,
+          "lateral_drift": 3e-05,
+          "height_drift": 4e-05,
+          "steps": 4,
+          "speed_source": "model_state",
+          "speed_valid": true,
+          "pad_still": true,
+          "message": "零速停带且越程/漂移在容差内"
+        },
+        "stability": {
+          "stable": true,
+          "count": 5,
+          "step_moved": 0.0,
+          "speed": 1e-06,
+          "drift": 1e-06,
+          "elapsed": 0.25,
+          "timed_out": false
+        },
+        "compensation": {
+          "count": 4,
+          "long_compensation": false,
+          "overspeed_steps": 0
+        },
+        "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 2,
+          "signed_distance": 0.000353,
+          "lateral_offset": 0.000113,
+          "offset_xy": [
+            9.3e-05,
+            6.4e-05
+          ],
+          "normal_angle": 0.000593,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+            "center_world": [
+              -0.307459,
+              0.000264,
+              0.55
+            ],
+            "normal_world": [
+              -0.0,
+              -0.0,
+              1.0
+            ],
+            "half_u": 0.05,
+            "half_v": 0.05,
+            "top_z_local": 0.05
+          },
+          "tool_position": [
+            -0.307366,
+            0.000328,
+            0.550353
+          ],
+          "tool_normal": [
+            3e-06,
+            -0.000593,
+            -1.0
+          ]
+        },
+        "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+            -1.423983,
+            0.87193,
+            0.708542,
+            3.131657,
+            1.570796,
+            -2.994781
+          ],
+          "links": [
+            {
+              "link": "link1_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link2_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link3_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link4_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link5_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link6_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link7_visible",
+              "pos_err": 0.0,
+              "ang_err": 3e-08
+            },
+            {
+              "link": "tcp",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            }
+          ]
+        },
+        "attach_transform": [
+          -9.3e-05,
+          -3.4e-05,
+          -0.050353,
+          -0.000296,
+          -1e-06,
+          -0.00238,
+          -0.999997
+        ],
+        "release": {
+          "pose": [
+            0.400331,
+            0.749951,
+            0.307062,
+            -0.000395,
+            0.000678,
+            -0.00238,
+            -0.999997
+          ]
+        },
+        "pick_box": {
+          "min": [
+            -0.05,
+            -0.05,
+            -0.05
+          ],
+          "max": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        }
+      },
+      "material": {
+        "pose": [
+          0.90651,
+          0.74792,
+          0.30698,
+          -4e-05,
+          -0.00056,
+          0.00276,
+          1.0
+        ],
+        "expected_pose": [
+          0.4,
+          0.75,
+          0.30703,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "position_error": 0.50651,
+        "physics": {
+          "static": 0,
+          "kinematic": 0,
+          "respondable": 1,
+          "mask": 65535,
+          "mass": 0.1,
+          "friction": 0.6
+        },
+        "dynamic_ok": true,
+        "respondable_ok": true
+      },
+      "tcp": {
+        "pose": [
+          0.40007,
+          0.74993,
+          0.50672,
+          2e-05,
+          -0.00013,
+          0.0,
+          1.0
+        ]
+      },
+      "tool": {
+        "version": "suction_mount_rx180_20261020",
+        "ok": true,
+        "mount_z": 0.04754997428506614,
+        "mount_quaternion": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "flange_protrusion_z": 0.007549934089183821,
+        "link_clearance_design": 0.005,
+        "handles": {
+          "connection": 112,
+          "pad": 113,
+          "tcp": 119,
+          "sensor": 120,
+          "model_sensor": 115,
+          "link": 116
+        },
+        "joint_positions": [
+          -1.4239833608080594,
+          0.8719304403487264,
+          0.7085421816843975,
+          3.1316570393097276,
+          1.5707963267948966,
+          -2.994780534161009
+        ],
+        "sim_time": 83.94999999999737,
+        "pad_world_pose": [
+          0.40006627797005995,
+          0.749932191674716,
+          0.5217187657088447,
+          1.8967335423593357e-05,
+          -0.00012826469295046383,
+          4.2327902305405724e-07,
+          0.9999999915941148
+        ],
+        "tcp_world_pose": [
+          0.4000701259233905,
+          0.7499327606982977,
+          0.5067187162570512,
+          1.8967335423593357e-05,
+          -0.00012826469295046383,
+          4.2327902305405724e-07,
+          0.9999999915941148
+        ],
+        "tcp_in_pad": [
+          5.551115123125783e-17,
+          -1.1102230246251565e-16,
+          -0.015000049956142902,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "pad_in_connection": [
+          -5.551115123125783e-17,
+          -1.1102230246251565e-16,
+          0.04754997428506602,
+          1.0,
+          0.0,
+          1.9090391497186217e-21,
+          0.0
+        ],
+        "suction_normal_world": [
+          0.00025652936768762066,
+          3.793477911182007e-05,
+          -0.9999999663768174
+        ],
+        "sensor_axis_world": [
+          0.0002565293676874982,
+          3.79347791116976e-05,
+          -0.9999999663768178
+        ],
+        "model_sensor_axis_world": [
+          0.0002565293676131859,
+          3.802220188833047e-05,
+          -0.9999999663734978
+        ],
+        "end_link_max_z_in_connection": 0.007549934089183705,
+        "pad_back_plane_z": 0.012549934089183819,
+        "link_clearance": 0.005000000000000114
+      },
+      "arm_joints": [
+        -1.42398,
+        0.87193,
+        0.70854,
+        3.13166,
+        1.5708,
+        -2.99478
+      ],
+      "agv": {
+        "pose": [
+          0.88357,
+          0.74838,
+          0.13871,
+          -3e-05,
+          -0.00056,
+          -0.0011,
+          1.0
+        ],
+        "state": "IDLE",
+        "blocked": false,
+        "last_wheel_speeds": [
+          0.0,
+          0.0
+        ]
+      },
+      "conveyor": {
+        "drive_mode": "SCRIPT_DRIVEN",
+        "commanded_velocity": 0.0,
+        "actual_velocity": 4e-05
+      },
+      "sim_time": 83.95,
+      "steps": 941,
+      "stage2": {
+        "controller": {
+          "uid": 2,
+          "target": "agv",
+          "layout": "L1_S1",
+          "state": "DONE",
+          "failure_reason": "",
+          "material_state": "RELEASED",
+          "compensation_count": 4,
+          "pick_pose": [
+            -0.30746,
+            0.00026,
+            0.5
+          ],
+          "pick_tcp": [
+            -0.30746,
+            0.00026,
+            0.55,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "agv_blocked": false,
+          "events": [
+            [
+              36.90000000000004,
+              "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+            ],
+            [
+              36.90000000000004,
+              "WAITING_FOR_ITEM: task started"
+            ],
+            [
+              36.95000000000004,
+              "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+            ],
+            [
+              37.000000000000036,
+              "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+            ],
+            [
+              37.05000000000003,
+              "HYBRID_DYNAMIC compensation Δ=0.0027 m (physical=0.0073, shortfall=0.0027)"
+            ],
+            [
+              40.29999999999985,
+              "STOPPING: conveyor stop commanded (sensor_hit)"
+            ],
+            [
+              40.44999999999984,
+              "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 40.29999999999985, 'material_start': [-0.32757, 0.00029, 0.5], 'material_end': [-0.30746, 0.00026, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02011, 'lateral_drift': 3e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+            ],
+            [
+              40.44999999999984,
+              "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+            ],
+            [
+              40.699999999999825,
+              "material stable at (-0.3075,0.0003,0.5000) tilt=0.000; surface contact target fixed"
+            ],
+            [
+              40.699999999999825,
+              "APPROACHING: measured pose after active stop"
+            ],
+            [
+              40.74999999999982,
+              "PLAN DIRECT_OK strategy=direct segments=2 samples=59 wall=1.70s"
+            ],
+            [
+              52.39999999999916,
+              "ATTACHING: approach complete"
+            ],
+            [
+              52.44999999999916,
+              "LIFTING: attached"
+            ],
+            [
+              52.499999999999154,
+              "PLAN DIRECT_OK strategy=direct segments=1 samples=31 wall=1.11s"
+            ],
+            [
+              55.499999999998984,
+              "TRANSFERRING: lift complete"
+            ],
+            [
+              55.54999999999898,
+              "PLAN DIRECT_OK strategy=direct segments=4 samples=164 wall=4.22s"
+            ],
+            [
+              76.5499999999978,
+              "PLACING: transfer complete"
+            ],
+            [
+              76.59999999999779,
+              "RELEASING: at place pose"
+            ],
+            [
+              76.64999999999779,
+              "SETTLING: released, waiting settle"
+            ],
+            [
+              77.44999999999774,
+              "RETREATING: 抬升撤离 (drift=0.0005 m)"
+            ],
+            [
+              77.44999999999774,
+              "RETREATING: settling complete"
+            ],
+            [
+              77.49999999999774,
+              "PLAN DIRECT_OK strategy=direct segments=1 samples=33 wall=1.12s"
+            ],
+            [
+              80.24999999999758,
+              "DONE: retreat complete"
+            ],
+            [
+              83.89999999999738,
+              "AGV 轮速行驶完成: 0.505 m / 3.65 s"
+            ]
+          ],
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "stage2": true,
+          "safety": {
+            "engaged": false,
+            "code": "",
+            "reason": "",
+            "sim_time": null,
+            "details": {},
+            "stop_commanded": false,
+            "stop_command_ok": null,
+            "stop_confirmed": false,
+            "stop_checks": 0,
+            "stop_speed": null,
+            "stop_source": ""
+          },
+          "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "direct",
+            "waypoints": [
+              [
+                -1.423983,
+                0.952297,
+                0.945563,
+                2.813158,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.94343,
+                0.937455,
+                2.830133,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.935275,
+                0.928041,
+                2.847701,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.927533,
+                0.917896,
+                2.865589,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.920212,
+                0.907003,
+                2.883803,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.913326,
+                0.895341,
+                2.90235,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.90689,
+                0.882889,
+                2.921238,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.900919,
+                0.869619,
+                2.94048,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.895431,
+                0.855501,
+                2.960085,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.890445,
+                0.840503,
+                2.98007,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.885982,
+                0.824584,
+                3.000451,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.882068,
+                0.8077,
+                3.021249,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.87873,
+                0.789799,
+                3.042489,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.875998,
+                0.770821,
+                3.064198,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.87391,
+                0.750696,
+                3.086411,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.872507,
+                0.729341,
+                3.109169,
+                1.570796,
+                -2.994781
+              ],
+              [
+                -1.423983,
+                0.871839,
+                0.706657,
+                3.132521,
+                1.570796,
+                -2.994781
+              ]
+            ],
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "q_start": [
+                  -1.423983,
+                  0.872507,
+                  0.729341,
+                  3.109169,
+                  1.570796,
+                  -2.994781
+                ],
+                "q_end": [
+                  -1.423983,
+                  0.871839,
+                  0.706657,
+                  3.132521,
+                  1.570796,
+                  -2.994781
+                ],
+                "samples": 16
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核",
+            "samples": 33,
+            "configs": 33,
+            "wall_s": 1.125,
+            "attempts": [
+              {
+                "strategy": "direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核"
+              }
+            ],
+            "goal_pose": [
+              0.400356,
+              0.749975,
+              0.507415,
+              0.0001,
+              -0.000678,
+              0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false
+          },
+          "stop": {
+            "status": "OK",
+            "command_time": 40.29999999999985,
+            "material_start": [
+              -0.32757,
+              0.00029,
+              0.5
+            ],
+            "material_end": [
+              -0.30746,
+              0.00026,
+              0.5
+            ],
+            "belt_speed_before": 0.2,
+            "latency": 0.15,
+            "overrun": 0.02011,
+            "lateral_drift": 3e-05,
+            "height_drift": 4e-05,
+            "steps": 4,
+            "speed_source": "model_state",
+            "speed_valid": true,
+            "pad_still": true,
+            "message": "零速停带且越程/漂移在容差内"
+          },
+          "stability": {
+            "stable": true,
+            "count": 5,
+            "step_moved": 0.0,
+            "speed": 1e-06,
+            "drift": 1e-06,
+            "elapsed": 0.25,
+            "timed_out": false
+          },
+          "compensation": {
+            "count": 4,
+            "long_compensation": false,
+            "overspeed_steps": 0
+          },
+          "contact": {
+            "valid": true,
+            "reasons": [],
+            "uid": 2,
+            "signed_distance": 0.000353,
+            "lateral_offset": 0.000113,
+            "offset_xy": [
+              9.3e-05,
+              6.4e-05
+            ],
+            "normal_angle": 0.000593,
+            "within_face": true,
+            "cup_covered": true,
+            "cup_radius": 0.023579,
+            "surface": {
+              "center_world": [
+                -0.307459,
+                0.000264,
+                0.55
+              ],
+              "normal_world": [
+                -0.0,
+                -0.0,
+                1.0
+              ],
+              "half_u": 0.05,
+              "half_v": 0.05,
+              "top_z_local": 0.05
+            },
+            "tool_position": [
+              -0.307366,
+              0.000328,
+              0.550353
+            ],
+            "tool_normal": [
+              3e-06,
+              -0.000593,
+              -1.0
+            ]
+          },
+          "fk": {
+            "ok": true,
+            "pos_tol": 0.0001,
+            "ang_tol": 0.001,
+            "joints": [
+              -1.423983,
+              0.87193,
+              0.708542,
+              3.131657,
+              1.570796,
+              -2.994781
+            ],
+            "links": [
+              {
+                "link": "link1_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link2_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link3_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link4_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link5_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link6_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link7_visible",
+                "pos_err": 0.0,
+                "ang_err": 3e-08
+              },
+              {
+                "link": "tcp",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              }
+            ]
+          },
+          "attach_transform": [
+            -9.3e-05,
+            -3.4e-05,
+            -0.050353,
+            -0.000296,
+            -1e-06,
+            -0.00238,
+            -0.999997
+          ],
+          "release": {
+            "pose": [
+              0.400331,
+              0.749951,
+              0.307062,
+              -0.000395,
+              0.000678,
+              -0.00238,
+              -0.999997
+            ]
+          },
+          "pick_box": {
+            "min": [
+              -0.05,
+              -0.05,
+              -0.05
+            ],
+            "max": [
+              0.05,
+              0.05,
+              0.05
+            ]
+          }
+        },
+        "runtime": {
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "contract_version": "stage2_contract_20261021",
+          "cup_radius": 0.023579,
+          "shadow": {
+            "root_alias": "Shadow_UR5_01",
+            "joints": 6,
+            "link_aliases": [
+              "link1_visible",
+              "link2_visible",
+              "link3_visible",
+              "link4_visible",
+              "link5_visible",
+              "link6_visible",
+              "link7_visible"
+            ],
+            "pad_body": 200,
+            "load_alias": "Shadow_Load_01",
+            "shape_count": 18,
+            "visibility_hidden": true,
+            "policy": "session_resource"
+          },
+          "collections": [
+            {
+              "name": "stage2_shadow",
+              "roles": "影子 UR5 全部可见连杆 + 吸盘 Body",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_links",
+              "roles": "影子 UR5 连杆 (不含吸盘)",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_no_base",
+              "roles": "除 link1 外的连杆 + 吸盘 Body (安装平台检查)",
+              "items": [
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell",
+              "roles": "conveyor pads/工位台面/仓库/地面/AGV 车体与载台",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_mount",
+              "roles": "UR5 安装平台 Island_A (仅 link1 固定安装接触)",
+              "items": [
+                {
+                  "alias": "Island_A",
+                  "role": "mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell_mount",
+              "roles": "工作区 + 安装平台; 用于除 link1 外的全部机器人 shape",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A",
+                  "role": "workcell_mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_parts",
+              "roles": "非目标动态物料",
+              "items": []
+            },
+            {
+              "name": "stage2_target",
+              "roles": "当前目标物料",
+              "items": []
+            },
+            {
+              "name": "stage2_shadow_load",
+              "roles": "影子载荷 (仅带载检查)",
+              "items": [
+                {
+                  "alias": "Shadow_Load_01",
+                  "role": "load",
+                  "what": "single"
+                }
+              ]
+            }
+          ],
+          "startup": {
+            "fk": {
+              "ok": true,
+              "pos_tol": 0.0001,
+              "ang_tol": 0.001,
+              "joints": [
+                0.0,
+                0.0,
+                -1.570796,
+                0.0,
+                1.570796,
+                0.0
+              ],
+              "links": [
+                {
+                  "link": "link1_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link2_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link3_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link4_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link5_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link6_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link7_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "tcp",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                }
+              ]
+            },
+            "cup_radius_measured": 0.023579,
+            "cup_radius_design": 0.0235795,
+            "query_semantics": {
+              "overlap": {
+                "name": "probe_overlap",
+                "state": "COLLISION",
+                "pair": [
+                  207,
+                  208
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "separated": {
+                "name": "probe_separated",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "distance_with_threshold": {
+                "name": "probe_distance_threshold",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.5,
+                "message": ""
+              },
+              "distance_outside_threshold": {
+                "name": "probe_distance_outside",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": 0.01,
+                "message": ""
+              },
+              "distance_exact": {
+                "name": "probe_distance_exact",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.0,
+                "message": ""
+              },
+              "collidable_false": {
+                "name": "probe_collidable_false",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "ok": true
+            },
+            "self_pairs": 15,
+            "collections": {
+              "stage2_shadow": 8,
+              "stage2_shadow_links": 7,
+              "stage2_shadow_no_base": 7,
+              "stage2_workcell": 59,
+              "stage2_mount": 1,
+              "stage2_workcell_mount": 60,
+              "stage2_parts": 0,
+              "stage2_target": 0,
+              "stage2_shadow_load": 1
+            },
+            "excluded": [
+              {
+                "alias": "shape",
+                "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+              }
+            ],
+            "workcell_aliases": [
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "Island_A_Station",
+              "Warehouse_Raw",
+              "Floor",
+              "visible",
+              "AGV_LoadTray",
+              "AGV_TrayWall_Front",
+              "AGV_TrayWall_Back",
+              "AGV_TrayWall_Left",
+              "AGV_TrayWall_Right"
+            ],
+            "shadow_hidden": true
+          }
+        },
+        "hazard_injected": false
+      },
+      "agv_load_follow": {
+        "agv_dx": 0.4977,
+        "material_dx": 0.5098,
+        "follow_error": 0.0121,
+        "material_z": 0.307,
+        "relative_xy": [
+          0.0233,
+          -0.0003
+        ],
+        "on_tray": true,
+        "distance_ok": true
+      },
+      "agv_follow_ok": true,
+      "ok": true
+    }
+  ],
+  "all_ok": true
+}

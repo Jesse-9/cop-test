@@ -16,6 +16,9 @@
 │  stage1/ (当前) — 单元闭环: config/physics/scene    │
 │                   material/conveyor/UR5/suction/AGV │
 │                   unit_controller/run              │
+│  stage2/ (当前) — 影子碰撞/局部规划/流式执行/联锁   │
+│                   contact/collisions/shadow/path_   │
+│                   planning/trajectory/safety/run    │
 │  reference/ (历史) — factory_controller/island/AGV  │
 │  reference/factory_robot.py — 关键帧兼容层          │
 │  reference/factory_types.py — 枚举/数据类/物料      │
@@ -262,6 +265,86 @@ CLI：
 全局参数（`--host`/`--port`/`--artifact-root`/`--out-dir`）必须写在子命令之前。
 `run_stage1.py` 默认加载 `current` 工件；`--build` 才显式重建。
 
+### 阶段二物理约束与运动规划（2026-10-21 通过）
+
+阶段二在阶段一工件上增加：同基座影子 UR5、碰撞集合与离散路径检查、
+多解 IK + 有界 DFS 局部规划、流式关节执行、外表面接触判据、保持世界
+位姿的释放、速度/pad 位移双判据停带和运行期锁存。阶段一默认调用行为
+不变；入口与证据见 [PHASE2_REPORT.md](docs/implementation/PHASE2_REPORT.md)
+和 [06-09 §17](docs/wiki/06-工业案例/06-09-柔性工业车间阶段二-物理约束与运动规划.md)。
+
+当前工件：`stage2/L1_S1/v009_20261021_190527`，父
+`stage1/L1_S1/v002_20261020_234403`；保存/加载 144 项只读校验通过，
+父差异 `[]`；stage1 `current.json`、v002 scene/manifest 摘要未变化。
+
+| 文件 | 职责 |
+|------|------|
+| [config.py](src/stage2/config.py) | 阶段二全部新参数（接触/碰撞/采样/预算/执行/停带/安全） |
+| [contact.py](src/stage2/contact.py) | 物料局部包围盒、顶面 frame、带符号间隙/横向/杯口/法向 |
+| [collisions.py](src/stage2/collisions.py) | 对象角色、碰撞集合、4.10 查询适配、显式自碰撞对 |
+| [shadow.py](src/stage2/shadow.py) | 影子 UR5/pad/TCP/载荷副本、FK 一致性、会话资源清理 |
+| [path_planning.py](src/stage2/path_planning.py) | 构型/段检查、自适应细分、多解 IK、DFS 规划、最终复核 |
+| [trajectory.py](src/stage2/trajectory.py) | Cartesian 位姿序列、流式执行器、保持/取消 |
+| [safety.py](src/stage2/safety.py) | `SafetyObservation` / `SafetyLatch` / `request_stop` |
+| [conveyor_safety.py](src/stage2/conveyor_safety.py) | 停带监视器、受限补偿、物料稳定 |
+| [suction.py](src/stage2/suction.py) | 外表面接触吸附、保持世界位姿释放 |
+| [unit_controller.py](src/stage2/unit_controller.py) | 继承阶段一状态机，接入规划/执行/联锁/停带 |
+| [runtime.py](src/stage2/runtime.py) | 影子臂/集合/检查器/规划器装配与销毁 |
+| [scene_contract.py](src/stage2/scene_contract.py) | `extra.stage2` 契约、稳定 manifest、只读校验 |
+| [run.py](src/stage2/run.py) | 阶段二 runner、受控障碍注入、报告 |
+| [run_stage2.py](src/run_stage2.py) | CLI 薄包装 |
+
+阶段二不变量：
+
+- 阶段二参数只写在 `stage2/config.py`；`stage1/config.py` 保持原值，
+  否则父工件配置摘要校验失败。`extra.stage2.config.digest` 守卫阶段二
+  参数漂移。
+- 影子臂/碰撞集合/载荷副本是**会话资源**，不写入工件；保存前 manifest
+  剥离会话句柄，只读校验拒绝持久化的 `Shadow_*`。
+- 4.10 实测 `collection self-collision indicator` 对
+  `checkCollision(collection,collection)` 无过滤效果，自碰撞使用显式
+  非相邻连杆对 + 吸盘 Body 对 link1–5。
+- 内置 conveyor 根下 alias `shape` 是整条带粗包围盒（顶面比真实带面高
+  ≈10 cm），从查询角色排除并记录原因；真实承载面是 `pad`。
+- 接触判据使用物料局部包围盒实测 min/max（不是对象原点到顶面的距离），
+  检查带符号间隙、杯口覆盖、横向偏移和工具法向；接近段允许绕法向 yaw，
+  最终放置点严格检查完整姿态。
+- 带载转运固定为“抬升 → 高位中转（z≥0.80 m）→ 预放置 → 法向放置”；
+  载荷只在抬升起点和放置终点允许与承载面接触，中间构型严格检查。
+- 规划只返回完整通过粗筛和最终 2° 复核的 `MotionPlan`；预算耗尽返回
+  `PLAN_BUDGET_EXCEEDED`，不回退到未检查的直线动作。OMPL 未启用（N/A）。
+- 执行器每步只提交经 `check_segment` 复核的下一构型；同一目标不重复
+  下发；取消后不再产生命令。真实 q/TCP/载荷偏差或查询未知立即锁存。
+- 启动时与每次运动完成时比较真实/影子 7 个可见连杆与 TCP 的世界位姿
+  （1e-4 m / 1e-3 rad）；不一致立即锁存。
+- 锁存后停带/停车、保持最后实测构型、确认真实停止；不自动恢复、不
+  重试。故障恢复属阶段 2.1。
+- 生命周期 `start` 按工件 `source_phase` 显式路由 stage1/stage2 runner；
+  stage1 runner 拒绝 stage2 工件。MCP `start_simulation` 复用同一
+  生命周期/运行锁并在加载 stage2 工件时路由到阶段二线程。
+
+```bash
+# 阶段二工件派生（父工件必须已加载并 validate）
+.venv/Scripts/python src/run_scene_lifecycle.py load stage1/L1_S1/v002_20261020_234403
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage2 \
+  --parent stage1/L1_S1/v002_20261020_234403 --note "阶段二派生"
+
+# 正常流程（默认 load current --phase stage2 + validate + start）
+.venv/Scripts/python src/run_stage2.py --target station --time 150
+.venv/Scripts/python src/run_stage2.py --target agv --time 150
+.venv/Scripts/python src/run_stage2.py --target both --time 180
+
+# 运行期锁存验收（实验副本）
+.venv/Scripts/python src/run_stage2.py --target station \
+  --fault runtime_obstacle --time 150
+
+# 只读几何/路径探针
+.venv/Scripts/python docs/measurement/probe_stage2_inventory.py
+.venv/Scripts/python docs/measurement/probe_stage2_ik_candidates.py
+.venv/Scripts/python docs/measurement/probe_stage2_path_rejection.py
+```
+
 ### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
 
 阶段一与阶段二之间的输入收敛。**其选定布局 `L1_S1` 与 B 组取料流程已于
@@ -348,6 +431,22 @@ CLI：
 .venv/Scripts/python src/run_stage1.py --target station --fault ik_unreachable
 ```
 
+### 阶段二物理约束与运动规划（当前）
+
+```bash
+# 默认加载 stage2 current 工件; 先 load/validate 阶段一基线再 save --phase stage2
+.venv/Scripts/python src/run_stage2.py --target station --time 150
+.venv/Scripts/python src/run_stage2.py --target agv --time 150
+.venv/Scripts/python src/run_stage2.py --target both --time 180
+.venv/Scripts/python src/run_stage2.py --target station \
+  --fault runtime_obstacle --time 150
+
+# 或经生命周期 CLI 自动按工件 source_phase 路由
+.venv/Scripts/python src/run_scene_lifecycle.py load current --phase stage2
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 150
+```
+
 ### 步骤 1.1 布局与无挡板取料验证
 
 ```bash
@@ -397,8 +496,11 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
 `FactoryController`。**共 24 个工具**，其中步骤 1.2 新增
 `save_scene` / `load_scene` / `validate_scene` / `lifecycle_status`；
 `start_simulation` 不再隐式 build/clear，必须先 `build_scene` 或
-`load_scene` + `validate_scene`。stage1 运行结果写入
-`docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`。
+`load_scene` + `validate_scene`。**加载 stage2 工件时，`start_simulation`
+按 manifest `source_phase` 自动路由到阶段二 runner**（同一生命周期与
+运行锁），并接受 `fault=runtime_obstacle`。stage1 运行结果写入
+`docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`；
+阶段二写入 `phase2_mcp_<target>_<fault>_<stamp>.json`。
 
 **CoppeliaSim 控制台实时输出**: CoppeliaSim 自身的控制台消息 (脚本 `print` /
 `sim.addLog`、插件与 add-on 报错、冻结前最后一条消息) 不在 ZMQ API 里, 需用
@@ -646,3 +748,47 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
     `... start --out-dir runs` 会报未识别参数。跨进程运行锁位于
     `docs/scene_artifacts/.runtime/run.lock` (PID + run_id), 持有进程死亡后
     下一次 start 自动清理; 运行中的 `load`/`build` 返回 `RUN_CONFLICT`。
+
+21. **4.10 的 collection self-collision indicator 对 checkCollision 无效 (阶段二实测)**:
+    `sim.setObjectInt32Param(h, sim.objintparam_collection_self_collision_indicator, v)`
+    后，同一 collection 与自身检查时 1/1/2、1/2/3、1/10/100 等组合
+    **仍照样报碰撞**。不要依赖该编号过滤相邻连杆；阶段二使用显式非相邻
+    连杆对（|i−j|≥2）+ 吸盘 Body 对 link1–5。若后续版本声称支持，必须
+    先实测枚举过滤结果。
+
+22. **内置 conveyor 的粗包围盒代理 `shape` (阶段二实测)**:
+    模型根 `Conveyor_In` 下 alias `shape` 是 0.2×0.2×1.2 m 的整条带
+    外包盒，顶面比真实带面高约 10 cm；真实承载面是 50 个 `pad`。阶段二
+    把它从碰撞查询角色中排除并记录原因，**不修改其场景属性、不收缩任何
+    代理**。`loadScene` 后 `objfloatparam_modelbbox_*` 可能不可读，粗代理
+    检测回退为“厚度 > 0.02 m 的 `shape`”。
+
+23. **kinematic 关节流式执行的正确用法 (阶段二实测)**:
+    - 每步重复 `setJointTargetPosition(j, q, motion)` 会反复重置运动规划
+      的加速段，实际关节追不上目标；执行器必须在上一目标未达到时保持，
+      达到后再下发下一构型。
+    - 0.075 rad 微步 + jerk=10 时每步约 0.45 s，大范围中转会超时；阶段二
+      使用 0.20 rad/命令 + jerk=100（仍受 maxVel/maxAccel 限制），实测
+      0.2 rad 约 0.35 s。
+    - **停止态 `sim.setJointPosition` 对真实臂部分关节不生效**（同一
+      UR5.ttm 的新加载影子臂正常）。不要用停止态 `setJointPosition` 构造
+      真实臂验证位姿；规划/检查用影子 FK，真实运动用 target + `sim.step`。
+
+24. **set/frozenset 序列化顺序导致摘要跨进程漂移 (阶段二修复)**:
+    `stage2_config_summary()` 含 `CONTACT_PHASES` 等 frozenset；
+    `scene_artifact._jsonable` 原先直接迭代集合，Python 哈希随机化会让
+    config digest 在不同 CLI 进程间变化，表现为“同一工件时而过校验、
+    时而失败”。已改为 `sorted(value, key=repr)`；新增摘要字段若含集合
+    必须走同一序列化。
+
+25. **竖直工具的腕部奇异与 yaw (阶段二实测)**:
+    工具竖直时 q5≈±90°，q4/q6 耦合；关节空间插值可能在抬升/中转途中
+    产生绕工具 Z 的 yaw 旋转（TCP 位置不变）。阶段二接近段按“工具 Z 轴
+    对齐”检查（允许 yaw），最终放置点仍严格检查完整姿态。不要为通过
+    路径而放松最终放置姿态判据。
+
+26. **阶段二配置漂移会拒绝旧工件**:
+    `extra.stage2.config.digest` 记录阶段二参数；修改
+    `src/stage2/config.py` 后，已保存的 stage2 工件在 `start` 前会失败
+    （`stage2_config_digest`）。这是预期保护：重新从 stage1 基线派生
+    新工件，不要手工改 manifest 或关闭校验。

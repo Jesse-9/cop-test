@@ -358,6 +358,39 @@ def _new_run_id() -> str:
     return f"run_{stamp}_{uuid.uuid4().hex[:6]}"
 
 
+# ═══════════════════════════════════════════════════════════════
+# 阶段二契约扩展点 (lazy import; 阶段一默认行为不变)
+# ═══════════════════════════════════════════════════════════════
+
+def _default_manifest_extra(phase: str, sim, scene, parent_info) -> Optional[dict]:
+    if phase != "stage2":
+        return None
+    from stage2.scene_contract import build_stage2_extra
+    return {"stage2": build_stage2_extra(
+        sim=sim, scene=scene, parent_info=parent_info)}
+
+
+def _default_extra_validator(artifact, sim, scene) -> Optional[dict]:
+    extra = (artifact.manifest.get("extra") or {}).get("stage2")
+    if extra is None:
+        return None
+    from stage2.scene_contract import validate_stage2_contract
+    return validate_stage2_contract(sim, artifact, scene=scene)
+
+
+def _merge_extra_validation(result: dict, extra: Optional[dict]) -> dict:
+    if extra is None:
+        return result
+    result.setdefault("checks", []).extend(extra.get("checks", []))
+    result.setdefault("differences", []).extend(extra.get("differences", []))
+    result["stage2_contract"] = {
+        "ok": bool(extra.get("ok")),
+        "contract_version": extra.get("contract_version"),
+    }
+    result["ok"] = bool(result.get("ok")) and bool(extra.get("ok"))
+    return result
+
+
 class LifecycleManager:
     """把 sim 与工件仓库组合成显式生命周期动作。
 
@@ -370,10 +403,14 @@ class LifecycleManager:
                  actor: str = "cli",
                  host: str = "localhost", port: int = 23000,
                  report_dir: Optional[Path] = None,
-                 store: Optional[sa.ArtifactStore] = None):
+                 store: Optional[sa.ArtifactStore] = None,
+                 manifest_extra_provider=None,
+                 extra_validator=None):
         self.sim = sim
         self.simIK = simIK
         self.store = store or sa.ArtifactStore(artifact_root)
+        self.manifest_extra_provider = manifest_extra_provider
+        self.extra_validator = extra_validator
         runtime = self.store.root / ".runtime"
         self.session_store = SessionStore(
             session_path or runtime / "session.json")
@@ -671,6 +708,8 @@ class LifecycleManager:
         self._ensure_stopped("validate")
         artifact = self.artifact
         result = sa.validate_artifact(self.sim, artifact, scene=self.scene)
+        result = _merge_extra_validation(
+            result, self._extra_validation(artifact, self.scene))
         result["artifact_id"] = artifact.artifact_id
         self.last_validation = result
         self._write_validation_report(result)
@@ -685,6 +724,20 @@ class LifecycleManager:
         self._apply(LifecycleState.SCENE_VALIDATED, event="validated",
                     differences=0)
         return result
+
+    def _extra_validation(self, artifact, scene) -> Optional[dict]:
+        """阶段二/扩展契约校验; 阶段一工件返回 None."""
+        validator = self.extra_validator or _default_extra_validator
+        try:
+            return validator(artifact, self.sim, scene)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "checks": [{"name": "stage_extra_contract_error",
+                            "ok": False,
+                            "detail": f"{type(exc).__name__}: {exc}"}],
+                "differences": [],
+            }
 
     def _write_validation_report(self, result: dict) -> None:
         try:
@@ -744,13 +797,29 @@ class LifecycleManager:
                 f"{parent_art.manifest.get('source_phase')!r}")
 
         draft = self.store.create(phase, self.scene.layout.name)
+        provider = self.manifest_extra_provider or _default_manifest_extra
+        try:
+            manifest_extra = provider(phase, self.sim, self.scene,
+                                      parent_info)
+        except Exception as exc:
+            self._fail(f"阶段扩展契约生成失败: {type(exc).__name__}: {exc}",
+                       event="save_failed")
+            raise
         manifest = sa.build_manifest(
             self.sim, self.scene, source_phase=phase,
             artifact_id=draft.artifact_id, protected=protected,
-            parent_artifact=parent_info, actor=self.actor, note=note)
+            parent_artifact=parent_info, actor=self.actor, note=note,
+            manifest_extra=manifest_extra)
         if parent_art is not None:
-            manifest["parent_artifact"]["differences"] = sa.diff_manifest(
-                parent_art.manifest, manifest)
+            if phase == "stage2":
+                from stage2.scene_contract import (
+                    diff_stage2_manifest, sanitize_manifest_sections)
+                manifest = sanitize_manifest_sections(manifest)
+                manifest["parent_artifact"]["differences"] = \
+                    diff_stage2_manifest(parent_art.manifest, manifest)
+            else:
+                manifest["parent_artifact"]["differences"] = \
+                    sa.diff_manifest(parent_art.manifest, manifest)
 
         partial = draft.path / "scene.partial.ttt"
         try:
@@ -784,6 +853,8 @@ class LifecycleManager:
                                    manifest=validation_manifest)
             result = sa.validate_artifact(
                 self.sim, artifact, scene=loaded_scene)
+            result = _merge_extra_validation(
+                result, self._extra_validation(artifact, loaded_scene))
         except Exception as exc:
             self._fail(f"保存后重载校验异常: {exc}", event="save_failed")
             sa.write_json_atomic(draft.path / sa.VALIDATION_FILE, {
@@ -864,6 +935,9 @@ class LifecycleManager:
                 if self.artifact is not None:
                     result = sa.validate_artifact(
                         self.sim, self.artifact, scene=None)
+                    result = _merge_extra_validation(
+                        result,
+                        self._extra_validation(self.artifact, None))
                     self.last_validation = result
                     self._write_validation_report(result)
                     self._fail("start 前句柄/契约校验失败",
@@ -875,6 +949,9 @@ class LifecycleManager:
             if self.artifact is not None:
                 result = sa.validate_artifact(
                     self.sim, self.artifact, scene=self.scene)
+                result = _merge_extra_validation(
+                    result,
+                    self._extra_validation(self.artifact, self.scene))
                 self.last_validation = result
                 self._write_validation_report(result)
                 if not result["ok"]:
@@ -1078,13 +1155,23 @@ def _manager(args, client, sim, simIK) -> LifecycleManager:
 
 
 def _run_start(args, manager: LifecycleManager) -> dict:
-    """在 CLI 进程内启动并执行已校验场景; 返回运行报告。"""
-    from .run import run_loaded_scene, setup_logger
+    """在 CLI 进程内启动并执行已校验场景; 返回运行报告.
+
+    按工件 ``source_phase`` 显式路由: stage2 工件必须使用阶段二 runner,
+    不允许 stage1 runner 静默运行阶段二场景 (06-09 §8.6)。
+    """
+    from .run import setup_logger
 
     prepared = manager.prepare_start(target=args.target)
+    phase = (manager.artifact.manifest.get("source_phase")
+             if manager.artifact is not None else None)
+    if phase == "stage2":
+        from stage2.run import run_loaded_scene_stage2 as runner
+    else:
+        from .run import run_loaded_scene as runner
     logger = setup_logger(args.log)
     try:
-        summary = run_loaded_scene(
+        summary = runner(
             manager.sim, manager.simIK, manager.scene,
             target=args.target, fault=args.fault, max_sim_time=args.time,
             repeat=args.repeat, out_dir=Path(args.out_dir), logger=logger,
@@ -1155,7 +1242,12 @@ def build_parser():
     p = sub.add_parser("start", help="启动当前已加载且校验通过的场景")
     p.add_argument("--target", choices=("station", "agv", "both"),
                    default="station")
-    p.add_argument("--fault", choices=cfg.FAULT_CHOICES,
+    try:
+        from stage2.config import STAGE2_FAULT_CHOICES
+        fault_choices = list(STAGE2_FAULT_CHOICES)
+    except Exception:
+        fault_choices = list(cfg.FAULT_CHOICES)
+    p.add_argument("--fault", choices=fault_choices,
                    default=cfg.FAULT_NONE)
     p.add_argument("--time", type=float, default=90.0)
     p.add_argument("--repeat", type=int, default=1)

@@ -34,13 +34,15 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 
 后续实施顺序已调整为四个阶段：
 
-1. 阶段二：物理与运行基础能力，包括 TCP 外表面接触、碰撞/局部避障、场景构建与
-   仿真启动解耦、统一故障状态和传送带停机验证；
+1. 阶段二：物理与运行基础能力（2026-10-21 已完成），包括 TCP 外表面接触、
+   碰撞/局部避障、场景构建与仿真启动解耦、统一故障状态和传送带停机验证；
+   阶段 2.1（统一故障恢复）待开始；
 2. 阶段三：双工位柔性搬运，包括第二工位、任务队列、资源锁和 AGV 调度；
 3. 阶段四：多岛车间，包括 A–E 拓扑、仓库供料、节拍追踪和共享 AGV 调度。
 
-阶段二完成前不进入双工位或多岛扩展。步骤 1.2（2026-10-21）已把场景构建与
-仿真启动解耦：`start` 不再隐式 build/clear，阶段一基线已保存为只读工件
+阶段三依赖阶段二物理接口和阶段 2.1 的恢复契约；阶段 2.1 完成前不进入双工位
+或多岛扩展。步骤 1.2（2026-10-21）已把场景构建与仿真启动解耦：`start`
+不再隐式 build/clear，阶段一基线已保存为只读工件
 `docs/scene_artifacts/stage1/L1_S1/v002_20261020_234403/`。
 
 阶段一实现集中在 `src/stage1/` 包（config / layout / physics / scene /
@@ -49,6 +51,38 @@ ur5_ik_controller / suction_controller / pioneer_controller / unit_controller /
 run），`src/run_stage1.py` 与 `src/run_scene_lifecycle.py` 是兼容入口；
 安装后也可用 `uv run run-stage1` / `uv run scene-lifecycle`。旧版
 `build_scene.py` / `factory_controller.py` 仍用于历史五岛完整场景，阶段一不调用它们。
+
+## 阶段二：物理约束与运动规划（2026-10-21 通过）
+
+阶段二在阶段一工件上启用影子 UR5 碰撞检查、多解 IK + 局部规划、流式
+关节执行、外表面接触判据、保持世界位姿释放、速度/pad 位移双判据停带和
+运行期锁存。**阶段一默认行为不变**；阶段二工件从阶段一基线显式派生。
+
+```bash
+# 从阶段一基线派生 stage2 工件 (只需一次; 之后 current 指向它)
+.venv/Scripts/python src/run_scene_lifecycle.py load stage1/L1_S1/v002_20261020_234403
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage2 \
+  --parent stage1/L1_S1/v002_20261020_234403 --note "阶段二派生"
+
+# 正常流程 (默认 load current --phase stage2 + validate + start)
+.venv/Scripts/python src/run_stage2.py --target station --time 150
+.venv/Scripts/python src/run_stage2.py --target agv --time 150
+.venv/Scripts/python src/run_stage2.py --target both --time 180
+
+# 运行期锁存验收 (实验副本)
+.venv/Scripts/python src/run_stage2.py --target station \
+  --fault runtime_obstacle --time 150
+```
+
+- 报告与限制：[docs/implementation/PHASE2_REPORT.md](docs/implementation/PHASE2_REPORT.md)
+- 方案与实施结果：[06-09 阶段二](docs/wiki/06-工业案例/06-09-柔性工业车间阶段二-物理约束与运动规划.md)
+- 当前工件：`docs/scene_artifacts/stage2/L1_S1/v009_20261021_190527/`
+- 阶段二模块：`src/stage2/`（config / contact / collisions / shadow /
+  path_planning / trajectory / safety / conveyor_safety / suction /
+  unit_controller / runtime / scene_contract / run），`src/run_stage2.py`
+  为兼容入口；安装后可用 `uv run run-stage2`。
+- OMPL 未启用（N/A）；阶段 2.1 的统一故障恢复尚未开始。
 
 ## 步骤 1.2：场景工件与生命周期（2026-10-21 通过）
 

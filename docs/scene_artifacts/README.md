@@ -15,7 +15,7 @@
 | phase | 用途 | 保护 |
 |---|---|---|
 | `stage1` | 阶段一通过基线, 只读父工件 | `protected: true`, 文件只读 |
-| `stage2` | 阶段二从阶段一基线派生的独立副本 | 默认不保护 |
+| `stage2` | 阶段二从阶段一基线派生的独立副本 | CLI 默认 `protected: true`；`--no-protect` 可派生可变诊断副本 |
 | `diagnostic` | 临时诊断/试验场景 | 不保护 |
 
 `.runtime/` 保存跨进程会话状态与运行锁, 每次运行重新生成, 已 gitignore,
@@ -34,6 +34,23 @@
 `v001_20261020_233504` 是首次正式保存; 其 manifest 的物理引擎字段因
 `sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代, 仅保留为
 审计历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
+
+## 当前阶段二工件
+
+- 工件 ID: `stage2/L1_S1/v009_20261021_190527`
+- 父工件: `stage1/L1_S1/v002_20261020_234403`
+- 契约: `extra.stage2.contract_version = stage2_contract_20261021`;
+  控制器 `stage2.unit_controller.Stage2UnitController`
+- 校验: 144 项通过, 父差异 `[]`; stage2 manifest 不写会话句柄
+  (`tool.handles`/`conveyor.script_handle`/`sim_time` 已剥离)
+- 保护: v009 由 CLI 保存为 `protected: true`（文件只读）；派生新版本不受影响。修改 `src/stage2/config.py` 后旧工件会因
+  `stage2_config_digest` 拒绝 start, 必须重新派生
+- 运行: `python src/run_stage2.py --target station|agv|both`
+- 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)
+
+影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
+会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,
+父差异只比较稳定字段。
 
 ## `current` 指针
 
@@ -69,6 +86,9 @@ sim.loadScene(scene.ttt) → adopt_scene() 按 alias 重建句柄
    ```
    派生副本默认保持几何/布局/坐标/模型/物理参数不变, 只扩展 manifest
    契约; 任何物理改动必须在 manifest 的 `extra`/差异清单中记录理由和前后值。
+   阶段二 `save` 会剥离 `tool.handles`、`conveyor.script_handle`、
+   `sim_time` 等会话/易变字段, 父差异 `[]` 表示对象、配置、布局、模型和
+   脚本摘要一致。
 4. `current.json` 只在新工件写入、重新加载并校验通过后原子更新。
 
 ## 命令

@@ -255,7 +255,8 @@ class FactoryMCPServer:
         """启动仿真主循环 (守护线程) — Start simulation in a daemon thread.
 
         backend="stage1" (默认/当前实现) 只启动**已加载且已校验**的场景,
-        不执行 build/clear; backend="legacy" 运行旧五岛 FactoryController。
+        不执行 build/clear; 若当前工件 source_phase=stage2, 自动路由到
+        阶段二规划/碰撞/联锁 runner。backend="legacy" 运行旧五岛控制器。
         """
         if backend == "stage1":
             return self._start_stage1(total_time, log_file, target, fault)
@@ -317,11 +318,12 @@ class FactoryMCPServer:
         from stage1 import config as s1cfg
         from stage1 import run as s1run
         from stage1.lifecycle import LifecycleError
+        from stage2.config import STAGE2_FAULT_CHOICES
 
         if target not in ("station", "agv", "both"):
             return f"target 必须是 station/agv/both: {target!r}"
-        if fault not in s1cfg.FAULT_CHOICES:
-            return f"fault 必须是 {s1cfg.FAULT_CHOICES}: {fault!r}"
+        if fault not in STAGE2_FAULT_CHOICES:
+            return f"fault 必须是 {STAGE2_FAULT_CHOICES}: {fault!r}"
         with self._lock:
             if self.is_running():
                 return "仿真已在运行中, 先 stop 再启动"
@@ -329,7 +331,7 @@ class FactoryMCPServer:
                 return "未连接 CoppeliaSim, 先调用 connect"
             simIK = getattr(self.connector, "simIK", None)
             if simIK is None:
-                return "当前连接缺少 simIK 模块, 无法运行 stage1"
+                return "当前连接缺少 simIK 模块, 无法运行 stage1/stage2"
             manager = self._ensure_lifecycle()
             try:
                 prepared = manager.prepare_start(target=target)
@@ -337,6 +339,15 @@ class FactoryMCPServer:
                 self.last_error = f"{exc.code}: {exc}"
                 return (f"start 被拒绝 ({exc.code}): {exc}; "
                         "请先 build, 或 load + validate 一个场景工件")
+            artifact = getattr(manager, "artifact", None)
+            manifest = getattr(artifact, "manifest", {}) if artifact else {}
+            is_stage2 = bool(manifest.get("source_phase") == "stage2")
+            if is_stage2 and fault not in STAGE2_FAULT_CHOICES:
+                manager.finish_run("FAILED", f"未知 stage2 fault: {fault}")
+                return f"stage2 fault 必须是 {STAGE2_FAULT_CHOICES}: {fault!r}"
+            if not is_stage2 and fault not in s1cfg.FAULT_CHOICES:
+                manager.finish_run("FAILED", f"未知 stage1 fault: {fault}")
+                return f"stage1 fault 必须是 {s1cfg.FAULT_CHOICES}: {fault!r}"
             self.stage1_scene = manager.scene
             self.stage1_comp = None
             self.stage1_controller = None
@@ -346,30 +357,39 @@ class FactoryMCPServer:
             self.stage1_stop.clear()
             self.stage1_pause.clear()
             self.stage1_pause_ack.clear()
-            self.backend = "stage1"
+            self.backend = "stage2" if is_stage2 else "stage1"
             self.last_error = None
 
         logger = setup_logger(log_file=log_file)
         try:
-            comp = s1run.build_components(
-                self.sim, simIK, manager.scene, logger)
+            if is_stage2:
+                from stage2.run import build_components_stage2
+                comp = build_components_stage2(
+                    self.sim, simIK, manager.scene, logger)
+            else:
+                comp = s1run.build_components(
+                    self.sim, simIK, manager.scene, logger)
             s1run.start_stepping(self.sim)
         except Exception as e:  # noqa: BLE001
             manager.finish_run("FAILED", f"{type(e).__name__}: {e}")
-            self.last_error = f"stage1 启动失败: {e}"
-            return f"stage1 启动失败: {e}"
+            self.last_error = f"stage2 启动失败: {e}" if is_stage2 else \
+                f"stage1 启动失败: {e}"
+            return f"stage2 启动失败: {e}" if is_stage2 else \
+                f"stage1 启动失败: {e}"
         self.stage1_comp = comp
 
         tt = total_time if total_time and total_time > 0 else 90.0
+        runner = self._run_stage2 if is_stage2 else self._run_stage1
         t = threading.Thread(
-            target=self._run_stage1,
+            target=runner,
             args=(target, fault, tt, logger, manager),
-            name="stage1-mcp-loop",
+            name=("stage2-mcp-loop" if is_stage2 else "stage1-mcp-loop"),
             daemon=True,
         )
         self.stage1_runner = t
         t.start()
-        return (f"阶段一仿真已启动 (backend=stage1, target={target}, "
+        backend = "stage2" if is_stage2 else "stage1"
+        return (f"阶段二仿真已启动 (backend={backend}, target={target}, "
                 f"fault={fault}, 单任务上限={tt:.1f}s, "
                 f"run_id={self.stage1_run_id}, "
                 f"artifact={manager.session.artifact_id}, log={log_file}); "
@@ -420,6 +440,81 @@ class FactoryMCPServer:
             except Exception as exc:  # noqa: BLE001
                 logger.exception("[MCP] finish_run 失败: %s", exc)
             self.stage1_run_id = None
+
+    def _run_stage2(self, target: str, fault: str,
+                    max_sim_time: float, logger, manager) -> None:
+        """阶段二 MCP 运行线程: 规划/执行/联锁 + 会话资源清理."""
+        from stage1.run import stop_simulation
+        from stage2.run import run_task_stage2
+
+        outcome, error = "DONE", None
+        try:
+            targets = ["station", "agv"] if target == "both" else [target]
+            for idx, tgt in enumerate(targets, start=1):
+                if self.stage1_stop.is_set():
+                    outcome = "STOP_REQUESTED"
+                    break
+                evidence, material = run_task_stage2(
+                    self.sim, self.stage1_scene, self.stage1_comp,
+                    tgt, idx, fault, max_sim_time, logger,
+                    stop_event=self.stage1_stop,
+                    pause_event=self.stage1_pause,
+                    pause_ack_event=self.stage1_pause_ack,
+                    on_start=self._on_stage1_controller,
+                )
+                self.stage1_results.append(evidence)
+                if idx < len(targets):
+                    self.stage1_comp["runtime"].forget_material(material)
+                    self.stage1_scene.remove_material(material)
+                    self.stage1_comp["materials"].remove(idx)
+            self._write_stage2_report(target, fault)
+            if not all(r.get("ok") for r in self.stage1_results):
+                outcome = "FAILED"
+        except Exception as e:  # noqa: BLE001 - 线程入口需兜底所有异常
+            outcome, error = "FAILED", f"{type(e).__name__}: {e}"
+            self.last_error = f"stage2 run 异常: {error}"
+            logger.exception("[MCP] stage2 run 异常")
+        finally:
+            try:
+                stop_simulation(self.sim)
+            except Exception:
+                pass
+            try:
+                if self.stage1_comp is not None:
+                    self.stage1_comp["runtime"].destroy()
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("[MCP] stage2 runtime 清理失败: %s", exc)
+            try:
+                manager.finish_run(outcome, error)
+                self.stage1_scene = manager.scene
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("[MCP] finish_run 失败: %s", exc)
+            self.stage1_run_id = None
+
+    def _write_stage2_report(self, target: str, fault: str) -> None:
+        """把 MCP 触发的阶段二运行结果写入 docs/implementation/runs/."""
+        from datetime import datetime
+        from stage1 import run as s1run
+
+        os.makedirs(s1run.REPORT_DIR, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(
+            s1run.REPORT_DIR, f"phase2_mcp_{target}_{fault}_{stamp}.json")
+        summary = {
+            "timestamp": stamp,
+            "backend": "stage2",
+            "run_id": self.stage1_run_id,
+            "artifact_id": (self.stage1_lifecycle.session.artifact_id
+                            if self.stage1_lifecycle is not None else None),
+            "target": target,
+            "fault": fault,
+            "results": self.stage1_results,
+            "all_ok": bool(self.stage1_results) and all(
+                r.get("ok") for r in self.stage1_results),
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+        self.stage1_report_path = path
 
     def _write_stage1_report(self, target: str, fault: str) -> None:
         """把 MCP 触发的阶段一运行结果写入 docs/implementation/runs/."""
@@ -609,9 +704,9 @@ class FactoryMCPServer:
                     manager.finish_run("STOP_REQUESTED")
                 except Exception as e:  # noqa: BLE001
                     self.last_error = f"finish_run 异常: {e}"
-            return ("已停止 (backend=stage1)"
+            return (f"已停止 (backend={self.backend})"
                     if not self.stage1_runner.is_alive()
-                    else "停止信号已发, stage1 线程仍在收尾")
+                    else f"停止信号已发, {self.backend} 线程仍在收尾")
 
         if manager is not None and lifecycle_running:
             # 由其他进程 (CLI) 启动的运行: 只停止物理引擎并等待其收尾;
@@ -657,7 +752,7 @@ class FactoryMCPServer:
     def status(self) -> dict:
         """采集当前仿真状态 — Gather live status for the status tool."""
         running = self.is_running()
-        if running and self.backend == "stage1":
+        if running and self.backend in ("stage1", "stage2"):
             # 主连接被 stage1 runner 独占; 探活会与主循环抢锁, 直接视为已连接。
             connected = True
         else:
@@ -672,8 +767,8 @@ class FactoryMCPServer:
             "port": self.connector.port if self.connector else None,
             "last_error": self.last_error,
         }
-        if self.backend == "stage1" or self.stage1_scene is not None:
-            info["backend"] = "stage1"
+        if self.backend in ("stage1", "stage2") or self.stage1_scene is not None:
+            info["backend"] = self.backend
             info["scene_built"] = self.stage1_scene is not None
             info["paused"] = self.stage1_pause.is_set()
             if self.stage1_scene is not None:
@@ -1075,8 +1170,10 @@ def start_simulation(total_time: float = 0.0,
     """在后台线程启动仿真主循环。
 
     backend="stage1" (默认/当前实现): **不重建场景**; 只启动当前已加载
-    且通过 validate_scene 的场景。没有合格场景时返回明确错误, 请先
-    build_scene 或 load_scene + validate_scene。
+    且通过 validate_scene 的场景。若工件 source_phase=stage2, 由同一
+    生命周期/运行锁路由到阶段二 runner (高位中转、碰撞检查、联锁)。
+    没有合格场景时返回明确错误, 请先 build_scene 或 load_scene +
+    validate_scene。
     backend="legacy": 运行旧五岛 FactoryController。
 
     前置: 已 connect, 仿真停止, 当前场景已校验, 无其他控制循环持有运行锁。

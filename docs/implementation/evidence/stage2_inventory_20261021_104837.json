@@ -1,0 +1,7582 @@
+{
+  "timestamp": "20261021_104837",
+  "simulator": {
+    "version": "4.10.0.0",
+    "engine_code": 0,
+    "step": 0.05,
+    "state": 0,
+    "sim_time": 1.7000000000000008
+  },
+  "object_count": 174,
+  "ur5": [
+    {
+      "handle": 93,
+      "alias": "Robot_UR5_01",
+      "type": 0,
+      "parent": 92,
+      "parent_alias": "Island_A",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "bbox": [
+        0.145258,
+        0.145258,
+        0.0293
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 94,
+      "alias": "link1_visible",
+      "type": 0,
+      "parent": 93,
+      "parent_alias": "Robot_UR5_01",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "bbox": [
+        0.145533,
+        0.145533,
+        0.0293
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 95,
+      "alias": "joint",
+      "type": 1,
+      "parent": 93,
+      "parent_alias": "Robot_UR5_01",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3085
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 96,
+      "alias": "link",
+      "type": 0,
+      "parent": 95,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.207178,
+        0.550095,
+        0.378881
+      ],
+      "bbox": [
+        0.134244,
+        0.120062,
+        0.128461
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 97,
+      "alias": "link2_visible",
+      "type": 0,
+      "parent": 96,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.20715,
+        0.55,
+        0.378835
+      ],
+      "bbox": [
+        0.1343,
+        0.12,
+        0.12837
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 98,
+      "alias": "joint",
+      "type": 1,
+      "parent": 96,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.55,
+        0.37455
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 99,
+      "alias": "link",
+      "type": 0,
+      "parent": 98,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.334535,
+        0.549885,
+        0.5871
+      ],
+      "bbox": [
+        0.136469,
+        0.121884,
+        0.545046
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 100,
+      "alias": "link3_visible",
+      "type": 0,
+      "parent": 99,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.334517,
+        0.55,
+        0.5871
+      ],
+      "bbox": [
+        0.136435,
+        0.12,
+        0.5448
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 101,
+      "alias": "joint",
+      "type": 1,
+      "parent": 99,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.55,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 102,
+      "alias": "link",
+      "type": 0,
+      "parent": 101,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.212453,
+        0.363227,
+        0.799666
+      ],
+      "bbox": [
+        0.107693,
+        0.116525,
+        0.489746
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 103,
+      "alias": "link4_visible",
+      "type": 0,
+      "parent": 102,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.21245,
+        0.36335,
+        0.79965
+      ],
+      "bbox": [
+        0.1077,
+        0.116,
+        0.4895
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 104,
+      "alias": "joint",
+      "type": 1,
+      "parent": 102,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.15785,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 105,
+      "alias": "link",
+      "type": 0,
+      "parent": 104,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.30313,
+        0.165351,
+        0.799605
+      ],
+      "bbox": [
+        0.09246,
+        0.078604,
+        0.098302
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 106,
+      "alias": "link5_visible",
+      "type": 0,
+      "parent": 105,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.3031,
+        0.16535,
+        0.79965
+      ],
+      "bbox": [
+        0.0924,
+        0.0785,
+        0.0983
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 107,
+      "alias": "joint",
+      "type": 1,
+      "parent": 105,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.112275,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 108,
+      "alias": "link",
+      "type": 0,
+      "parent": 107,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.310045,
+        0.06997,
+        0.803251
+      ],
+      "bbox": [
+        0.106202,
+        0.078604,
+        0.092461
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 109,
+      "alias": "joint",
+      "type": 1,
+      "parent": 108,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.814075
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 121,
+      "alias": "link6_visible",
+      "type": 0,
+      "parent": 108,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.07,
+        0.80325
+      ],
+      "bbox": [
+        0.1062,
+        0.0785,
+        0.092401
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 110,
+      "alias": "link",
+      "type": 0,
+      "parent": 109,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.7374
+      ],
+      "bbox": [
+        0.073205,
+        0.073205,
+        0.025501
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 111,
+      "alias": "link7_visible",
+      "type": 0,
+      "parent": 110,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.05924,
+        0.73365
+      ],
+      "bbox": [
+        0.033001,
+        0.073559,
+        0.08128
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 112,
+      "alias": "connection",
+      "type": 12,
+      "parent": 110,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.7247
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 113,
+      "alias": "SuctionPad_01",
+      "type": 0,
+      "parent": 112,
+      "parent_alias": "connection",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.67715
+      ],
+      "bbox": [
+        0.048315,
+        0.048315,
+        0.03
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 114,
+      "alias": "Body",
+      "type": 0,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.68715
+      ],
+      "bbox": [
+        0.047159,
+        0.047159,
+        0.05
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 115,
+      "alias": "SuctionPad_01_ModelSensor",
+      "type": 5,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66415
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 116,
+      "alias": "Link",
+      "type": 12,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 118,
+      "alias": "LoopClosureDummy1",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 119,
+      "alias": "SuctionPad_01_TCP",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 117,
+      "alias": "LoopClosureDummy2",
+      "type": 4,
+      "parent": 116,
+      "parent_alias": "Link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 120,
+      "alias": "Sensor_SuctionPad_01",
+      "type": 5,
+      "parent": 119,
+      "parent_alias": "SuctionPad_01_TCP",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    }
+  ],
+  "suction": [
+    {
+      "handle": 113,
+      "alias": "SuctionPad_01",
+      "type": 0,
+      "parent": 112,
+      "parent_alias": "connection",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.67715
+      ],
+      "bbox": [
+        0.048315,
+        0.048315,
+        0.03
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 114,
+      "alias": "Body",
+      "type": 0,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.68715
+      ],
+      "bbox": [
+        0.047159,
+        0.047159,
+        0.05
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 115,
+      "alias": "SuctionPad_01_ModelSensor",
+      "type": 5,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66415
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 116,
+      "alias": "Link",
+      "type": 12,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 118,
+      "alias": "LoopClosureDummy1",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 119,
+      "alias": "SuctionPad_01_TCP",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 117,
+      "alias": "LoopClosureDummy2",
+      "type": 4,
+      "parent": 116,
+      "parent_alias": "Link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 120,
+      "alias": "Sensor_SuctionPad_01",
+      "type": 5,
+      "parent": 119,
+      "parent_alias": "SuctionPad_01_TCP",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    }
+  ],
+  "conveyor": [
+    {
+      "handle": 16,
+      "alias": "Conveyor_In",
+      "type": 4,
+      "parent": 15,
+      "parent_alias": "Conveyor",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 17,
+      "alias": "Script",
+      "type": 17,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 18,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.445
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 19,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.081732,
+        0.0,
+        0.437388
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 20,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.049289,
+        0.0,
+        0.415711
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 21,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.027612,
+        0.0,
+        0.383268
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 22,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.02,
+        0.0,
+        0.345
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 23,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.027612,
+        0.0,
+        0.306732
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 24,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.049289,
+        0.0,
+        0.274289
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 25,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.081732,
+        0.0,
+        0.252612
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 26,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.245
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 27,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        0.0,
+        0.245
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 28,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.158268,
+        0.0,
+        0.252612
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 29,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.190711,
+        0.0,
+        0.274289
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 30,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.212388,
+        0.0,
+        0.306732
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 31,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.22,
+        0.0,
+        0.345
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 32,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.212388,
+        0.0,
+        0.383268
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 33,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.190711,
+        0.0,
+        0.415711
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 34,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.158268,
+        0.0,
+        0.437388
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 35,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        0.0,
+        0.445
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 36,
+      "alias": "Conveyor_In_Entry",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.01723,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 37,
+      "alias": "Conveyor_In_PickupStop",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 38,
+      "alias": "Sensor_PickStation",
+      "type": 5,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.6
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 39,
+      "alias": "Sensor_ConveyorExit",
+      "type": 5,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.15,
+        0.0,
+        0.6
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 41,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 42,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.069297,
+        0.0,
+        0.432028
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 43,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.032183,
+        0.0,
+        0.394523
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 44,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.017777,
+        0.0,
+        0.343608
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 45,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.03376,
+        0.0,
+        0.293117
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 46,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.071658,
+        0.0,
+        0.256394
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 47,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12277,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 48,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.175256,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 49,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.227742,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 50,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.280228,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 51,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.332713,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 52,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.385199,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 53,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.437685,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 54,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.490171,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 55,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.542656,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 56,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.595142,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 57,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.647628,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 58,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.700114,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 59,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.7526,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 60,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.805085,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 61,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.857571,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 62,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.910057,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 63,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.962543,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 64,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.015028,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 65,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.067514,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 66,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 67,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.170703,
+        -0.0,
+        0.257972
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 68,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.207817,
+        -0.0,
+        0.295477
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 69,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.222223,
+        0.0,
+        0.346392
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 70,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.20624,
+        0.0,
+        0.396883
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 71,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.168342,
+        0.0,
+        0.433606
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 72,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.11723,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 73,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.064744,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 74,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.012258,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 75,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.959772,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 76,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.907287,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 77,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.854801,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 78,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.802315,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 79,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.749829,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 80,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.697344,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 81,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.644858,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 82,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.592372,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 83,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.539886,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 84,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.4874,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 85,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.434915,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 86,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.382429,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 87,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.329943,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 88,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.277457,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 89,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.224972,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 90,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.172486,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 175,
+      "alias": "shape",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": [
+        0.199995,
+        0.2,
+        1.199968
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    }
+  ],
+  "agv": [
+    {
+      "handle": 125,
+      "alias": "Mobile_AGV_P3DX",
+      "type": 0,
+      "parent": 124,
+      "parent_alias": "Mobile",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.138786
+      ],
+      "bbox": [
+        0.519006,
+        0.415002,
+        0.196479
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 126,
+      "alias": "rightMotor",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 129,
+      "alias": "leftMotor",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 132,
+      "alias": "caster_freeJoint",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.250973,
+        0.749999,
+        0.060944
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 138,
+      "alias": "visible",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.399972,
+        0.749999,
+        0.138795
+      ],
+      "bbox": [
+        0.519001,
+        0.415,
+        0.196459
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 155,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 156,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.564472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 157,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.879999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 158,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.619999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 159,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.536396,
+        0.841923,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 160,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.536396,
+        0.658075,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 161,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.234472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 162,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.262606,
+        0.854999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 163,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.262606,
+        0.644999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 164,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.354472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 165,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.619472,
+        0.749999,
+        0.067693
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 166,
+      "alias": "AGV_LoadTray",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.247025
+      ],
+      "bbox": [
+        0.3,
+        0.3,
+        0.02
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 167,
+      "alias": "AGV_TrayWall_Front",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.555,
+        0.75,
+        0.272025
+      ],
+      "bbox": [
+        0.01,
+        0.3,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 168,
+      "alias": "AGV_TrayWall_Back",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.245,
+        0.75,
+        0.272025
+      ],
+      "bbox": [
+        0.01,
+        0.3,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 169,
+      "alias": "AGV_TrayWall_Left",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.905,
+        0.272025
+      ],
+      "bbox": [
+        0.3,
+        0.01,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 170,
+      "alias": "AGV_TrayWall_Right",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.595,
+        0.272025
+      ],
+      "bbox": [
+        0.3,
+        0.01,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 127,
+      "alias": "rightWheel",
+      "type": 0,
+      "parent": 126,
+      "parent_alias": "rightMotor",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": [
+        0.195,
+        0.195,
+        0.05
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 130,
+      "alias": "leftWheel",
+      "type": 0,
+      "parent": 129,
+      "parent_alias": "leftMotor",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": [
+        0.195,
+        0.195,
+        0.05
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 133,
+      "alias": "caster_link",
+      "type": 0,
+      "parent": 132,
+      "parent_alias": "caster_freeJoint",
+      "world_pos": [
+        0.250973,
+        0.749999,
+        0.060944
+      ],
+      "bbox": [
+        0.035348,
+        0.035348,
+        0.00296
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 139,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.506377,
+        0.888199,
+        0.206897
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 140,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.555402,
+        0.87505,
+        0.206897
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 141,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.590577,
+        0.833134,
+        0.206894
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 142,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.609162,
+        0.777274,
+        0.206889
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 143,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.609162,
+        0.722727,
+        0.206894
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 144,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.590543,
+        0.671498,
+        0.2069
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 145,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.55552,
+        0.629761,
+        0.206904
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 146,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.506377,
+        0.611855,
+        0.206896
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 147,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.289677,
+        0.611849,
+        0.206958
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 148,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.240434,
+        0.629758,
+        0.206956
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 149,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.205419,
+        0.671498,
+        0.206954
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 150,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.186792,
+        0.722724,
+        0.206953
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 151,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.186792,
+        0.777273,
+        0.206953
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 152,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.205411,
+        0.828499,
+        0.206954
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 153,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.240433,
+        0.870264,
+        0.206956
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 154,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.289677,
+        0.888199,
+        0.206958
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 128,
+      "alias": "rightWheel_visible",
+      "type": 0,
+      "parent": 127,
+      "parent_alias": "rightWheel",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": [
+        0.195022,
+        0.049997,
+        0.195022
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 131,
+      "alias": "leftWheel_visible",
+      "type": 0,
+      "parent": 130,
+      "parent_alias": "leftWheel",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": [
+        0.195022,
+        0.049997,
+        0.195022
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 134,
+      "alias": "caster_freeJoint",
+      "type": 1,
+      "parent": 133,
+      "parent_alias": "caster_link",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 137,
+      "alias": "caster_link_visible",
+      "type": 0,
+      "parent": 133,
+      "parent_alias": "caster_link",
+      "world_pos": [
+        0.24321,
+        0.749999,
+        0.040592
+      ],
+      "bbox": [
+        0.051059,
+        0.035519,
+        0.043659
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 135,
+      "alias": "caster_wheel",
+      "type": 0,
+      "parent": 134,
+      "parent_alias": "caster_freeJoint",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": [
+        0.059198,
+        0.059198,
+        0.00518
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 136,
+      "alias": "caster_wheel_visible",
+      "type": 0,
+      "parent": 135,
+      "parent_alias": "caster_wheel",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": [
+        0.059198,
+        0.059198,
+        0.020719
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    }
+  ],
+  "station": [
+    {
+      "handle": 92,
+      "alias": "Island_A",
+      "type": 0,
+      "parent": 91,
+      "parent_alias": "Island",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.15
+      ],
+      "bbox": [
+        0.6,
+        0.6,
+        0.3
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 122,
+      "alias": "Island_A_Station",
+      "type": 0,
+      "parent": 91,
+      "parent_alias": "Island",
+      "world_pos": [
+        -0.2,
+        1.2,
+        0.15
+      ],
+      "bbox": [
+        0.4,
+        0.4,
+        0.3
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 173,
+      "alias": "Floor",
+      "type": 0,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "bbox": [
+        8.0,
+        6.0,
+        0.1
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 14,
+      "alias": "Warehouse_Raw",
+      "type": 0,
+      "parent": 13,
+      "parent_alias": "Warehouse",
+      "world_pos": [
+        -1.02,
+        0.42,
+        0.125
+      ],
+      "bbox": [
+        0.35,
+        0.35,
+        0.25
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    }
+  ],
+  "api_probe": {
+    "checkCollision_overlap": [
+      1,
+      [
+        179,
+        180
+      ]
+    ],
+    "checkCollision_separated": [
+      0,
+      [
+        -1,
+        -1
+      ]
+    ],
+    "checkDistance_1cm": [
+      0,
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        -1,
+        -1
+      ]
+    ],
+    "checkDistance_outside_threshold": [
+      0,
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        -1,
+        -1
+      ]
+    ],
+    "checkDistance_no_threshold": [
+      1,
+      [
+        2.05,
+        2.05,
+        0.0,
+        2.45,
+        2.05,
+        0.0,
+        0.40000000000000036
+      ],
+      [
+        179,
+        181
+      ]
+    ],
+    "collection_self": [
+      1,
+      [
+        179,
+        180
+      ]
+    ],
+    "collection_vs_collection": [
+      1,
+      [
+        179,
+        180
+      ]
+    ],
+    "collidable_false_still_collides": [
+      0,
+      [
+        -1,
+        -1
+      ]
+    ],
+    "special_property_get": 1011,
+    "special_property_collidable_const": 1,
+    "selfcollision_intparam_constant": 27,
+    "sim_constants_present": {
+      "handle_single": true,
+      "handle_tree": true,
+      "handle_all": true,
+      "handle_chain": true,
+      "destroyCollection": true,
+      "setObjectSpecialProperty": true,
+      "getObjectSpecialProperty": true
+    },
+    "distance_between_collections": [
+      1,
+      [
+        2.05,
+        2.05,
+        0.0,
+        2.05,
+        2.05,
+        0.0,
+        0.0
+      ],
+      [
+        179,
+        180
+      ]
+    ]
+  },
+  "objects": [
+    {
+      "handle": 0,
+      "alias": "DefaultCamera",
+      "type": 3,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        1.364973,
+        -1.13857,
+        1.795335
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 1,
+      "alias": "XYZCameraProxy",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 2,
+      "alias": "XViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        20.0,
+        0.0,
+        0.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 3,
+      "alias": "YViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        0.0,
+        20.0,
+        0.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 4,
+      "alias": "ZViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        0.0,
+        0.0,
+        20.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 5,
+      "alias": "NXViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        -20.0,
+        -2e-06,
+        0.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 6,
+      "alias": "NYViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        2e-06,
+        -20.0,
+        0.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 7,
+      "alias": "NZViewCamera",
+      "type": 3,
+      "parent": 1,
+      "parent_alias": "XYZCameraProxy",
+      "world_pos": [
+        2e-06,
+        0.0,
+        -20.75
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 8,
+      "alias": "DefaultLights",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 9,
+      "alias": "LightA",
+      "type": 13,
+      "parent": 8,
+      "parent_alias": "DefaultLights",
+      "world_pos": [
+        1.553546,
+        -0.839107,
+        2.5
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 10,
+      "alias": "LightB",
+      "type": 13,
+      "parent": 8,
+      "parent_alias": "DefaultLights",
+      "world_pos": [
+        -0.182812,
+        1.843093,
+        2.5
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 11,
+      "alias": "LightC",
+      "type": 13,
+      "parent": 8,
+      "parent_alias": "DefaultLights",
+      "world_pos": [
+        -1.150916,
+        -1.217711,
+        2.5
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 12,
+      "alias": "LightD",
+      "type": 13,
+      "parent": 8,
+      "parent_alias": "DefaultLights",
+      "world_pos": [
+        0.0,
+        -0.0,
+        2.5
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 13,
+      "alias": "Warehouse",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 14,
+      "alias": "Warehouse_Raw",
+      "type": 0,
+      "parent": 13,
+      "parent_alias": "Warehouse",
+      "world_pos": [
+        -1.02,
+        0.42,
+        0.125
+      ],
+      "bbox": [
+        0.35,
+        0.35,
+        0.25
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 15,
+      "alias": "Conveyor",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 16,
+      "alias": "Conveyor_In",
+      "type": 4,
+      "parent": 15,
+      "parent_alias": "Conveyor",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 17,
+      "alias": "Script",
+      "type": 17,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 18,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.445
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 19,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.081732,
+        0.0,
+        0.437388
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 20,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.049289,
+        0.0,
+        0.415711
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 21,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.027612,
+        0.0,
+        0.383268
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 22,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.02,
+        0.0,
+        0.345
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 23,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.027612,
+        0.0,
+        0.306732
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 24,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.049289,
+        0.0,
+        0.274289
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 25,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.081732,
+        0.0,
+        0.252612
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 26,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.245
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 27,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        0.0,
+        0.245
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 28,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.158268,
+        0.0,
+        0.252612
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 29,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.190711,
+        0.0,
+        0.274289
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 30,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.212388,
+        0.0,
+        0.306732
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 31,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.22,
+        0.0,
+        0.345
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 32,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.212388,
+        0.0,
+        0.383268
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 33,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.190711,
+        0.0,
+        0.415711
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 34,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.158268,
+        0.0,
+        0.437388
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 35,
+      "alias": "_ctrlPt",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        0.0,
+        0.445
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 36,
+      "alias": "Conveyor_In_Entry",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.01723,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 37,
+      "alias": "Conveyor_In_PickupStop",
+      "type": 4,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.45
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 38,
+      "alias": "Sensor_PickStation",
+      "type": 5,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.6
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 39,
+      "alias": "Sensor_ConveyorExit",
+      "type": 5,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.15,
+        0.0,
+        0.6
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 41,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 42,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.069297,
+        0.0,
+        0.432028
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 43,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.032183,
+        0.0,
+        0.394523
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 44,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.017777,
+        0.0,
+        0.343608
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 45,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.03376,
+        0.0,
+        0.293117
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 46,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.071658,
+        0.0,
+        0.256394
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 47,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.12277,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 48,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.175256,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 49,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.227742,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 50,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.280228,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 51,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.332713,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 52,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.385199,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 53,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.437685,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 54,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.490171,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 55,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.542656,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 56,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.595142,
+        0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 57,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.647628,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 58,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.700114,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 59,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.7526,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 60,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.805085,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 61,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.857571,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 62,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.910057,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 63,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.962543,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 64,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.015028,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 65,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.067514,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 66,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.12,
+        -0.0,
+        0.2425
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 67,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.170703,
+        -0.0,
+        0.257972
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 68,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.207817,
+        -0.0,
+        0.295477
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 69,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.222223,
+        0.0,
+        0.346392
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 70,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.20624,
+        0.0,
+        0.396883
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 71,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.168342,
+        0.0,
+        0.433606
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 72,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.11723,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 73,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.064744,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 74,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -1.012258,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 75,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.959772,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 76,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.907287,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 77,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.854801,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 78,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.802315,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 79,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.749829,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 80,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.697344,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 81,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.644858,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 82,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.592372,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 83,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.539886,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 84,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.4874,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 85,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.434915,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 86,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.382429,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 87,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.329943,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 88,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.277457,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 89,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.224972,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 90,
+      "alias": "pad",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.172486,
+        0.0,
+        0.4475
+      ],
+      "bbox": [
+        0.05,
+        0.2,
+        0.005
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 91,
+      "alias": "Island",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 92,
+      "alias": "Island_A",
+      "type": 0,
+      "parent": 91,
+      "parent_alias": "Island",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.15
+      ],
+      "bbox": [
+        0.6,
+        0.6,
+        0.3
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 93,
+      "alias": "Robot_UR5_01",
+      "type": 0,
+      "parent": 92,
+      "parent_alias": "Island_A",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "bbox": [
+        0.145258,
+        0.145258,
+        0.0293
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 94,
+      "alias": "link1_visible",
+      "type": 0,
+      "parent": 93,
+      "parent_alias": "Robot_UR5_01",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3
+      ],
+      "bbox": [
+        0.145533,
+        0.145533,
+        0.0293
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 95,
+      "alias": "joint",
+      "type": 1,
+      "parent": 93,
+      "parent_alias": "Robot_UR5_01",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3085
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 96,
+      "alias": "link",
+      "type": 0,
+      "parent": 95,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.207178,
+        0.550095,
+        0.378881
+      ],
+      "bbox": [
+        0.134244,
+        0.120062,
+        0.128461
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 97,
+      "alias": "link2_visible",
+      "type": 0,
+      "parent": 96,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.20715,
+        0.55,
+        0.378835
+      ],
+      "bbox": [
+        0.1343,
+        0.12,
+        0.12837
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 98,
+      "alias": "joint",
+      "type": 1,
+      "parent": 96,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.55,
+        0.37455
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 99,
+      "alias": "link",
+      "type": 0,
+      "parent": 98,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.334535,
+        0.549885,
+        0.5871
+      ],
+      "bbox": [
+        0.136469,
+        0.121884,
+        0.545046
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 100,
+      "alias": "link3_visible",
+      "type": 0,
+      "parent": 99,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.334517,
+        0.55,
+        0.5871
+      ],
+      "bbox": [
+        0.136435,
+        0.12,
+        0.5448
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 101,
+      "alias": "joint",
+      "type": 1,
+      "parent": 99,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.55,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 102,
+      "alias": "link",
+      "type": 0,
+      "parent": 101,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.212453,
+        0.363227,
+        0.799666
+      ],
+      "bbox": [
+        0.107693,
+        0.116525,
+        0.489746
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 103,
+      "alias": "link4_visible",
+      "type": 0,
+      "parent": 102,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.21245,
+        0.36335,
+        0.79965
+      ],
+      "bbox": [
+        0.1077,
+        0.116,
+        0.4895
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 104,
+      "alias": "joint",
+      "type": 1,
+      "parent": 102,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.2703,
+        0.15785,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 105,
+      "alias": "link",
+      "type": 0,
+      "parent": 104,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.30313,
+        0.165351,
+        0.799605
+      ],
+      "bbox": [
+        0.09246,
+        0.078604,
+        0.098302
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 106,
+      "alias": "link5_visible",
+      "type": 0,
+      "parent": 105,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.3031,
+        0.16535,
+        0.79965
+      ],
+      "bbox": [
+        0.0924,
+        0.0785,
+        0.0983
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 107,
+      "alias": "joint",
+      "type": 1,
+      "parent": 105,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.112275,
+        0.79965
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 108,
+      "alias": "link",
+      "type": 0,
+      "parent": 107,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.310045,
+        0.06997,
+        0.803251
+      ],
+      "bbox": [
+        0.106202,
+        0.078604,
+        0.092461
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 109,
+      "alias": "joint",
+      "type": 1,
+      "parent": 108,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.814075
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 110,
+      "alias": "link",
+      "type": 0,
+      "parent": 109,
+      "parent_alias": "joint",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.7374
+      ],
+      "bbox": [
+        0.073205,
+        0.073205,
+        0.025501
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 111,
+      "alias": "link7_visible",
+      "type": 0,
+      "parent": 110,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.05924,
+        0.73365
+      ],
+      "bbox": [
+        0.033001,
+        0.073559,
+        0.08128
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 112,
+      "alias": "connection",
+      "type": 12,
+      "parent": 110,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.7247
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 113,
+      "alias": "SuctionPad_01",
+      "type": 0,
+      "parent": 112,
+      "parent_alias": "connection",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.67715
+      ],
+      "bbox": [
+        0.048315,
+        0.048315,
+        0.03
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 114,
+      "alias": "Body",
+      "type": 0,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.68715
+      ],
+      "bbox": [
+        0.047159,
+        0.047159,
+        0.05
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 115,
+      "alias": "SuctionPad_01_ModelSensor",
+      "type": 5,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66415
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 116,
+      "alias": "Link",
+      "type": 12,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 117,
+      "alias": "LoopClosureDummy2",
+      "type": 4,
+      "parent": 116,
+      "parent_alias": "Link",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 118,
+      "alias": "LoopClosureDummy1",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 119,
+      "alias": "SuctionPad_01_TCP",
+      "type": 4,
+      "parent": 113,
+      "parent_alias": "SuctionPad_01",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 120,
+      "alias": "Sensor_SuctionPad_01",
+      "type": 5,
+      "parent": 119,
+      "parent_alias": "SuctionPad_01_TCP",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.66215
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 121,
+      "alias": "link6_visible",
+      "type": 0,
+      "parent": 108,
+      "parent_alias": "link",
+      "world_pos": [
+        -0.31,
+        0.07,
+        0.80325
+      ],
+      "bbox": [
+        0.1062,
+        0.0785,
+        0.092401
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 122,
+      "alias": "Island_A_Station",
+      "type": 0,
+      "parent": 91,
+      "parent_alias": "Island",
+      "world_pos": [
+        -0.2,
+        1.2,
+        0.15
+      ],
+      "bbox": [
+        0.4,
+        0.4,
+        0.3
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 123,
+      "alias": "IK_Target_01",
+      "type": 4,
+      "parent": 91,
+      "parent_alias": "Island",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.55
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 124,
+      "alias": "Mobile",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 125,
+      "alias": "Mobile_AGV_P3DX",
+      "type": 0,
+      "parent": 124,
+      "parent_alias": "Mobile",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.138786
+      ],
+      "bbox": [
+        0.519006,
+        0.415002,
+        0.196479
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 126,
+      "alias": "rightMotor",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 127,
+      "alias": "rightWheel",
+      "type": 0,
+      "parent": 126,
+      "parent_alias": "rightMotor",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": [
+        0.195,
+        0.195,
+        0.05
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 128,
+      "alias": "rightWheel_visible",
+      "type": 0,
+      "parent": 127,
+      "parent_alias": "rightWheel",
+      "world_pos": [
+        0.444515,
+        0.584499,
+        0.097511
+      ],
+      "bbox": [
+        0.195022,
+        0.049997,
+        0.195022
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 129,
+      "alias": "leftMotor",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 130,
+      "alias": "leftWheel",
+      "type": 0,
+      "parent": 129,
+      "parent_alias": "leftMotor",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": [
+        0.195,
+        0.195,
+        0.05
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 131,
+      "alias": "leftWheel_visible",
+      "type": 0,
+      "parent": 130,
+      "parent_alias": "leftWheel",
+      "world_pos": [
+        0.44451,
+        0.915499,
+        0.097534
+      ],
+      "bbox": [
+        0.195022,
+        0.049997,
+        0.195022
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 132,
+      "alias": "caster_freeJoint",
+      "type": 1,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.250973,
+        0.749999,
+        0.060944
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 133,
+      "alias": "caster_link",
+      "type": 0,
+      "parent": 132,
+      "parent_alias": "caster_freeJoint",
+      "world_pos": [
+        0.250973,
+        0.749999,
+        0.060944
+      ],
+      "bbox": [
+        0.035348,
+        0.035348,
+        0.00296
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 134,
+      "alias": "caster_freeJoint",
+      "type": 1,
+      "parent": 133,
+      "parent_alias": "caster_link",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 135,
+      "alias": "caster_wheel",
+      "type": 0,
+      "parent": 134,
+      "parent_alias": "caster_freeJoint",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": [
+        0.059198,
+        0.059198,
+        0.00518
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 136,
+      "alias": "caster_wheel_visible",
+      "type": 0,
+      "parent": 135,
+      "parent_alias": "caster_wheel",
+      "world_pos": [
+        0.228784,
+        0.749999,
+        0.029857
+      ],
+      "bbox": [
+        0.059198,
+        0.059198,
+        0.020719
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 137,
+      "alias": "caster_link_visible",
+      "type": 0,
+      "parent": 133,
+      "parent_alias": "caster_link",
+      "world_pos": [
+        0.24321,
+        0.749999,
+        0.040592
+      ],
+      "bbox": [
+        0.051059,
+        0.035519,
+        0.043659
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 138,
+      "alias": "visible",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.399972,
+        0.749999,
+        0.138795
+      ],
+      "bbox": [
+        0.519001,
+        0.415,
+        0.196459
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 0,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 139,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.506377,
+        0.888199,
+        0.206897
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 140,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.555402,
+        0.87505,
+        0.206897
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 141,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.590577,
+        0.833134,
+        0.206894
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 142,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.609162,
+        0.777274,
+        0.206889
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 143,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.609162,
+        0.722727,
+        0.206894
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 144,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.590543,
+        0.671498,
+        0.2069
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 145,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.55552,
+        0.629761,
+        0.206904
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 146,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.506377,
+        0.611855,
+        0.206896
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 147,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.289677,
+        0.611849,
+        0.206958
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 148,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.240434,
+        0.629758,
+        0.206956
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 149,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.205419,
+        0.671498,
+        0.206954
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 150,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.186792,
+        0.722724,
+        0.206953
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 151,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.186792,
+        0.777273,
+        0.206953
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 152,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.205411,
+        0.828499,
+        0.206954
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 153,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.240433,
+        0.870264,
+        0.206956
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 154,
+      "alias": "ultrasonicSensor",
+      "type": 5,
+      "parent": 138,
+      "parent_alias": "visible",
+      "world_pos": [
+        0.289677,
+        0.888199,
+        0.206958
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 155,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 156,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.564472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 157,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.879999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 158,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.444472,
+        0.619999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 159,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.536396,
+        0.841923,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 160,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.536396,
+        0.658075,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 161,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.234472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 162,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.262606,
+        0.854999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 163,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.262606,
+        0.644999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 164,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.354472,
+        0.749999,
+        0.237093
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 165,
+      "alias": "connection",
+      "type": 12,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.619472,
+        0.749999,
+        0.067693
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 166,
+      "alias": "AGV_LoadTray",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.247025
+      ],
+      "bbox": [
+        0.3,
+        0.3,
+        0.02
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 167,
+      "alias": "AGV_TrayWall_Front",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.555,
+        0.75,
+        0.272025
+      ],
+      "bbox": [
+        0.01,
+        0.3,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 168,
+      "alias": "AGV_TrayWall_Back",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.245,
+        0.75,
+        0.272025
+      ],
+      "bbox": [
+        0.01,
+        0.3,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 169,
+      "alias": "AGV_TrayWall_Left",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.905,
+        0.272025
+      ],
+      "bbox": [
+        0.3,
+        0.01,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 170,
+      "alias": "AGV_TrayWall_Right",
+      "type": 0,
+      "parent": 125,
+      "parent_alias": "Mobile_AGV_P3DX",
+      "world_pos": [
+        0.4,
+        0.595,
+        0.272025
+      ],
+      "bbox": [
+        0.3,
+        0.01,
+        0.03
+      ],
+      "props": {
+        "static": 0,
+        "respondable": 1,
+        "kinematic": 1,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 171,
+      "alias": "Sensor_AGV_Dock",
+      "type": 5,
+      "parent": 124,
+      "parent_alias": "Mobile",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.3
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 172,
+      "alias": "Part",
+      "type": 4,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox": null,
+      "props": {
+        "static": "ERR:TypeError",
+        "respondable": "ERR:TypeError",
+        "kinematic": "ERR:TypeError",
+        "collidable": 0,
+        "measurable": 0
+      }
+    },
+    {
+      "handle": 173,
+      "alias": "Floor",
+      "type": 0,
+      "parent": -1,
+      "parent_alias": "",
+      "world_pos": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "bbox": [
+        8.0,
+        6.0,
+        0.1
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    },
+    {
+      "handle": 175,
+      "alias": "shape",
+      "type": 0,
+      "parent": 16,
+      "parent_alias": "Conveyor_In",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ],
+      "bbox": [
+        0.199995,
+        0.2,
+        1.199968
+      ],
+      "props": {
+        "static": 1,
+        "respondable": 1,
+        "kinematic": 0,
+        "collidable": 1,
+        "measurable": 1
+      }
+    }
+  ],
+  "summary": {
+    "ur5_link_shapes": 14,
+    "ur5_aliases": [
+      "Body",
+      "Link",
+      "LoopClosureDummy1",
+      "LoopClosureDummy2",
+      "Robot_UR5_01",
+      "Sensor_SuctionPad_01",
+      "SuctionPad_01",
+      "SuctionPad_01_ModelSensor",
+      "SuctionPad_01_TCP",
+      "connection",
+      "joint",
+      "link",
+      "link1_visible",
+      "link2_visible",
+      "link3_visible",
+      "link4_visible",
+      "link5_visible",
+      "link6_visible",
+      "link7_visible"
+    ],
+    "conveyor_pads": 50,
+    "conveyor_shape_aliases": [
+      "pad",
+      "shape"
+    ],
+    "agv_shape_count": 15
+  }
+}
