@@ -606,7 +606,12 @@ def main(argv=None) -> int:
             artifact_id=manager.session.artifact_id)
     except Exception as exc:
         logger.exception("[TASK] 运行异常: %s", exc)
-        manager.finish_run("FAILED", f"{type(exc).__name__}: {exc}")
+        error = f"{type(exc).__name__}: {exc}"
+        try:
+            manager.stop()
+        except Exception:
+            pass
+        manager.finish_run("FAILED", error)
         return 1
     finally:
         if not ns.keep_running:
@@ -617,7 +622,8 @@ def main(argv=None) -> int:
                 manager.finish_run("STOP_UNCERTAIN", str(exc))
 
     if ns.keep_running:
-        print(json.dumps({**summary, "lifecycle": manager.summary()},
+        print(json.dumps({**summary,
+                          "lifecycle": manager.enter_background()},
                          ensure_ascii=False, indent=2))
     else:
         lifecycle = manager.finish_run(

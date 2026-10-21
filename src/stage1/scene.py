@@ -91,9 +91,19 @@ def subtree(sim, root: int) -> list[int]:
     return out
 
 
-def resolve_alias(sim, alias: str, required: bool = True) -> int:
-    """按完整的扁平别名匹配; 重复别名视为构建错误。"""
-    hits = [h for h in all_objects(sim) if alias_of(sim, h) == alias]
+def alias_index(sim) -> dict[str, list[int]]:
+    """一次全场景枚举建立 alias → handles 索引 (启动/加载期使用)。"""
+    index: dict[str, list[int]] = {}
+    for handle in all_objects(sim):
+        alias = alias_of(sim, handle)
+        if alias:
+            index.setdefault(alias, []).append(int(handle))
+    return index
+
+
+def _resolve_indexed(index: dict[str, list[int]], alias: str,
+                     required: bool = True) -> int:
+    hits = index.get(alias, [])
     if len(hits) > 1:
         raise SceneBuildError(f"别名重复: {alias!r} → {hits}")
     if not hits:
@@ -101,6 +111,14 @@ def resolve_alias(sim, alias: str, required: bool = True) -> int:
             raise SceneBuildError(f"场景中找不到别名: {alias!r}")
         return -1
     return hits[0]
+
+
+def resolve_alias(sim, alias: str, required: bool = True,
+                  index: Optional[dict[str, list[int]]] = None) -> int:
+    """按完整的扁平别名匹配; 重复别名视为构建错误。"""
+    if index is None:
+        index = alias_index(sim)
+    return _resolve_indexed(index, alias, required)
 
 
 def clear_scene(sim) -> int:
@@ -276,6 +294,20 @@ def _end_link_max_z(sim, connection: int) -> float:
     return max(_shape_max_z(sim, h, connection) for h in shapes)
 
 
+def arm_joint_modes_ok(sim, joints) -> tuple[bool, list[int]]:
+    """检查机械臂关节是否全部为 kinematic。
+
+    4.10 的 ``sim.getJointMode`` 实测返回 ``(mode, options)``, 必须归一化;
+    返回 ``(ok, modes)`` 便于契约断言记录实际读数。
+    """
+    modes = []
+    for joint in joints:
+        mode = sim.getJointMode(joint)
+        modes.append(int(mode[0] if isinstance(mode, (tuple, list)) else mode))
+    kinematic = int(getattr(sim, "jointmode_kinematic", 0))
+    return all(mode == kinematic for mode in modes), modes
+
+
 def _chain_joints(sim, root: int, tip: int) -> list[int]:
     chain, cur = [], int(tip)
     for _ in range(64):
@@ -435,8 +467,12 @@ class Stage1Scene:
 
     def describe(self) -> list[dict]:
         rows = []
+        index = alias_index(self.sim)
         for alias in sorted(set(cfg.REQUIRED_ALIASES) | set(self.handles)):
-            h = self.handle(alias)
+            h = self.handles.get(alias)
+            if h is None:
+                hits = index.get(alias, [])
+                h = hits[0] if len(hits) == 1 else -1
             if h < 0:
                 continue
             parent = -1
@@ -528,19 +564,25 @@ class Stage1Scene:
                   f"({sum(1 for c in layout_report['checks'] if c['ok'])}"
                   f"/{len(layout_report['checks'])} checks)")
 
+        index = alias_index(self.sim)
         for alias in cfg.REQUIRED_ALIASES:
-            hits = [h for h in all_objects(self.sim)
-                    if alias_of(self.sim, h) == alias]
+            hits = index.get(alias, [])
             check(f"alias_unique:{alias}", len(hits) == 1,
                   f"{len(hits)} 个匹配")
 
-        stopper_hits = [h for h in all_objects(self.sim)
-                        if alias_of(self.sim, h) == cfg.LEGACY_STOPPER_ALIAS]
+        stopper_hits = index.get(cfg.LEGACY_STOPPER_ALIAS, [])
         check("no_stopper", len(stopper_hits) == 0,
               f"当前生产场景不构建挡停体, found={len(stopper_hits)}")
 
         check("robot_joint_count", len(self.robot_joints) == 6,
               f"{len(self.robot_joints)} 个关节")
+        try:
+            modes_ok, modes = arm_joint_modes_ok(self.sim, self.robot_joints)
+            check("ur5_joint_modes", modes_ok,
+                  f"modes={modes} (期望全部 "
+                  f"{self.sim.jointmode_kinematic})")
+        except Exception as exc:
+            check("ur5_joint_modes", False, f"无法读取: {exc}")
 
         tcp = self.tcp
         check("tcp_exists", tcp >= 0, f"handle={tcp}")
@@ -982,14 +1024,15 @@ def _cache_required_handles(sim, scene: "Stage1Scene") -> None:
     在每步控制循环里被读取, 必须在启动时缓存。找不到的别名保持缺失,
     由 `verify()` 的契约断言报告。
     """
+    index = alias_index(sim)
     for key in ("conveyor_entry", "conveyor_stop", "pick_sensor",
                 "exit_sensor", "agv_dock_sensor", "place_target_station"):
         alias = cfg.ALIASES[key]
         if alias in scene.handles:
             continue
-        h = resolve_alias(sim, alias, required=False)
-        if h >= 0:
-            scene.handles[alias] = h
+        hits = index.get(alias, [])
+        if len(hits) == 1:
+            scene.handles[alias] = hits[0]
 
 
 def build_scene(sim, clear: bool = True,
@@ -1096,15 +1139,16 @@ def adopt_scene(sim, layout: Optional[LayoutSpec] = None) -> Stage1Scene:
     """
     layout = default_layout() if layout is None else layout
     scene = Stage1Scene(sim=sim, layout=layout)
+    index = alias_index(sim)
 
     for name in cfg.ALIASES["roots"]:
-        scene.handles[name] = resolve_alias(sim, name)
+        scene.handles[name] = _resolve_indexed(index, name)
 
     for key, alias in cfg.ALIASES.items():
         if key == "roots":
             continue
-        h = resolve_alias(sim, alias,
-                          required=alias in cfg.REQUIRED_ALIASES)
+        h = _resolve_indexed(index, alias,
+                             required=alias in cfg.REQUIRED_ALIASES)
         if h >= 0:
             scene.handles[alias] = h
 

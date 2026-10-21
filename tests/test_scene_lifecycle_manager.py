@@ -358,3 +358,63 @@ def test_start_built_scene_reverifies_contract(tmp_path, monkeypatch):
     assert prepared["lifecycle_state"] == "SIMULATION_RUNNING"
     mgr.finish_run()
     assert mgr.sm.state is LifecycleState.SCENE_VALIDATED
+
+
+def test_enter_background_releases_lock_but_keeps_running_state(tmp_path):
+    import stage1.scene as scene_mod
+
+    monkeypatch_ok = True
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(scene_mod, "build_scene",
+                        lambda sim, clear=True, layout=None: FakeScene())
+    try:
+        mgr = _manager(tmp_path)
+        mgr.build()
+        mgr.prepare_start()
+        mgr.enter_background()
+        assert mgr.run_lock.owner() is None
+        assert mgr.sm.state is LifecycleState.SIMULATION_RUNNING
+        assert mgr.session.run_id is None
+        assert mgr.session.background is True
+        # 之后 stop 必须能回收
+        mgr.sim._state = 1
+        mgr.stop()
+        assert mgr.sm.state is LifecycleState.SCENE_VALIDATED
+        assert mgr.session.background is False
+    finally:
+        monkeypatch.undo()
+
+
+def test_refresh_clears_dead_lock_and_reports_stale_run(tmp_path):
+    mgr = _manager(tmp_path, FakeSim(state=1))
+    mgr.session.state = LifecycleState.SIMULATION_RUNNING
+    mgr.session.scene_origin = "BUILT"
+    mgr.session_store.save(mgr.session)
+    mgr.sm.state = LifecycleState.SIMULATION_RUNNING
+    mgr.run_lock.path.parent.mkdir(parents=True, exist_ok=True)
+    mgr.run_lock.path.write_text(
+        json.dumps({"pid": 999999, "run_id": "dead"}), encoding="utf-8")
+    mgr.run_lock._pid_alive = lambda pid: False
+
+    info = mgr.refresh()
+    assert info["stale_run"] is True
+    assert not mgr.run_lock.path.exists()
+    assert mgr.sm.state is LifecycleState.SIMULATION_RUNNING
+
+    mgr.sim._state = 0
+    mgr.stop()
+    assert mgr.sm.state is LifecycleState.SCENE_VALIDATED
+    assert mgr.session.background is False
+
+
+def test_refresh_clears_dead_lock_even_when_not_running(tmp_path):
+    mgr = _manager(tmp_path)
+    assert mgr.sm.state is LifecycleState.CONNECTED_STOPPED
+    mgr.run_lock.path.parent.mkdir(parents=True, exist_ok=True)
+    mgr.run_lock.path.write_text(
+        json.dumps({"pid": 999999, "run_id": "dead"}), encoding="utf-8")
+    mgr.run_lock._pid_alive = lambda pid: False
+
+    info = mgr.refresh()
+    assert info["stale_lock_cleared"]["pid"] == 999999
+    assert not mgr.run_lock.path.exists()

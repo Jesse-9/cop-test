@@ -161,6 +161,7 @@ class SessionState:
     port: int = 23000
     last_error: Optional[str] = None
     has_run_since_build: bool = False
+    background: bool = False        # --keep-running: 无控制循环但仿真仍运行
     updated_at: str = ""
 
     def to_dict(self) -> dict:
@@ -176,6 +177,7 @@ class SessionState:
             "port": self.port,
             "last_error": self.last_error,
             "has_run_since_build": bool(self.has_run_since_build),
+            "background": bool(self.background),
             "updated_at": self.updated_at or sa.utc_now(),
         }
 
@@ -198,6 +200,7 @@ class SessionState:
             port=int(data.get("port", 23000)),
             last_error=data.get("last_error"),
             has_run_since_build=bool(data.get("has_run_since_build")),
+            background=bool(data.get("background")),
             updated_at=data.get("updated_at", ""),
         )
 
@@ -330,6 +333,20 @@ class RunLock:
             pass
         self._run_id = None
         return True
+
+    def clear_stale(self) -> Optional[dict]:
+        """清理持有进程已死亡的锁文件; 返回被清理的 owner, 无则 None。"""
+        owner = self.owner()
+        if owner is None:
+            return None
+        if self._pid_alive(owner.get("pid")):
+            return None
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
+        self._run_id = None
+        return owner
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -486,9 +503,18 @@ class LifecycleManager:
         stopped = (sim_state == int(getattr(self.sim, "simulation_stopped", 0)))
         owner = self.run_lock.owner()
         owner_alive = self.run_lock.owner_alive(owner)
+        cleared_owner = None
+        if owner is not None and not owner_alive:
+            cleared_owner = self.run_lock.clear_stale()
+            if cleared_owner is not None:
+                owner = None
+                self._event("stale_lock_cleared", owner=cleared_owner)
         recovered = False
+        stale_run = False
         if self.sm.state is LifecycleState.SIMULATION_RUNNING and not owner_alive:
             if stopped:
+                stale_run = not self.session.background
+                self.session.background = False
                 target = (LifecycleState.SCENE_VALIDATED
                           if (self.session.artifact_id
                               or self.session.scene_origin == "BUILT")
@@ -497,6 +523,18 @@ class LifecycleManager:
                 self._apply(target, event="stale_run_recovered",
                             reason="owner_dead_and_sim_stopped")
                 recovered = True
+            elif self.session.background:
+                # --keep-running 的正常后台状态: 没有控制循环, 但仿真仍开着。
+                pass
+            else:
+                stale_run = True
+                if cleared_owner is not None:
+                    self.session.last_error = (
+                        f"stale_run: 持有进程 pid={cleared_owner.get('pid')} "
+                        f"(run_id={cleared_owner.get('run_id')}) 已退出, "
+                        "但仿真仍在运行; 请执行 stop")
+                    self.session_store.save(self.session)
+                    self._event("stale_run_detected", owner=cleared_owner)
         return {
             "state": self.sm.state.value,
             "sim_state": sim_state,
@@ -504,6 +542,9 @@ class LifecycleManager:
             "lock_owner": owner,
             "lock_alive": owner_alive,
             "recovered": recovered,
+            "stale_run": stale_run,
+            "stale_lock_cleared": cleared_owner,
+            "background": bool(self.session.background),
         }
 
     # ── 动作: build ─────────────────────────────────────────
@@ -847,6 +888,24 @@ class LifecycleManager:
                     target=target, run_id=run_id)
         return {**self.summary(), "run_id": run_id}
 
+    def enter_background(self) -> dict:
+        """`--keep-running`: 释放控制循环锁, 保留运行中的仿真。
+
+        CLI 进程退出后不再有控制循环, 因此不能继续持有 run.lock; 会话状态
+        保持 SIMULATION_RUNNING 并标记 background=True, 下一次 stop 负责
+        停止并回收。
+        """
+        if self.sm.state is not LifecycleState.SIMULATION_RUNNING:
+            raise InvalidTransitionError(
+                f"只有运行中才能转入后台, 当前 {self.sm.state.value}")
+        self.run_lock.release()
+        self.session.run_id = None
+        self.session.pid = None
+        self.session.background = True
+        self.session_store.save(self.session)
+        self._event("background", reason="keep_running")
+        return self.summary()
+
     def finish_run(self, outcome: str = "STOPPED", error: Optional[str] = None
                    ) -> dict:
         """运行线程结束后由持有者调用; 幂等。"""
@@ -857,12 +916,15 @@ class LifecycleManager:
                       else LifecycleState.CONNECTED_STOPPED)
             self.session.run_id = None
             self.session.pid = None
+            self.session.background = False
             self.session.last_error = error
             self._apply(target, event="stopped", outcome=outcome,
                         error=error)
         self.run_lock.release()
         self.has_run_since_build = True
         self.session.has_run_since_build = True
+        if error is not None:
+            self.session.last_error = error
         self.session_store.save(self.session)
         return self.summary()
 
@@ -934,6 +996,7 @@ class LifecycleManager:
             "host": self.host,
             "port": self.port,
             "last_error": self.session.last_error,
+            "background": bool(self.session.background),
             "sim_state": self._sim_state(),
             "allowed_actions": self.allowed_actions(),
         }
@@ -1020,7 +1083,12 @@ def _run_start(args, manager: LifecycleManager) -> dict:
             run_id=prepared["run_id"],
             artifact_id=manager.session.artifact_id)
     except Exception as exc:
-        manager.finish_run("FAILED", f"{type(exc).__name__}: {exc}")
+        error = f"{type(exc).__name__}: {exc}"
+        try:
+            manager.stop()
+        except Exception:
+            pass
+        manager.finish_run("FAILED", error)
         raise
     finally:
         if not args.keep_running:
@@ -1029,7 +1097,7 @@ def _run_start(args, manager: LifecycleManager) -> dict:
             except Exception:
                 manager.finish_run("STOP_UNCERTAIN")
     if args.keep_running:
-        summary["lifecycle"] = manager.summary()
+        summary["lifecycle"] = manager.enter_background()
     else:
         summary["lifecycle"] = manager.finish_run(
             "DONE" if summary.get("all_ok") else "FAILED")
