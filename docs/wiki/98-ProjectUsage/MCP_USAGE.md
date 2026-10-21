@@ -126,6 +126,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 - `start_simulation` 不再调用 `build_scene`。没有已加载且已校验的场景时返回
   `INVALID_STATE` / `VALIDATION_FAILED`；运行锁被占用时返回 `RUN_CONFLICT`。
+- `load_scene("current")` 默认读取
+  `docs/scene_artifacts/stage1/current.json` → `artifact_id` → 工件目录的
+  `scene.ttt`，再用 `sim.loadScene()` 载入并按 alias 重建句柄；不会构建
+  场景，也不读取 `factory-sim.ttt` / `scenes/*.ttt`。`phase` 可切换命名空间。
 - `save_scene` 只允许仿真停止态；保存后立即重新加载校验，失败不更新
   `current.json`。
 - `phase="stage1"` 工件默认 `protected=true`，拒绝覆盖；阶段二使用

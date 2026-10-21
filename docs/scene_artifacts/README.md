@@ -35,6 +35,27 @@
 `sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代, 仅保留为
 审计历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 
+## `current` 指针
+
+`load current` 默认读取 `stage1/current.json`（`--phase` 可切换命名空间）：
+
+```text
+<artifact-root>/stage1/current.json
+  {"artifact_id": "stage1/L1_S1/v002_20261020_234403",
+   "path": "L1_S1/v002_20261020_234403",
+   "manifest_digest": "...", "scene_sha256": "...", "updated_at": "..."}
+        ↓
+<artifact-root>/stage1/L1_S1/v002_20261020_234403/scene.ttt
+        ↓
+sim.loadScene(scene.ttt) → adopt_scene() 按 alias 重建句柄
+```
+
+- 指针只在新工件写入、`loadScene` 回读并只读校验通过后原子更新；指向的
+  工件必然是保存时校验通过的版本。
+- 加载不会构建场景，也不会读取 `factory-sim.ttt` 或 `scenes/*.ttt`。
+- 加载后状态为 `SCENE_LOADED`，必须 `validate` 才能 `start`。
+- 也支持直接指定完整工件 ID、目录名或工件根内路径。
+
 ## 覆盖与派生规则
 
 1. 每次 `save` 创建新的 `v<NNN>_<stamp>` 目录; 不覆盖已有版本。

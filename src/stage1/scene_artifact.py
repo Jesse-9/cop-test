@@ -961,6 +961,13 @@ class ArtifactStore:
         return self._load(hits[0])
 
     def find(self, ref: str, phase: Optional[str] = None) -> Artifact:
+        """解析工件引用。
+
+        - ``"current"``: 读取 ``<artifact-root>/<phase>/current.json`` 中的
+          ``artifact_id``, 再解析到对应工件目录; ``phase`` 默认 ``stage1``。
+        - 其他引用: 完整工件 ID (``stage1/L1_S1/v001_...``)、目录名
+          (``v001_...``) 或工件根目录内的路径。
+        """
         if ref == "current":
             return self.read_current(phase or "stage1")
         return self.resolve(ref, phase)
@@ -992,6 +999,13 @@ class ArtifactStore:
 
     # ── current 指针 ────────────────────────────────────────
     def read_current(self, phase: str = "stage1") -> Artifact:
+        """读取阶段的 ``current.json`` 指针并解析为目标工件。
+
+        指针文件位于 ``<artifact-root>/<phase>/current.json``，内容包含
+        ``artifact_id``、相对 ``path``、``manifest_digest`` 和
+        ``scene_sha256``。指针只在新工件写入并重新加载校验通过后原子更新，
+        因此 ``current`` 指向的工件一定是可通过只读校验的版本。
+        """
         pointer = self.namespace_dir(phase) / CURRENT_FILE
         if not pointer.exists():
             raise ArtifactNotFoundError(f"没有当前工件指针: {pointer}")

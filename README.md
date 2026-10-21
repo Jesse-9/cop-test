@@ -74,6 +74,27 @@ run），`src/run_stage1.py` 与 `src/run_scene_lifecycle.py` 是兼容入口；
 运行中 `build`/`load`/`save`/`validate` 与第二路 `start` 会被状态机和跨进程
 运行锁拒绝。
 
+### `load current` 到底加载哪个场景？
+
+默认 `phase=stage1`，解析链是固定的：
+
+```text
+docs/scene_artifacts/stage1/current.json
+  └─ artifact_id: stage1/L1_S1/v002_20261020_234403
+      └─ docs/scene_artifacts/stage1/L1_S1/v002_20261020_234403/scene.ttt
+          └─ sim.loadScene(该 .ttt) → adopt_scene() 按 alias 重建句柄
+```
+
+- `current.json` 只保存指针（artifact_id / 相对路径 / manifest 摘要 /
+  scene sha256）；它只在新工件保存并重新加载校验通过后原子更新。
+- 加载的是工件目录里的 `scene.ttt`，**不会**构建场景，也**不会**读取
+  `factory-sim.ttt` 或 `scenes/*.ttt`。
+- `--phase stage2` 则读取 `docs/scene_artifacts/stage2/current.json`；
+  阶段二基线必须从阶段一 v002 派生。
+- 加载后状态是 `SCENE_LOADED`，必须再执行 `validate` 才能 `start`。
+- 也可直接指定工件 ID 或目录名，例如
+  `load stage1/L1_S1/v002_20261020_234403`。
+
 ## 步骤 1.1：布局与无挡板取料验证（2026-10-20）
 
 步骤 1.1 在阶段一与阶段二之间收敛 UR5/置物台布局，并用 A/B/C 对照试验评估

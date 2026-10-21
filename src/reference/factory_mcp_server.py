@@ -1023,11 +1023,15 @@ def save_scene(phase: str = "stage1", parent: str | None = None,
 def load_scene(artifact: str = "current", phase: str | None = None) -> str:
     """在仿真停止态加载指定场景工件 (.ttt) 并重新解析句柄。
 
-    不自动改写、重建或升级模型; 加载后需再调用 validate_scene。
+    ``artifact="current"`` 时读取
+    ``docs/scene_artifacts/<phase>/current.json`` 的 ``artifact_id``，
+    再加载对应工件目录的 ``scene.ttt``（``phase`` 默认 ``stage1``）。
+    不自动改写、重建或升级模型，也不读取 ``factory-sim.ttt``/``scenes``；
+    加载后需再调用 validate_scene。
 
     Args:
         artifact: 工件 ID (如 stage1/L1_S1/v001_...) / 目录名 / current。
-        phase:    仅在按短名查找时限定命名空间。
+        phase:    仅在按短名/current 查找时限定命名空间。
 
     Returns:
         JSON (lifecycle_state=SCENE_LOADED, requires_validation=true)。

@@ -579,6 +579,15 @@ class LifecycleManager:
 
     # ── 动作: load ──────────────────────────────────────────
     def load(self, artifact_ref: str, phase: Optional[str] = None) -> dict:
+        """在仿真停止态加载已有工件，不重建、不清场。
+
+        解析链: ``artifact_ref="current"`` → ``<artifact-root>/<phase>/
+        current.json`` → ``artifact_id`` → 工件目录的 ``scene.ttt``；
+        ``phase`` 默认 ``stage1``。随后用 ``sim.loadScene()`` 从磁盘把该
+        ``.ttt`` 载入 CoppeliaSim（替换当前场景），再由 ``adopt_scene()``
+        按 alias 重新建立句柄。加载后状态为 ``SCENE_LOADED``，必须再调用
+        ``validate()`` 才能 ``start``。
+        """
         self.refresh()
         self._guard("load")
         self._ensure_stopped("load")
@@ -1135,8 +1144,10 @@ def build_parser():
                    help="允许保存运行后的非初始位姿 (不作为基线)")
 
     p = sub.add_parser("load", help="在停止态加载指定工件")
-    p.add_argument("artifact")
-    p.add_argument("--phase", default=None, choices=list(sa.PHASES))
+    p.add_argument("artifact",
+                   help="工件 ID / 目录名 / 工件根内路径 / current")
+    p.add_argument("--phase", default=None, choices=list(sa.PHASES),
+                   help="current 指针所属命名空间 (默认 stage1)")
 
     p = sub.add_parser("validate", help="只读校验当前场景与 manifest")
     p.add_argument("artifact", nargs="?", default=None)
