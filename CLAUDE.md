@@ -19,6 +19,8 @@
 │  stage2/ (当前) — 影子碰撞/局部规划/流式执行/联锁   │
 │                   contact/collisions/shadow/path_   │
 │                   planning/trajectory/safety/run    │
+│                   branch/metrics (阶段 2.01)        │
+│                   diagnostics/整链/路径变体 (2.02)  │
 │  reference/ (历史) — factory_controller/island/AGV  │
 │  reference/factory_robot.py — 关键帧兼容层          │
 │  reference/factory_types.py — 枚举/数据类/物料      │
@@ -273,22 +275,39 @@ CLI：
 不变；入口与证据见 [PHASE2_REPORT.md](docs/implementation/PHASE2_REPORT.md)
 和 [06-09 §17](docs/wiki/06-工业案例/06-09-柔性工业车间阶段二-物理约束与运动规划.md)。
 
-当前工件：`stage2/L1_S1/v009_20261021_190527`，父
-`stage1/L1_S1/v002_20261020_234403`；保存/加载 144 项只读校验通过，
-父差异 `[]`；stage1 `current.json`、v002 scene/manifest 摘要未变化。
+阶段 2.01（2026-10-21 通过）在此基础上增加腕部分支硬约束、段内固定 q[0]、
+候选一步前瞻、逐段关节/腕部指标和可行性点精简；入口与证据见
+[PHASE2_01_REPORT.md](docs/implementation/PHASE2_01_REPORT.md) 和
+[06-10](docs/wiki/06-工业案例/06-10-柔性工业车间阶段2.01-动作轨迹优化.md)。
+
+阶段 2.02（2026-10-25 实现，实验能力默认关闭）按 06-10 §8 增加 AGV 转运
+路径诊断、路径变体、有界整链 beam 选链、分层代价、执行 vel/acc/jerk 剖面
+与平滑钩子；默认仍为 `baseline` + `greedy` + 无平滑，2.01 生产行为不变。
+入口与证据见 [PHASE2_02_REPORT.md](docs/implementation/PHASE2_02_REPORT.md)。
+
+当前工件：`stage2/L1_S1/v013_20261024_232558`，父
+`stage1/L1_S1/v002_20261020_234403`；保存/加载 **145 项只读校验**通过，
+父差异 `[]`；`extra.stage2.contract_version = stage2_contract_20261024_v3`，
+动作优化版本 `2.01`、AGV 转运优化版本 `2.02`；stage1 `current.json`、v002
+scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是 2.01 过渡
+工件，v013 是 2.02 工件；修改 `src/stage2/config.py` 后旧工件会因 digest
+失败，必须重新派生。
 
 | 文件 | 职责 |
 |------|------|
-| [config.py](src/stage2/config.py) | 阶段二全部新参数（接触/碰撞/采样/预算/执行/停带/安全） |
+| [config.py](src/stage2/config.py) | 阶段二/2.01/2.02 全部新参数（接触/碰撞/采样/预算/执行/停带/安全/分支/锁轴/前瞻/转运路径/整链/代价/平滑/诊断） |
+| [branch.py](src/stage2/branch.py) | q[4] 归一化腕部分支、奇异边界裕量、跨支拒绝 |
+| [metrics.py](src/stage2/metrics.py) | 逐段 TV/最大单步/点数/q[0] 变化/锁定偏差/腕部/TCP 误差；2.02 整链分层代价与执行剖面 |
+| [diagnostics.py](src/stage2/diagnostics.py) | 逐 waypoint q/TCP/载荷/分支/净空证据（只读影子探针） |
 | [contact.py](src/stage2/contact.py) | 物料局部包围盒、顶面 frame、带符号间隙/横向/杯口/法向 |
-| [collisions.py](src/stage2/collisions.py) | 对象角色、碰撞集合、4.10 查询适配、显式自碰撞对 |
+| [collisions.py](src/stage2/collisions.py) | 对象角色、碰撞集合、4.10 查询适配、显式自碰撞对、载荷净空 |
 | [shadow.py](src/stage2/shadow.py) | 影子 UR5/pad/TCP/载荷副本、FK 一致性、会话资源清理 |
-| [path_planning.py](src/stage2/path_planning.py) | 构型/段检查、自适应细分、多解 IK、DFS 规划、最终复核 |
-| [trajectory.py](src/stage2/trajectory.py) | Cartesian 位姿序列、流式执行器、保持/取消 |
+| [path_planning.py](src/stage2/path_planning.py) | 构型/段检查、自适应细分、多解 IK、前瞻选链、分支/锁轴、有界 beam、压缩/平滑、最终复核 |
+| [trajectory.py](src/stage2/trajectory.py) | Cartesian 位姿序列、流式执行器、逐段执行指标/profile/采样 trace、保持/取消 |
 | [safety.py](src/stage2/safety.py) | `SafetyObservation` / `SafetyLatch` / `request_stop` |
 | [conveyor_safety.py](src/stage2/conveyor_safety.py) | 停带监视器、受限补偿、物料稳定 |
 | [suction.py](src/stage2/suction.py) | 外表面接触吸附、保持世界位姿释放 |
-| [unit_controller.py](src/stage2/unit_controller.py) | 继承阶段一状态机，接入规划/执行/联锁/停带 |
+| [unit_controller.py](src/stage2/unit_controller.py) | 继承阶段一状态机，接入规划/执行/联锁/停带/锁轴/分支锚点 |
 | [runtime.py](src/stage2/runtime.py) | 影子臂/集合/检查器/规划器装配与销毁 |
 | [scene_contract.py](src/stage2/scene_contract.py) | `extra.stage2` 契约、稳定 manifest、只读校验 |
 | [run.py](src/stage2/run.py) | 阶段二 runner、受控障碍注入、报告 |
@@ -323,6 +342,58 @@ CLI：
   stage1 runner 拒绝 stage2 工件。MCP `start_simulation` 复用同一
   生命周期/运行锁并在加载 stage2 工件时路由到阶段二线程。
 
+阶段 2.01 不变量：
+
+- 腕部分支以 q[4] 归一化角判定（`positive`/`negative`，奇异边界 0/±π），
+  `WRIST_BRANCH_MARGIN=0.30 rad`；候选、路径采样、最终复核和执行步进
+  共用同一检查入口。跨支/近奇异立即拒绝或锁存，不回退到另一分支。
+- 段内固定 q[0] 只作用于 `lift`、`rise`、`place`、`retreat`；通过
+  `simIK.setJointInterval` 临时收窄区间实现，`syncFromSim` 后应用、
+  `handleGroup` 后恢复，不修改场景关节限位。`pre_place` 实测不可锁
+  （station 跨支、AGV 载荷扫带），保留自由 IK。
+- 自由目标候选按“本段关节距离 + 下一自由目标一步前瞻”排序；前瞻只用于
+  排序，逐段碰撞检查仍是唯一放行依据。后续笛卡尔段从上一构型实际 TCP
+  承接，不直接用目标位姿（IK 端点允许 10 mm 误差）。
+- 规划优先从上一段已验证计划终点开始（实测偏差 ≤2×`EXEC_JOINT_TOL`），
+  让 A/B 与复跑使用同一冻结起点；超限退回实测并记录 `PLAN_START_ACTUAL`。
+- 语义 waypoint 永不删除；只压缩段内共线且 FK 偏差 ≤1 mm / 0.01 rad 的
+  数值点，压缩后重新执行 2° 全路径复核，失败则恢复原路径。
+- `TRANSFER_SPLIT_HIGH_ABOVE_PLACE` 默认关闭：A/B 实测拆分把 station
+  计划 TV 提高 29.2%、AGV 提高 11.6%；能力保留，打开前必须重新验收。
+- 运行证据必须包含逐段计划/执行 TV、最大单步、点数、q[0] 变化、锁定
+  偏差、腕部分支/最小裕量、最小工作区距离和 TCP 误差；失败/锁存段也要
+  保留部分实测，不得只报告已完成段。
+
+阶段 2.02 不变量：
+
+- 默认 `TRANSFER_PATH_POLICY="baseline"`、`CARTESIAN_CHAIN_SEARCH="greedy"`、
+  `TRAJECTORY_SMOOTHING_ENABLED=False`。2026-10-25 的影子规划 A/B 显示
+  transit 偏移 0.10/0.00 m 可把 AGV transfer TV 降低约 47%、q[3] 降低约
+  79.5%，但 `rise → transit` 的 q[0] TV 从 1.510 升到 2.065–2.094 rad；
+  未满足 06-10 §8.4 B 的 q[0] 下降条件，且候选偏移尚未做 3 次实机重复，
+  因此不得切换默认值。
+- `transfer_goal_variants` 的 baseline 在任何偏移下都保留 `transit` 语义点；
+  只有 high_align 在偏移为 0 时 `transit` 与 `high_above_place` 重合才省略。
+  detour 只在直线路径被碰撞/净空拒绝后引入一个高位水平绕行点，并记录引入
+  原因和绕行距离；本次所有直线路径均通过，detour 只增加 TV，不默认启用。
+- beam 整链搜索与 greedy 使用同一 IK、姿态/偏差判据和 `check_segment`；
+  beam 宽度 8、每层候选 6、节点上限 512。预算耗尽返回
+  `PLAN_BUDGET_EXCEEDED`，不得静默退化为未比较路径。当前布局 greedy 与
+  beam 计划 TV/代价完全相同，不得因“能力存在”而默认打开。
+- 分层代价 `J = 1.0·TV_all + 0.5·TV(q[0]) + 0.5·TV(q[3]) + 0.2·B_all +
+  0.2·A_all` 只用于候选比较；`A_all` 的规划采样 `dt` 与执行仿真实时
+  不可混用，有限位关节不做 wrap。
+- 平滑默认关闭；一旦打开，必须对改变后的 q 路径重新执行 2° 全路径
+  FK/分支/载荷/碰撞复核，失败则恢复原路径并记录 `reverted_reason`。
+- 计划 trace 与执行 trace 必须写入运行证据；执行 trace 超限时等间隔
+  降采样并标记 `truncated`。执行 profile 只报告实测 vel/acc/jerk，不因
+  目标参数已设限就宣称平顺；2026-10-25 实测 TRANSFERRING jerk 峰值
+  120.65 rad/s³ > `EXEC_JOINT_JERK=100`。
+- 阶段 2.02 工件必须从 stage1 v002 重新派生；v013 的
+  `extra.stage2.agv_transfer_opt` 记录路径策略、偏移变体、绕行、beam、
+  分层代价、平滑与诊断字段。修改 `src/stage2/config.py` 后旧工件失败是
+  预期保护。
+
 ```bash
 # 阶段二工件派生（父工件必须已加载并 validate）
 .venv/Scripts/python src/run_scene_lifecycle.py load stage1/L1_S1/v002_20261020_234403
@@ -338,6 +409,16 @@ CLI：
 # 运行期锁存验收（实验副本）
 .venv/Scripts/python src/run_stage2.py --target station \
   --fault runtime_obstacle --time 150
+
+# 阶段 2.01 腕部分支/锁轴/拆分 A/B（影子臂，不启动仿真）
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py --no-branch-guard
+
+# 阶段 2.02 AGV 转运路径 A/B（影子臂；pick pose 取实机停止后位姿）
+.venv/Scripts/python docs/measurement/probe_stage2_agv_transfer.py \
+  --targets agv --pick-pose -0.30784 0.00012 0.5 \
+  --policies baseline high_align --offsets 0.20 0.10 0.00 \
+  --max-variants 1 --chain-modes greedy beam
 
 # 只读几何/路径探针
 .venv/Scripts/python docs/measurement/probe_stage2_inventory.py
@@ -445,6 +526,10 @@ CLI：
 .venv/Scripts/python src/run_scene_lifecycle.py load current --phase stage2
 .venv/Scripts/python src/run_scene_lifecycle.py validate
 .venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 150
+
+# 阶段 2.01 腕部分支/锁轴/拆分 A/B 探针 (影子臂, 不启动仿真)
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py --no-branch-guard
 ```
 
 ### 步骤 1.1 布局与无挡板取料验证
@@ -792,3 +877,57 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
     `src/stage2/config.py` 后，已保存的 stage2 工件在 `start` 前会失败
     （`stage2_config_digest`）。这是预期保护：重新从 stage1 基线派生
     新工件，不要手工改 manifest 或关闭校验。
+
+27. **`simIK.setJointInterval` 段内锁轴的时序 (阶段 2.01 实测)**:
+    - `simIK.syncFromSim(env, [group])` 会用场景关节区间覆盖 IK 环境；
+      必须在同步**之后**设置 `setJointInterval(env, ikJoint, False, [low, range])`
+      （`range = high-low`），`handleGroup` 之后恢复原 `(cyclic, interval)`。
+    - 锁定值取段起始 q[0]，半宽用 `Q0_LOCK_IK_TOL=0.010 rad`，候选/执行
+      验收容差 `Q0_LOCK_TOL=0.02 rad`；不要用锁定值代替场景关节限位。
+    - `addElementFromScene` 返回的 `{scene_joint: ik_joint}` 映射用于定位
+      被锁 IK 关节；映射缺失时锁轴不可用，记录后走同分支自由 IK。
+
+28. **first-feasible 不是最小 TV，且笛卡尔段必须承接实际 TCP (阶段 2.01)**:
+    - 同一目标的多解候选中，第一个可行链可能在下一段发生 2.7 rad 基座
+      翻转；仅按关节距离排序无法发现。实现用“下一自由目标一步前瞻”
+      排序候选（只排序，不替代碰撞检查），station transfer TV 15.644→8.006。
+    - 上一 IK 端点允许 10 mm TCP 误差；下一段笛卡尔链若从 `goal.pose`
+      而不是实际 TCP 出发，会把这点误差误报为 7.4 mm 横向偏差并拒绝
+      可行解。必须用 `checker.tcp_at(q_prev)` 承接。
+    - 控制器规划优先从上一段已验证计划终点开始（实测偏差 ≤2×
+      `EXEC_JOINT_TOL`），否则 A/B 复跑会因 0.01 rad 级差异选到不同路线。
+
+29. **转运拆分与 pre_place 锁轴的负结果 (阶段 2.01 实测)**:
+    - `transit → high_above_place → pre_place` 拆分能力已实现，但 A/B 把
+      station 计划 TV 从 12.395 提高到 16.013 rad、AGV 从 11.968 提高到
+      13.354 rad，因此 `TRANSFER_SPLIT_HIGH_ABOVE_PLACE=False`。不要因为
+      “几何上更规整”就默认打开；必须重新做净空/碰撞/总行程验收。
+    - `pre_place`（未拆分时的对角段）锁 q[0] 在 station 会迫使腕部跨支、
+      在 AGV 会让载荷扫过 conveyor pad；`Q0_LOCK_SEGMENTS` 只含
+      `lift/rise/place/retreat`。
+
+30. **锁存路径必须先保留运动证据再清空执行器 (阶段 2.01 修复)**:
+    `_safety_fail` 原先先 `cancel()`/清空 `_executor`、`_plan`，再调用
+    `_fail` → `_capture_motion_report`，导致运行期障碍锁存时缺少
+    TRANSFERRING 的失败段实测。现在在 `_safety_fail` 入口先捕获部分执行
+    指标，再取消轨迹；失败段的 TV/q[0]/分支必须出现在 `motion` 中。
+
+31. **AGV 转运 A/B 必须使用实机停止后的 pick pose (阶段 2.02 实测)**:
+    用 `layout.pick_material_pose` 生成探针物料会选中另一条 IK 分支，
+    transfer 计划 TV 为 7.698 rad；使用实机运行记录中的
+    `pick_pose=(-0.30784, 0.00012, 0.5)` 才复现生产计划 TV 14.345 rad 与
+    `pre_place` q[3]=+5.019 rad。探针必须接受并记录 pick pose 来源，
+    不得把布局位姿当作“停止后实测位姿”。
+
+32. **执行 jerk 峰值不等于目标参数 (阶段 2.02 实测)**:
+    控制器下发 `EXEC_JOINT_JERK=100`，但实测采样经三阶差分得到的峰值在
+    LIFTING/TRANSFERRING 为 117.8/120.65 rad/s³。原因包括离散目标切换、
+    保持步和实测滞后；在完成时间参数化/平滑并对输出路径重新复核前，
+    不得报告“已平顺”。`execution.totals.profile.within_limits.jerk` 为
+    false 是有效证据，不是脚本错误。
+
+33. **baseline 的 transit 在零偏移时仍是独立语义点 (阶段 2.02 修复)**:
+    `transfer_goal_variants` 的 baseline 若在 `transit_offset=0` 时省略
+    transit，会退化成 rise→pre_place 对角段，改变 gate B 的单变量比较；
+    只有 high_align 的 transit 与 high_above_place 重合时才省略。修改
+    该逻辑必须同步更新 `tests/test_stage2_agv_transfer.py` 和 06-10 §8。

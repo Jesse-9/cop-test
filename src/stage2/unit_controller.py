@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+import time
 from enum import Enum, auto
 from typing import Optional
 
@@ -30,13 +31,15 @@ from stage1.unit_controller import (Stage1UnitController, UnitTaskState,
                                     quat_tilt)
 
 from . import config as cfg
+from .branch import branch_ok
 from .contact import (LocalBox, contact_pose, quat_conjugate, quat_multiply,
                       quat_rotate)
 from .conveyor_safety import (ConveyorStopMonitor, MaterialStabilityTracker,
                               StopStatus, bounded_transport_step,
                               read_conveyor_speed)
 from .path_planning import (Goal, MotionContext, PlanStatus,
-                            ConfigurationChecker, MotionPlan)
+                            ConfigurationChecker, MotionPlan,
+                            failure_priority)
 from .safety import SafetyObservation
 from .trajectory import ExecutorStatus, JointStreamExecutor, joint_distance
 
@@ -71,6 +74,13 @@ class Stage2UnitController(Stage1UnitController):
         self._stop_confirmed_logged = False
         self._hold_logged = False
         self._last_fk_report: Optional[dict] = None
+        # 阶段 2.01: 腕部分支锚点与逐段运动证据
+        self._branch_anchor: Optional[str] = None
+        self._motion_reports: list[dict] = []
+        self._motion_reported = False
+        # 上一段已执行计划的终点构型: 实测在其容差内时作为下一段规划起点,
+        # 保证 A/B 与复跑使用同一冻结起点; 超出则退回实测并记录.
+        self._planned_end_q: Optional[list[float]] = None
 
     # ═══════════════════════════════════════════════════════
     # 单步顺序: 联锁 → 传感器/传送带 → 任务 → AGV → 日志 → step
@@ -109,6 +119,15 @@ class Stage2UnitController(Stage1UnitController):
         except Exception as exc:
             self._safety_fail(f"POSE_UNREADABLE: {exc}")
             return
+        if self._branch_anchor is not None:
+            ok, label, margin = branch_ok(
+                actual, self._branch_anchor, cfg.WRIST_BRANCH_MARGIN)
+            if not ok:
+                self._safety_fail(
+                    f"WRIST_BRANCH_VIOLATION: 实测 q4 分支 {label} "
+                    f"(裕量 {margin:.3f} rad) 偏离锚点 "
+                    f"{self._branch_anchor}")
+                return
         commanded = self._motion_cmd
         expected_tcp = None
         moving = False
@@ -179,6 +198,8 @@ class Stage2UnitController(Stage1UnitController):
     def _safety_fail(self, reason: str, details: Optional[dict] = None) -> None:
         if self.safety.engaged:
             return
+        # 先保留当前段实测证据, 再取消轨迹并清空执行器.
+        self._capture_motion_report(f"{cfg.SAFETY_LATCH_CODE}: {reason}")
         self.safety.request_stop(reason, sim_time=self.sim_time,
                                  details=details or {})
         if self._executor is not None:
@@ -250,7 +271,8 @@ class Stage2UnitController(Stage1UnitController):
         context = MotionContext(
             phase="CONTACT", target_handle=rec.sim_handle,
             material_pose=self._pick_pose, material_box=self._pick_box,
-            carrying=False, snapshot=f"attach@t{self.sim_time:.2f}")
+            carrying=False, snapshot=f"attach@t{self.sim_time:.2f}",
+            branch=self._branch_anchor)
         try:
             return self.checker.check(
                 self.ik.joint_positions(), context,
@@ -311,6 +333,7 @@ class Stage2UnitController(Stage1UnitController):
         self._motion_started = False
         self._motion_pose = None
         self._motion_cmd = None
+        self._motion_reported = False
         rec = self.materials.by_uid(self.uid)
         if state is UnitTaskState.APPROACHING:
             self.runtime.update_materials(self.materials, self.uid,
@@ -336,19 +359,32 @@ class Stage2UnitController(Stage1UnitController):
             if not plan.ok:
                 self._event(
                     f"PLAN FAILED {plan.status.value}: {plan.message}")
+                self._motion_reports.append({
+                    "state": self.state.name,
+                    "status": plan.status.value,
+                    "message": plan.message,
+                    "attempts": plan.attempts,
+                    "branch_anchor": plan.branch_anchor,
+                })
+                self._motion_reported = True
                 if plan.status is PlanStatus.QUERY_UNKNOWN:
                     self._safety_fail(f"PLAN_QUERY_UNKNOWN: {plan.message}",
                                       plan.as_dict())
                 else:
                     self._fail(f"{plan.status.value}: {plan.message}")
                 return
+            self._branch_anchor = plan.branch_anchor
+            totals = (plan.metrics or {}).get("totals", {})
             self._event(
                 f"PLAN {plan.status.value} strategy={plan.strategy} "
-                f"segments={len(plan.segments)} samples={plan.samples} "
+                f"policy={plan.lock_policy} segments={len(plan.segments)} "
+                f"samples={plan.samples} points={totals.get('points')} "
+                f"tv={totals.get('tv_total')} "
                 f"wall={plan.wall_s:.2f}s")
             self._plan = plan
             self._executor = JointStreamExecutor(
-                plan, self.checker, plan.contexts)
+                plan, self.checker, plan.contexts,
+                pose_at=self.checker.tcp_at)
             self._motion_started = True
             self._motion_started_at = self.sim_time
             return
@@ -357,7 +393,8 @@ class Stage2UnitController(Stage1UnitController):
         step = self._executor.next_command(self.ik.joint_positions(),
                                            self.sim_time)
         if step.status in (ExecutorStatus.COLLISION, ExecutorStatus.UNKNOWN,
-                           ExecutorStatus.DEVIATION, ExecutorStatus.TIMEOUT):
+                           ExecutorStatus.DEVIATION, ExecutorStatus.TIMEOUT,
+                           ExecutorStatus.WRIST_BRANCH):
             self._safety_fail(f"{step.status.value}: {step.message}",
                               step.check)
             return
@@ -382,6 +419,24 @@ class Stage2UnitController(Stage1UnitController):
                 if not reached:
                     self._fail("GOAL_CONFIG_INVALID: TCP 未到达计划目标")
                     return
+            execution = self._executor.execution_metrics()
+            self._planned_end_q = [float(v) for v in final]
+            self._event(
+                f"MOTION {self.state.name} executed "
+                f"tv={execution['totals'].get('tv_total')} "
+                f"max_step={execution['totals'].get('max_step')} "
+                f"steps={execution['totals'].get('steps')} "
+                f"time={execution['totals'].get('sim_duration')}s")
+            self._motion_reports.append({
+                "state": self.state.name,
+                "status": "DONE",
+                "branch_anchor": self._branch_anchor,
+                "plan": plan.summary_dict() if plan is not None else None,
+                "execution": execution,
+                "tcp_pose": [round(float(v), 6) for v in
+                             self.ik.tcp_pose()],
+            })
+            self._motion_reported = True
             self._executor = None
             self._plan = None
             self._motion_started = False
@@ -428,28 +483,43 @@ class Stage2UnitController(Stage1UnitController):
             self._fail(f"UNKNOWN_MOTION_STATE: {state}")
 
     def _transfer_transit_pose(self, place_pose) -> list[float]:
-        """带载转运的高位中转位姿: 向基座方向偏移, 保持工具姿态."""
-        place = [float(v) for v in place_pose]
-        base_xy = self.layout.arm_base[:2]
-        dx = float(base_xy[0]) - place[0]
-        dy = float(base_xy[1]) - place[1]
-        norm = math.hypot(dx, dy)
-        if norm > 1e-9:
-            dx, dy = dx / norm, dy / norm
-        offset = cfg.TRANSFER_TRANSIT_OFFSET
-        return [place[0] + dx * offset, place[1] + dy * offset,
-                max(cfg.TRANSFER_TRANSIT_HEIGHT_MIN, place[2] + 0.40),
-                *place[3:7]]
+        """兼容入口: 转发到模块级纯函数."""
+        return transfer_transit_pose(place_pose, self.layout.arm_base)
+
+    @staticmethod
+    def _lock_for(name: str):
+        """阶段 2.01 段内固定 q[0] 策略 (值在规划时取段起始构型)."""
+        return lock_for(name)
+
+    def _transfer_goals(self, place_pose, current_tcp) -> list[Goal]:
+        """转运目标序列: rise → transit → [high_above_place] → pre_place → place."""
+        return transfer_goals(place_pose, current_tcp, self.layout.arm_base)
+
+    def _planning_start(self) -> tuple[list[float], list[float], str]:
+        """选择规划起始构型: 优先上一段计划终点, 偏差超限退回实测."""
+        actual = [float(v) for v in self.ik.joint_positions()]
+        actual_tcp = list(self.ik.tcp_pose())
+        if self._planned_end_q is None:
+            return actual, actual_tcp, "actual"
+        planned = [float(v) for v in self._planned_end_q]
+        deviation = joint_distance(actual, planned)
+        if deviation <= 2.0 * cfg.EXEC_JOINT_TOL:
+            start_tcp = self.checker.tcp_at(planned) or actual_tcp
+            return planned, list(start_tcp), f"planned_end(dev={deviation:.4f})"
+        self._event(
+            f"PLAN_START_ACTUAL: 实测 q 偏离上一计划终点 "
+            f"{deviation:.4f} rad > {2.0 * cfg.EXEC_JOINT_TOL:.4f}")
+        return actual, actual_tcp, "actual"
 
     def _build_plan(self) -> Optional[MotionPlan]:
         rec = self.materials.by_uid(self.uid)
         try:
-            current_q = self.ik.joint_positions()
-            current_tcp = self.ik.tcp_pose()
+            current_q, current_tcp, start_source = self._planning_start()
         except Exception as exc:
             self._fail(f"POSE_UNREADABLE: {exc}")
             return None
         snapshot = f"{self.state.name}@t{self.sim_time:.2f}"
+        self._event(f"PLAN START {start_source} q={[round(v, 4) for v in current_q]}")
         state = self.state
 
         if state is UnitTaskState.APPROACHING:
@@ -478,7 +548,8 @@ class Stage2UnitController(Stage1UnitController):
                 return None
             lift = contact_pose(self._pick_pose, self._pick_box,
                                 cfg.PRE_APPROACH_CLEARANCE)
-            goals = [Goal("lift", lift, cartesian=True)]
+            goals = [Goal("lift", lift, cartesian=True,
+                          lock_joint=self._lock_for("lift"))]
             context = MotionContext(phase="LIFT", target_handle=-1,
                                     carrying=True, snapshot=snapshot,
                                     allow_start_load_contact=True)
@@ -486,28 +557,14 @@ class Stage2UnitController(Stage1UnitController):
                                      start_pose=current_tcp)
 
         if state is UnitTaskState.TRANSFERRING:
-            place = self._place_pose()
-            rise = list(current_tcp)
-            rise[2] += cfg.TRANSFER_RISE_HEIGHT
-            transit = self._transfer_transit_pose(place)
-            pre = list(place)
-            pre[2] += cfg.PRE_APPROACH_CLEARANCE
-            goals = [Goal("rise", rise, cartesian=True),
-                     Goal("transit", transit, strict_orientation=True),
-                     Goal("pre_place", pre, strict_orientation=True),
-                     Goal("place", place, cartesian=True,
-                          strict_orientation=True,
-                          allow_final_load_contact=True)]
-            context = MotionContext(phase="PLACE", target_handle=-1,
-                                    carrying=True, snapshot=snapshot)
-            return self.planner.plan(current_q, goals, context,
-                                     start_pose=current_tcp)
+            return self._plan_transfer(current_q, current_tcp, snapshot)
 
         if state is Stage2TaskState.RETREATING:
             retreat = list(current_tcp)
             retreat[2] += cfg.PRE_APPROACH_CLEARANCE
             goals = [Goal("retreat", retreat, cartesian=True,
-                          allow_target_contact=True)]
+                          allow_target_contact=True,
+                          lock_joint=self._lock_for("retreat"))]
             material_pose = None
             if rec is not None and rec.sim_handle is not None:
                 try:
@@ -526,6 +583,61 @@ class Stage2UnitController(Stage1UnitController):
 
         self._fail(f"NO_PLAN_FOR_STATE: {state}")
         return None
+
+    def _plan_transfer(self, current_q, current_tcp,
+                       snapshot: str) -> Optional[MotionPlan]:
+        """按 06-10 §8.2 依次尝试转运路径变体, 记录每类失败原因.
+
+        默认 ``TRANSFER_PATH_POLICY="baseline"`` 只产生一个变体, 与阶段
+        2.01 完全一致; ``high_align``/``detour``/``auto`` 是 A/B 实验策略.
+        任何变体都必须通过同一 ``LocalPlanner`` 的完整检查, 不因换路径而
+        放松姿态、接触、腕部分支或碰撞约束.
+        """
+        place = self._place_pose()
+        context = MotionContext(phase="PLACE", target_handle=-1,
+                                carrying=True, snapshot=snapshot)
+        variants = transfer_goal_variants(place, current_tcp,
+                                          self.layout.arm_base)
+        reports: list[dict] = []
+        best: Optional[MotionPlan] = None
+        started = time.monotonic()
+        for name, goals, info in variants:
+            if len(reports) >= cfg.TRANSFER_MAX_VARIANTS:
+                break
+            if reports and time.monotonic() - started > \
+                    cfg.TRANSFER_VARIANT_WALL_BUDGET_S:
+                self._event("TRANSFER_VARIANTS: 墙钟预算耗尽, 停止尝试")
+                break
+            plan = self.planner.plan(current_q, goals, context,
+                                     start_pose=current_tcp)
+            plan.transfer_path = name
+            totals = (plan.metrics or {}).get("totals", {})
+            row = {
+                "variant": name,
+                "info": info,
+                "status": plan.status.value,
+                "message": plan.message,
+                "strategy": plan.strategy,
+                "lock_policy": plan.lock_policy,
+                "wall_s": round(float(plan.wall_s), 3),
+                "tv_total": totals.get("tv_total"),
+                "points": totals.get("points"),
+                "segments": len(plan.segments),
+            }
+            plan.transfer_variants = reports + [row]
+            self._event(
+                f"TRANSFER_VARIANT {name}: {plan.status.value} "
+                f"strategy={plan.strategy} tv={totals.get('tv_total')} "
+                f"wall={plan.wall_s:.2f}s {plan.message}")
+            if plan.ok:
+                return plan
+            reports.append(row)
+            if best is None or failure_priority(plan.status) > \
+                    failure_priority(best.status):
+                best = plan
+        if best is not None:
+            best.transfer_variants = reports
+        return best
 
     # ═══════════════════════════════════════════════════════
     # 传送带 / 停带 / 物料稳定
@@ -762,7 +874,30 @@ class Stage2UnitController(Stage1UnitController):
     def _maybe_retry(self) -> None:
         return
 
+    def _capture_motion_report(self, reason: str) -> None:
+        """失败/锁存时保留最后一段计划的实测统计, 不丢证据."""
+        if self._motion_reported:
+            return
+        if self._executor is None and self._plan is None:
+            return
+        report = {
+            "state": self.state.name,
+            "status": "FAILED",
+            "reason": reason,
+            "branch_anchor": self._branch_anchor,
+            "plan": (self._last_plan.summary_dict()
+                     if self._last_plan is not None else None),
+        }
+        if self._executor is not None:
+            try:
+                report["execution"] = self._executor.execution_metrics()
+            except Exception as exc:
+                report["execution_error"] = f"{type(exc).__name__}: {exc}"
+        self._motion_reports.append(report)
+        self._motion_reported = True
+
     def _fail(self, reason: str) -> None:
+        self._capture_motion_report(reason)
         if self._executor is not None:
             self._executor.cancel()
             self._executor = None
@@ -778,8 +913,14 @@ class Stage2UnitController(Stage1UnitController):
         data.update({
             "controller_id": cfg.STAGE2_CONTROLLER_ID,
             "stage2": True,
+            "motion_opt_version": cfg.MOTION_OPT_VERSION,
+            "agv_transfer_opt_version": cfg.AGV_TRANSFER_OPT_VERSION,
+            "transfer_path_policy": cfg.TRANSFER_PATH_POLICY,
             "safety": self.safety.latch.as_dict(),
             "plan": self._last_plan.as_dict() if self._last_plan else None,
+            "motion": self._motion_reports,
+            "motion_totals": _motion_totals(self._motion_reports),
+            "branch_anchor": self._branch_anchor,
             "stop": (self._stop_monitor.measurement.as_dict()
                      if self._stop_monitor else None),
             "stability": (self._stability.state.as_dict()
@@ -811,6 +952,185 @@ class Stage2UnitController(Stage1UnitController):
 
 def _motion_params() -> list[float]:
     return [cfg.EXEC_JOINT_VEL, cfg.EXEC_JOINT_ACCEL, cfg.EXEC_JOINT_JERK]
+
+
+def lock_for(name: str):
+    """阶段 2.01 段内固定 q[0] 策略: 值在规划时取段起始构型."""
+    return cfg.Q0_LOCK_JOINT if name in cfg.Q0_LOCK_SEGMENTS else None
+
+
+def transfer_transit_pose(place_pose, arm_base, offset=None) -> list[float]:
+    """带载转运的高位中转位姿: 向基座方向偏移, 保持工具姿态.
+
+    ``offset`` 缺省用 :data:`stage2.config.TRANSFER_TRANSIT_OFFSET`; 06-10
+    §8.4 B 通过显式传入 0.20/0.10/0 做单变量 A/B, 不修改生产默认值.
+    """
+    place = [float(v) for v in place_pose]
+    base_xy = arm_base[:2]
+    dx = float(base_xy[0]) - place[0]
+    dy = float(base_xy[1]) - place[1]
+    norm = math.hypot(dx, dy)
+    if norm > 1e-9:
+        dx, dy = dx / norm, dy / norm
+    distance = (cfg.TRANSFER_TRANSIT_OFFSET if offset is None
+                else float(offset))
+    return [place[0] + dx * distance, place[1] + dy * distance,
+            max(cfg.TRANSFER_TRANSIT_HEIGHT_MIN, place[2] + 0.40),
+            *place[3:7]]
+
+
+def transfer_detour_pose(place_pose, transit_pose, offset,
+                         reference_xy=None) -> list[float]:
+    """高位水平绕行点: 目标 XY 沿水平运动法向偏移, 高度与 transit 相同.
+
+    06-10 §8.2 要求只在直线路径被碰撞/净空拒绝后加入最少中间点, 优先
+    维持高位. 偏移方向取 transit→place 水平方向的法向; 两者重合时退回
+    ``reference_xy→place`` (通常是 rise/pick 的实测 TCP).
+    """
+    place = [float(v) for v in place_pose]
+    transit = [float(v) for v in transit_pose]
+    dx = place[0] - transit[0]
+    dy = place[1] - transit[1]
+    if math.hypot(dx, dy) < 1e-9 and reference_xy is not None:
+        dx = place[0] - float(reference_xy[0])
+        dy = place[1] - float(reference_xy[1])
+    norm = math.hypot(dx, dy)
+    if norm < 1e-9:
+        dx, dy, norm = 1.0, 0.0, 1.0
+    perp_x, perp_y = -dy / norm, dx / norm
+    return [place[0] + perp_x * float(offset),
+            place[1] + perp_y * float(offset),
+            transit[2], *place[3:7]]
+
+
+def _transfer_goal_set(place_pose, current_tcp, arm_base,
+                       transit_offset: float, split: bool,
+                       detour_offset: Optional[float] = None) -> list[Goal]:
+    place = [float(v) for v in place_pose]
+    transit = transfer_transit_pose(place, arm_base, transit_offset)
+    rise = list(current_tcp)
+    rise[2] += cfg.TRANSFER_RISE_HEIGHT
+    if cfg.TRANSFER_RISE_ALIGN_TRANSIT:
+        rise[2] = max(rise[2], transit[2])
+    pre = list(place)
+    pre[2] += cfg.PRE_APPROACH_CLEARANCE
+    goals = [
+        Goal("rise", rise, cartesian=True, lock_joint=lock_for("rise")),
+    ]
+    # baseline 的 transit 是独立语义点; 只有 high_align 在偏移为 0 时
+    # 会与 high_above_place 重合, 才省略 transit (避免同一点重复).
+    if (not split) or float(transit_offset) > 1e-9:
+        goals.append(Goal("transit", transit, strict_orientation=True,
+                          lock_joint=lock_for("transit")))
+    if split:
+        high = [place[0], place[1], transit[2], *place[3:7]]
+        if detour_offset is not None and abs(float(detour_offset)) > 1e-9:
+            detour = transfer_detour_pose(place, transit, detour_offset,
+                                          reference_xy=current_tcp)
+            goals.append(Goal("detour", detour, strict_orientation=True,
+                              lock_joint=lock_for("detour")))
+        goals.append(Goal("high_above_place", high,
+                          strict_orientation=True,
+                          lock_joint=lock_for("high_above_place")))
+    goals.extend([
+        Goal("pre_place", pre, strict_orientation=True,
+             lock_joint=lock_for("pre_place")),
+        Goal("place", place, cartesian=True,
+             strict_orientation=True, allow_final_load_contact=True,
+             lock_joint=lock_for("place")),
+    ])
+    return goals
+
+
+def transfer_goal_variants(place_pose, current_tcp, arm_base,
+                           policy: Optional[str] = None,
+                           transit_offset: Optional[float] = None,
+                           max_variants: Optional[int] = None
+                           ) -> list[tuple[str, list[Goal], dict]]:
+    """06-10 §8.2 的三类转运 TCP 路径, 返回 ``(名称, goals, 说明)``.
+
+    - ``baseline``: 当前生产路径; ``high_above_place`` 仍由
+      ``TRANSFER_SPLIT_HIGH_ABOVE_PLACE`` 决定;
+    - ``high_align``: rise/transit → 目标正上方 → 竖直下降 → 放置;
+    - ``detour``: high_align 失败后, 在 transit 高度加一个水平绕行点;
+    - ``auto``: 依次尝试以上三类, 由控制器记录每类失败原因.
+
+    变体数量由 ``TRANSFER_MAX_VARIANTS`` 限制, 不改变任何安全检查.
+    """
+    chosen = cfg.TRANSFER_PATH_POLICY if policy is None else str(policy)
+    if chosen not in cfg.TRANSFER_PATH_POLICIES:
+        raise ValueError(f"未知 TRANSFER_PATH_POLICY: {chosen}")
+    offset = (cfg.TRANSFER_TRANSIT_OFFSET if transit_offset is None
+              else float(transit_offset))
+    variants: list[tuple[str, list[Goal], dict]] = []
+
+    def add(name: str, split: bool, detour: Optional[float] = None) -> None:
+        goals = _transfer_goal_set(place_pose, current_tcp, arm_base,
+                                   offset, split, detour)
+        variants.append((name, goals, {
+            "policy": chosen,
+            "transit_offset": round(float(offset), 6),
+            "split": bool(split),
+            "detour_offset": (None if detour is None
+                              else round(float(detour), 6)),
+            "semantic_points": [goal.name for goal in goals],
+        }))
+
+    if chosen == "baseline":
+        add("baseline", bool(cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE))
+    else:
+        if chosen == "auto":
+            add("baseline", bool(cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE))
+        add("high_align", True)
+        if chosen in ("detour", "auto"):
+            for detour in cfg.TRANSFER_DETOUR_OFFSETS:
+                add(f"detour_{detour:+.2f}", True, detour)
+    limit = (cfg.TRANSFER_MAX_VARIANTS if max_variants is None
+             else int(max_variants))
+    return variants[:max(1, limit)]
+
+
+def transfer_goals(place_pose, current_tcp, arm_base,
+                   policy: Optional[str] = None,
+                   transit_offset: Optional[float] = None,
+                   detour_offset: Optional[float] = None) -> list[Goal]:
+    """兼容入口: 返回当前策略的首个转运目标序列.
+
+    阶段 2.01 调用方 (探针/测试) 仍可只传前三个参数; 默认 policy
+    ``baseline`` 且 ``TRANSFER_SPLIT_HIGH_ABOVE_PLACE`` 不变, 因此行为与
+    阶段 2.01 一致.
+    """
+    if detour_offset is not None:
+        goals = _transfer_goal_set(place_pose, current_tcp, arm_base,
+                                   (cfg.TRANSFER_TRANSIT_OFFSET
+                                    if transit_offset is None
+                                    else float(transit_offset)),
+                                   True, detour_offset)
+        return goals
+    return transfer_goal_variants(place_pose, current_tcp, arm_base,
+                                  policy=policy,
+                                  transit_offset=transit_offset,
+                                  max_variants=1)[0][1]
+
+
+def _motion_totals(reports) -> dict:
+    done = [report.get("execution") for report in reports
+            if report.get("status") == "DONE" and report.get("execution")]
+    totals = [entry.get("totals", {}) for entry in done]
+    return {
+        "motions": len(reports),
+        "executed": len(done),
+        "failed": sum(1 for report in reports
+                      if report.get("status") == "FAILED"),
+        "tv_total": round(sum(float(t.get("tv_total") or 0.0)
+                              for t in totals), 6),
+        "max_step": round(max([float(t.get("max_step") or 0.0)
+                               for t in totals] or [0.0]), 6),
+        "sim_duration": round(sum(float(t.get("sim_duration") or 0.0)
+                                  for t in totals), 4),
+        "steps": sum(int(t.get("steps") or 0) for t in totals),
+        "commands": sum(int(t.get("commands") or 0) for t in totals),
+    }
 
 
 def _compose(tcp_pose, transform) -> list[float]:

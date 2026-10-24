@@ -155,6 +155,76 @@ def build_stage2_extra(*, sim=None, scene=None, parent_info=None,
         "max_candidates": cfg.PLAN_MAX_CANDIDATES,
         "max_total_samples": cfg.PLAN_MAX_TOTAL_SAMPLES,
         "wall_budget_s": cfg.PLAN_WALL_BUDGET_S,
+        "wrist_branch": {
+            "joint": cfg.WRIST_BRANCH_JOINT,
+            "margin": cfg.WRIST_BRANCH_MARGIN,
+            "rule": "wrapped q4 sign; singular at 0/±pi",
+        },
+        "joint_lock": {
+            "joint": cfg.Q0_LOCK_JOINT,
+            "ik_tolerance": cfg.Q0_LOCK_IK_TOL,
+            "acceptance_tolerance": cfg.Q0_LOCK_TOL,
+            "segments": sorted(cfg.Q0_LOCK_SEGMENTS),
+            "fallback_to_free": cfg.Q0_LOCK_FALLBACK,
+        },
+        "lookahead": {
+            "weight": cfg.PLAN_LOOKAHEAD_WEIGHT,
+            "fail_penalty": cfg.PLAN_LOOKAHEAD_FAIL_PENALTY,
+            "note": "只用于候选排序; 逐段碰撞检查仍是唯一放行依据",
+        },
+        "transfer_split": {
+            "high_above_place": cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE,
+            "rise_align_transit": cfg.TRANSFER_RISE_ALIGN_TRANSIT,
+        },
+        "agv_transfer_opt": {
+            "version": cfg.AGV_TRANSFER_OPT_VERSION,
+            "path_policy": cfg.TRANSFER_PATH_POLICY,
+            "path_policies": list(cfg.TRANSFER_PATH_POLICIES),
+            "transit_offset": cfg.TRANSFER_TRANSIT_OFFSET,
+            "transit_offset_variants": list(
+                cfg.TRANSFER_TRANSIT_OFFSET_VARIANTS),
+            "detour_offsets": list(cfg.TRANSFER_DETOUR_OFFSETS),
+            "max_variants": cfg.TRANSFER_MAX_VARIANTS,
+            "variant_wall_budget_s": cfg.TRANSFER_VARIANT_WALL_BUDGET_S,
+            "note": "默认 baseline; high_align/detour/auto 为 A/B 实验策略, "
+                    "未通过 §8.4 G 重复回归前不得切换默认值",
+        },
+        "chain_search": {
+            "mode": cfg.CARTESIAN_CHAIN_SEARCH,
+            "choices": list(cfg.CARTESIAN_CHAIN_SEARCH_CHOICES),
+            "beam_width": cfg.CARTESIAN_BEAM_WIDTH,
+            "layer_candidates": cfg.CARTESIAN_LAYER_CANDIDATES,
+            "max_nodes": cfg.CARTESIAN_CHAIN_MAX_NODES,
+        },
+        "chain_cost": {
+            "weights": {
+                "tv": cfg.CHAIN_COST_WEIGHT_TV,
+                "q0": cfg.CHAIN_COST_WEIGHT_Q0,
+                "q3": cfg.CHAIN_COST_WEIGHT_Q3,
+                "b": cfg.CHAIN_COST_WEIGHT_B,
+                "a": cfg.CHAIN_COST_WEIGHT_A,
+            },
+            "sample_dt": cfg.CHAIN_COST_SAMPLE_DT,
+            "note": "首轮实验初值; q3 为 Python 0-based joint4/Wrist 1",
+        },
+        "smoothing": {
+            "enabled": cfg.TRAJECTORY_SMOOTHING_ENABLED,
+            "passes": cfg.TRAJECTORY_SMOOTHING_PASSES,
+            "weight": cfg.TRAJECTORY_SMOOTHING_WEIGHT,
+            "requires_full_reverify": True,
+        },
+        "diagnostics": {
+            "plan_trace": cfg.PLAN_TRACE_ENABLED,
+            "plan_trace_max_points": cfg.PLAN_TRACE_MAX_POINTS,
+            "execution_trace": cfg.EXECUTION_TRACE_ENABLED,
+            "execution_trace_max_samples": cfg.EXECUTION_TRACE_MAX_SAMPLES,
+            "execution_profile": cfg.EXECUTION_PROFILE_ENABLED,
+        },
+        "trajectory_compaction": {
+            "enabled": cfg.TRAJECTORY_COMPACTION_ENABLED,
+            "tcp_pos_tol": cfg.COMPACTION_TCP_POS_TOL,
+            "tcp_ang_tol": cfg.COMPACTION_TCP_ANG_TOL,
+        },
     }
     execution = {
         "max_joint_step": cfg.EXEC_MAX_JOINT_STEP,
@@ -207,6 +277,8 @@ def build_stage2_extra(*, sim=None, scene=None, parent_info=None,
             "id": cfg.STAGE2_CONTROLLER_ID,
             "runner": cfg.STAGE2_RUNNER_ID,
             "phase": cfg.STAGE2_PHASE,
+            "motion_opt_version": cfg.MOTION_OPT_VERSION,
+            "agv_transfer_opt_version": cfg.AGV_TRANSFER_OPT_VERSION,
         },
         "config": {
             "digest": stage2_config_digest(),
@@ -262,6 +334,11 @@ def validate_stage2_contract(sim, artifact, scene=None) -> dict:
     _check(checks, "stage2_runner_id",
            controller.get("runner") == cfg.STAGE2_RUNNER_ID,
            f"saved={controller.get('runner')!r}")
+    _check(checks, "stage2_agv_transfer_opt_version",
+           controller.get("agv_transfer_opt_version")
+           == cfg.AGV_TRANSFER_OPT_VERSION,
+           f"saved={controller.get('agv_transfer_opt_version')!r} "
+           f"current={cfg.AGV_TRANSFER_OPT_VERSION!r}")
 
     saved_digest = (extra.get("config") or {}).get("digest")
     current_digest = stage2_config_digest()

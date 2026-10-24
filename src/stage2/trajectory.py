@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Callable, Optional, Protocol, Sequence
 
 from . import config as cfg
+from . import metrics as motion_metrics
 from .contact import quat_normalize
 
 IDENTITY_QUAT = (0.0, 0.0, 0.0, 1.0)
@@ -119,6 +120,7 @@ class ExecutorStatus(str, Enum):
     UNKNOWN = "UNKNOWN"
     DEVIATION = "DEVIATION"
     TIMEOUT = "TIMEOUT"
+    WRIST_BRANCH = "WRIST_BRANCH"
 
 
 @dataclass
@@ -143,7 +145,8 @@ class JointStreamExecutor:
                  joint_tol: float = cfg.EXEC_JOINT_TOL,
                  command_settle_tol: float = cfg.EXEC_COMMAND_SETTLE_TOL,
                  max_deviation: float = cfg.EXEC_MAX_DEVIATION,
-                 reach_timeout: float = cfg.EXEC_REACH_TIMEOUT) -> None:
+                 reach_timeout: float = cfg.EXEC_REACH_TIMEOUT,
+                 pose_at: Optional[Callable] = None) -> None:
         self.plan = plan
         self.checker = checker
         self.contexts = list(contexts)
@@ -152,6 +155,7 @@ class JointStreamExecutor:
         self.command_settle_tol = float(command_settle_tol)
         self.max_deviation = float(max_deviation)
         self.reach_timeout = float(reach_timeout)
+        self.pose_at = pose_at
         self.waypoints = [list(map(float, q)) for q in plan.waypoints]
         self.index = 0
         self.cancelled = False
@@ -159,6 +163,17 @@ class JointStreamExecutor:
         self.started_at: Optional[float] = None
         self.waypoint_started_at: Optional[float] = None
         self.step_count = 0
+        # 阶段 2.01 执行指标: 每个控制步记录实测 q 与已下发命令.
+        self.samples: list[dict] = []
+        self.commands: list[dict] = []
+        self.spans = self._spans()
+
+    def _spans(self) -> list[tuple[int, int, object]]:
+        if hasattr(self.plan, "segment_spans"):
+            spans = list(self.plan.segment_spans())
+            if spans and spans[-1][1] == len(self.waypoints) - 1:
+                return spans
+        return [(0, max(0, len(self.waypoints) - 1), None)]
 
     # ── 状态 ────────────────────────────────────────────────
 
@@ -173,6 +188,10 @@ class JointStreamExecutor:
         idx = min(self.index + 1, max(0, len(self.contexts) - 1))
         return self.contexts[idx] if self.contexts else None
 
+    def _record(self, sim_time: float, q: Sequence[float]) -> None:
+        self.samples.append({"t": float(sim_time), "index": int(self.index),
+                             "q": [float(v) for v in q]})
+
     # ── 推进 ────────────────────────────────────────────────
 
     def next_command(self, actual_q: Sequence[float],
@@ -181,6 +200,7 @@ class JointStreamExecutor:
             return ExecutorStep(ExecutorStatus.CANCELLED, list(actual_q),
                                 message="executor cancelled")
         actual = [float(v) for v in actual_q]
+        self._record(sim_time, actual)
         if self.started_at is None:
             self.started_at = float(sim_time)
             self.waypoint_started_at = float(sim_time)
@@ -231,13 +251,116 @@ class JointStreamExecutor:
             allow_end_load_contact=allow_end_load)
         self.step_count += 1
         if not check.ok:
-            status = (ExecutorStatus.UNKNOWN
-                      if check.status.value == "QUERY_UNKNOWN"
-                      else ExecutorStatus.COLLISION)
+            if check.status.value == "QUERY_UNKNOWN":
+                status = ExecutorStatus.UNKNOWN
+            elif check.status.value == "WRIST_BRANCH_MISMATCH":
+                status = ExecutorStatus.WRIST_BRANCH
+            else:
+                status = ExecutorStatus.COLLISION
             return ExecutorStep(status, actual, message=check.message,
                                 check=check.as_dict())
         self.last_command = list(q_next)
+        self.commands.append({"t": float(sim_time), "index": int(self.index),
+                              "q": list(q_next)})
         if distance <= self.joint_tol:
             self.index += 1
         return ExecutorStep(ExecutorStatus.RUNNING, q_next,
                             done=False, check=check.as_dict())
+
+    # ── 执行指标 ────────────────────────────────────────────
+
+    def execution_metrics(self) -> dict:
+        """按计划段汇总**实测** q 的 TV/最大单步/时长/TCP 误差.
+
+        采样来自每个 ``next_command`` 的实测 joint 读数, 不是 IK 端点;
+        保持命令的步骤也会记录, 其增量为 0, 不虚增 TV.
+        """
+        if not self.samples:
+            return {"segments": [], "totals": {"segments": 0,
+                                                "tv_total": 0.0,
+                                                "max_step": 0.0,
+                                                "points": 0,
+                                                "sim_duration": 0.0}}
+        segments = []
+        last_span = len(self.spans) - 1
+        for position, (start, end, segment) in enumerate(self.spans):
+            if position == last_span:
+                samples = [s for s in self.samples
+                           if start <= s["index"] <= end]
+                commands = [c for c in self.commands
+                            if start <= c["index"] <= end]
+            else:
+                samples = [s for s in self.samples
+                           if start <= s["index"] < end]
+                commands = [c for c in self.commands
+                            if start <= c["index"] < end]
+            if position > 0:
+                # 上一段最后一次实测即本段起点实测; 不并入会把段首一步
+                # 的行程漏掉.
+                boundary = [s for s in self.samples
+                            if s["index"] == start - 1]
+                if boundary:
+                    samples = [boundary[-1]] + samples
+            if not samples:
+                continue
+            name = getattr(segment, "name", f"segment_{position}")
+            cartesian = bool(getattr(segment, "cartesian", False))
+            target_pose = getattr(segment, "target_pose", None)
+            tcp_pose = None
+            if self.pose_at is not None and target_pose is not None:
+                try:
+                    tcp_pose = self.pose_at(samples[-1]["q"])
+                except Exception:
+                    tcp_pose = None
+            stats = motion_metrics.segment_metrics(
+                [s["q"] for s in samples], name=name,
+                cartesian=cartesian, target_pose=target_pose,
+                tcp_pose=tcp_pose,
+                lock_joint=getattr(segment, "lock_joint", None),
+                lock_value=getattr(segment, "lock_value", None),
+                lock_tol=getattr(segment, "lock_tol", None))
+            stats.update({
+                "steps": len(samples),
+                "commands": len(commands),
+                "sim_duration": round(samples[-1]["t"] - samples[0]["t"], 4),
+            })
+            if cfg.EXECUTION_PROFILE_ENABLED:
+                stats["profile"] = motion_metrics.motion_profile(samples)
+            segments.append(stats)
+        total = motion_metrics.totals(segments)
+        total["sim_duration"] = round(
+            sum(segment.get("sim_duration") or 0.0
+                for segment in segments), 4)
+        total["steps"] = sum(segment.get("steps") or 0
+                             for segment in segments)
+        total["commands"] = sum(segment.get("commands") or 0
+                                for segment in segments)
+        if cfg.EXECUTION_PROFILE_ENABLED:
+            total["profile"] = motion_metrics.motion_profile(self.samples)
+        return {"segments": segments, "totals": total,
+                **self._trace()}
+
+    def _trace(self) -> dict:
+        """实际下发/实测采样 (06-10 §8.3.1), 超限时等间隔降采样."""
+        if not cfg.EXECUTION_TRACE_ENABLED:
+            return {"trace": {"enabled": False}}
+        limit = max(1, int(cfg.EXECUTION_TRACE_MAX_SAMPLES))
+
+        def _sample(rows, fields):
+            truncated = len(rows) > limit
+            if truncated:
+                stride = (len(rows) if limit <= 1 else
+                          max(1, int(round((len(rows) - 1) / (limit - 1)))))
+                rows = rows[::stride][:limit]
+            return {
+                "points": len(rows),
+                "truncated": truncated,
+                "values": [{key: row[key] for key in fields}
+                           for row in rows],
+            }
+
+        return {"trace": {
+            "enabled": True,
+            "samples": _sample(self.samples, ("t", "index", "q")),
+            "commands": _sample(self.commands, ("t", "index", "q")),
+        }}

@@ -154,7 +154,8 @@ class Ur5IkController:
             f"角误差 {_ang(backup.precision):.4f} rad)")
 
     def _try_group(self, group: int, label: str,
-                   seed: list[float] | None = None) -> IKResult:
+                   seed: list[float] | None = None,
+                   lock: tuple[int, float, float] | None = None) -> IKResult:
         sim, ik = self.sim, self.simIK
         ik.syncFromSim(self.env, [group])
         if seed is not None:
@@ -166,7 +167,11 @@ class Ur5IkController:
                         ik.setJointPosition(self.env, ij, float(q))
                     except Exception:
                         break
-        ret = ik.handleGroup(self.env, group, {})
+        restore = self._apply_joint_lock(group, lock)
+        try:
+            ret = ik.handleGroup(self.env, group, {})
+        finally:
+            self._restore_joint_lock(restore)
         result_code, reason, precision = _parse_handle_result(ret)
 
         if result_code != ik.result_success:
@@ -183,14 +188,51 @@ class Ur5IkController:
         return IKResult(True, joints, result_code, reason, precision, False,
                         f"{label} 求解成功", used_seed=seed is not None)
 
+    # ── IK 环境关节区间 (阶段 2.01 段内固定单轴) ──────────────
+
+    def _apply_joint_lock(self, group: int,
+                          lock: tuple[int, float, float] | None):
+        """临时收窄 IK 关节区间; 返回恢复所需 ``(ik_joint, cyclic, interval)``."""
+        if lock is None or not hasattr(self.simIK, "setJointInterval"):
+            return None
+        scene_joint, value, tol = lock
+        ik_joint = self._maps.get(group, {}).get(int(scene_joint))
+        if ik_joint is None:
+            return None
+        try:
+            cyclic, interval = self.simIK.getJointInterval(
+                self.env, int(ik_joint))
+            half = max(float(tol), 1e-6)
+            self.simIK.setJointInterval(
+                self.env, int(ik_joint), False,
+                [float(value) - half, 2.0 * half])
+            return (int(ik_joint), bool(cyclic), list(interval))
+        except Exception:
+            return None
+
+    def _restore_joint_lock(self, restore) -> None:
+        if restore is None:
+            return
+        ik_joint, cyclic, interval = restore
+        try:
+            self.simIK.setJointInterval(self.env, ik_joint, cyclic, interval)
+        except Exception:
+            pass
+
     def solve_candidates(self, target_pose: list[float],
                          seeds: list[list[float]],
                          max_candidates: int = 8,
-                         dedupe_tol: float = 0.05) -> list[IKResult]:
+                         dedupe_tol: float = 0.05,
+                         lock_joint: int | None = None,
+                         lock_value: float | None = None,
+                         lock_tol: float | None = None) -> list[IKResult]:
         """用给定初值枚举同一目标位姿的多个 IK 解 (阶段二多解规划用).
 
         - 只写 IK 环境的关节初值, 不写场景关节;
         - 每个 seed 先主组伪逆, 失败再阻尼备用组;
+        - ``lock_joint`` 非空时临时把该 IK 关节区间收窄到
+          ``lock_value ± lock_tol``, 求解后恢复原区间; 这是段内固定单轴,
+          不修改场景关节限位;
         - 返回成功且关节在限位内的解, 按 q 距离去重;
         - 默认阶段一调用路径 (``solve``) 完全不变。
         """
@@ -200,16 +242,24 @@ class Ur5IkController:
                                self.sim.handle_world)
         out: list[IKResult] = []
         max_candidates = max(1, int(max_candidates))
+        lock = None
+        if lock_joint is not None and lock_value is not None:
+            lock = (int(lock_joint), float(lock_value),
+                    float(lock_tol if lock_tol is not None else 0.01))
         for seed in seeds:
             values = [float(v) for v in seed]
             if len(values) != len(self.scene_joints):
                 continue
-            result = self._try_group(self.group_main, "主组(seed)", seed=values)
+            result = self._try_group(self.group_main, "主组(seed)",
+                                     seed=values, lock=lock)
             if not result.success:
                 result = self._try_group(
-                    self.group_backup, "备用组(seed)", seed=values)
+                    self.group_backup, "备用组(seed)", seed=values, lock=lock)
                 result.used_backup = True
             if not result.success:
+                continue
+            if lock is not None and abs(
+                    result.joints[lock[0]] - lock[1]) > lock[2] + 1e-6:
                 continue
             if not self.joints_within_limits(result.joints):
                 continue

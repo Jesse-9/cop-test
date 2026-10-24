@@ -23,7 +23,7 @@ from stage1 import config as base
 # 契约与控制器标识
 # ═══════════════════════════════════════════════════════════════
 
-STAGE2_CONTRACT_VERSION = "stage2_contract_20261021"
+STAGE2_CONTRACT_VERSION = "stage2_contract_20261024_v3"
 STAGE2_CONTROLLER_ID = "stage2.unit_controller.Stage2UnitController"
 STAGE2_RUNNER_ID = "stage2.run.run_loaded_scene_stage2"
 STAGE2_PHASE = "stage2"
@@ -130,6 +130,9 @@ PLAN_MAX_TOTAL_SAMPLES = 6000
 PLAN_WALL_BUDGET_S = 60.0                   # 实测最坏约 30 s; 冻结 60 s 余量
 PLAN_MAX_WAYPOINT_CANDIDATES = 6            # 每个自由目标的候选分支上限
 PLAN_MAX_DFS_NODES = 48                     # 局部回溯节点上限
+# 下一自由目标一步前瞻: 只用于候选排序, 不替代逐段碰撞检查.
+PLAN_LOOKAHEAD_WEIGHT = 0.5                 # 前瞻关节距离权重
+PLAN_LOOKAHEAD_FAIL_PENALTY = 10.0          # 前瞻无解惩罚
 
 # 带载转运: 先竖直抬升, 再经基座与放置点之间的高位中转, 最后法向放置.
 # 2026-10-21 实测: 直接从 lift 关节插值到 pre_place 会让 10 cm 载荷扫过
@@ -206,3 +209,110 @@ RUNTIME_HAZARD_FAULT = "runtime_obstacle"
 RUNTIME_HAZARD_SIZE = (0.08, 0.08, 0.08)
 RUNTIME_HAZARD_ALIAS = "Fault_Runtime_Obstacle"
 STAGE2_FAULT_CHOICES = tuple(base.FAULT_CHOICES) + (RUNTIME_HAZARD_FAULT,)
+
+# ═══════════════════════════════════════════════════════════════
+# 阶段 2.01: 动作与轨迹优化 (06-10)
+# ═══════════════════════════════════════════════════════════════
+
+# 版本标识只写入运行证据, 不参与工件 phase 路由 (source_phase 仍为 stage2).
+MOTION_OPT_VERSION = "2.01"
+
+# 腕部分支: 用 q[4] (UR5 wrist2, Python 六元组下标 4) 相对奇异边界
+# 0/±π 的归一化角判定. 2026-10-21 候选实测 (probe_stage2_motion_opt.py):
+# 工具竖直构型 q[4]≈±π/2, 同分支安全候选 |q4n|≥1.39 rad; 近奇异候选
+# 归一化后 0.147 rad, 由 0.30 rad 裕量拒绝. 不改场景关节限位.
+WRIST_BRANCH_JOINT = 4
+WRIST_BRANCH_MARGIN = 0.30
+
+# 段内固定 q[0] (UR5 joint1/base axis): 仅用于几何上同 XY 的竖直段;
+# 水平转运段允许 q[0] 参与, 不默认锁定. 锁定通过临时收窄 simIK 关节区间
+# 并恢复原区间实现, 不是关闭场景关节或跳过碰撞检查.
+Q0_LOCK_JOINT = 0
+Q0_LOCK_IK_TOL = 0.010                      # simIK 区间半宽 (rad)
+Q0_LOCK_TOL = 0.02                          # 候选/执行验收允许偏差 (rad)
+# 默认锁定段: pick→lift→rise (lift/rise)、pre-place→place、place→retreat.
+# 2026-10-21 station/AGV 实测: 锁 pre_place 的 transit→pre_place 对角段在
+# station 会迫使腕部跨支、在 AGV 会让载荷扫过 conveyor pad, 因此不默认锁定;
+# 该段仍受腕部分支与逐段碰撞检查约束.
+Q0_LOCK_SEGMENTS = frozenset({"lift", "rise", "place", "retreat"})
+Q0_LOCK_FALLBACK = True                     # 固定轴无解 → 同分支自由 IK
+
+# 转运末段拆分: transit → high_above_place (同高、水平) →
+# pre_place (同 XY、竖直). 2026-10-21 A/B 实测该拆分把 station transfer
+# TV 从 8.27 提高到 11.74 rad、AGV 从 7.64 提高到 11.20 rad (强制基座
+# 翻转), 因此**默认关闭**; 能力保留给未来布局/净空验证, 需要时显式打开.
+TRANSFER_SPLIT_HIGH_ABOVE_PLACE = False
+TRANSFER_RISE_ALIGN_TRANSIT = True          # rise 不低于中转高度
+
+# 数值冗余点精简: 只删除段内共线且 FK 偏差在容差内的点;
+# 接触/抬升/中转/pre-place/place/retreat 等语义点永不删除.
+TRAJECTORY_COMPACTION_ENABLED = True
+COMPACTION_TCP_POS_TOL = 0.001              # m
+COMPACTION_TCP_ANG_TOL = 0.01               # rad
+COMPACTION_SAMPLES = 5
+
+# 逐段指标: 计划与执行均记录 TV/max step/点数/分支/最小距离.
+MOTION_METRICS_ENABLED = True
+
+# ═══════════════════════════════════════════════════════════════
+# 阶段 2.02: AGV 转运路径优化 (06-10 §8)
+# ═══════════════════════════════════════════════════════════════
+
+# 本阶段按 06-10 §8.4 先建立可诊断基线, 再做路径/选链 A/B. 所有新能力
+# 默认关闭或保持 ``baseline``, 不改变阶段 2.01 的生产行为; 只有 §8.4 G
+# 的重复回归证明收益后才允许切换默认值. 参数标 ``待实测冻结``.
+AGV_TRANSFER_OPT_VERSION = "2.02"
+
+# 转运 TCP 路径类型 (06-10 §8.2):
+#   baseline  — rise → transit → pre_place → place (当前生产路径)
+#   high_align— rise → [transit] → high_above_place → pre_place → place
+#   detour    — high_align 失败后, 在 transit 高度加一个水平绕行点
+#   auto      — 依次尝试 baseline → high_align → detour, 记录每类失败原因
+# baseline 时 high_above_place 仍由 TRANSFER_SPLIT_HIGH_ABOVE_PLACE 控制,
+# 保持阶段 2.01 行为不变.
+TRANSFER_PATH_POLICIES = ("baseline", "high_align", "detour", "auto")
+TRANSFER_PATH_POLICY = "baseline"           # 待实测冻结
+# gate B: 仅改变 transit 沿"目标指向基座"方向的偏移, 其余端点/代价不变.
+TRANSFER_TRANSIT_OFFSET_VARIANTS = (0.20, 0.10, 0.0)   # m, 待实测冻结
+# gate C: 只在直线路径被碰撞/净空拒绝时加入一个水平绕行点; 偏移沿水平
+# 运动方向的法向, 正负号都测试, 每个点记录引入原因与绕行距离.
+TRANSFER_DETOUR_OFFSETS = (0.06, -0.06, 0.12, -0.12)   # m, 待实测冻结
+TRANSFER_MAX_VARIANTS = 4                   # 单次转运最多尝试的路径变体
+TRANSFER_VARIANT_WALL_BUDGET_S = 150.0      # 变体总墙钟预算 (s)
+
+# 8.3.3 有界整段候选选择: 每个笛卡尔采样层保留有限候选, 相邻层只在
+# check_segment 通过时连边; beam/dynamic-programming 在整段上选链, 而不是
+# 每层取第一个安全解. 默认 greedy 保持 2.01 行为, 由 A/B 决定是否切换.
+CARTESIAN_CHAIN_SEARCH_CHOICES = ("greedy", "beam")
+CARTESIAN_CHAIN_SEARCH = "greedy"           # 待实测冻结
+CARTESIAN_BEAM_WIDTH = 8                    # 每层保留的候选链数 (06-10 §8.5)
+CARTESIAN_LAYER_CANDIDATES = 6              # 每层候选上限 (沿用 IK 候选数)
+CARTESIAN_CHAIN_MAX_NODES = 512             # 单段整链搜索节点上限
+
+# 8.3.4 分层代价 (首轮实验初值, 不是最终常数):
+# J = w_tv·TV_all + w_q0·TV(q[0]) + w_q3·TV(q[3])
+#     + w_b·B_all + w_a·A_all
+# B_all = Σ|q[k+1]-2q[k]+q[k-1]| (折返/曲率代理);
+# A_all = Σ((q[k+1]-2q[k]+q[k-1]) / dt²)² (按采样时间归一化).
+# 有限位关节不做 wrap; q[3] 是 UR5 joint4/Wrist 1 (Python 0-based).
+CHAIN_COST_WEIGHT_TV = 1.0
+CHAIN_COST_WEIGHT_Q0 = 0.5
+CHAIN_COST_WEIGHT_Q3 = 0.5
+CHAIN_COST_WEIGHT_B = 0.2
+CHAIN_COST_WEIGHT_A = 0.2
+CHAIN_COST_SAMPLE_DT = 1.0                  # 规划采样单位时间 (s)
+
+# 8.3.5 平滑与时间参数化: 选链之后才处理; 任何改变 q 路径的平滑都必须
+# 重新执行全段 FK/分支/载荷/碰撞复核, 失败则恢复原路径. 默认关闭,
+# 执行速度/加速度/jerk 峰值与 RMS 默认记录 (只测量, 不改变轨迹).
+TRAJECTORY_SMOOTHING_ENABLED = False        # 待实测冻结
+TRAJECTORY_SMOOTHING_PASSES = 1
+TRAJECTORY_SMOOTHING_WEIGHT = 0.25          # q_i ← (1-2w)q_i + w(q_{i-1}+q_{i+1})
+EXECUTION_PROFILE_ENABLED = True
+
+# 8.3.1 可诊断基线: 逐 waypoint 导出 q/TCP/载荷位姿/分支/净空; 执行侧
+# 导出实际下发与实测采样 (超出上限时等间隔降采样并标记).
+PLAN_TRACE_ENABLED = True
+PLAN_TRACE_MAX_POINTS = 400
+EXECUTION_TRACE_ENABLED = True
+EXECUTION_TRACE_MAX_SAMPLES = 2000

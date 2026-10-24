@@ -36,7 +36,8 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 
 1. 阶段二：物理与运行基础能力（2026-10-21 已完成），包括 TCP 外表面接触、
    碰撞/局部避障、场景构建与仿真启动解耦、统一故障状态和传送带停机验证；
-   阶段 2.1（统一故障恢复）待开始；
+   阶段 2.01 动作与轨迹优化已完成（2026-10-21）；阶段 2.02 AGV 转运路径
+   优化能力已实现（2026-10-25，实验开关默认关闭）；阶段 2.1（统一故障恢复）待开始；
 2. 阶段三：双工位柔性搬运，包括第二工位、任务队列、资源锁和 AGV 调度；
 3. 阶段四：多岛车间，包括 A–E 拓扑、仓库供料、节拍追踪和共享 AGV 调度。
 
@@ -77,12 +78,56 @@ run），`src/run_stage1.py` 与 `src/run_scene_lifecycle.py` 是兼容入口；
 
 - 报告与限制：[docs/implementation/PHASE2_REPORT.md](docs/implementation/PHASE2_REPORT.md)
 - 方案与实施结果：[06-09 阶段二](docs/wiki/06-工业案例/06-09-柔性工业车间阶段二-物理约束与运动规划.md)
-- 当前工件：`docs/scene_artifacts/stage2/L1_S1/v009_20261021_190527/`
+- 当前工件：`docs/scene_artifacts/stage2/L1_S1/v013_20261024_232558/`
 - 阶段二模块：`src/stage2/`（config / contact / collisions / shadow /
   path_planning / trajectory / safety / conveyor_safety / suction /
-  unit_controller / runtime / scene_contract / run），`src/run_stage2.py`
+  unit_controller / runtime / scene_contract / run，以及 2.01 的 branch /
+  metrics 和 2.02 的 diagnostics），`src/run_stage2.py`
   为兼容入口；安装后可用 `uv run run-stage2`。
 - OMPL 未启用（N/A）；阶段 2.1 的统一故障恢复尚未开始。
+
+### 阶段 2.01：动作与轨迹优化（2026-10-21 通过）
+
+在阶段二之上加入腕部分支硬约束（q[4] 归一化）、段内固定 q[0]
+（lift/rise/place/retreat）、候选一步前瞻与实际 TCP 承接、逐段 TV/最大单步/
+分支/净空指标和可行性点精简。高-中-预接近拆分能力保留但默认关闭（A/B 实测
+增加总行程）。
+
+```bash
+# 影子臂 A/B 规划探针（不启动仿真）
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py
+.venv/Scripts/python docs/measurement/probe_stage2_motion_opt.py --no-branch-guard
+```
+
+- 报告：[docs/implementation/PHASE2_01_REPORT.md](docs/implementation/PHASE2_01_REPORT.md)
+- 方案：[06-10 阶段 2.01](docs/wiki/06-工业案例/06-10-柔性工业车间阶段2.01-动作轨迹优化.md)
+- station 实机：任务总 TV 19.897→11.966（−39.9%），transfer 15.644→7.601
+  （−51.4%），pre_place 10.595→2.515（−76.3%）；agv/both 仍 DONE。
+- 新增模块：`src/stage2/branch.py`、`src/stage2/metrics.py`。
+
+### 阶段 2.02：AGV 转运路径优化（2026-10-25 实现，默认关闭）
+
+按 06-10 §8 增加逐 waypoint 诊断、baseline/high_align/detour 路径变体、
+有界整链 beam 选链、分层代价（TV + q0/q3 + 折返/加速度代理）、执行
+vel/acc/jerk 剖面和段内平滑钩子。默认仍是 `baseline` + `greedy` + 无平滑，
+2.01 生产路径不变。
+
+```bash
+# 影子规划 A/B（场景已加载并停止）
+.venv/Scripts/python docs/measurement/probe_stage2_agv_transfer.py \
+  --targets agv --pick-pose -0.30784 0.00012 0.5 \
+  --policies baseline high_align --offsets 0.20 0.10 0.00 \
+  --max-variants 1 --chain-modes greedy beam
+```
+
+- 报告：[docs/implementation/PHASE2_02_REPORT.md](docs/implementation/PHASE2_02_REPORT.md)
+- 实测：默认 AGV transfer 计划 TV 14.345（执行 14.337），q[3] 净变化
+  +5.019；transit 偏移 0.10/0.00 m 可把计划 TV 降到 7.57/7.55，但 q[0] TV
+  升高，按 §8.4 B 不切换默认；beam 与 greedy 结果一致，detour 只增加 TV。
+- 新增模块：`src/stage2/diagnostics.py`；探针
+  `docs/measurement/probe_stage2_agv_transfer.py`。
+- 边界：候选偏移的 3 次实机重复运行、执行平顺性（jerk 峰值 120.65 >
+  100 rad/s³）仍属后续工作。
 
 ## 步骤 1.2：场景工件与生命周期（2026-10-21 通过）
 

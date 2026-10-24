@@ -37,16 +37,20 @@
 
 ## 当前阶段二工件
 
-- 工件 ID: `stage2/L1_S1/v009_20261021_190527`
+- 工件 ID: `stage2/L1_S1/v013_20261024_232558`
 - 父工件: `stage1/L1_S1/v002_20261020_234403`
-- 契约: `extra.stage2.contract_version = stage2_contract_20261021`;
-  控制器 `stage2.unit_controller.Stage2UnitController`
-- 校验: 144 项通过, 父差异 `[]`; stage2 manifest 不写会话句柄
+- 契约: `extra.stage2.contract_version = stage2_contract_20261024_v3`;
+  控制器 `stage2.unit_controller.Stage2UnitController`，动作优化版本 `2.01`，
+  AGV 转运优化版本 `2.02`（实验能力默认关闭）
+- 校验: 145 项通过, 父差异 `[]`; stage2 manifest 不写会话句柄
   (`tool.handles`/`conveyor.script_handle`/`sim_time` 已剥离)
-- 保护: v009 由 CLI 保存为 `protected: true`（文件只读）；派生新版本不受影响。修改 `src/stage2/config.py` 后旧工件会因
+- 保护: v013 由 CLI 保存为 `protected: true`（文件只读）；v009–v012 是阶段二/
+  2.01 历史与过渡工件。修改 `src/stage2/config.py` 后旧工件会因
   `stage2_config_digest` 拒绝 start, 必须重新派生
 - 运行: `python src/run_stage2.py --target station|agv|both`
-- 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)
+- 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)、
+  [`PHASE2_01_REPORT.md`](../implementation/PHASE2_01_REPORT.md)、
+  [`PHASE2_02_REPORT.md`](../implementation/PHASE2_02_REPORT.md)
 
 影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,

@@ -1,0 +1,3368 @@
+{
+  "timestamp": "20261021_211837",
+  "motion_opt_version": "2.01",
+  "branch_guard": false,
+  "policies": [
+    "no_split_free"
+  ],
+  "layout": "L1_S1",
+  "branch_rule": {
+    "joint_index": 4,
+    "margin": 0.3
+  },
+  "wrist_candidates": {
+    "pre_pick": {
+      "pose": [
+        -0.2,
+        0.0,
+        0.7,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            0.20076,
+            -0.127233,
+            -1.338959,
+            -0.104604,
+            1.570796,
+            -1.370037
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": 1.570796
+        },
+        {
+          "q": [
+            0.204925,
+            -0.10905,
+            4.905507,
+            -0.081535,
+            1.570531,
+            -1.365708
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570531,
+          "q4_wrapped": 1.570531
+        },
+        {
+          "q": [
+            0.201929,
+            -1.401909,
+            1.339082,
+            -1.506021,
+            1.569027,
+            -1.369115
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.569027,
+          "q4_wrapped": 1.569027
+        },
+        {
+          "q": [
+            0.204622,
+            -0.628311,
+            -0.649473,
+            -3.433624,
+            -1.570552,
+            1.775455
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570552,
+          "q4_wrapped": -1.570552
+        },
+        {
+          "q": [
+            2.94133,
+            1.403128,
+            -1.351396,
+            1.519065,
+            -1.570796,
+            4.512126
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": -1.570796
+        },
+        {
+          "q": [
+            -3.342135,
+            -4.88097,
+            -1.338399,
+            1.506908,
+            4.712624,
+            4.511849
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570561,
+          "q4_wrapped": -1.570561
+        },
+        {
+          "q": [
+            0.201297,
+            -1.208427,
+            0.563034,
+            2.220166,
+            -1.571525,
+            1.773331
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570067,
+          "q4_wrapped": -1.571525
+        },
+        {
+          "q": [
+            0.204607,
+            -0.628468,
+            -0.649147,
+            2.849389,
+            -1.570553,
+            1.77544
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570553,
+          "q4_wrapped": -1.570553
+        },
+        {
+          "q": [
+            2.943463,
+            1.165518,
+            -0.469873,
+            4.016966,
+            1.571028,
+            1.372685
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570564,
+          "q4_wrapped": 1.571028
+        },
+        {
+          "q": [
+            0.20141,
+            5.05479,
+            0.605746,
+            2.193481,
+            4.712391,
+            -4.511036
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570794,
+          "q4_wrapped": -1.570794
+        }
+      ],
+      "min_margin": 1.569027,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "pick": {
+      "pose": [
+        -0.2,
+        0.0,
+        0.55,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            0.20003,
+            -0.158141,
+            -1.691588,
+            0.278933,
+            1.570796,
+            -1.370766
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": 1.570796
+        },
+        {
+          "q": [
+            0.206544,
+            -0.143601,
+            4.560068,
+            0.298802,
+            1.5704,
+            -1.3639
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.5704,
+          "q4_wrapped": 1.5704
+        },
+        {
+          "q": [
+            0.196719,
+            -1.742409,
+            1.65612,
+            -1.48503,
+            1.571148,
+            -1.37433
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570445,
+          "q4_wrapped": 1.571148
+        },
+        {
+          "q": [
+            0.201649,
+            4.528154,
+            1.690718,
+            4.776559,
+            1.569796,
+            -1.368778
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.569796,
+          "q4_wrapped": 1.569796
+        },
+        {
+          "q": [
+            2.939511,
+            0.60404,
+            -5.222833,
+            -3.234908,
+            1.568577,
+            1.36866
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.568577,
+          "q4_wrapped": 1.568577
+        },
+        {
+          "q": [
+            0.205648,
+            -1.637675,
+            1.101689,
+            2.10685,
+            -1.570471,
+            1.776578
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570471,
+          "q4_wrapped": -1.570471
+        },
+        {
+          "q": [
+            2.940088,
+            1.756947,
+            4.593278,
+            -4.77944,
+            -1.5708,
+            4.510879
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570793,
+          "q4_wrapped": -1.5708
+        },
+        {
+          "q": [
+            0.201456,
+            4.658744,
+            1.066905,
+            2.128332,
+            -1.570796,
+            1.772252
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": -1.570796
+        },
+        {
+          "q": [
+            0.201181,
+            -1.614905,
+            1.053296,
+            2.132291,
+            -1.571483,
+            1.771799
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570109,
+          "q4_wrapped": -1.571483
+        },
+        {
+          "q": [
+            0.186949,
+            -0.598981,
+            -1.075919,
+            3.24662,
+            -1.572023,
+            1.755247
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.569569,
+          "q4_wrapped": -1.572023
+        },
+        {
+          "q": [
+            2.944316,
+            1.591915,
+            -1.002836,
+            4.123442,
+            1.571097,
+            1.373618
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570496,
+          "q4_wrapped": 1.571097
+        }
+      ],
+      "min_margin": 1.568577,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "lift": {
+      "pose": [
+        -0.2,
+        0.0,
+        0.7,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            0.20076,
+            -0.127233,
+            -1.338959,
+            -0.104604,
+            1.570796,
+            -1.370037
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": 1.570796
+        },
+        {
+          "q": [
+            0.204925,
+            -0.10905,
+            4.905507,
+            -0.081535,
+            1.570531,
+            -1.365708
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570531,
+          "q4_wrapped": 1.570531
+        },
+        {
+          "q": [
+            0.201929,
+            -1.401909,
+            1.339082,
+            -1.506021,
+            1.569027,
+            -1.369115
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.569027,
+          "q4_wrapped": 1.569027
+        },
+        {
+          "q": [
+            0.204622,
+            -0.628311,
+            -0.649473,
+            -3.433624,
+            -1.570552,
+            1.775455
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570552,
+          "q4_wrapped": -1.570552
+        },
+        {
+          "q": [
+            2.94133,
+            1.403128,
+            -1.351396,
+            1.519065,
+            -1.570796,
+            4.512126
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": -1.570796
+        },
+        {
+          "q": [
+            -3.342135,
+            -4.88097,
+            -1.338399,
+            1.506908,
+            4.712624,
+            4.511849
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570561,
+          "q4_wrapped": -1.570561
+        },
+        {
+          "q": [
+            0.201297,
+            -1.208427,
+            0.563034,
+            2.220166,
+            -1.571525,
+            1.773331
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570067,
+          "q4_wrapped": -1.571525
+        },
+        {
+          "q": [
+            0.204607,
+            -0.628468,
+            -0.649147,
+            2.849389,
+            -1.570553,
+            1.77544
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570553,
+          "q4_wrapped": -1.570553
+        },
+        {
+          "q": [
+            2.943463,
+            1.165518,
+            -0.469873,
+            4.016966,
+            1.571028,
+            1.372685
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570564,
+          "q4_wrapped": 1.571028
+        },
+        {
+          "q": [
+            0.20141,
+            5.05479,
+            0.605746,
+            2.193481,
+            4.712391,
+            -4.511036
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570794,
+          "q4_wrapped": -1.570794
+        }
+      ],
+      "min_margin": 1.569027,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "rise": {
+      "pose": [
+        -0.2,
+        0.0,
+        0.82,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            0.199309,
+            -0.207091,
+            -0.932473,
+            -0.431232,
+            1.570796,
+            -1.371487
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": 1.570796
+        },
+        {
+          "q": [
+            0.203983,
+            -0.185774,
+            5.310394,
+            -0.410012,
+            1.570606,
+            -1.36675
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570606,
+          "q4_wrapped": 1.570606
+        },
+        {
+          "q": [
+            0.198814,
+            -1.062768,
+            0.859584,
+            -1.368605,
+            1.570979,
+            -1.372029
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570614,
+          "q4_wrapped": 1.570979
+        },
+        {
+          "q": [
+            2.940154,
+            1.089,
+            -0.918014,
+            -4.883405,
+            -1.570571,
+            4.510751
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570571,
+          "q4_wrapped": -1.570571
+        },
+        {
+          "q": [
+            -3.344348,
+            0.208228,
+            0.927328,
+            0.435237,
+            -1.570791,
+            -1.773552
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570791,
+          "q4_wrapped": -1.570791
+        },
+        {
+          "q": [
+            0.203995,
+            -0.18578,
+            -0.972771,
+            -0.410027,
+            1.570605,
+            -1.366735
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570605,
+          "q4_wrapped": 1.570605
+        }
+      ],
+      "min_margin": 1.570571,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "pre_station": {
+      "pose": [
+        -0.2,
+        1.2,
+        0.55,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            -0.170031,
+            1.37719,
+            -0.435544,
+            -2.512426,
+            1.570802,
+            4.542377
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570791,
+          "q4_wrapped": 1.570802
+        },
+        {
+          "q": [
+            -2.975558,
+            -0.383172,
+            -1.399533,
+            0.211886,
+            1.57089,
+            1.736832
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570703,
+          "q4_wrapped": 1.57089
+        },
+        {
+          "q": [
+            -0.171119,
+            -4.89336,
+            -0.462434,
+            3.785006,
+            1.570823,
+            -1.741916
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570769,
+          "q4_wrapped": 1.570823
+        },
+        {
+          "q": [
+            -0.17273,
+            0.915008,
+            0.527924,
+            -3.01497,
+            1.570565,
+            -1.743546
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570565,
+          "q4_wrapped": 1.570565
+        },
+        {
+          "q": [
+            -0.169834,
+            1.372783,
+            -0.426022,
+            -2.517421,
+            1.571578,
+            -1.740344
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570014,
+          "q4_wrapped": 1.571578
+        },
+        {
+          "q": [
+            -0.173108,
+            0.372918,
+            -4.858054,
+            -0.229911,
+            -1.570516,
+            1.397545
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570516,
+          "q4_wrapped": -1.570516
+        },
+        {
+          "q": [
+            -0.167199,
+            0.386457,
+            1.392638,
+            -0.208299,
+            -1.570796,
+            1.403597
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": -1.570796
+        },
+        {
+          "q": [
+            -0.167148,
+            1.692207,
+            -1.347034,
+            1.226349,
+            -1.57106,
+            1.403769
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570532,
+          "q4_wrapped": -1.57106
+        },
+        {
+          "q": [
+            -0.168287,
+            1.034757,
+            0.277686,
+            -2.881975,
+            1.570932,
+            -1.739237
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.57066,
+          "q4_wrapped": 1.570932
+        },
+        {
+          "q": [
+            -0.171108,
+            1.709932,
+            -1.389635,
+            1.250243,
+            4.708048,
+            -4.883578
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.566455,
+          "q4_wrapped": -1.575138
+        }
+      ],
+      "min_margin": 1.566455,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "station": {
+      "pose": [
+        -0.2,
+        1.2,
+        0.4,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            -0.173074,
+            1.763614,
+            -0.859422,
+            -2.475528,
+            1.570531,
+            -1.743929
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570531,
+          "q4_wrapped": 1.570531
+        },
+        {
+          "q": [
+            -0.173024,
+            0.94109,
+            0.859641,
+            2.909976,
+            1.570536,
+            -1.743877
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570536,
+          "q4_wrapped": 1.570536
+        },
+        {
+          "q": [
+            -0.169902,
+            -4.54764,
+            -0.799941,
+            3.776779,
+            1.570781,
+            -1.740699
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570781,
+          "q4_wrapped": 1.570781
+        },
+        {
+          "q": [
+            -0.17307,
+            0.940661,
+            0.860532,
+            -3.373698,
+            1.570532,
+            -1.743924
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570532,
+          "q4_wrapped": 1.570532
+        },
+        {
+          "q": [
+            -2.971201,
+            -2.040993,
+            -4.667104,
+            5.137293,
+            1.570244,
+            1.741213
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570244,
+          "q4_wrapped": 1.570244
+        },
+        {
+          "q": [
+            -0.17366,
+            0.507255,
+            -4.647715,
+            -0.574657,
+            -1.570463,
+            1.396916
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570463,
+          "q4_wrapped": -1.570463
+        },
+        {
+          "q": [
+            -0.170135,
+            0.521499,
+            1.601141,
+            -0.551844,
+            -1.570796,
+            1.400661
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": -1.570796
+        },
+        {
+          "q": [
+            -0.166568,
+            2.024275,
+            -1.565708,
+            1.112742,
+            -1.571114,
+            1.404411
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570478,
+          "q4_wrapped": -1.571114
+        },
+        {
+          "q": [
+            -0.169912,
+            2.039468,
+            4.681926,
+            1.132585,
+            -1.570806,
+            1.400886
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570787,
+          "q4_wrapped": -1.570806
+        },
+        {
+          "q": [
+            -0.170187,
+            0.969871,
+            0.799903,
+            2.942587,
+            1.570619,
+            -1.740987
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570619,
+          "q4_wrapped": 1.570619
+        }
+      ],
+      "min_margin": 1.570244,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "pre_agv": {
+      "pose": [
+        0.4,
+        0.75,
+        0.507025,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            2.069053,
+            -0.360254,
+            -1.555165,
+            0.347165,
+            1.570671,
+            0.498088
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570671,
+          "q4_wrapped": 1.570671
+        },
+        {
+          "q": [
+            -1.426889,
+            0.83839,
+            0.777359,
+            3.09517,
+            1.57054,
+            -2.997734
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.57054,
+          "q4_wrapped": 1.57054
+        },
+        {
+          "q": [
+            -1.429925,
+            1.570758,
+            5.51695,
+            3.901839,
+            1.565753,
+            -2.995557
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.565753,
+          "q4_wrapped": 1.565753
+        },
+        {
+          "q": [
+            -1.425779,
+            0.856962,
+            0.736508,
+            3.118841,
+            1.571182,
+            -2.996593
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570411,
+          "q4_wrapped": 1.571182
+        },
+        {
+          "q": [
+            -1.424131,
+            1.819559,
+            -1.519864,
+            1.270845,
+            -1.570513,
+            0.147089
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570513,
+          "q4_wrapped": -1.570513
+        },
+        {
+          "q": [
+            4.859304,
+            1.819493,
+            -1.519751,
+            -5.01213,
+            4.71239,
+            -6.13627
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570795,
+          "q4_wrapped": -1.570795
+        },
+        {
+          "q": [
+            -1.419504,
+            0.357554,
+            1.546554,
+            -0.334111,
+            -1.571287,
+            0.152768
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570306,
+          "q4_wrapped": -1.571287
+        },
+        {
+          "q": [
+            -1.427199,
+            0.361091,
+            -4.728153,
+            -0.348014,
+            -1.570499,
+            0.14343
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570499,
+          "q4_wrapped": -1.570499
+        },
+        {
+          "q": [
+            2.066871,
+            -1.822738,
+            1.522338,
+            -1.269983,
+            -4.712495,
+            0.49581
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.57069,
+          "q4_wrapped": 1.57069
+        },
+        {
+          "q": [
+            2.064147,
+            -1.803024,
+            1.482321,
+            -1.250752,
+            1.571076,
+            0.493196
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570516,
+          "q4_wrapped": 1.571076
+        },
+        {
+          "q": [
+            2.065511,
+            4.721936,
+            0.738777,
+            -3.884628,
+            4.712975,
+            -2.647412
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570211,
+          "q4_wrapped": -1.570211
+        }
+      ],
+      "min_margin": 1.565753,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    },
+    "agv": {
+      "pose": [
+        0.4,
+        0.75,
+        0.357025,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "candidates": [
+        {
+          "q": [
+            -1.424023,
+            1.858474,
+            -0.9481,
+            -2.48117,
+            1.570796,
+            -2.99482
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570796,
+          "q4_wrapped": 1.570796
+        },
+        {
+          "q": [
+            -1.427182,
+            0.926655,
+            1.000511,
+            2.783384,
+            1.570512,
+            -2.998063
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570512,
+          "q4_wrapped": 1.570512
+        },
+        {
+          "q": [
+            2.063413,
+            -0.558749,
+            -1.660491,
+            0.645552,
+            1.571152,
+            0.49232
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570441,
+          "q4_wrapped": 1.571152
+        },
+        {
+          "q": [
+            -1.423377,
+            1.859253,
+            -0.94933,
+            3.802382,
+            1.571275,
+            -2.994222
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570318,
+          "q4_wrapped": 1.571275
+        },
+        {
+          "q": [
+            2.070916,
+            -0.528765,
+            -1.727932,
+            0.688025,
+            1.570485,
+            0.500276
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570485,
+          "q4_wrapped": 1.570485
+        },
+        {
+          "q": [
+            -1.423974,
+            -4.133759,
+            -1.695177,
+            1.116579,
+            -1.570822,
+            0.147027
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570771,
+          "q4_wrapped": -1.570822
+        },
+        {
+          "q": [
+            -1.427713,
+            0.531984,
+            -4.555018,
+            -0.692085,
+            -1.570453,
+            0.14287
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570453,
+          "q4_wrapped": -1.570453
+        },
+        {
+          "q": [
+            -1.419035,
+            0.532193,
+            1.685896,
+            -0.6437,
+            -1.571304,
+            0.152808
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570289,
+          "q4_wrapped": -1.571304
+        },
+        {
+          "q": [
+            -1.425085,
+            2.155864,
+            -1.702489,
+            1.11733,
+            -1.570808,
+            0.145707
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.570785,
+          "q4_wrapped": -1.570808
+        },
+        {
+          "q": [
+            4.859066,
+            -5.345165,
+            0.97656,
+            -3.485364,
+            1.570892,
+            -2.994869
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570701,
+          "q4_wrapped": 1.570892
+        },
+        {
+          "q": [
+            -1.420517,
+            -4.126162,
+            -1.705838,
+            -5.163981,
+            -1.572731,
+            0.149446
+          ],
+          "wrist_branch": "negative",
+          "wrist_margin": 1.568862,
+          "q4_wrapped": -1.572731
+        },
+        {
+          "q": [
+            2.062787,
+            -0.543013,
+            4.576536,
+            0.679648,
+            1.570651,
+            0.4919
+          ],
+          "wrist_branch": "positive",
+          "wrist_margin": 1.570651,
+          "q4_wrapped": 1.570651
+        }
+      ],
+      "min_margin": 1.568862,
+      "branches": [
+        "negative",
+        "positive"
+      ]
+    }
+  },
+  "plans": {
+    "station": {
+      "no_split_free": {
+        "policy": "no_split_free",
+        "stages": {
+          "approach": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "pre_pick",
+                "cartesian": false,
+                "q_start": [
+                  0.0,
+                  0.0,
+                  -1.570796,
+                  0.0,
+                  1.570796,
+                  0.0
+                ],
+                "q_end": [
+                  0.20076,
+                  -0.127233,
+                  -1.338959,
+                  -0.104604,
+                  1.570796,
+                  -1.370037
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 41,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "pick",
+                "cartesian": true,
+                "q_start": [
+                  0.20076,
+                  -0.127233,
+                  -1.338959,
+                  -0.104604,
+                  1.570796,
+                  -1.370037
+                ],
+                "q_end": [
+                  0.201357,
+                  -0.157455,
+                  -1.68935,
+                  0.276009,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 15,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "2 段通过粗筛与最终复核 (policy=free)",
+            "samples": 43,
+            "configs": 43,
+            "wall_s": 2.86,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "2 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.2,
+              0.0,
+              0.55,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": true,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "pre_pick",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.0,
+                    0.0,
+                    -1.570796,
+                    0.0,
+                    1.570796,
+                    0.0
+                  ],
+                  "q_end": [
+                    0.20076,
+                    -0.127233,
+                    -1.338959,
+                    -0.104604,
+                    1.570796,
+                    -1.370037
+                  ],
+                  "q_delta": [
+                    0.20076,
+                    -0.127233,
+                    0.231837,
+                    -0.104604,
+                    -0.0,
+                    -1.370037
+                  ],
+                  "tv": [
+                    0.20076,
+                    0.127233,
+                    0.231837,
+                    0.104604,
+                    0.0,
+                    1.370037
+                  ],
+                  "tv_total": 2.03447,
+                  "max_step": 1.370037,
+                  "points": 2,
+                  "q0_delta": 0.20076,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000534,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "pick",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.20076,
+                    -0.127233,
+                    -1.338959,
+                    -0.104604,
+                    1.570796,
+                    -1.370037
+                  ],
+                  "q_end": [
+                    0.201357,
+                    -0.157455,
+                    -1.68935,
+                    0.276009,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.000598,
+                    -0.030223,
+                    -0.35039,
+                    0.380613,
+                    0.0,
+                    0.000598
+                  ],
+                  "tv": [
+                    0.000598,
+                    0.040981,
+                    0.35039,
+                    0.380613,
+                    0.0,
+                    0.000598
+                  ],
+                  "tv_total": 0.773181,
+                  "max_step": 0.126316,
+                  "points": 12,
+                  "q0_delta": 0.000598,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000174,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 2,
+                "tv_total": 2.807651,
+                "max_step": 1.370037,
+                "points": 14
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 4,
+              "points_before": 17,
+              "points_after": 13,
+              "max_tcp_pos_deviation": 0.000749,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "lift": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "lift",
+                "cartesian": true,
+                "q_start": [
+                  0.201357,
+                  -0.157455,
+                  -1.68935,
+                  0.276009,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  0.201358,
+                  -0.127578,
+                  -1.337727,
+                  -0.105492,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 15,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核 (policy=free)",
+            "samples": 31,
+            "configs": 31,
+            "wall_s": 2.11,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.2,
+              0.0,
+              0.7,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "lift",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201357,
+                    -0.157455,
+                    -1.68935,
+                    0.276009,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    0.201358,
+                    -0.127578,
+                    -1.337727,
+                    -0.105492,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.0,
+                    0.029877,
+                    0.351623,
+                    -0.3815,
+                    -0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.040406,
+                    0.351623,
+                    0.3815,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.77353,
+                  "max_step": 0.126625,
+                  "points": 12,
+                  "q0_delta": 0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 8.2e-05,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.77353,
+                "max_step": 0.126625,
+                "points": 12
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 4,
+              "points_before": 16,
+              "points_after": 12,
+              "max_tcp_pos_deviation": 0.000752,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "transfer": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "rise",
+                "cartesian": true,
+                "q_start": [
+                  0.201358,
+                  -0.127578,
+                  -1.337727,
+                  -0.105492,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  0.201358,
+                  -0.211426,
+                  -0.918907,
+                  -0.440463,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 12,
+                "waypoint_count": 8,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 24,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "transit",
+                "cartesian": false,
+                "q_start": [
+                  0.201358,
+                  -0.211426,
+                  -0.918907,
+                  -0.440463,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  -0.246856,
+                  1.071121,
+                  -0.6577,
+                  -1.985108,
+                  1.570951,
+                  -1.81778
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 58,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "pre_place",
+                "cartesian": false,
+                "q_start": [
+                  -0.246856,
+                  1.071121,
+                  -0.6577,
+                  -1.985108,
+                  1.570951,
+                  -1.81778
+                ],
+                "q_end": [
+                  -0.17273,
+                  0.915008,
+                  0.527924,
+                  -3.01497,
+                  1.570565,
+                  -1.743546
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 35,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "place",
+                "cartesian": true,
+                "q_start": [
+                  -0.17273,
+                  0.915008,
+                  0.527924,
+                  -3.01497,
+                  1.570565,
+                  -1.743546
+                ],
+                "q_end": [
+                  -0.170048,
+                  0.970792,
+                  0.797833,
+                  -3.339422,
+                  1.570796,
+                  -1.740845
+                ],
+                "samples": 15,
+                "waypoint_count": 10,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 23,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "4 段通过粗筛与最终复核 (policy=free)",
+            "samples": 105,
+            "configs": 105,
+            "wall_s": 7.016,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "4 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.2,
+              1.2,
+              0.4,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": true,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "rise",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201358,
+                    -0.127578,
+                    -1.337727,
+                    -0.105492,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    0.201358,
+                    -0.211426,
+                    -0.918907,
+                    -0.440463,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.0,
+                    -0.083848,
+                    0.418819,
+                    -0.334971,
+                    -0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.083848,
+                    0.418819,
+                    0.334971,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.837639,
+                  "max_step": 0.169182,
+                  "points": 9,
+                  "q0_delta": 0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000165,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "transit",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201358,
+                    -0.211426,
+                    -0.918907,
+                    -0.440463,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    -0.246856,
+                    1.071121,
+                    -0.6577,
+                    -1.985108,
+                    1.570951,
+                    -1.81778
+                  ],
+                  "q_delta": [
+                    -0.448213,
+                    1.282547,
+                    0.261208,
+                    -1.544645,
+                    0.000155,
+                    -0.448341
+                  ],
+                  "tv": [
+                    0.448213,
+                    1.282547,
+                    0.261208,
+                    1.544645,
+                    0.000155,
+                    0.448341
+                  ],
+                  "tv_total": 3.98511,
+                  "max_step": 1.544645,
+                  "points": 2,
+                  "q0_delta": -0.448213,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570641,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000397,
+                  "tcp_error_ang": 0.000913,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "pre_place",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    -0.246856,
+                    1.071121,
+                    -0.6577,
+                    -1.985108,
+                    1.570951,
+                    -1.81778
+                  ],
+                  "q_end": [
+                    -0.17273,
+                    0.915008,
+                    0.527924,
+                    -3.01497,
+                    1.570565,
+                    -1.743546
+                  ],
+                  "q_delta": [
+                    0.074126,
+                    -0.156112,
+                    1.185623,
+                    -1.029863,
+                    -0.000386,
+                    0.074234
+                  ],
+                  "tv": [
+                    0.074126,
+                    0.156112,
+                    1.185623,
+                    1.029863,
+                    0.000386,
+                    0.074234
+                  ],
+                  "tv_total": 2.520344,
+                  "max_step": 1.185623,
+                  "points": 2,
+                  "q0_delta": 0.074126,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570565,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.009964,
+                  "tcp_error_ang": 0.001264,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "place",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    -0.17273,
+                    0.915008,
+                    0.527924,
+                    -3.01497,
+                    1.570565,
+                    -1.743546
+                  ],
+                  "q_end": [
+                    -0.170048,
+                    0.970792,
+                    0.797833,
+                    -3.339422,
+                    1.570796,
+                    -1.740845
+                  ],
+                  "q_delta": [
+                    0.002681,
+                    0.055784,
+                    0.26991,
+                    -0.324451,
+                    0.000231,
+                    0.002702
+                  ],
+                  "tv": [
+                    0.002681,
+                    0.062843,
+                    0.26991,
+                    0.324451,
+                    0.000231,
+                    0.002702
+                  ],
+                  "tv_total": 0.662818,
+                  "max_step": 0.129276,
+                  "points": 11,
+                  "q0_delta": 0.002681,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570565,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 2.5e-05,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 4,
+                "tv_total": 8.005911,
+                "max_step": 1.544645,
+                "points": 24
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 9,
+              "points_before": 30,
+              "points_after": 21,
+              "max_tcp_pos_deviation": 0.000866,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "retreat": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "q_start": [
+                  -0.170048,
+                  0.970792,
+                  0.797833,
+                  -3.339422,
+                  1.570796,
+                  -1.740845
+                ],
+                "q_end": [
+                  -0.170048,
+                  0.964716,
+                  0.424645,
+                  -2.960157,
+                  1.570796,
+                  -1.740845
+                ],
+                "samples": 16,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 27,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核 (policy=free)",
+            "samples": 33,
+            "configs": 33,
+            "wall_s": 2.219,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.200004,
+              1.199976,
+              0.550007,
+              -0.0,
+              0.0,
+              0.0,
+              -1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "retreat",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    -0.170048,
+                    0.970792,
+                    0.797833,
+                    -3.339422,
+                    1.570796,
+                    -1.740845
+                  ],
+                  "q_end": [
+                    -0.170048,
+                    0.964716,
+                    0.424645,
+                    -2.960157,
+                    1.570796,
+                    -1.740845
+                  ],
+                  "q_delta": [
+                    -0.0,
+                    -0.006076,
+                    -0.373188,
+                    0.379264,
+                    -0.0,
+                    -0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.055162,
+                    0.373188,
+                    0.379264,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.807615,
+                  "max_step": 0.137844,
+                  "points": 12,
+                  "q0_delta": -0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000256,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.807615,
+                "max_step": 0.137844,
+                "points": 12
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 5,
+              "points_before": 17,
+              "points_after": 12,
+              "max_tcp_pos_deviation": 0.000894,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          }
+        },
+        "ok": true
+      }
+    },
+    "agv": {
+      "no_split_free": {
+        "policy": "no_split_free",
+        "stages": {
+          "approach": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "pre_pick",
+                "cartesian": false,
+                "q_start": [
+                  0.0,
+                  0.0,
+                  -1.570796,
+                  0.0,
+                  1.570796,
+                  0.0
+                ],
+                "q_end": [
+                  0.20076,
+                  -0.127233,
+                  -1.338959,
+                  -0.104604,
+                  1.570796,
+                  -1.370037
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 41,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "pick",
+                "cartesian": true,
+                "q_start": [
+                  0.20076,
+                  -0.127233,
+                  -1.338959,
+                  -0.104604,
+                  1.570796,
+                  -1.370037
+                ],
+                "q_end": [
+                  0.201357,
+                  -0.157455,
+                  -1.68935,
+                  0.276009,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 15,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "2 段通过粗筛与最终复核 (policy=free)",
+            "samples": 43,
+            "configs": 43,
+            "wall_s": 2.859,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "2 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.2,
+              0.0,
+              0.55,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": true,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "pre_pick",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.0,
+                    0.0,
+                    -1.570796,
+                    0.0,
+                    1.570796,
+                    0.0
+                  ],
+                  "q_end": [
+                    0.20076,
+                    -0.127233,
+                    -1.338959,
+                    -0.104604,
+                    1.570796,
+                    -1.370037
+                  ],
+                  "q_delta": [
+                    0.20076,
+                    -0.127233,
+                    0.231837,
+                    -0.104604,
+                    -0.0,
+                    -1.370037
+                  ],
+                  "tv": [
+                    0.20076,
+                    0.127233,
+                    0.231837,
+                    0.104604,
+                    0.0,
+                    1.370037
+                  ],
+                  "tv_total": 2.03447,
+                  "max_step": 1.370037,
+                  "points": 2,
+                  "q0_delta": 0.20076,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000534,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "pick",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.20076,
+                    -0.127233,
+                    -1.338959,
+                    -0.104604,
+                    1.570796,
+                    -1.370037
+                  ],
+                  "q_end": [
+                    0.201357,
+                    -0.157455,
+                    -1.68935,
+                    0.276009,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.000598,
+                    -0.030223,
+                    -0.35039,
+                    0.380613,
+                    0.0,
+                    0.000598
+                  ],
+                  "tv": [
+                    0.000598,
+                    0.040981,
+                    0.35039,
+                    0.380613,
+                    0.0,
+                    0.000598
+                  ],
+                  "tv_total": 0.773181,
+                  "max_step": 0.126316,
+                  "points": 12,
+                  "q0_delta": 0.000598,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000174,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 2,
+                "tv_total": 2.807651,
+                "max_step": 1.370037,
+                "points": 14
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 4,
+              "points_before": 17,
+              "points_after": 13,
+              "max_tcp_pos_deviation": 0.000749,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "lift": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "lift",
+                "cartesian": true,
+                "q_start": [
+                  0.201357,
+                  -0.157455,
+                  -1.68935,
+                  0.276009,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  0.201358,
+                  -0.127578,
+                  -1.337727,
+                  -0.105492,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 15,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核 (policy=free)",
+            "samples": 31,
+            "configs": 31,
+            "wall_s": 2.109,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              -0.2,
+              0.0,
+              0.7,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "lift",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201357,
+                    -0.157455,
+                    -1.68935,
+                    0.276009,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    0.201358,
+                    -0.127578,
+                    -1.337727,
+                    -0.105492,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.0,
+                    0.029877,
+                    0.351623,
+                    -0.3815,
+                    -0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.040406,
+                    0.351623,
+                    0.3815,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.77353,
+                  "max_step": 0.126625,
+                  "points": 12,
+                  "q0_delta": 0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 8.2e-05,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.77353,
+                "max_step": 0.126625,
+                "points": 12
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 4,
+              "points_before": 16,
+              "points_after": 12,
+              "max_tcp_pos_deviation": 0.000752,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "transfer": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "rise",
+                "cartesian": true,
+                "q_start": [
+                  0.201358,
+                  -0.127578,
+                  -1.337727,
+                  -0.105492,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  0.201358,
+                  -0.211426,
+                  -0.918907,
+                  -0.440463,
+                  1.570796,
+                  -1.369439
+                ],
+                "samples": 12,
+                "waypoint_count": 8,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 24,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "transit",
+                "cartesian": false,
+                "q_start": [
+                  0.201358,
+                  -0.211426,
+                  -0.918907,
+                  -0.440463,
+                  1.570796,
+                  -1.369439
+                ],
+                "q_end": [
+                  2.134328,
+                  0.109077,
+                  -1.332165,
+                  -0.345774,
+                  1.571757,
+                  0.562013
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 57,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "pre_place",
+                "cartesian": false,
+                "q_start": [
+                  2.134328,
+                  0.109077,
+                  -1.332165,
+                  -0.345774,
+                  1.571757,
+                  0.562013
+                ],
+                "q_end": [
+                  2.067302,
+                  -0.376415,
+                  -1.519616,
+                  0.325235,
+                  1.570796,
+                  0.496505
+                ],
+                "samples": 0,
+                "waypoint_count": 1,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 21,
+                "check_status": "OK",
+                "min_distance": null
+              },
+              {
+                "name": "place",
+                "cartesian": true,
+                "q_start": [
+                  2.067302,
+                  -0.376415,
+                  -1.519616,
+                  0.325235,
+                  1.570796,
+                  0.496505
+                ],
+                "q_end": [
+                  2.067361,
+                  -0.545334,
+                  -1.695233,
+                  0.669771,
+                  1.570796,
+                  0.496565
+                ],
+                "samples": 16,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "4 段通过粗筛与最终复核 (policy=free)",
+            "samples": 81,
+            "configs": 81,
+            "wall_s": 5.406,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "4 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              0.4,
+              0.75,
+              0.357025,
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": true,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "rise",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201358,
+                    -0.127578,
+                    -1.337727,
+                    -0.105492,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    0.201358,
+                    -0.211426,
+                    -0.918907,
+                    -0.440463,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_delta": [
+                    0.0,
+                    -0.083848,
+                    0.418819,
+                    -0.334971,
+                    -0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.083848,
+                    0.418819,
+                    0.334971,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.837639,
+                  "max_step": 0.169182,
+                  "points": 9,
+                  "q0_delta": 0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000165,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "transit",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.201358,
+                    -0.211426,
+                    -0.918907,
+                    -0.440463,
+                    1.570796,
+                    -1.369439
+                  ],
+                  "q_end": [
+                    2.134328,
+                    0.109077,
+                    -1.332165,
+                    -0.345774,
+                    1.571757,
+                    0.562013
+                  ],
+                  "q_delta": [
+                    1.932971,
+                    0.320504,
+                    -0.413258,
+                    0.094688,
+                    0.00096,
+                    1.931452
+                  ],
+                  "tv": [
+                    1.932971,
+                    0.320504,
+                    0.413258,
+                    0.094688,
+                    0.00096,
+                    1.931452
+                  ],
+                  "tv_total": 4.693833,
+                  "max_step": 1.932971,
+                  "points": 2,
+                  "q0_delta": 1.932971,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.569836,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.009444,
+                  "tcp_error_ang": 0.002641,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "pre_place",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    2.134328,
+                    0.109077,
+                    -1.332165,
+                    -0.345774,
+                    1.571757,
+                    0.562013
+                  ],
+                  "q_end": [
+                    2.067302,
+                    -0.376415,
+                    -1.519616,
+                    0.325235,
+                    1.570796,
+                    0.496505
+                  ],
+                  "q_delta": [
+                    -0.067027,
+                    -0.485492,
+                    -0.187452,
+                    0.671009,
+                    -0.00096,
+                    -0.065508
+                  ],
+                  "tv": [
+                    0.067027,
+                    0.485492,
+                    0.187452,
+                    0.671009,
+                    0.00096,
+                    0.065508
+                  ],
+                  "tv_total": 1.477448,
+                  "max_step": 0.671009,
+                  "points": 2,
+                  "q0_delta": -0.067027,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.569836,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000229,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                },
+                {
+                  "name": "place",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    2.067302,
+                    -0.376415,
+                    -1.519616,
+                    0.325235,
+                    1.570796,
+                    0.496505
+                  ],
+                  "q_end": [
+                    2.067361,
+                    -0.545334,
+                    -1.695233,
+                    0.669771,
+                    1.570796,
+                    0.496565
+                  ],
+                  "q_delta": [
+                    6e-05,
+                    -0.168919,
+                    -0.175617,
+                    0.344536,
+                    -0.0,
+                    6e-05
+                  ],
+                  "tv": [
+                    6e-05,
+                    0.168919,
+                    0.175617,
+                    0.344536,
+                    0.0,
+                    6e-05
+                  ],
+                  "tv_total": 0.689191,
+                  "max_step": 0.129438,
+                  "points": 12,
+                  "q0_delta": 6e-05,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000135,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 4,
+                "tv_total": 7.698111,
+                "max_step": 1.932971,
+                "points": 25
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 9,
+              "points_before": 31,
+              "points_after": 22,
+              "max_tcp_pos_deviation": 0.000866,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "retreat": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "free",
+            "locked_segments": [],
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "q_start": [
+                  2.067361,
+                  -0.545334,
+                  -1.695233,
+                  0.669771,
+                  1.570796,
+                  0.496565
+                ],
+                "q_end": [
+                  2.067361,
+                  -0.376497,
+                  -1.519555,
+                  0.325256,
+                  1.570796,
+                  0.496565
+                ],
+                "samples": 16,
+                "waypoint_count": 11,
+                "lock_joint": null,
+                "lock_value": null,
+                "lock_tol": null,
+                "verify_samples": 25,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核 (policy=free)",
+            "samples": 33,
+            "configs": 33,
+            "wall_s": 2.156,
+            "attempts": [
+              {
+                "strategy": "free:direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核 (policy=free)"
+              }
+            ],
+            "goal_pose": [
+              0.399883,
+              0.749936,
+              0.507041,
+              -0.0,
+              -0.0,
+              -0.0,
+              -1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "retreat",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    2.067361,
+                    -0.545334,
+                    -1.695233,
+                    0.669771,
+                    1.570796,
+                    0.496565
+                  ],
+                  "q_end": [
+                    2.067361,
+                    -0.376497,
+                    -1.519555,
+                    0.325256,
+                    1.570796,
+                    0.496565
+                  ],
+                  "q_delta": [
+                    0.0,
+                    0.168837,
+                    0.175678,
+                    -0.344515,
+                    -0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.168837,
+                    0.175678,
+                    0.344515,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.68903,
+                  "max_step": 0.129467,
+                  "points": 12,
+                  "q0_delta": 0.0,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 5.3e-05,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.68903,
+                "max_step": 0.129467,
+                "points": 12
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "free"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 5,
+              "points_before": 17,
+              "points_after": 12,
+              "max_tcp_pos_deviation": 0.000783,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          }
+        },
+        "ok": true
+      }
+    }
+  },
+  "startup": {
+    "fk": {
+      "ok": true,
+      "pos_tol": 0.0001,
+      "ang_tol": 0.001,
+      "joints": [
+        0.0,
+        0.0,
+        -1.570796,
+        0.0,
+        1.570796,
+        0.0
+      ],
+      "links": [
+        {
+          "link": "link1_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link2_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link3_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link4_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link5_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link6_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "link7_visible",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        },
+        {
+          "link": "tcp",
+          "pos_err": 0.0,
+          "ang_err": 0.0
+        }
+      ]
+    },
+    "cup_radius_measured": 0.023579,
+    "cup_radius_design": 0.0235795,
+    "query_semantics": {
+      "overlap": {
+        "name": "probe_overlap",
+        "state": "COLLISION",
+        "pair": [
+          278,
+          279
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": null,
+        "threshold": null,
+        "message": ""
+      },
+      "separated": {
+        "name": "probe_separated",
+        "state": "CLEAR",
+        "pair": [
+          -1,
+          -1
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": null,
+        "threshold": null,
+        "message": ""
+      },
+      "distance_with_threshold": {
+        "name": "probe_distance_threshold",
+        "state": "NEAR",
+        "pair": [
+          278,
+          280
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": 0.3,
+        "threshold": 0.5,
+        "message": ""
+      },
+      "distance_outside_threshold": {
+        "name": "probe_distance_outside",
+        "state": "CLEAR",
+        "pair": [
+          -1,
+          -1
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": null,
+        "threshold": 0.01,
+        "message": ""
+      },
+      "distance_exact": {
+        "name": "probe_distance_exact",
+        "state": "NEAR",
+        "pair": [
+          278,
+          280
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": 0.3,
+        "threshold": 0.0,
+        "message": ""
+      },
+      "collidable_false": {
+        "name": "probe_collidable_false",
+        "state": "CLEAR",
+        "pair": [
+          -1,
+          -1
+        ],
+        "pair_aliases": [
+          "",
+          ""
+        ],
+        "distance": null,
+        "threshold": null,
+        "message": ""
+      },
+      "ok": true
+    },
+    "self_pairs": 15,
+    "collections": {
+      "stage2_shadow": 8,
+      "stage2_shadow_links": 7,
+      "stage2_shadow_no_base": 7,
+      "stage2_workcell": 59,
+      "stage2_mount": 1,
+      "stage2_workcell_mount": 60,
+      "stage2_parts": 0,
+      "stage2_target": 0,
+      "stage2_shadow_load": 1
+    },
+    "excluded": [
+      {
+        "alias": "shape",
+        "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+      }
+    ],
+    "workcell_aliases": [
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "pad",
+      "Island_A_Station",
+      "Warehouse_Raw",
+      "Floor",
+      "visible",
+      "AGV_LoadTray",
+      "AGV_TrayWall_Front",
+      "AGV_TrayWall_Back",
+      "AGV_TrayWall_Left",
+      "AGV_TrayWall_Right"
+    ],
+    "shadow_hidden": true
+  },
+  "comparison": {
+    "station": {
+      "no_split_free": {
+        "ok": true,
+        "segments": [
+          {
+            "name": "pre_pick",
+            "tv_total": 2.03447,
+            "max_step": 1.370037,
+            "points": 2,
+            "q0_delta": 0.20076,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "pick",
+            "tv_total": 0.773181,
+            "max_step": 0.126316,
+            "points": 12,
+            "q0_delta": 0.000598,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "lift",
+            "tv_total": 0.77353,
+            "max_step": 0.126625,
+            "points": 12,
+            "q0_delta": 0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "rise",
+            "tv_total": 0.837639,
+            "max_step": 0.169182,
+            "points": 9,
+            "q0_delta": 0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "transit",
+            "tv_total": 3.98511,
+            "max_step": 1.544645,
+            "points": 2,
+            "q0_delta": -0.448213,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570641,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "pre_place",
+            "tv_total": 2.520344,
+            "max_step": 1.185623,
+            "points": 2,
+            "q0_delta": 0.074126,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570565,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "place",
+            "tv_total": 0.662818,
+            "max_step": 0.129276,
+            "points": 11,
+            "q0_delta": 0.002681,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570565,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "retreat",
+            "tv_total": 0.807615,
+            "max_step": 0.137844,
+            "points": 12,
+            "q0_delta": -0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          }
+        ],
+        "tv_total": 12.394707
+      }
+    },
+    "agv": {
+      "no_split_free": {
+        "ok": true,
+        "segments": [
+          {
+            "name": "pre_pick",
+            "tv_total": 2.03447,
+            "max_step": 1.370037,
+            "points": 2,
+            "q0_delta": 0.20076,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "pick",
+            "tv_total": 0.773181,
+            "max_step": 0.126316,
+            "points": 12,
+            "q0_delta": 0.000598,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "lift",
+            "tv_total": 0.77353,
+            "max_step": 0.126625,
+            "points": 12,
+            "q0_delta": 0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "rise",
+            "tv_total": 0.837639,
+            "max_step": 0.169182,
+            "points": 9,
+            "q0_delta": 0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "transit",
+            "tv_total": 4.693833,
+            "max_step": 1.932971,
+            "points": 2,
+            "q0_delta": 1.932971,
+            "lock_ok": null,
+            "wrist_margin_min": 1.569836,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "pre_place",
+            "tv_total": 1.477448,
+            "max_step": 0.671009,
+            "points": 2,
+            "q0_delta": -0.067027,
+            "lock_ok": null,
+            "wrist_margin_min": 1.569836,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "place",
+            "tv_total": 0.689191,
+            "max_step": 0.129438,
+            "points": 12,
+            "q0_delta": 6e-05,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          },
+          {
+            "name": "retreat",
+            "tv_total": 0.68903,
+            "max_step": 0.129467,
+            "points": 12,
+            "q0_delta": 0.0,
+            "lock_ok": null,
+            "wrist_margin_min": 1.570796,
+            "min_workcell_distance": 0.01465
+          }
+        ],
+        "tv_total": 11.968322
+      }
+    }
+  },
+  "destroy": {
+    "hazards_removed": 0,
+    "shadow_removed": 4,
+    "leftover": []
+  }
+}

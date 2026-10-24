@@ -1,0 +1,5490 @@
+{
+  "timestamp": "20261021_210713",
+  "run_id": "run_20261021_210709_852e9b",
+  "artifact_id": "stage2/L1_S1/v012_20261021_210539",
+  "phase": "stage2",
+  "target": "agv",
+  "fault": "none",
+  "layout": "L1_S1",
+  "stage2_runtime": {
+    "controller_id": "stage2.unit_controller.Stage2UnitController",
+    "contract_version": "stage2_contract_20261021_v2",
+    "cup_radius": 0.023579,
+    "shadow": {
+      "root_alias": "Shadow_UR5_01",
+      "joints": 6,
+      "link_aliases": [
+        "link1_visible",
+        "link2_visible",
+        "link3_visible",
+        "link4_visible",
+        "link5_visible",
+        "link6_visible",
+        "link7_visible"
+      ],
+      "pad_body": 200,
+      "load_alias": "Shadow_Load_01",
+      "shape_count": 18,
+      "visibility_hidden": true,
+      "policy": "session_resource"
+    },
+    "collections": [],
+    "startup": {
+      "fk": {
+        "ok": true,
+        "pos_tol": 0.0001,
+        "ang_tol": 0.001,
+        "joints": [
+          0.0,
+          0.0,
+          -1.570796,
+          0.0,
+          1.570796,
+          0.0
+        ],
+        "links": [
+          {
+            "link": "link1_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link2_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link3_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link4_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link5_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link6_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "link7_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          },
+          {
+            "link": "tcp",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+          }
+        ]
+      },
+      "cup_radius_measured": 0.023579,
+      "cup_radius_design": 0.0235795,
+      "query_semantics": {
+        "overlap": {
+          "name": "probe_overlap",
+          "state": "COLLISION",
+          "pair": [
+            207,
+            208
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "separated": {
+          "name": "probe_separated",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "distance_with_threshold": {
+          "name": "probe_distance_threshold",
+          "state": "NEAR",
+          "pair": [
+            207,
+            209
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": 0.3,
+          "threshold": 0.5,
+          "message": ""
+        },
+        "distance_outside_threshold": {
+          "name": "probe_distance_outside",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": 0.01,
+          "message": ""
+        },
+        "distance_exact": {
+          "name": "probe_distance_exact",
+          "state": "NEAR",
+          "pair": [
+            207,
+            209
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": 0.3,
+          "threshold": 0.0,
+          "message": ""
+        },
+        "collidable_false": {
+          "name": "probe_collidable_false",
+          "state": "CLEAR",
+          "pair": [
+            -1,
+            -1
+          ],
+          "pair_aliases": [
+            "",
+            ""
+          ],
+          "distance": null,
+          "threshold": null,
+          "message": ""
+        },
+        "ok": true
+      },
+      "self_pairs": 15,
+      "collections": {
+        "stage2_shadow": 8,
+        "stage2_shadow_links": 7,
+        "stage2_shadow_no_base": 7,
+        "stage2_workcell": 59,
+        "stage2_mount": 1,
+        "stage2_workcell_mount": 60,
+        "stage2_parts": 0,
+        "stage2_target": 0,
+        "stage2_shadow_load": 1
+      },
+      "excluded": [
+        {
+          "alias": "shape",
+          "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+        }
+      ],
+      "workcell_aliases": [
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "pad",
+        "Island_A_Station",
+        "Warehouse_Raw",
+        "Floor",
+        "visible",
+        "AGV_LoadTray",
+        "AGV_TrayWall_Front",
+        "AGV_TrayWall_Back",
+        "AGV_TrayWall_Left",
+        "AGV_TrayWall_Right"
+      ],
+      "shadow_hidden": true
+    }
+  },
+  "runtime_destroy": {
+    "hazards_removed": 0,
+    "shadow_removed": 4,
+    "leftover": []
+  },
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09776,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 17,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01007,
+    "stop_ok": true
+  },
+  "results": [
+    {
+      "target": "agv",
+      "task": {
+        "uid": 1,
+        "target": "agv",
+        "layout": "L1_S1",
+        "state": "DONE",
+        "failure_reason": "",
+        "material_state": "RELEASED",
+        "compensation_count": 4,
+        "pick_pose": [
+          -0.30746,
+          0.00017,
+          0.5
+        ],
+        "pick_tcp": [
+          -0.30746,
+          0.00017,
+          0.55,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "agv_blocked": false,
+        "events": [
+          [
+            0.8500000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+          ],
+          [
+            0.8500000000000002,
+            "WAITING_FOR_ITEM: task started"
+          ],
+          [
+            0.9000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0097 m (physical=0.0003, shortfall=0.0097)"
+          ],
+          [
+            0.9500000000000003,
+            "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+          ],
+          [
+            1.0000000000000002,
+            "HYBRID_DYNAMIC compensation Δ=0.0029 m (physical=0.0071, shortfall=0.0029)"
+          ],
+          [
+            4.249999999999993,
+            "STOPPING: conveyor stop commanded (sensor_hit)"
+          ],
+          [
+            4.399999999999992,
+            "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 4.249999999999993, 'material_start': [-0.32753, 0.00013, 0.5], 'material_end': [-0.30746, 0.00017, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02006, 'lateral_drift': 4e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+          ],
+          [
+            4.399999999999992,
+            "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+          ],
+          [
+            4.6499999999999915,
+            "material stable at (-0.3075,0.0002,0.5000) tilt=0.000; surface contact target fixed"
+          ],
+          [
+            4.6499999999999915,
+            "APPROACHING: measured pose after active stop"
+          ],
+          [
+            4.699999999999991,
+            "PLAN START actual q=[0.0, 0.0, -1.5708, 0.0, 1.5708, 0.0]"
+          ],
+          [
+            4.699999999999991,
+            "PLAN DIRECT_OK strategy=free:direct policy=free segments=2 samples=45 points=14 tv=2.799322 wall=1.33s"
+          ],
+          [
+            10.400000000000013,
+            "MOTION APPROACHING executed tv=2.793428 max_step=0.045166 steps=115 time=5.65s"
+          ],
+          [
+            10.400000000000013,
+            "ATTACHING: approach complete"
+          ],
+          [
+            10.450000000000014,
+            "LIFTING: attached"
+          ],
+          [
+            10.500000000000014,
+            "PLAN START planned_end(dev=0.0011) q=[0.0046, -0.1813, -1.661, 0.2715, 1.5708, -1.5662]"
+          ],
+          [
+            10.500000000000014,
+            "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=1 samples=31 points=12 tv=0.772939 wall=0.88s"
+          ],
+          [
+            12.850000000000048,
+            "MOTION LIFTING executed tv=0.767999 max_step=0.034918 steps=47 time=2.3s"
+          ],
+          [
+            12.850000000000048,
+            "TRANSFERRING: lift complete"
+          ],
+          [
+            12.900000000000048,
+            "PLAN START planned_end(dev=0.0016) q=[0.0046, -0.1528, -1.3087, -0.1093, 1.5708, -1.5662]"
+          ],
+          [
+            12.900000000000048,
+            "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=4 samples=125 points=23 tv=14.346698 wall=3.06s"
+          ],
+          [
+            32.600000000000286,
+            "MOTION TRANSFERRING executed tv=14.338905 max_step=0.04477 steps=397 time=19.65s"
+          ],
+          [
+            32.600000000000286,
+            "PLACING: transfer complete"
+          ],
+          [
+            32.65000000000028,
+            "RELEASING: at place pose"
+          ],
+          [
+            32.70000000000028,
+            "SETTLING: released, waiting settle"
+          ],
+          [
+            33.500000000000234,
+            "RETREATING: 抬升撤离 (drift=0.0009 m)"
+          ],
+          [
+            33.500000000000234,
+            "RETREATING: settling complete"
+          ],
+          [
+            33.55000000000023,
+            "PLAN START planned_end(dev=0.0006) q=[-1.4239, 0.9523, 0.9469, 2.8132, 1.5708, -2.9947]"
+          ],
+          [
+            33.55000000000023,
+            "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=1 samples=33 points=11 tv=0.637862 wall=0.92s"
+          ],
+          [
+            35.450000000000124,
+            "MOTION RETREATING executed tv=0.634636 max_step=0.036315 steps=38 time=1.85s"
+          ],
+          [
+            35.450000000000124,
+            "DONE: retreat complete"
+          ],
+          [
+            39.099999999999916,
+            "AGV 轮速行驶完成: 0.505 m / 3.65 s"
+          ]
+        ],
+        "controller_id": "stage2.unit_controller.Stage2UnitController",
+        "stage2": true,
+        "motion_opt_version": "2.01",
+        "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+        },
+        "plan": {
+          "status": "DIRECT_OK",
+          "strategy": "lock:direct",
+          "branch_anchor": "positive",
+          "lock_policy": "lock",
+          "locked_segments": [
+            "retreat"
+          ],
+          "waypoints": [
+            [
+              -1.42386,
+              0.952322,
+              0.9469,
+              2.813167,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.943429,
+              0.938835,
+              2.830125,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.935246,
+              0.929468,
+              2.847675,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.927475,
+              0.91937,
+              2.865545,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.920124,
+              0.908526,
+              2.883739,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.881734,
+              0.809638,
+              3.021017,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.878352,
+              0.791812,
+              3.042225,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.875575,
+              0.772914,
+              3.0639,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.873438,
+              0.752876,
+              3.086076,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.871982,
+              0.731615,
+              3.108792,
+              1.570796,
+              -2.994656
+            ],
+            [
+              -1.42386,
+              0.871257,
+              0.709035,
+              3.132098,
+              1.570796,
+              -2.994656
+            ]
+          ],
+          "segments": [
+            {
+              "name": "retreat",
+              "cartesian": true,
+              "q_start": [
+                -1.42386,
+                0.952322,
+                0.9469,
+                2.813167,
+                1.570796,
+                -2.994656
+              ],
+              "q_end": [
+                -1.42386,
+                0.871257,
+                0.709035,
+                3.132098,
+                1.570796,
+                -2.994656
+              ],
+              "samples": 16,
+              "waypoint_count": 10,
+              "lock_joint": 0,
+              "lock_value": -1.42386,
+              "lock_tol": 0.02,
+              "verify_samples": 23,
+              "check_status": "OK",
+              "min_distance": null
+            }
+          ],
+          "message": "1 段通过粗筛与最终复核 (policy=lock)",
+          "samples": 33,
+          "configs": 33,
+          "wall_s": 0.922,
+          "attempts": [
+            {
+              "strategy": "lock:direct",
+              "status": "DIRECT_OK",
+              "message": "1 段通过粗筛与最终复核 (policy=lock)"
+            }
+          ],
+          "goal_pose": [
+            0.39998,
+            0.749997,
+            0.50703,
+            -0.0,
+            -0.0,
+            -0.0,
+            1.0
+          ],
+          "final_contact": false,
+          "strict_orientation": false,
+          "metrics": {
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "lock_joint": 0,
+                "lock_value": -1.42386,
+                "lock_tol": 0.02,
+                "q_start": [
+                  -1.42386,
+                  0.952322,
+                  0.9469,
+                  2.813167,
+                  1.570796,
+                  -2.994656
+                ],
+                "q_end": [
+                  -1.42386,
+                  0.871257,
+                  0.709035,
+                  3.132098,
+                  1.570796,
+                  -2.994656
+                ],
+                "q_delta": [
+                  -0.0,
+                  -0.081065,
+                  -0.237866,
+                  0.318931,
+                  -0.0,
+                  -0.0
+                ],
+                "tv": [
+                  0.0,
+                  0.081065,
+                  0.237866,
+                  0.318931,
+                  0.0,
+                  0.0
+                ],
+                "tv_total": 0.637862,
+                "max_step": 0.137278,
+                "points": 11,
+                "q0_delta": -0.0,
+                "lock_deviation_max": 0.0,
+                "lock_ok": true,
+                "branch_start": "positive",
+                "branch_end": "positive",
+                "wrist_margin_min": 1.570796,
+                "singular_steps": 0,
+                "near_singular_steps": 0,
+                "tcp_error_pos": 0.000153,
+                "tcp_error_ang": 0.0,
+                "verify_samples": 0,
+                "check_status": "",
+                "min_distance": null,
+                "min_workcell_distance": 0.01465
+              }
+            ],
+            "totals": {
+              "segments": 1,
+              "tv_total": 0.637862,
+              "max_step": 0.137278,
+              "points": 11
+            },
+            "branch_anchor": "positive",
+            "lock_policy": "lock"
+          },
+          "compact": {
+            "enabled": true,
+            "removed": 6,
+            "points_before": 17,
+            "points_after": 11,
+            "max_tcp_pos_deviation": 0.00093,
+            "max_tcp_ang_deviation": 0.0,
+            "pos_tol": 0.001,
+            "ang_tol": 0.01
+          }
+        },
+        "motion": [
+          {
+            "state": "APPROACHING",
+            "status": "DONE",
+            "branch_anchor": "positive",
+            "plan": {
+              "status": "DIRECT_OK",
+              "strategy": "free:direct",
+              "branch_anchor": "positive",
+              "lock_policy": "free",
+              "locked_segments": [],
+              "segments": [
+                {
+                  "name": "pre_pick",
+                  "cartesian": false,
+                  "q_start": [
+                    0.0,
+                    0.0,
+                    -1.570796,
+                    0.0,
+                    1.570796,
+                    0.0
+                  ],
+                  "q_end": [
+                    0.005208,
+                    -0.147163,
+                    -1.327909,
+                    -0.095724,
+                    1.570796,
+                    -1.565589
+                  ],
+                  "samples": 0,
+                  "waypoint_count": 1,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "verify_samples": 46,
+                  "check_status": "OK",
+                  "min_distance": null
+                },
+                {
+                  "name": "pick",
+                  "cartesian": true,
+                  "q_start": [
+                    0.005208,
+                    -0.147163,
+                    -1.327909,
+                    -0.095724,
+                    1.570796,
+                    -1.565589
+                  ],
+                  "q_end": [
+                    0.004619,
+                    -0.181257,
+                    -1.66104,
+                    0.271501,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "samples": 15,
+                  "waypoint_count": 11,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "verify_samples": 25,
+                  "check_status": "OK",
+                  "min_distance": null
+                }
+              ],
+              "message": "2 段通过粗筛与最终复核 (policy=free)",
+              "samples": 45,
+              "configs": 45,
+              "wall_s": 1.328,
+              "attempts": [
+                {
+                  "strategy": "free:direct",
+                  "status": "DIRECT_OK",
+                  "message": "2 段通过粗筛与最终复核 (policy=free)"
+                }
+              ],
+              "goal_pose": [
+                -0.307461,
+                0.000169,
+                0.55,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "final_contact": true,
+              "strict_orientation": false,
+              "metrics": {
+                "segments": [
+                  {
+                    "name": "pre_pick",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.0,
+                      0.0,
+                      -1.570796,
+                      0.0,
+                      1.570796,
+                      0.0
+                    ],
+                    "q_end": [
+                      0.005208,
+                      -0.147163,
+                      -1.327909,
+                      -0.095724,
+                      1.570796,
+                      -1.565589
+                    ],
+                    "q_delta": [
+                      0.005208,
+                      -0.147163,
+                      0.242887,
+                      -0.095724,
+                      -0.0,
+                      -1.565589
+                    ],
+                    "tv": [
+                      0.005208,
+                      0.147163,
+                      0.242887,
+                      0.095724,
+                      0.0,
+                      1.565589
+                    ],
+                    "tv_total": 2.05657,
+                    "max_step": 1.565589,
+                    "points": 2,
+                    "q0_delta": 0.005208,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.005299,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  },
+                  {
+                    "name": "pick",
+                    "cartesian": true,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.005208,
+                      -0.147163,
+                      -1.327909,
+                      -0.095724,
+                      1.570796,
+                      -1.565589
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.181257,
+                      -1.66104,
+                      0.271501,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_delta": [
+                      -0.000589,
+                      -0.034094,
+                      -0.333131,
+                      0.367224,
+                      0.0,
+                      -0.000589
+                    ],
+                    "tv": [
+                      0.000589,
+                      0.04122,
+                      0.333131,
+                      0.367224,
+                      0.0,
+                      0.000589
+                    ],
+                    "tv_total": 0.742752,
+                    "max_step": 0.121926,
+                    "points": 12,
+                    "q0_delta": -0.000589,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000163,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  }
+                ],
+                "totals": {
+                  "segments": 2,
+                  "tv_total": 2.799322,
+                  "max_step": 1.565589,
+                  "points": 14
+                },
+                "branch_anchor": "positive",
+                "lock_policy": "free"
+              },
+              "compact": {
+                "enabled": true,
+                "removed": 4,
+                "points_before": 17,
+                "points_after": 13,
+                "max_tcp_pos_deviation": 0.000697,
+                "max_tcp_ang_deviation": 0.0,
+                "pos_tol": 0.001,
+                "ang_tol": 0.01
+              }
+            },
+            "execution": {
+              "segments": [
+                {
+                  "name": "pre_pick",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.0,
+                    0.0,
+                    -1.570796,
+                    0.0,
+                    1.570796,
+                    0.0
+                  ],
+                  "q_end": [
+                    0.005177,
+                    -0.146124,
+                    -1.328507,
+                    -0.095499,
+                    1.570796,
+                    -1.55901
+                  ],
+                  "q_delta": [
+                    0.005177,
+                    -0.146124,
+                    0.242289,
+                    -0.095499,
+                    0.0,
+                    -1.55901
+                  ],
+                  "tv": [
+                    0.005177,
+                    0.146124,
+                    0.242289,
+                    0.095499,
+                    0.0,
+                    1.55901
+                  ],
+                  "tv_total": 2.0481,
+                  "max_step": 0.045166,
+                  "points": 68,
+                  "q0_delta": 0.005177,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.005162,
+                  "tcp_error_ang": 0.006643,
+                  "steps": 68,
+                  "commands": 8,
+                  "sim_duration": 3.35
+                },
+                {
+                  "name": "pick",
+                  "cartesian": true,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.005177,
+                    -0.146124,
+                    -1.328507,
+                    -0.095499,
+                    1.570796,
+                    -1.55901
+                  ],
+                  "q_end": [
+                    0.004776,
+                    -0.180948,
+                    -1.660495,
+                    0.270579,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_delta": [
+                    -0.000402,
+                    -0.034824,
+                    -0.331989,
+                    0.366078,
+                    0.0,
+                    -0.007011
+                  ],
+                  "tv": [
+                    0.000402,
+                    0.03985,
+                    0.331989,
+                    0.366078,
+                    0.0,
+                    0.007011
+                  ],
+                  "tv_total": 0.745328,
+                  "max_step": 0.03416,
+                  "points": 47,
+                  "q0_delta": -0.000402,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000417,
+                  "tcp_error_ang": 6.9e-05,
+                  "steps": 47,
+                  "commands": 11,
+                  "sim_duration": 2.3
+                }
+              ],
+              "totals": {
+                "segments": 2,
+                "tv_total": 2.793428,
+                "max_step": 0.045166,
+                "points": 115,
+                "sim_duration": 5.65,
+                "steps": 115,
+                "commands": 19
+              }
+            },
+            "tcp_pose": [
+              -0.307376,
+              0.000363,
+              0.550359,
+              -3.4e-05,
+              -0.0,
+              0.0,
+              -1.0
+            ]
+          },
+          {
+            "state": "LIFTING",
+            "status": "DONE",
+            "branch_anchor": "positive",
+            "plan": {
+              "status": "DIRECT_OK",
+              "strategy": "lock:direct",
+              "branch_anchor": "positive",
+              "lock_policy": "lock",
+              "locked_segments": [
+                "lift"
+              ],
+              "segments": [
+                {
+                  "name": "lift",
+                  "cartesian": true,
+                  "q_start": [
+                    0.004619,
+                    -0.181257,
+                    -1.66104,
+                    0.271501,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "q_end": [
+                    0.004619,
+                    -0.152764,
+                    -1.308707,
+                    -0.109326,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "samples": 15,
+                  "waypoint_count": 11,
+                  "lock_joint": 0,
+                  "lock_value": 0.004619,
+                  "lock_tol": 0.02,
+                  "verify_samples": 25,
+                  "check_status": "OK",
+                  "min_distance": null
+                }
+              ],
+              "message": "1 段通过粗筛与最终复核 (policy=lock)",
+              "samples": 31,
+              "configs": 31,
+              "wall_s": 0.875,
+              "attempts": [
+                {
+                  "strategy": "lock:direct",
+                  "status": "DIRECT_OK",
+                  "message": "1 段通过粗筛与最终复核 (policy=lock)"
+                }
+              ],
+              "goal_pose": [
+                -0.307461,
+                0.000169,
+                0.7,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "final_contact": false,
+              "strict_orientation": false,
+              "metrics": {
+                "segments": [
+                  {
+                    "name": "lift",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      0.004619,
+                      -0.181257,
+                      -1.66104,
+                      0.271501,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.152764,
+                      -1.308707,
+                      -0.109326,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_delta": [
+                      -0.0,
+                      0.028493,
+                      0.352333,
+                      -0.380827,
+                      -0.0,
+                      -0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.039779,
+                      0.352333,
+                      0.380827,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.772939,
+                    "max_step": 0.126392,
+                    "points": 12,
+                    "q0_delta": -0.0,
+                    "lock_deviation_max": 0.0,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 8.3e-05,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  }
+                ],
+                "totals": {
+                  "segments": 1,
+                  "tv_total": 0.772939,
+                  "max_step": 0.126392,
+                  "points": 12
+                },
+                "branch_anchor": "positive",
+                "lock_policy": "lock"
+              },
+              "compact": {
+                "enabled": true,
+                "removed": 4,
+                "points_before": 16,
+                "points_after": 12,
+                "max_tcp_pos_deviation": 0.00075,
+                "max_tcp_ang_deviation": 0.0,
+                "pos_tol": 0.001,
+                "ang_tol": 0.01
+              }
+            },
+            "execution": {
+              "segments": [
+                {
+                  "name": "lift",
+                  "cartesian": true,
+                  "lock_joint": 0,
+                  "lock_value": 0.004619,
+                  "lock_tol": 0.02,
+                  "q_start": [
+                    0.004776,
+                    -0.180948,
+                    -1.660495,
+                    0.270579,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_end": [
+                    0.004776,
+                    -0.151346,
+                    -1.309069,
+                    -0.108846,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_delta": [
+                    0.0,
+                    0.029602,
+                    0.351426,
+                    -0.379424,
+                    0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.037149,
+                    0.351426,
+                    0.379424,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.767999,
+                  "max_step": 0.034918,
+                  "points": 47,
+                  "q0_delta": 0.0,
+                  "lock_deviation_max": 0.000157,
+                  "lock_ok": true,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000809,
+                  "tcp_error_ang": 0.001535,
+                  "steps": 47,
+                  "commands": 11,
+                  "sim_duration": 2.3
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.767999,
+                "max_step": 0.034918,
+                "points": 47,
+                "sim_duration": 2.3,
+                "steps": 47,
+                "commands": 11
+              }
+            },
+            "tcp_pose": [
+              -0.307378,
+              0.000665,
+              0.700634,
+              0.000768,
+              4e-06,
+              0.0,
+              -1.0
+            ]
+          },
+          {
+            "state": "TRANSFERRING",
+            "status": "DONE",
+            "branch_anchor": "positive",
+            "plan": {
+              "status": "DIRECT_OK",
+              "strategy": "lock:direct",
+              "branch_anchor": "positive",
+              "lock_policy": "lock",
+              "locked_segments": [
+                "rise",
+                "place"
+              ],
+              "segments": [
+                {
+                  "name": "rise",
+                  "cartesian": true,
+                  "q_start": [
+                    0.004619,
+                    -0.152764,
+                    -1.308707,
+                    -0.109326,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "q_end": [
+                    0.004619,
+                    -0.239682,
+                    -0.883086,
+                    -0.448028,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "samples": 12,
+                  "waypoint_count": 8,
+                  "lock_joint": 0,
+                  "lock_value": 0.004619,
+                  "lock_tol": 0.02,
+                  "verify_samples": 24,
+                  "check_status": "OK",
+                  "min_distance": null
+                },
+                {
+                  "name": "transit",
+                  "cartesian": false,
+                  "q_start": [
+                    0.004619,
+                    -0.239682,
+                    -0.883086,
+                    -0.448028,
+                    1.570796,
+                    -1.566177
+                  ],
+                  "q_end": [
+                    -1.506208,
+                    1.093109,
+                    -0.740569,
+                    -1.924281,
+                    1.570727,
+                    -3.076733
+                  ],
+                  "samples": 0,
+                  "waypoint_count": 1,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "verify_samples": 89,
+                  "check_status": "OK",
+                  "min_distance": null
+                },
+                {
+                  "name": "pre_place",
+                  "cartesian": false,
+                  "q_start": [
+                    -1.506208,
+                    1.093109,
+                    -0.740569,
+                    -1.924281,
+                    1.570727,
+                    -3.076733
+                  ],
+                  "q_end": [
+                    -1.426889,
+                    0.83839,
+                    0.777359,
+                    3.09517,
+                    1.57054,
+                    -2.997734
+                  ],
+                  "samples": 0,
+                  "waypoint_count": 1,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "verify_samples": 145,
+                  "check_status": "OK",
+                  "min_distance": null
+                },
+                {
+                  "name": "place",
+                  "cartesian": true,
+                  "q_start": [
+                    -1.426889,
+                    0.83839,
+                    0.777359,
+                    3.09517,
+                    1.57054,
+                    -2.997734
+                  ],
+                  "q_end": [
+                    -1.42386,
+                    0.952322,
+                    0.9469,
+                    2.813167,
+                    1.570796,
+                    -2.994656
+                  ],
+                  "samples": 15,
+                  "waypoint_count": 9,
+                  "lock_joint": 0,
+                  "lock_value": -1.426889,
+                  "lock_tol": 0.02,
+                  "verify_samples": 21,
+                  "check_status": "OK",
+                  "min_distance": null
+                }
+              ],
+              "message": "4 段通过粗筛与最终复核 (policy=lock)",
+              "samples": 125,
+              "configs": 125,
+              "wall_s": 3.062,
+              "attempts": [
+                {
+                  "strategy": "lock:direct",
+                  "status": "DIRECT_OK",
+                  "message": "4 段通过粗筛与最终复核 (policy=lock)"
+                }
+              ],
+              "goal_pose": [
+                0.4,
+                0.75,
+                0.357025,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "final_contact": false,
+              "strict_orientation": true,
+              "metrics": {
+                "segments": [
+                  {
+                    "name": "rise",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      0.004619,
+                      -0.152764,
+                      -1.308707,
+                      -0.109326,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.239682,
+                      -0.883086,
+                      -0.448028,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_delta": [
+                      0.0,
+                      -0.086919,
+                      0.42562,
+                      -0.338701,
+                      -0.0,
+                      0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.086919,
+                      0.42562,
+                      0.338701,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.851241,
+                    "max_step": 0.171545,
+                    "points": 9,
+                    "q0_delta": 0.0,
+                    "lock_deviation_max": 0.0,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000176,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  },
+                  {
+                    "name": "transit",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.004619,
+                      -0.239682,
+                      -0.883086,
+                      -0.448028,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      -1.506208,
+                      1.093109,
+                      -0.740569,
+                      -1.924281,
+                      1.570727,
+                      -3.076733
+                    ],
+                    "q_delta": [
+                      -1.510827,
+                      1.332792,
+                      0.142517,
+                      -1.476253,
+                      -7e-05,
+                      -1.510556
+                    ],
+                    "tv": [
+                      1.510827,
+                      1.332792,
+                      0.142517,
+                      1.476253,
+                      7e-05,
+                      1.510556
+                    ],
+                    "tv_total": 5.973015,
+                    "max_step": 1.510827,
+                    "points": 2,
+                    "q0_delta": -1.510827,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570727,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000428,
+                    "tcp_error_ang": 0.000985,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  },
+                  {
+                    "name": "pre_place",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      -1.506208,
+                      1.093109,
+                      -0.740569,
+                      -1.924281,
+                      1.570727,
+                      -3.076733
+                    ],
+                    "q_end": [
+                      -1.426889,
+                      0.83839,
+                      0.777359,
+                      3.09517,
+                      1.57054,
+                      -2.997734
+                    ],
+                    "q_delta": [
+                      0.079319,
+                      -0.254719,
+                      1.517928,
+                      5.01945,
+                      -0.000186,
+                      0.078999
+                    ],
+                    "tv": [
+                      0.079319,
+                      0.254719,
+                      1.517928,
+                      5.01945,
+                      0.000186,
+                      0.078999
+                    ],
+                    "tv_total": 6.950602,
+                    "max_step": 5.01945,
+                    "points": 2,
+                    "q0_delta": 0.079319,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.57054,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.009997,
+                    "tcp_error_ang": 0.001494,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  },
+                  {
+                    "name": "place",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": -1.426889,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      -1.426889,
+                      0.83839,
+                      0.777359,
+                      3.09517,
+                      1.57054,
+                      -2.997734
+                    ],
+                    "q_end": [
+                      -1.42386,
+                      0.952322,
+                      0.9469,
+                      2.813167,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "q_delta": [
+                      0.00303,
+                      0.113932,
+                      0.169542,
+                      -0.282003,
+                      0.000256,
+                      0.003078
+                    ],
+                    "tv": [
+                      0.00303,
+                      0.113932,
+                      0.169542,
+                      0.282003,
+                      0.000256,
+                      0.003078
+                    ],
+                    "tv_total": 0.57184,
+                    "max_step": 0.131069,
+                    "points": 10,
+                    "q0_delta": 0.00303,
+                    "lock_deviation_max": 0.00303,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.57054,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 2.1e-05,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  }
+                ],
+                "totals": {
+                  "segments": 4,
+                  "tv_total": 14.346698,
+                  "max_step": 5.01945,
+                  "points": 23
+                },
+                "branch_anchor": "positive",
+                "lock_policy": "lock"
+              },
+              "compact": {
+                "enabled": true,
+                "removed": 10,
+                "points_before": 30,
+                "points_after": 20,
+                "max_tcp_pos_deviation": 0.000911,
+                "max_tcp_ang_deviation": 0.0,
+                "pos_tol": 0.001,
+                "ang_tol": 0.01
+              }
+            },
+            "execution": {
+              "segments": [
+                {
+                  "name": "rise",
+                  "cartesian": true,
+                  "lock_joint": 0,
+                  "lock_value": 0.004619,
+                  "lock_tol": 0.02,
+                  "q_start": [
+                    0.004776,
+                    -0.151346,
+                    -1.309069,
+                    -0.108846,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_end": [
+                    0.004776,
+                    -0.239671,
+                    -0.883858,
+                    -0.447539,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_delta": [
+                    0.0,
+                    -0.088325,
+                    0.425211,
+                    -0.338693,
+                    0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.088325,
+                    0.425211,
+                    0.338693,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.852229,
+                  "max_step": 0.038373,
+                  "points": 41,
+                  "q0_delta": 0.0,
+                  "lock_deviation_max": 0.000157,
+                  "lock_ok": true,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000417,
+                  "tcp_error_ang": 0.000273,
+                  "steps": 41,
+                  "commands": 9,
+                  "sim_duration": 2.0
+                },
+                {
+                  "name": "transit",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    0.004776,
+                    -0.239671,
+                    -0.883858,
+                    -0.447539,
+                    1.570796,
+                    -1.566021
+                  ],
+                  "q_end": [
+                    -1.505378,
+                    1.092393,
+                    -0.741137,
+                    -1.924267,
+                    1.570796,
+                    -3.075926
+                  ],
+                  "q_delta": [
+                    -1.510154,
+                    1.332064,
+                    0.142721,
+                    -1.476728,
+                    0.0,
+                    -1.509905
+                  ],
+                  "tv": [
+                    1.510154,
+                    1.332064,
+                    0.142721,
+                    1.476728,
+                    0.0,
+                    1.509905
+                  ],
+                  "tv_total": 5.971572,
+                  "max_step": 0.030933,
+                  "points": 98,
+                  "q0_delta": -1.510154,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.00095,
+                  "tcp_error_ang": 0.002229,
+                  "steps": 98,
+                  "commands": 15,
+                  "sim_duration": 4.85
+                },
+                {
+                  "name": "pre_place",
+                  "cartesian": false,
+                  "lock_joint": null,
+                  "lock_value": null,
+                  "lock_tol": null,
+                  "q_start": [
+                    -1.505378,
+                    1.092393,
+                    -0.741137,
+                    -1.924267,
+                    1.570796,
+                    -3.075926
+                  ],
+                  "q_end": [
+                    -1.427162,
+                    0.838445,
+                    0.777359,
+                    3.091343,
+                    1.570796,
+                    -2.998172
+                  ],
+                  "q_delta": [
+                    0.078216,
+                    -0.253948,
+                    1.518496,
+                    5.015609,
+                    0.0,
+                    0.077754
+                  ],
+                  "tv": [
+                    0.078216,
+                    0.253948,
+                    1.518496,
+                    5.015609,
+                    0.0,
+                    0.077754
+                  ],
+                  "tv_total": 6.944023,
+                  "max_step": 0.04477,
+                  "points": 224,
+                  "q0_delta": 0.078216,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.009674,
+                  "tcp_error_ang": 0.005247,
+                  "steps": 224,
+                  "commands": 27,
+                  "sim_duration": 11.15
+                },
+                {
+                  "name": "place",
+                  "cartesian": true,
+                  "lock_joint": 0,
+                  "lock_value": -1.426889,
+                  "lock_tol": 0.02,
+                  "q_start": [
+                    -1.427162,
+                    0.838445,
+                    0.777359,
+                    3.091343,
+                    1.570796,
+                    -2.998172
+                  ],
+                  "q_end": [
+                    -1.424059,
+                    0.952321,
+                    0.946637,
+                    2.81362,
+                    1.570796,
+                    -2.994858
+                  ],
+                  "q_delta": [
+                    0.003104,
+                    0.113876,
+                    0.169278,
+                    -0.277722,
+                    0.0,
+                    0.003314
+                  ],
+                  "tv": [
+                    0.003104,
+                    0.113876,
+                    0.169278,
+                    0.28151,
+                    0.0,
+                    0.003314
+                  ],
+                  "tv_total": 0.571081,
+                  "max_step": 0.033697,
+                  "points": 34,
+                  "q0_delta": 0.003104,
+                  "lock_deviation_max": 0.002831,
+                  "lock_ok": true,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000174,
+                  "tcp_error_ang": 0.000189,
+                  "steps": 34,
+                  "commands": 9,
+                  "sim_duration": 1.65
+                }
+              ],
+              "totals": {
+                "segments": 4,
+                "tv_total": 14.338905,
+                "max_step": 0.04477,
+                "points": 397,
+                "sim_duration": 19.65,
+                "steps": 397,
+                "commands": 60
+              }
+            },
+            "tcp_pose": [
+              0.400027,
+              0.749879,
+              0.357147,
+              -1.4e-05,
+              9.3e-05,
+              2e-06,
+              1.0
+            ]
+          },
+          {
+            "state": "RETREATING",
+            "status": "DONE",
+            "branch_anchor": "positive",
+            "plan": {
+              "status": "DIRECT_OK",
+              "strategy": "lock:direct",
+              "branch_anchor": "positive",
+              "lock_policy": "lock",
+              "locked_segments": [
+                "retreat"
+              ],
+              "segments": [
+                {
+                  "name": "retreat",
+                  "cartesian": true,
+                  "q_start": [
+                    -1.42386,
+                    0.952322,
+                    0.9469,
+                    2.813167,
+                    1.570796,
+                    -2.994656
+                  ],
+                  "q_end": [
+                    -1.42386,
+                    0.871257,
+                    0.709035,
+                    3.132098,
+                    1.570796,
+                    -2.994656
+                  ],
+                  "samples": 16,
+                  "waypoint_count": 10,
+                  "lock_joint": 0,
+                  "lock_value": -1.42386,
+                  "lock_tol": 0.02,
+                  "verify_samples": 23,
+                  "check_status": "OK",
+                  "min_distance": null
+                }
+              ],
+              "message": "1 段通过粗筛与最终复核 (policy=lock)",
+              "samples": 33,
+              "configs": 33,
+              "wall_s": 0.922,
+              "attempts": [
+                {
+                  "strategy": "lock:direct",
+                  "status": "DIRECT_OK",
+                  "message": "1 段通过粗筛与最终复核 (policy=lock)"
+                }
+              ],
+              "goal_pose": [
+                0.39998,
+                0.749997,
+                0.50703,
+                -0.0,
+                -0.0,
+                -0.0,
+                1.0
+              ],
+              "final_contact": false,
+              "strict_orientation": false,
+              "metrics": {
+                "segments": [
+                  {
+                    "name": "retreat",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": -1.42386,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      -1.42386,
+                      0.952322,
+                      0.9469,
+                      2.813167,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "q_end": [
+                      -1.42386,
+                      0.871257,
+                      0.709035,
+                      3.132098,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "q_delta": [
+                      -0.0,
+                      -0.081065,
+                      -0.237866,
+                      0.318931,
+                      -0.0,
+                      -0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.081065,
+                      0.237866,
+                      0.318931,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.637862,
+                    "max_step": 0.137278,
+                    "points": 11,
+                    "q0_delta": -0.0,
+                    "lock_deviation_max": 0.0,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000153,
+                    "tcp_error_ang": 0.0,
+                    "verify_samples": 0,
+                    "check_status": "",
+                    "min_distance": null,
+                    "min_workcell_distance": 0.01465
+                  }
+                ],
+                "totals": {
+                  "segments": 1,
+                  "tv_total": 0.637862,
+                  "max_step": 0.137278,
+                  "points": 11
+                },
+                "branch_anchor": "positive",
+                "lock_policy": "lock"
+              },
+              "compact": {
+                "enabled": true,
+                "removed": 6,
+                "points_before": 17,
+                "points_after": 11,
+                "max_tcp_pos_deviation": 0.00093,
+                "max_tcp_ang_deviation": 0.0,
+                "pos_tol": 0.001,
+                "ang_tol": 0.01
+              }
+            },
+            "execution": {
+              "segments": [
+                {
+                  "name": "retreat",
+                  "cartesian": true,
+                  "lock_joint": 0,
+                  "lock_value": -1.42386,
+                  "lock_tol": 0.02,
+                  "q_start": [
+                    -1.424059,
+                    0.952321,
+                    0.946637,
+                    2.81362,
+                    1.570796,
+                    -2.994858
+                  ],
+                  "q_end": [
+                    -1.424059,
+                    0.871382,
+                    0.709801,
+                    3.130482,
+                    1.570796,
+                    -2.994858
+                  ],
+                  "q_delta": [
+                    0.0,
+                    -0.080939,
+                    -0.236836,
+                    0.316862,
+                    0.0,
+                    0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.080939,
+                    0.236836,
+                    0.316862,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.634636,
+                  "max_step": 0.036315,
+                  "points": 38,
+                  "q0_delta": 0.0,
+                  "lock_deviation_max": 0.000199,
+                  "lock_ok": true,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000472,
+                  "tcp_error_ang": 0.000723,
+                  "steps": 38,
+                  "commands": 10,
+                  "sim_duration": 1.85
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.634636,
+                "max_step": 0.036315,
+                "points": 38,
+                "sim_duration": 1.85,
+                "steps": 38,
+                "commands": 10
+              }
+            },
+            "tcp_pose": [
+              0.399997,
+              0.749875,
+              0.506574,
+              5.3e-05,
+              -0.000358,
+              2e-06,
+              1.0
+            ]
+          }
+        ],
+        "motion_totals": {
+          "motions": 4,
+          "executed": 4,
+          "failed": 0,
+          "tv_total": 18.534968,
+          "max_step": 0.045166,
+          "sim_duration": 29.45,
+          "steps": 597,
+          "commands": 100
+        },
+        "branch_anchor": "positive",
+        "stop": {
+          "status": "OK",
+          "command_time": 4.249999999999993,
+          "material_start": [
+            -0.32753,
+            0.00013,
+            0.5
+          ],
+          "material_end": [
+            -0.30746,
+            0.00017,
+            0.5
+          ],
+          "belt_speed_before": 0.2,
+          "latency": 0.15,
+          "overrun": 0.02006,
+          "lateral_drift": 4e-05,
+          "height_drift": 4e-05,
+          "steps": 4,
+          "speed_source": "model_state",
+          "speed_valid": true,
+          "pad_still": true,
+          "message": "零速停带且越程/漂移在容差内"
+        },
+        "stability": {
+          "stable": true,
+          "count": 5,
+          "step_moved": 0.0,
+          "speed": 0.0,
+          "drift": 3e-06,
+          "elapsed": 0.25,
+          "timed_out": false
+        },
+        "compensation": {
+          "count": 4,
+          "long_compensation": false,
+          "overspeed_steps": 0
+        },
+        "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 1,
+          "signed_distance": 0.000359,
+          "lateral_offset": 0.000212,
+          "offset_xy": [
+            8.5e-05,
+            0.000194
+          ],
+          "normal_angle": 6.9e-05,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+            "center_world": [
+              -0.307461,
+              0.000169,
+              0.55
+            ],
+            "normal_world": [
+              0.0,
+              -0.0,
+              1.0
+            ],
+            "half_u": 0.05,
+            "half_v": 0.05,
+            "top_z_local": 0.05
+          },
+          "tool_position": [
+            -0.307376,
+            0.000363,
+            0.550359
+          ],
+          "tool_normal": [
+            -0.0,
+            6.9e-05,
+            -1.0
+          ]
+        },
+        "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+            -1.424059,
+            0.871382,
+            0.709801,
+            3.130482,
+            1.570796,
+            -2.994858
+          ],
+          "links": [
+            {
+              "link": "link1_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link2_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link3_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link4_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link5_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link6_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link7_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "tcp",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            }
+          ]
+        },
+        "attach_transform": [
+          -8.5e-05,
+          -0.000197,
+          -0.050359,
+          3.4e-05,
+          0.0,
+          0.00013,
+          -1.0
+        ],
+        "release": {
+          "pose": [
+            0.399933,
+            0.74968,
+            0.306787,
+            4.8e-05,
+            -9.3e-05,
+            0.000128,
+            -1.0
+          ]
+        },
+        "pick_box": {
+          "min": [
+            -0.05,
+            -0.05,
+            -0.05
+          ],
+          "max": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        }
+      },
+      "material": {
+        "pose": [
+          0.90642,
+          0.74758,
+          0.30696,
+          -3e-05,
+          -0.00055,
+          0.00023,
+          1.0
+        ],
+        "expected_pose": [
+          0.4,
+          0.75,
+          0.30703,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "position_error": 0.50642,
+        "physics": {
+          "static": 0,
+          "kinematic": 0,
+          "respondable": 1,
+          "mask": 65535,
+          "mass": 0.1,
+          "friction": 0.6
+        },
+        "dynamic_ok": true,
+        "respondable_ok": true
+      },
+      "tcp": {
+        "pose": [
+          0.4,
+          0.74987,
+          0.50657,
+          5e-05,
+          -0.00036,
+          0.0,
+          1.0
+        ]
+      },
+      "tool": {
+        "version": "suction_mount_rx180_20261020",
+        "ok": true,
+        "mount_z": 0.04754997428506614,
+        "mount_quaternion": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "flange_protrusion_z": 0.007549934089183821,
+        "link_clearance_design": 0.005,
+        "handles": {
+          "connection": 112,
+          "pad": 113,
+          "tcp": 119,
+          "sensor": 120,
+          "model_sensor": 115,
+          "link": 116
+        },
+        "joint_positions": [
+          -1.4240587429686355,
+          0.8713822595049873,
+          0.7098010018544358,
+          3.1304822727347252,
+          1.5707963267948966,
+          -2.994858189406102
+        ],
+        "sim_time": 39.14999999999991,
+        "pad_world_pose": [
+          0.3999864900702116,
+          0.7498729368961106,
+          0.5215745157803386,
+          5.28875461090622e-05,
+          -0.00035783590594634646,
+          1.55982118282133e-06,
+          0.9999999345769672
+        ],
+        "tcp_world_pose": [
+          0.399997225179965,
+          0.749874523544419,
+          0.5065744697495177,
+          5.28875461090622e-05,
+          -0.00035783590594634646,
+          1.55982118282133e-06,
+          0.9999999345769672
+        ],
+        "tcp_in_pad": [
+          0.0,
+          0.0,
+          -0.01500004995614268,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "pad_in_connection": [
+          5.551115123125783e-17,
+          -1.1102230246251565e-16,
+          0.04754997428506613,
+          1.0,
+          0.0,
+          1.489299918810513e-20,
+          0.0
+        ],
+        "suction_normal_world": [
+          0.000715671600081043,
+          0.00010577620161804921,
+          -0.9999997383127438
+        ],
+        "sensor_axis_world": [
+          0.0007156716000809205,
+          0.00010577620161792675,
+          -0.9999997383127437
+        ],
+        "model_sensor_axis_world": [
+          0.0007156715998050038,
+          0.00010586362439413283,
+          -0.9999997383034933
+        ],
+        "end_link_max_z_in_connection": 0.0075499340891838195,
+        "pad_back_plane_z": 0.012549934089183819,
+        "link_clearance": 0.004999999999999999
+      },
+      "arm_joints": [
+        -1.42406,
+        0.87138,
+        0.7098,
+        3.13048,
+        1.5708,
+        -2.99486
+      ],
+      "agv": {
+        "pose": [
+          0.89901,
+          0.74758,
+          0.13872,
+          -3e-05,
+          -0.00055,
+          -0.0018,
+          1.0
+        ],
+        "state": "IDLE",
+        "blocked": false,
+        "last_wheel_speeds": [
+          0.0,
+          0.0
+        ]
+      },
+      "conveyor": {
+        "drive_mode": "SCRIPT_DRIVEN",
+        "commanded_velocity": 0.0,
+        "actual_velocity": 4e-05
+      },
+      "sim_time": 39.15,
+      "steps": 766,
+      "stage2": {
+        "controller": {
+          "uid": 1,
+          "target": "agv",
+          "layout": "L1_S1",
+          "state": "DONE",
+          "failure_reason": "",
+          "material_state": "RELEASED",
+          "compensation_count": 4,
+          "pick_pose": [
+            -0.30746,
+            0.00017,
+            0.5
+          ],
+          "pick_tcp": [
+            -0.30746,
+            0.00017,
+            0.55,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "agv_blocked": false,
+          "events": [
+            [
+              0.8500000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+            ],
+            [
+              0.8500000000000002,
+              "WAITING_FOR_ITEM: task started"
+            ],
+            [
+              0.9000000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0097 m (physical=0.0003, shortfall=0.0097)"
+            ],
+            [
+              0.9500000000000003,
+              "HYBRID_DYNAMIC compensation Δ=0.0075 m (physical=0.0025, shortfall=0.0075)"
+            ],
+            [
+              1.0000000000000002,
+              "HYBRID_DYNAMIC compensation Δ=0.0029 m (physical=0.0071, shortfall=0.0029)"
+            ],
+            [
+              4.249999999999993,
+              "STOPPING: conveyor stop commanded (sensor_hit)"
+            ],
+            [
+              4.399999999999992,
+              "CONVEYOR_STOP OK: {'status': 'OK', 'command_time': 4.249999999999993, 'material_start': [-0.32753, 0.00013, 0.5], 'material_end': [-0.30746, 0.00017, 0.5], 'belt_speed_before': 0.2, 'latency': 0.15, 'overrun': 0.02006, 'lateral_drift': 4e-05, 'height_drift': 4e-05, 'steps': 4, 'speed_source': 'model_state', 'speed_valid': True, 'pad_still': True, 'message': '零速停带且越程/漂移在容差内'}"
+            ],
+            [
+              4.399999999999992,
+              "MATERIAL_SETTLING: conveyor stopped, waiting material stable"
+            ],
+            [
+              4.6499999999999915,
+              "material stable at (-0.3075,0.0002,0.5000) tilt=0.000; surface contact target fixed"
+            ],
+            [
+              4.6499999999999915,
+              "APPROACHING: measured pose after active stop"
+            ],
+            [
+              4.699999999999991,
+              "PLAN START actual q=[0.0, 0.0, -1.5708, 0.0, 1.5708, 0.0]"
+            ],
+            [
+              4.699999999999991,
+              "PLAN DIRECT_OK strategy=free:direct policy=free segments=2 samples=45 points=14 tv=2.799322 wall=1.33s"
+            ],
+            [
+              10.400000000000013,
+              "MOTION APPROACHING executed tv=2.793428 max_step=0.045166 steps=115 time=5.65s"
+            ],
+            [
+              10.400000000000013,
+              "ATTACHING: approach complete"
+            ],
+            [
+              10.450000000000014,
+              "LIFTING: attached"
+            ],
+            [
+              10.500000000000014,
+              "PLAN START planned_end(dev=0.0011) q=[0.0046, -0.1813, -1.661, 0.2715, 1.5708, -1.5662]"
+            ],
+            [
+              10.500000000000014,
+              "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=1 samples=31 points=12 tv=0.772939 wall=0.88s"
+            ],
+            [
+              12.850000000000048,
+              "MOTION LIFTING executed tv=0.767999 max_step=0.034918 steps=47 time=2.3s"
+            ],
+            [
+              12.850000000000048,
+              "TRANSFERRING: lift complete"
+            ],
+            [
+              12.900000000000048,
+              "PLAN START planned_end(dev=0.0016) q=[0.0046, -0.1528, -1.3087, -0.1093, 1.5708, -1.5662]"
+            ],
+            [
+              12.900000000000048,
+              "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=4 samples=125 points=23 tv=14.346698 wall=3.06s"
+            ],
+            [
+              32.600000000000286,
+              "MOTION TRANSFERRING executed tv=14.338905 max_step=0.04477 steps=397 time=19.65s"
+            ],
+            [
+              32.600000000000286,
+              "PLACING: transfer complete"
+            ],
+            [
+              32.65000000000028,
+              "RELEASING: at place pose"
+            ],
+            [
+              32.70000000000028,
+              "SETTLING: released, waiting settle"
+            ],
+            [
+              33.500000000000234,
+              "RETREATING: 抬升撤离 (drift=0.0009 m)"
+            ],
+            [
+              33.500000000000234,
+              "RETREATING: settling complete"
+            ],
+            [
+              33.55000000000023,
+              "PLAN START planned_end(dev=0.0006) q=[-1.4239, 0.9523, 0.9469, 2.8132, 1.5708, -2.9947]"
+            ],
+            [
+              33.55000000000023,
+              "PLAN DIRECT_OK strategy=lock:direct policy=lock segments=1 samples=33 points=11 tv=0.637862 wall=0.92s"
+            ],
+            [
+              35.450000000000124,
+              "MOTION RETREATING executed tv=0.634636 max_step=0.036315 steps=38 time=1.85s"
+            ],
+            [
+              35.450000000000124,
+              "DONE: retreat complete"
+            ],
+            [
+              39.099999999999916,
+              "AGV 轮速行驶完成: 0.505 m / 3.65 s"
+            ]
+          ],
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "stage2": true,
+          "motion_opt_version": "2.01",
+          "safety": {
+            "engaged": false,
+            "code": "",
+            "reason": "",
+            "sim_time": null,
+            "details": {},
+            "stop_commanded": false,
+            "stop_command_ok": null,
+            "stop_confirmed": false,
+            "stop_checks": 0,
+            "stop_speed": null,
+            "stop_source": ""
+          },
+          "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "branch_anchor": "positive",
+            "lock_policy": "lock",
+            "locked_segments": [
+              "retreat"
+            ],
+            "waypoints": [
+              [
+                -1.42386,
+                0.952322,
+                0.9469,
+                2.813167,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.943429,
+                0.938835,
+                2.830125,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.935246,
+                0.929468,
+                2.847675,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.927475,
+                0.91937,
+                2.865545,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.920124,
+                0.908526,
+                2.883739,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.881734,
+                0.809638,
+                3.021017,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.878352,
+                0.791812,
+                3.042225,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.875575,
+                0.772914,
+                3.0639,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.873438,
+                0.752876,
+                3.086076,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.871982,
+                0.731615,
+                3.108792,
+                1.570796,
+                -2.994656
+              ],
+              [
+                -1.42386,
+                0.871257,
+                0.709035,
+                3.132098,
+                1.570796,
+                -2.994656
+              ]
+            ],
+            "segments": [
+              {
+                "name": "retreat",
+                "cartesian": true,
+                "q_start": [
+                  -1.42386,
+                  0.952322,
+                  0.9469,
+                  2.813167,
+                  1.570796,
+                  -2.994656
+                ],
+                "q_end": [
+                  -1.42386,
+                  0.871257,
+                  0.709035,
+                  3.132098,
+                  1.570796,
+                  -2.994656
+                ],
+                "samples": 16,
+                "waypoint_count": 10,
+                "lock_joint": 0,
+                "lock_value": -1.42386,
+                "lock_tol": 0.02,
+                "verify_samples": 23,
+                "check_status": "OK",
+                "min_distance": null
+              }
+            ],
+            "message": "1 段通过粗筛与最终复核 (policy=lock)",
+            "samples": 33,
+            "configs": 33,
+            "wall_s": 0.922,
+            "attempts": [
+              {
+                "strategy": "lock:direct",
+                "status": "DIRECT_OK",
+                "message": "1 段通过粗筛与最终复核 (policy=lock)"
+              }
+            ],
+            "goal_pose": [
+              0.39998,
+              0.749997,
+              0.50703,
+              -0.0,
+              -0.0,
+              -0.0,
+              1.0
+            ],
+            "final_contact": false,
+            "strict_orientation": false,
+            "metrics": {
+              "segments": [
+                {
+                  "name": "retreat",
+                  "cartesian": true,
+                  "lock_joint": 0,
+                  "lock_value": -1.42386,
+                  "lock_tol": 0.02,
+                  "q_start": [
+                    -1.42386,
+                    0.952322,
+                    0.9469,
+                    2.813167,
+                    1.570796,
+                    -2.994656
+                  ],
+                  "q_end": [
+                    -1.42386,
+                    0.871257,
+                    0.709035,
+                    3.132098,
+                    1.570796,
+                    -2.994656
+                  ],
+                  "q_delta": [
+                    -0.0,
+                    -0.081065,
+                    -0.237866,
+                    0.318931,
+                    -0.0,
+                    -0.0
+                  ],
+                  "tv": [
+                    0.0,
+                    0.081065,
+                    0.237866,
+                    0.318931,
+                    0.0,
+                    0.0
+                  ],
+                  "tv_total": 0.637862,
+                  "max_step": 0.137278,
+                  "points": 11,
+                  "q0_delta": -0.0,
+                  "lock_deviation_max": 0.0,
+                  "lock_ok": true,
+                  "branch_start": "positive",
+                  "branch_end": "positive",
+                  "wrist_margin_min": 1.570796,
+                  "singular_steps": 0,
+                  "near_singular_steps": 0,
+                  "tcp_error_pos": 0.000153,
+                  "tcp_error_ang": 0.0,
+                  "verify_samples": 0,
+                  "check_status": "",
+                  "min_distance": null,
+                  "min_workcell_distance": 0.01465
+                }
+              ],
+              "totals": {
+                "segments": 1,
+                "tv_total": 0.637862,
+                "max_step": 0.137278,
+                "points": 11
+              },
+              "branch_anchor": "positive",
+              "lock_policy": "lock"
+            },
+            "compact": {
+              "enabled": true,
+              "removed": 6,
+              "points_before": 17,
+              "points_after": 11,
+              "max_tcp_pos_deviation": 0.00093,
+              "max_tcp_ang_deviation": 0.0,
+              "pos_tol": 0.001,
+              "ang_tol": 0.01
+            }
+          },
+          "motion": [
+            {
+              "state": "APPROACHING",
+              "status": "DONE",
+              "branch_anchor": "positive",
+              "plan": {
+                "status": "DIRECT_OK",
+                "strategy": "free:direct",
+                "branch_anchor": "positive",
+                "lock_policy": "free",
+                "locked_segments": [],
+                "segments": [
+                  {
+                    "name": "pre_pick",
+                    "cartesian": false,
+                    "q_start": [
+                      0.0,
+                      0.0,
+                      -1.570796,
+                      0.0,
+                      1.570796,
+                      0.0
+                    ],
+                    "q_end": [
+                      0.005208,
+                      -0.147163,
+                      -1.327909,
+                      -0.095724,
+                      1.570796,
+                      -1.565589
+                    ],
+                    "samples": 0,
+                    "waypoint_count": 1,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "verify_samples": 46,
+                    "check_status": "OK",
+                    "min_distance": null
+                  },
+                  {
+                    "name": "pick",
+                    "cartesian": true,
+                    "q_start": [
+                      0.005208,
+                      -0.147163,
+                      -1.327909,
+                      -0.095724,
+                      1.570796,
+                      -1.565589
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.181257,
+                      -1.66104,
+                      0.271501,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "samples": 15,
+                    "waypoint_count": 11,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "verify_samples": 25,
+                    "check_status": "OK",
+                    "min_distance": null
+                  }
+                ],
+                "message": "2 段通过粗筛与最终复核 (policy=free)",
+                "samples": 45,
+                "configs": 45,
+                "wall_s": 1.328,
+                "attempts": [
+                  {
+                    "strategy": "free:direct",
+                    "status": "DIRECT_OK",
+                    "message": "2 段通过粗筛与最终复核 (policy=free)"
+                  }
+                ],
+                "goal_pose": [
+                  -0.307461,
+                  0.000169,
+                  0.55,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "final_contact": true,
+                "strict_orientation": false,
+                "metrics": {
+                  "segments": [
+                    {
+                      "name": "pre_pick",
+                      "cartesian": false,
+                      "lock_joint": null,
+                      "lock_value": null,
+                      "lock_tol": null,
+                      "q_start": [
+                        0.0,
+                        0.0,
+                        -1.570796,
+                        0.0,
+                        1.570796,
+                        0.0
+                      ],
+                      "q_end": [
+                        0.005208,
+                        -0.147163,
+                        -1.327909,
+                        -0.095724,
+                        1.570796,
+                        -1.565589
+                      ],
+                      "q_delta": [
+                        0.005208,
+                        -0.147163,
+                        0.242887,
+                        -0.095724,
+                        -0.0,
+                        -1.565589
+                      ],
+                      "tv": [
+                        0.005208,
+                        0.147163,
+                        0.242887,
+                        0.095724,
+                        0.0,
+                        1.565589
+                      ],
+                      "tv_total": 2.05657,
+                      "max_step": 1.565589,
+                      "points": 2,
+                      "q0_delta": 0.005208,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570796,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.005299,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    },
+                    {
+                      "name": "pick",
+                      "cartesian": true,
+                      "lock_joint": null,
+                      "lock_value": null,
+                      "lock_tol": null,
+                      "q_start": [
+                        0.005208,
+                        -0.147163,
+                        -1.327909,
+                        -0.095724,
+                        1.570796,
+                        -1.565589
+                      ],
+                      "q_end": [
+                        0.004619,
+                        -0.181257,
+                        -1.66104,
+                        0.271501,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_delta": [
+                        -0.000589,
+                        -0.034094,
+                        -0.333131,
+                        0.367224,
+                        0.0,
+                        -0.000589
+                      ],
+                      "tv": [
+                        0.000589,
+                        0.04122,
+                        0.333131,
+                        0.367224,
+                        0.0,
+                        0.000589
+                      ],
+                      "tv_total": 0.742752,
+                      "max_step": 0.121926,
+                      "points": 12,
+                      "q0_delta": -0.000589,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570796,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.000163,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    }
+                  ],
+                  "totals": {
+                    "segments": 2,
+                    "tv_total": 2.799322,
+                    "max_step": 1.565589,
+                    "points": 14
+                  },
+                  "branch_anchor": "positive",
+                  "lock_policy": "free"
+                },
+                "compact": {
+                  "enabled": true,
+                  "removed": 4,
+                  "points_before": 17,
+                  "points_after": 13,
+                  "max_tcp_pos_deviation": 0.000697,
+                  "max_tcp_ang_deviation": 0.0,
+                  "pos_tol": 0.001,
+                  "ang_tol": 0.01
+                }
+              },
+              "execution": {
+                "segments": [
+                  {
+                    "name": "pre_pick",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.0,
+                      0.0,
+                      -1.570796,
+                      0.0,
+                      1.570796,
+                      0.0
+                    ],
+                    "q_end": [
+                      0.005177,
+                      -0.146124,
+                      -1.328507,
+                      -0.095499,
+                      1.570796,
+                      -1.55901
+                    ],
+                    "q_delta": [
+                      0.005177,
+                      -0.146124,
+                      0.242289,
+                      -0.095499,
+                      0.0,
+                      -1.55901
+                    ],
+                    "tv": [
+                      0.005177,
+                      0.146124,
+                      0.242289,
+                      0.095499,
+                      0.0,
+                      1.55901
+                    ],
+                    "tv_total": 2.0481,
+                    "max_step": 0.045166,
+                    "points": 68,
+                    "q0_delta": 0.005177,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.005162,
+                    "tcp_error_ang": 0.006643,
+                    "steps": 68,
+                    "commands": 8,
+                    "sim_duration": 3.35
+                  },
+                  {
+                    "name": "pick",
+                    "cartesian": true,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.005177,
+                      -0.146124,
+                      -1.328507,
+                      -0.095499,
+                      1.570796,
+                      -1.55901
+                    ],
+                    "q_end": [
+                      0.004776,
+                      -0.180948,
+                      -1.660495,
+                      0.270579,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_delta": [
+                      -0.000402,
+                      -0.034824,
+                      -0.331989,
+                      0.366078,
+                      0.0,
+                      -0.007011
+                    ],
+                    "tv": [
+                      0.000402,
+                      0.03985,
+                      0.331989,
+                      0.366078,
+                      0.0,
+                      0.007011
+                    ],
+                    "tv_total": 0.745328,
+                    "max_step": 0.03416,
+                    "points": 47,
+                    "q0_delta": -0.000402,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000417,
+                    "tcp_error_ang": 6.9e-05,
+                    "steps": 47,
+                    "commands": 11,
+                    "sim_duration": 2.3
+                  }
+                ],
+                "totals": {
+                  "segments": 2,
+                  "tv_total": 2.793428,
+                  "max_step": 0.045166,
+                  "points": 115,
+                  "sim_duration": 5.65,
+                  "steps": 115,
+                  "commands": 19
+                }
+              },
+              "tcp_pose": [
+                -0.307376,
+                0.000363,
+                0.550359,
+                -3.4e-05,
+                -0.0,
+                0.0,
+                -1.0
+              ]
+            },
+            {
+              "state": "LIFTING",
+              "status": "DONE",
+              "branch_anchor": "positive",
+              "plan": {
+                "status": "DIRECT_OK",
+                "strategy": "lock:direct",
+                "branch_anchor": "positive",
+                "lock_policy": "lock",
+                "locked_segments": [
+                  "lift"
+                ],
+                "segments": [
+                  {
+                    "name": "lift",
+                    "cartesian": true,
+                    "q_start": [
+                      0.004619,
+                      -0.181257,
+                      -1.66104,
+                      0.271501,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.152764,
+                      -1.308707,
+                      -0.109326,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "samples": 15,
+                    "waypoint_count": 11,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "verify_samples": 25,
+                    "check_status": "OK",
+                    "min_distance": null
+                  }
+                ],
+                "message": "1 段通过粗筛与最终复核 (policy=lock)",
+                "samples": 31,
+                "configs": 31,
+                "wall_s": 0.875,
+                "attempts": [
+                  {
+                    "strategy": "lock:direct",
+                    "status": "DIRECT_OK",
+                    "message": "1 段通过粗筛与最终复核 (policy=lock)"
+                  }
+                ],
+                "goal_pose": [
+                  -0.307461,
+                  0.000169,
+                  0.7,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "final_contact": false,
+                "strict_orientation": false,
+                "metrics": {
+                  "segments": [
+                    {
+                      "name": "lift",
+                      "cartesian": true,
+                      "lock_joint": 0,
+                      "lock_value": 0.004619,
+                      "lock_tol": 0.02,
+                      "q_start": [
+                        0.004619,
+                        -0.181257,
+                        -1.66104,
+                        0.271501,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_end": [
+                        0.004619,
+                        -0.152764,
+                        -1.308707,
+                        -0.109326,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_delta": [
+                        -0.0,
+                        0.028493,
+                        0.352333,
+                        -0.380827,
+                        -0.0,
+                        -0.0
+                      ],
+                      "tv": [
+                        0.0,
+                        0.039779,
+                        0.352333,
+                        0.380827,
+                        0.0,
+                        0.0
+                      ],
+                      "tv_total": 0.772939,
+                      "max_step": 0.126392,
+                      "points": 12,
+                      "q0_delta": -0.0,
+                      "lock_deviation_max": 0.0,
+                      "lock_ok": true,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570796,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 8.3e-05,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    }
+                  ],
+                  "totals": {
+                    "segments": 1,
+                    "tv_total": 0.772939,
+                    "max_step": 0.126392,
+                    "points": 12
+                  },
+                  "branch_anchor": "positive",
+                  "lock_policy": "lock"
+                },
+                "compact": {
+                  "enabled": true,
+                  "removed": 4,
+                  "points_before": 16,
+                  "points_after": 12,
+                  "max_tcp_pos_deviation": 0.00075,
+                  "max_tcp_ang_deviation": 0.0,
+                  "pos_tol": 0.001,
+                  "ang_tol": 0.01
+                }
+              },
+              "execution": {
+                "segments": [
+                  {
+                    "name": "lift",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      0.004776,
+                      -0.180948,
+                      -1.660495,
+                      0.270579,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_end": [
+                      0.004776,
+                      -0.151346,
+                      -1.309069,
+                      -0.108846,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_delta": [
+                      0.0,
+                      0.029602,
+                      0.351426,
+                      -0.379424,
+                      0.0,
+                      0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.037149,
+                      0.351426,
+                      0.379424,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.767999,
+                    "max_step": 0.034918,
+                    "points": 47,
+                    "q0_delta": 0.0,
+                    "lock_deviation_max": 0.000157,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000809,
+                    "tcp_error_ang": 0.001535,
+                    "steps": 47,
+                    "commands": 11,
+                    "sim_duration": 2.3
+                  }
+                ],
+                "totals": {
+                  "segments": 1,
+                  "tv_total": 0.767999,
+                  "max_step": 0.034918,
+                  "points": 47,
+                  "sim_duration": 2.3,
+                  "steps": 47,
+                  "commands": 11
+                }
+              },
+              "tcp_pose": [
+                -0.307378,
+                0.000665,
+                0.700634,
+                0.000768,
+                4e-06,
+                0.0,
+                -1.0
+              ]
+            },
+            {
+              "state": "TRANSFERRING",
+              "status": "DONE",
+              "branch_anchor": "positive",
+              "plan": {
+                "status": "DIRECT_OK",
+                "strategy": "lock:direct",
+                "branch_anchor": "positive",
+                "lock_policy": "lock",
+                "locked_segments": [
+                  "rise",
+                  "place"
+                ],
+                "segments": [
+                  {
+                    "name": "rise",
+                    "cartesian": true,
+                    "q_start": [
+                      0.004619,
+                      -0.152764,
+                      -1.308707,
+                      -0.109326,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      0.004619,
+                      -0.239682,
+                      -0.883086,
+                      -0.448028,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "samples": 12,
+                    "waypoint_count": 8,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "verify_samples": 24,
+                    "check_status": "OK",
+                    "min_distance": null
+                  },
+                  {
+                    "name": "transit",
+                    "cartesian": false,
+                    "q_start": [
+                      0.004619,
+                      -0.239682,
+                      -0.883086,
+                      -0.448028,
+                      1.570796,
+                      -1.566177
+                    ],
+                    "q_end": [
+                      -1.506208,
+                      1.093109,
+                      -0.740569,
+                      -1.924281,
+                      1.570727,
+                      -3.076733
+                    ],
+                    "samples": 0,
+                    "waypoint_count": 1,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "verify_samples": 89,
+                    "check_status": "OK",
+                    "min_distance": null
+                  },
+                  {
+                    "name": "pre_place",
+                    "cartesian": false,
+                    "q_start": [
+                      -1.506208,
+                      1.093109,
+                      -0.740569,
+                      -1.924281,
+                      1.570727,
+                      -3.076733
+                    ],
+                    "q_end": [
+                      -1.426889,
+                      0.83839,
+                      0.777359,
+                      3.09517,
+                      1.57054,
+                      -2.997734
+                    ],
+                    "samples": 0,
+                    "waypoint_count": 1,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "verify_samples": 145,
+                    "check_status": "OK",
+                    "min_distance": null
+                  },
+                  {
+                    "name": "place",
+                    "cartesian": true,
+                    "q_start": [
+                      -1.426889,
+                      0.83839,
+                      0.777359,
+                      3.09517,
+                      1.57054,
+                      -2.997734
+                    ],
+                    "q_end": [
+                      -1.42386,
+                      0.952322,
+                      0.9469,
+                      2.813167,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "samples": 15,
+                    "waypoint_count": 9,
+                    "lock_joint": 0,
+                    "lock_value": -1.426889,
+                    "lock_tol": 0.02,
+                    "verify_samples": 21,
+                    "check_status": "OK",
+                    "min_distance": null
+                  }
+                ],
+                "message": "4 段通过粗筛与最终复核 (policy=lock)",
+                "samples": 125,
+                "configs": 125,
+                "wall_s": 3.062,
+                "attempts": [
+                  {
+                    "strategy": "lock:direct",
+                    "status": "DIRECT_OK",
+                    "message": "4 段通过粗筛与最终复核 (policy=lock)"
+                  }
+                ],
+                "goal_pose": [
+                  0.4,
+                  0.75,
+                  0.357025,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "final_contact": false,
+                "strict_orientation": true,
+                "metrics": {
+                  "segments": [
+                    {
+                      "name": "rise",
+                      "cartesian": true,
+                      "lock_joint": 0,
+                      "lock_value": 0.004619,
+                      "lock_tol": 0.02,
+                      "q_start": [
+                        0.004619,
+                        -0.152764,
+                        -1.308707,
+                        -0.109326,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_end": [
+                        0.004619,
+                        -0.239682,
+                        -0.883086,
+                        -0.448028,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_delta": [
+                        0.0,
+                        -0.086919,
+                        0.42562,
+                        -0.338701,
+                        -0.0,
+                        0.0
+                      ],
+                      "tv": [
+                        0.0,
+                        0.086919,
+                        0.42562,
+                        0.338701,
+                        0.0,
+                        0.0
+                      ],
+                      "tv_total": 0.851241,
+                      "max_step": 0.171545,
+                      "points": 9,
+                      "q0_delta": 0.0,
+                      "lock_deviation_max": 0.0,
+                      "lock_ok": true,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570796,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.000176,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    },
+                    {
+                      "name": "transit",
+                      "cartesian": false,
+                      "lock_joint": null,
+                      "lock_value": null,
+                      "lock_tol": null,
+                      "q_start": [
+                        0.004619,
+                        -0.239682,
+                        -0.883086,
+                        -0.448028,
+                        1.570796,
+                        -1.566177
+                      ],
+                      "q_end": [
+                        -1.506208,
+                        1.093109,
+                        -0.740569,
+                        -1.924281,
+                        1.570727,
+                        -3.076733
+                      ],
+                      "q_delta": [
+                        -1.510827,
+                        1.332792,
+                        0.142517,
+                        -1.476253,
+                        -7e-05,
+                        -1.510556
+                      ],
+                      "tv": [
+                        1.510827,
+                        1.332792,
+                        0.142517,
+                        1.476253,
+                        7e-05,
+                        1.510556
+                      ],
+                      "tv_total": 5.973015,
+                      "max_step": 1.510827,
+                      "points": 2,
+                      "q0_delta": -1.510827,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570727,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.000428,
+                      "tcp_error_ang": 0.000985,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    },
+                    {
+                      "name": "pre_place",
+                      "cartesian": false,
+                      "lock_joint": null,
+                      "lock_value": null,
+                      "lock_tol": null,
+                      "q_start": [
+                        -1.506208,
+                        1.093109,
+                        -0.740569,
+                        -1.924281,
+                        1.570727,
+                        -3.076733
+                      ],
+                      "q_end": [
+                        -1.426889,
+                        0.83839,
+                        0.777359,
+                        3.09517,
+                        1.57054,
+                        -2.997734
+                      ],
+                      "q_delta": [
+                        0.079319,
+                        -0.254719,
+                        1.517928,
+                        5.01945,
+                        -0.000186,
+                        0.078999
+                      ],
+                      "tv": [
+                        0.079319,
+                        0.254719,
+                        1.517928,
+                        5.01945,
+                        0.000186,
+                        0.078999
+                      ],
+                      "tv_total": 6.950602,
+                      "max_step": 5.01945,
+                      "points": 2,
+                      "q0_delta": 0.079319,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.57054,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.009997,
+                      "tcp_error_ang": 0.001494,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    },
+                    {
+                      "name": "place",
+                      "cartesian": true,
+                      "lock_joint": 0,
+                      "lock_value": -1.426889,
+                      "lock_tol": 0.02,
+                      "q_start": [
+                        -1.426889,
+                        0.83839,
+                        0.777359,
+                        3.09517,
+                        1.57054,
+                        -2.997734
+                      ],
+                      "q_end": [
+                        -1.42386,
+                        0.952322,
+                        0.9469,
+                        2.813167,
+                        1.570796,
+                        -2.994656
+                      ],
+                      "q_delta": [
+                        0.00303,
+                        0.113932,
+                        0.169542,
+                        -0.282003,
+                        0.000256,
+                        0.003078
+                      ],
+                      "tv": [
+                        0.00303,
+                        0.113932,
+                        0.169542,
+                        0.282003,
+                        0.000256,
+                        0.003078
+                      ],
+                      "tv_total": 0.57184,
+                      "max_step": 0.131069,
+                      "points": 10,
+                      "q0_delta": 0.00303,
+                      "lock_deviation_max": 0.00303,
+                      "lock_ok": true,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.57054,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 2.1e-05,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    }
+                  ],
+                  "totals": {
+                    "segments": 4,
+                    "tv_total": 14.346698,
+                    "max_step": 5.01945,
+                    "points": 23
+                  },
+                  "branch_anchor": "positive",
+                  "lock_policy": "lock"
+                },
+                "compact": {
+                  "enabled": true,
+                  "removed": 10,
+                  "points_before": 30,
+                  "points_after": 20,
+                  "max_tcp_pos_deviation": 0.000911,
+                  "max_tcp_ang_deviation": 0.0,
+                  "pos_tol": 0.001,
+                  "ang_tol": 0.01
+                }
+              },
+              "execution": {
+                "segments": [
+                  {
+                    "name": "rise",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": 0.004619,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      0.004776,
+                      -0.151346,
+                      -1.309069,
+                      -0.108846,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_end": [
+                      0.004776,
+                      -0.239671,
+                      -0.883858,
+                      -0.447539,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_delta": [
+                      0.0,
+                      -0.088325,
+                      0.425211,
+                      -0.338693,
+                      0.0,
+                      0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.088325,
+                      0.425211,
+                      0.338693,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.852229,
+                    "max_step": 0.038373,
+                    "points": 41,
+                    "q0_delta": 0.0,
+                    "lock_deviation_max": 0.000157,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000417,
+                    "tcp_error_ang": 0.000273,
+                    "steps": 41,
+                    "commands": 9,
+                    "sim_duration": 2.0
+                  },
+                  {
+                    "name": "transit",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      0.004776,
+                      -0.239671,
+                      -0.883858,
+                      -0.447539,
+                      1.570796,
+                      -1.566021
+                    ],
+                    "q_end": [
+                      -1.505378,
+                      1.092393,
+                      -0.741137,
+                      -1.924267,
+                      1.570796,
+                      -3.075926
+                    ],
+                    "q_delta": [
+                      -1.510154,
+                      1.332064,
+                      0.142721,
+                      -1.476728,
+                      0.0,
+                      -1.509905
+                    ],
+                    "tv": [
+                      1.510154,
+                      1.332064,
+                      0.142721,
+                      1.476728,
+                      0.0,
+                      1.509905
+                    ],
+                    "tv_total": 5.971572,
+                    "max_step": 0.030933,
+                    "points": 98,
+                    "q0_delta": -1.510154,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.00095,
+                    "tcp_error_ang": 0.002229,
+                    "steps": 98,
+                    "commands": 15,
+                    "sim_duration": 4.85
+                  },
+                  {
+                    "name": "pre_place",
+                    "cartesian": false,
+                    "lock_joint": null,
+                    "lock_value": null,
+                    "lock_tol": null,
+                    "q_start": [
+                      -1.505378,
+                      1.092393,
+                      -0.741137,
+                      -1.924267,
+                      1.570796,
+                      -3.075926
+                    ],
+                    "q_end": [
+                      -1.427162,
+                      0.838445,
+                      0.777359,
+                      3.091343,
+                      1.570796,
+                      -2.998172
+                    ],
+                    "q_delta": [
+                      0.078216,
+                      -0.253948,
+                      1.518496,
+                      5.015609,
+                      0.0,
+                      0.077754
+                    ],
+                    "tv": [
+                      0.078216,
+                      0.253948,
+                      1.518496,
+                      5.015609,
+                      0.0,
+                      0.077754
+                    ],
+                    "tv_total": 6.944023,
+                    "max_step": 0.04477,
+                    "points": 224,
+                    "q0_delta": 0.078216,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.009674,
+                    "tcp_error_ang": 0.005247,
+                    "steps": 224,
+                    "commands": 27,
+                    "sim_duration": 11.15
+                  },
+                  {
+                    "name": "place",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": -1.426889,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      -1.427162,
+                      0.838445,
+                      0.777359,
+                      3.091343,
+                      1.570796,
+                      -2.998172
+                    ],
+                    "q_end": [
+                      -1.424059,
+                      0.952321,
+                      0.946637,
+                      2.81362,
+                      1.570796,
+                      -2.994858
+                    ],
+                    "q_delta": [
+                      0.003104,
+                      0.113876,
+                      0.169278,
+                      -0.277722,
+                      0.0,
+                      0.003314
+                    ],
+                    "tv": [
+                      0.003104,
+                      0.113876,
+                      0.169278,
+                      0.28151,
+                      0.0,
+                      0.003314
+                    ],
+                    "tv_total": 0.571081,
+                    "max_step": 0.033697,
+                    "points": 34,
+                    "q0_delta": 0.003104,
+                    "lock_deviation_max": 0.002831,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000174,
+                    "tcp_error_ang": 0.000189,
+                    "steps": 34,
+                    "commands": 9,
+                    "sim_duration": 1.65
+                  }
+                ],
+                "totals": {
+                  "segments": 4,
+                  "tv_total": 14.338905,
+                  "max_step": 0.04477,
+                  "points": 397,
+                  "sim_duration": 19.65,
+                  "steps": 397,
+                  "commands": 60
+                }
+              },
+              "tcp_pose": [
+                0.400027,
+                0.749879,
+                0.357147,
+                -1.4e-05,
+                9.3e-05,
+                2e-06,
+                1.0
+              ]
+            },
+            {
+              "state": "RETREATING",
+              "status": "DONE",
+              "branch_anchor": "positive",
+              "plan": {
+                "status": "DIRECT_OK",
+                "strategy": "lock:direct",
+                "branch_anchor": "positive",
+                "lock_policy": "lock",
+                "locked_segments": [
+                  "retreat"
+                ],
+                "segments": [
+                  {
+                    "name": "retreat",
+                    "cartesian": true,
+                    "q_start": [
+                      -1.42386,
+                      0.952322,
+                      0.9469,
+                      2.813167,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "q_end": [
+                      -1.42386,
+                      0.871257,
+                      0.709035,
+                      3.132098,
+                      1.570796,
+                      -2.994656
+                    ],
+                    "samples": 16,
+                    "waypoint_count": 10,
+                    "lock_joint": 0,
+                    "lock_value": -1.42386,
+                    "lock_tol": 0.02,
+                    "verify_samples": 23,
+                    "check_status": "OK",
+                    "min_distance": null
+                  }
+                ],
+                "message": "1 段通过粗筛与最终复核 (policy=lock)",
+                "samples": 33,
+                "configs": 33,
+                "wall_s": 0.922,
+                "attempts": [
+                  {
+                    "strategy": "lock:direct",
+                    "status": "DIRECT_OK",
+                    "message": "1 段通过粗筛与最终复核 (policy=lock)"
+                  }
+                ],
+                "goal_pose": [
+                  0.39998,
+                  0.749997,
+                  0.50703,
+                  -0.0,
+                  -0.0,
+                  -0.0,
+                  1.0
+                ],
+                "final_contact": false,
+                "strict_orientation": false,
+                "metrics": {
+                  "segments": [
+                    {
+                      "name": "retreat",
+                      "cartesian": true,
+                      "lock_joint": 0,
+                      "lock_value": -1.42386,
+                      "lock_tol": 0.02,
+                      "q_start": [
+                        -1.42386,
+                        0.952322,
+                        0.9469,
+                        2.813167,
+                        1.570796,
+                        -2.994656
+                      ],
+                      "q_end": [
+                        -1.42386,
+                        0.871257,
+                        0.709035,
+                        3.132098,
+                        1.570796,
+                        -2.994656
+                      ],
+                      "q_delta": [
+                        -0.0,
+                        -0.081065,
+                        -0.237866,
+                        0.318931,
+                        -0.0,
+                        -0.0
+                      ],
+                      "tv": [
+                        0.0,
+                        0.081065,
+                        0.237866,
+                        0.318931,
+                        0.0,
+                        0.0
+                      ],
+                      "tv_total": 0.637862,
+                      "max_step": 0.137278,
+                      "points": 11,
+                      "q0_delta": -0.0,
+                      "lock_deviation_max": 0.0,
+                      "lock_ok": true,
+                      "branch_start": "positive",
+                      "branch_end": "positive",
+                      "wrist_margin_min": 1.570796,
+                      "singular_steps": 0,
+                      "near_singular_steps": 0,
+                      "tcp_error_pos": 0.000153,
+                      "tcp_error_ang": 0.0,
+                      "verify_samples": 0,
+                      "check_status": "",
+                      "min_distance": null,
+                      "min_workcell_distance": 0.01465
+                    }
+                  ],
+                  "totals": {
+                    "segments": 1,
+                    "tv_total": 0.637862,
+                    "max_step": 0.137278,
+                    "points": 11
+                  },
+                  "branch_anchor": "positive",
+                  "lock_policy": "lock"
+                },
+                "compact": {
+                  "enabled": true,
+                  "removed": 6,
+                  "points_before": 17,
+                  "points_after": 11,
+                  "max_tcp_pos_deviation": 0.00093,
+                  "max_tcp_ang_deviation": 0.0,
+                  "pos_tol": 0.001,
+                  "ang_tol": 0.01
+                }
+              },
+              "execution": {
+                "segments": [
+                  {
+                    "name": "retreat",
+                    "cartesian": true,
+                    "lock_joint": 0,
+                    "lock_value": -1.42386,
+                    "lock_tol": 0.02,
+                    "q_start": [
+                      -1.424059,
+                      0.952321,
+                      0.946637,
+                      2.81362,
+                      1.570796,
+                      -2.994858
+                    ],
+                    "q_end": [
+                      -1.424059,
+                      0.871382,
+                      0.709801,
+                      3.130482,
+                      1.570796,
+                      -2.994858
+                    ],
+                    "q_delta": [
+                      0.0,
+                      -0.080939,
+                      -0.236836,
+                      0.316862,
+                      0.0,
+                      0.0
+                    ],
+                    "tv": [
+                      0.0,
+                      0.080939,
+                      0.236836,
+                      0.316862,
+                      0.0,
+                      0.0
+                    ],
+                    "tv_total": 0.634636,
+                    "max_step": 0.036315,
+                    "points": 38,
+                    "q0_delta": 0.0,
+                    "lock_deviation_max": 0.000199,
+                    "lock_ok": true,
+                    "branch_start": "positive",
+                    "branch_end": "positive",
+                    "wrist_margin_min": 1.570796,
+                    "singular_steps": 0,
+                    "near_singular_steps": 0,
+                    "tcp_error_pos": 0.000472,
+                    "tcp_error_ang": 0.000723,
+                    "steps": 38,
+                    "commands": 10,
+                    "sim_duration": 1.85
+                  }
+                ],
+                "totals": {
+                  "segments": 1,
+                  "tv_total": 0.634636,
+                  "max_step": 0.036315,
+                  "points": 38,
+                  "sim_duration": 1.85,
+                  "steps": 38,
+                  "commands": 10
+                }
+              },
+              "tcp_pose": [
+                0.399997,
+                0.749875,
+                0.506574,
+                5.3e-05,
+                -0.000358,
+                2e-06,
+                1.0
+              ]
+            }
+          ],
+          "motion_totals": {
+            "motions": 4,
+            "executed": 4,
+            "failed": 0,
+            "tv_total": 18.534968,
+            "max_step": 0.045166,
+            "sim_duration": 29.45,
+            "steps": 597,
+            "commands": 100
+          },
+          "branch_anchor": "positive",
+          "stop": {
+            "status": "OK",
+            "command_time": 4.249999999999993,
+            "material_start": [
+              -0.32753,
+              0.00013,
+              0.5
+            ],
+            "material_end": [
+              -0.30746,
+              0.00017,
+              0.5
+            ],
+            "belt_speed_before": 0.2,
+            "latency": 0.15,
+            "overrun": 0.02006,
+            "lateral_drift": 4e-05,
+            "height_drift": 4e-05,
+            "steps": 4,
+            "speed_source": "model_state",
+            "speed_valid": true,
+            "pad_still": true,
+            "message": "零速停带且越程/漂移在容差内"
+          },
+          "stability": {
+            "stable": true,
+            "count": 5,
+            "step_moved": 0.0,
+            "speed": 0.0,
+            "drift": 3e-06,
+            "elapsed": 0.25,
+            "timed_out": false
+          },
+          "compensation": {
+            "count": 4,
+            "long_compensation": false,
+            "overspeed_steps": 0
+          },
+          "contact": {
+            "valid": true,
+            "reasons": [],
+            "uid": 1,
+            "signed_distance": 0.000359,
+            "lateral_offset": 0.000212,
+            "offset_xy": [
+              8.5e-05,
+              0.000194
+            ],
+            "normal_angle": 6.9e-05,
+            "within_face": true,
+            "cup_covered": true,
+            "cup_radius": 0.023579,
+            "surface": {
+              "center_world": [
+                -0.307461,
+                0.000169,
+                0.55
+              ],
+              "normal_world": [
+                0.0,
+                -0.0,
+                1.0
+              ],
+              "half_u": 0.05,
+              "half_v": 0.05,
+              "top_z_local": 0.05
+            },
+            "tool_position": [
+              -0.307376,
+              0.000363,
+              0.550359
+            ],
+            "tool_normal": [
+              -0.0,
+              6.9e-05,
+              -1.0
+            ]
+          },
+          "fk": {
+            "ok": true,
+            "pos_tol": 0.0001,
+            "ang_tol": 0.001,
+            "joints": [
+              -1.424059,
+              0.871382,
+              0.709801,
+              3.130482,
+              1.570796,
+              -2.994858
+            ],
+            "links": [
+              {
+                "link": "link1_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link2_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link3_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link4_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link5_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link6_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "link7_visible",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              },
+              {
+                "link": "tcp",
+                "pos_err": 0.0,
+                "ang_err": 0.0
+              }
+            ]
+          },
+          "attach_transform": [
+            -8.5e-05,
+            -0.000197,
+            -0.050359,
+            3.4e-05,
+            0.0,
+            0.00013,
+            -1.0
+          ],
+          "release": {
+            "pose": [
+              0.399933,
+              0.74968,
+              0.306787,
+              4.8e-05,
+              -9.3e-05,
+              0.000128,
+              -1.0
+            ]
+          },
+          "pick_box": {
+            "min": [
+              -0.05,
+              -0.05,
+              -0.05
+            ],
+            "max": [
+              0.05,
+              0.05,
+              0.05
+            ]
+          }
+        },
+        "runtime": {
+          "controller_id": "stage2.unit_controller.Stage2UnitController",
+          "contract_version": "stage2_contract_20261021_v2",
+          "cup_radius": 0.023579,
+          "shadow": {
+            "root_alias": "Shadow_UR5_01",
+            "joints": 6,
+            "link_aliases": [
+              "link1_visible",
+              "link2_visible",
+              "link3_visible",
+              "link4_visible",
+              "link5_visible",
+              "link6_visible",
+              "link7_visible"
+            ],
+            "pad_body": 200,
+            "load_alias": "Shadow_Load_01",
+            "shape_count": 18,
+            "visibility_hidden": true,
+            "policy": "session_resource"
+          },
+          "collections": [
+            {
+              "name": "stage2_shadow",
+              "roles": "影子 UR5 全部可见连杆 + 吸盘 Body",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_links",
+              "roles": "影子 UR5 连杆 (不含吸盘)",
+              "items": [
+                {
+                  "alias": "link1_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_shadow_no_base",
+              "roles": "除 link1 外的连杆 + 吸盘 Body (安装平台检查)",
+              "items": [
+                {
+                  "alias": "link2_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link3_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link4_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link5_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link6_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "link7_visible",
+                  "role": "robot_link",
+                  "what": "single"
+                },
+                {
+                  "alias": "Body",
+                  "role": "pad_body",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell",
+              "roles": "conveyor pads/工位台面/仓库/地面/AGV 车体与载台",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_mount",
+              "roles": "UR5 安装平台 Island_A (仅 link1 固定安装接触)",
+              "items": [
+                {
+                  "alias": "Island_A",
+                  "role": "mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_workcell_mount",
+              "roles": "工作区 + 安装平台; 用于除 link1 外的全部机器人 shape",
+              "items": [
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "pad",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A_Station",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Warehouse_Raw",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Floor",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "visible",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_LoadTray",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Front",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Back",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Left",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "AGV_TrayWall_Right",
+                  "role": "workcell_mount",
+                  "what": "single"
+                },
+                {
+                  "alias": "Island_A",
+                  "role": "workcell_mount",
+                  "what": "single"
+                }
+              ]
+            },
+            {
+              "name": "stage2_parts",
+              "roles": "非目标动态物料",
+              "items": []
+            },
+            {
+              "name": "stage2_target",
+              "roles": "当前目标物料",
+              "items": []
+            },
+            {
+              "name": "stage2_shadow_load",
+              "roles": "影子载荷 (仅带载检查)",
+              "items": [
+                {
+                  "alias": "Shadow_Load_01",
+                  "role": "load",
+                  "what": "single"
+                }
+              ]
+            }
+          ],
+          "startup": {
+            "fk": {
+              "ok": true,
+              "pos_tol": 0.0001,
+              "ang_tol": 0.001,
+              "joints": [
+                0.0,
+                0.0,
+                -1.570796,
+                0.0,
+                1.570796,
+                0.0
+              ],
+              "links": [
+                {
+                  "link": "link1_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link2_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link3_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link4_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link5_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link6_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "link7_visible",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                },
+                {
+                  "link": "tcp",
+                  "pos_err": 0.0,
+                  "ang_err": 0.0
+                }
+              ]
+            },
+            "cup_radius_measured": 0.023579,
+            "cup_radius_design": 0.0235795,
+            "query_semantics": {
+              "overlap": {
+                "name": "probe_overlap",
+                "state": "COLLISION",
+                "pair": [
+                  207,
+                  208
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "separated": {
+                "name": "probe_separated",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "distance_with_threshold": {
+                "name": "probe_distance_threshold",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.5,
+                "message": ""
+              },
+              "distance_outside_threshold": {
+                "name": "probe_distance_outside",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": 0.01,
+                "message": ""
+              },
+              "distance_exact": {
+                "name": "probe_distance_exact",
+                "state": "NEAR",
+                "pair": [
+                  207,
+                  209
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": 0.3,
+                "threshold": 0.0,
+                "message": ""
+              },
+              "collidable_false": {
+                "name": "probe_collidable_false",
+                "state": "CLEAR",
+                "pair": [
+                  -1,
+                  -1
+                ],
+                "pair_aliases": [
+                  "",
+                  ""
+                ],
+                "distance": null,
+                "threshold": null,
+                "message": ""
+              },
+              "ok": true
+            },
+            "self_pairs": 15,
+            "collections": {
+              "stage2_shadow": 8,
+              "stage2_shadow_links": 7,
+              "stage2_shadow_no_base": 7,
+              "stage2_workcell": 59,
+              "stage2_mount": 1,
+              "stage2_workcell_mount": 60,
+              "stage2_parts": 0,
+              "stage2_target": 0,
+              "stage2_shadow_load": 1
+            },
+            "excluded": [
+              {
+                "alias": "shape",
+                "reason": "内置 conveyor 根下的整条带粗包围盒; 真实承载面由 pad 提供"
+              }
+            ],
+            "workcell_aliases": [
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "pad",
+              "Island_A_Station",
+              "Warehouse_Raw",
+              "Floor",
+              "visible",
+              "AGV_LoadTray",
+              "AGV_TrayWall_Front",
+              "AGV_TrayWall_Back",
+              "AGV_TrayWall_Left",
+              "AGV_TrayWall_Right"
+            ],
+            "shadow_hidden": true
+          }
+        },
+        "hazard_injected": false
+      },
+      "agv_load_follow": {
+        "agv_dx": 0.5007,
+        "material_dx": 0.5106,
+        "follow_error": 0.01,
+        "material_z": 0.3069,
+        "relative_xy": [
+          0.008,
+          -0.0001
+        ],
+        "on_tray": true,
+        "distance_ok": true
+      },
+      "agv_follow_ok": true,
+      "ok": true
+    }
+  ],
+  "all_ok": true
+}

@@ -49,3 +49,43 @@
     （pick/station/agv）；
   - `phase2_mcp_station_none_20261021_191502.json` — MCP 按工件
     `source_phase` 路由到阶段二 runner 的 station 运行。
+
+- 阶段 2.01 动作与轨迹优化（2026-10-21，工件
+  `stage2/L1_S1/v012_20261021_210539`）：
+  - `phase2_01_baseline_station_20261021_202313.json` — 优化前 station
+    （first-feasible，transfer TV 15.644，pre_place 10.595）；
+  - `phase2_01_run_station_none_20261021_210605.json` — 优化后 station：
+    DONE，物料误差 0.00013 m，总 TV 11.966，transfer TV 7.601；
+  - `phase2_01_run_agv_none_20261021_210713.json` — agv：DONE，跟随误差
+    0.0100 m，轮速行驶 0.505 m；
+  - `phase2_01_run_both_none_20261021_210846.json` — station+agv DONE，
+    无串任务；
+  - `phase2_01_run_station_runtime_obstacle_20261021_211101.json` — 运行期
+    障碍锁存，`TRANSFERRING` 失败段实测证据保留，停带确认 4e-5 m/s；
+  - `phase2_01_motion_opt_20261021_211245.json` — 腕部分支/锁轴/拆分 A/B：
+    production 与 no_split 一致，split 增加 station +29.2%、AGV +11.6%；
+  - `phase2_01_motion_opt_nobranch_20261021_211837.json` — 关闭腕部守卫的
+    对照；真实运行仍要求守卫，跨支候选一律拒绝。
+
+- 阶段 2.02 AGV 转运路径优化（2026-10-24/25，工件
+  `stage2/L1_S1/v013_20261024_232558`，契约
+  `stage2_contract_20261024_v3`）：
+  - `phase2_02_run_station_none_20261024_235047.json` — 默认 baseline/greedy
+    回归：DONE，总 TV 11.9698，含逐段执行 profile；
+  - `phase2_02_run_agv_none_20261024_235155.json` — 默认 AGV：DONE，
+    transfer 计划 TV 14.3453 / 执行 TV 14.3368，q[3] 净变化 +5.0195，
+    复现 §8.1 现象；
+  - `phase2_02_run_both_none_20261025_000623.json` — station+agv DONE，
+    无串任务；
+  - `phase2_02_run_station_runtime_obstacle_20261025_000901.json` — 运行期
+    障碍锁存 `link3_visible <-> Fault_Runtime_Obstacle`，停带确认 4e-5 m/s；
+  - `phase2_02_agv_transfer_probe_20261025_000100.json` — 影子规划 A/B：
+    baseline 0.20/0.10/0.00 m 与 high_align、detour；greedy 与 beam 一致，
+    0.10/0.00 m transfer TV 降低约 47%、q[3] 降低约 79.5%，但 q[0] 升高，
+    默认仍保留 0.20 m；
+  - `phase2_02_agv_transfer_repeat_20261025_000953.json`、
+    `phase2_02_agv_transfer_repeat_20261025_001111.json` — 同一起始 q/pick
+    pose 的重复规划；与主探针三次结果逐项一致；
+  - `phase2_02_agv_transfer_detour_20261025_001651.json` — detour 路径
+    探针：0.20/0.10/0.00 m 下加入 +0.06 m 水平绕行点均比对应 high_align
+    增加 TV（+2.2%/+3.7%/+5.9%），本次无直线路径被拒绝，故不启用。

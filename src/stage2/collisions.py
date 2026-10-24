@@ -635,6 +635,13 @@ class CollisionRuntime:
                                self.collections[COLL_LOAD],
                                self.collections[COLL_WORKCELL_MOUNT])
 
+    def load_distance_margin(self, threshold: float = 0.0) -> QueryResult:
+        """载荷到工作区/承载面的精确距离 (诊断净空用, 不做放行判据)."""
+        return self._distance("load_distance_margin",
+                              self.collections[COLL_LOAD],
+                              self.collections[COLL_WORKCELL_MOUNT],
+                              threshold)
+
     def load_vs_parts(self) -> QueryResult:
         return self._collision("load_vs_parts",
                                self.collections[COLL_LOAD],
