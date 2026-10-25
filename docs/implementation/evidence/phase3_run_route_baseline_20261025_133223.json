@@ -1,0 +1,5186 @@
+{
+ "timestamp": "20261025_133223",
+ "run_id": "run_20261025_133213_c99e80",
+ "artifact_id": "stage3/L2_MIRROR/v004_20261025_131837",
+ "phase": "stage3",
+ "scenario": "route_baseline",
+ "fault": "none",
+ "layout": "L2_MIRROR",
+ "results": [
+  {
+   "scenario": "route_baseline",
+   "fault": "none",
+   "steps": 1666,
+   "sim_time": 84.15,
+   "coordinator": {
+    "scenario": "route_baseline",
+    "fault": "none",
+    "sim_time": 84.15,
+    "aborted": false,
+    "stop_reason": "",
+    "tasks": {
+     "flow_version": "stage3_taskflow_20261025",
+     "flow": [
+      "conveyor_pick@A",
+      "load_agv@A",
+      "transport_A_to_B",
+      "unload_agv@B",
+      "place_station@B"
+     ],
+     "duplicate_policy": "reject_active_same_kind_uid",
+     "capacity": 8,
+     "tasks": [
+      {
+       "task_id": "load_A_uid1",
+       "kind": "load_A",
+       "uid": 1,
+       "source": "conveyor",
+       "destination": "AGV@dock_A",
+       "dock": "A",
+       "status": "DONE",
+       "phase": "DONE",
+       "attempts": 1,
+       "created_sim_time": 0.85,
+       "started_sim_time": 0.85,
+       "finished_sim_time": 35.6,
+       "failure_reason": "",
+       "resources": [
+        "pick_zone",
+        "dock_A",
+        "arm_A"
+       ],
+       "evidence": {
+        "controller": {
+         "uid": 1,
+         "target": "agv",
+         "layout": "L2_MIRROR/A",
+         "state": "DONE",
+         "failure_reason": "",
+         "material_state": "RELEASED",
+         "pick_pose": [
+          -0.30791,
+          -4e-05,
+          0.5
+         ],
+         "agv_blocked": false,
+         "unit_id": "A",
+         "source": "conveyor",
+         "sink": "agv",
+         "dock_id": "A",
+         "task_id": "load_A_uid1",
+         "release_attempted": true,
+         "tray_check": null,
+         "motion_opt_version": "2.01",
+         "agv_transfer_opt_version": "2.02",
+         "branch_anchor": "positive",
+         "compensation": {
+          "count": 4,
+          "long_compensation": false,
+          "overspeed_steps": 0
+         },
+         "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 1,
+          "signed_distance": 0.000362,
+          "lateral_offset": 0.000202,
+          "offset_xy": [
+           3.5e-05,
+           0.000199
+          ],
+          "normal_angle": 3.7e-05,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+           "center_world": [
+            -0.307911,
+            -4e-05,
+            0.55
+           ],
+           "normal_world": [
+            0.0,
+            -0.0,
+            1.0
+           ],
+           "half_u": 0.05,
+           "half_v": 0.05,
+           "top_z_local": 0.05
+          },
+          "tool_position": [
+           -0.307877,
+           0.000159,
+           0.550362
+          ],
+          "tool_normal": [
+           -0.0,
+           3.7e-05,
+           -1.0
+          ]
+         },
+         "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+           -1.504839,
+           0.823012,
+           0.798567,
+           3.087614,
+           1.570796,
+           -3.075639
+          ],
+          "links": [
+           {
+            "link": "link1_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link2_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link3_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link4_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link5_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link6_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link7_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "tcp",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           }
+          ]
+         },
+         "release": {
+          "pose": [
+           0.399999,
+           0.699673,
+           0.30676,
+           1.9e-05,
+           -1.2e-05,
+           7.2e-05,
+           -1.0
+          ]
+         },
+         "pick_box": {
+          "min": [
+           -0.05,
+           -0.05,
+           -0.05
+          ],
+          "max": [
+           0.05,
+           0.05,
+           0.05
+          ]
+         },
+         "stop": {
+          "status": "OK",
+          "command_time": 4.249999999999993,
+          "material_start": [
+           -0.32798,
+           -4e-05,
+           0.5
+          ],
+          "material_end": [
+           -0.30791,
+           -4e-05,
+           0.5
+          ],
+          "belt_speed_before": 0.2,
+          "latency": 0.15,
+          "overrun": 0.02007,
+          "lateral_drift": 0.0,
+          "height_drift": 4e-05,
+          "steps": 4,
+          "speed_source": "model_state",
+          "speed_valid": true,
+          "pad_still": true,
+          "message": "零速停带且越程/漂移在容差内"
+         },
+         "stability": {
+          "stable": true,
+          "count": 5,
+          "step_moved": 0.0,
+          "speed": 0.0,
+          "drift": 3e-06,
+          "elapsed": 0.25,
+          "timed_out": false
+         },
+         "motion_totals": {
+          "motions": 4,
+          "executed": 4,
+          "failed": 0,
+          "tv_total": 18.731264,
+          "max_step": 0.045163,
+          "sim_duration": 29.6,
+          "steps": 600,
+          "commands": 101
+         },
+         "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+         },
+         "attach_transform": [
+          -3.5e-05,
+          -0.000201,
+          -0.050362,
+          1.8e-05,
+          0.0,
+          7.4e-05,
+          -1.0
+         ],
+         "motion": [
+          {
+           "state": "APPROACHING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "lock_policy": "free",
+            "message": "2 段通过粗筛与最终复核 (policy=free)",
+            "wall_s": 1.562,
+            "samples": 45,
+            "configs": 45,
+            "totals": {
+             "segments": 2,
+             "tv_total": 2.800283,
+             "max_step": 1.566512,
+             "points": 14
+            },
+            "segments": [
+             {
+              "name": "pre_pick",
+              "tv": [
+               0.004284,
+               0.147889,
+               0.243608,
+               0.09572,
+               0.0,
+               1.566512
+              ],
+              "tv_total": 2.058013,
+              "max_step": 1.566512,
+              "points": 2,
+              "q0_delta": 0.004284,
+              "q_delta": [
+               0.004284,
+               -0.147889,
+               0.243608,
+               -0.09572,
+               -0.0,
+               -1.566512
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "pick",
+              "tv": [
+               0.000486,
+               0.041178,
+               0.333037,
+               0.367083,
+               0.0,
+               0.000486
+              ],
+              "tv_total": 0.74227,
+              "max_step": 0.121879,
+              "points": 12,
+              "q0_delta": -0.000486,
+              "q_delta": [
+               -0.000486,
+               -0.034045,
+               -0.333037,
+               0.367083,
+               0.0,
+               -0.000486
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 2,
+             "tv_total": 2.793841,
+             "max_step": 0.045163,
+             "points": 115,
+             "sim_duration": 5.65,
+             "steps": 115,
+             "commands": 19,
+             "profile": {
+              "points": 114,
+              "duration": 5.65,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.010689,
+                 "rms": 0.00294
+                },
+                "acc": {
+                 "peak": 0.213787,
+                 "rms": 0.081045
+                },
+                "jerk": {
+                 "peak": 8.551477,
+                 "rms": 2.76115
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.187685,
+                 "rms": 0.06632
+                },
+                "acc": {
+                 "peak": 3.006927,
+                 "rms": 1.202585
+                },
+                "jerk": {
+                 "peak": 74.509505,
+                 "rms": 32.200338
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.626335,
+                 "rms": 0.157961
+                },
+                "acc": {
+                 "peak": 5.700384,
+                 "rms": 2.205963
+                },
+                "jerk": {
+                 "peak": 95.176233,
+                 "rms": 53.900592
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.682944,
+                 "rms": 0.143172
+                },
+                "acc": {
+                 "peak": 5.773093,
+                 "rms": 1.884957
+                },
+                "jerk": {
+                 "peak": 98.974103,
+                 "rms": 48.163542
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.903261,
+                 "rms": 0.431058
+                },
+                "acc": {
+                 "peak": 5.999363,
+                 "rms": 3.525921
+                },
+                "jerk": {
+                 "peak": 99.061167,
+                 "rms": 50.800988
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.903261,
+               "acc": 5.999363,
+               "jerk": 99.061167
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": true
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "pre_pick",
+              "tv": [
+               0.004268,
+               0.146722,
+               0.242848,
+               0.095433,
+               0.0,
+               1.558911
+              ],
+              "tv_total": 2.048182,
+              "max_step": 0.045163,
+              "points": 68,
+              "steps": 68,
+              "commands": 8,
+              "sim_duration": 3.35,
+              "profile": {
+               "points": 68,
+               "duration": 3.35,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.010689,
+                  "rms": 0.003687
+                 },
+                 "acc": {
+                  "peak": 0.213787,
+                  "rms": 0.10173
+                 },
+                 "jerk": {
+                  "peak": 8.551477,
+                  "rms": 3.471017
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.187685,
+                  "rms": 0.081442
+                 },
+                 "acc": {
+                  "peak": 3.006927,
+                  "rms": 1.453895
+                 },
+                 "jerk": {
+                  "peak": 74.509505,
+                  "rms": 38.290345
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.258928,
+                  "rms": 0.122341
+                 },
+                 "acc": {
+                  "peak": 3.655296,
+                  "rms": 1.883834
+                 },
+                 "jerk": {
+                  "peak": 83.374986,
+                  "rms": 44.203698
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.142315,
+                  "rms": 0.05453
+                 },
+                 "acc": {
+                  "peak": 2.02999,
+                  "rms": 1.03626
+                 },
+                 "jerk": {
+                  "peak": 74.802574,
+                  "rms": 29.274537
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.903261,
+                  "rms": 0.559694
+                 },
+                 "acc": {
+                  "peak": 5.999363,
+                  "rms": 4.548145
+                 },
+                 "jerk": {
+                  "peak": 99.061167,
+                  "rms": 65.075537
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.903261,
+                "acc": 5.999363,
+                "jerk": 99.061167
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.004268
+             },
+             {
+              "name": "pick",
+              "tv": [
+               0.000405,
+               0.039686,
+               0.331733,
+               0.365908,
+               0.0,
+               0.007926
+              ],
+              "tv_total": 0.745659,
+              "max_step": 0.034147,
+              "points": 47,
+              "steps": 47,
+              "commands": 11,
+              "sim_duration": 2.3,
+              "profile": {
+               "points": 47,
+               "duration": 2.3,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.00811,
+                  "rms": 0.001196
+                 },
+                 "acc": {
+                  "peak": 0.1622,
+                  "rms": 0.034195
+                 },
+                 "jerk": {
+                  "peak": 6.487996,
+                  "rms": 1.197926
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.139439,
+                  "rms": 0.033819
+                 },
+                 "acc": {
+                  "peak": 1.974428,
+                  "rms": 0.70484
+                 },
+                 "jerk": {
+                  "peak": 74.234953,
+                  "rms": 21.092598
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.626335,
+                  "rms": 0.19873
+                 },
+                 "acc": {
+                  "peak": 5.700384,
+                  "rms": 2.625115
+                 },
+                 "jerk": {
+                  "peak": 95.176233,
+                  "rms": 66.146925
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.682944,
+                  "rms": 0.21453
+                 },
+                 "acc": {
+                  "peak": 5.773093,
+                  "rms": 2.6931
+                 },
+                 "jerk": {
+                  "peak": 98.974103,
+                  "rms": 67.256796
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.065596,
+                  "rms": 0.013517
+                 },
+                 "acc": {
+                  "peak": 1.31193,
+                  "rms": 0.248718
+                 },
+                 "jerk": {
+                  "peak": 41.885568,
+                  "rms": 8.67013
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.682944,
+                "acc": 5.773093,
+                "jerk": 98.974103
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -0.000405
+             }
+            ]
+           }
+          },
+          {
+           "state": "LIFTING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "1 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 0.984,
+            "samples": 31,
+            "configs": 31,
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.772928,
+             "max_step": 0.126386,
+             "points": 12
+            },
+            "segments": [
+             {
+              "name": "lift",
+              "tv": [
+               0.0,
+               0.03976,
+               0.352358,
+               0.380809,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.772928,
+              "max_step": 0.126386,
+              "points": 12,
+              "q0_delta": -0.0,
+              "q_delta": [
+               -0.0,
+               0.02845,
+               0.352358,
+               -0.380809,
+               -0.0,
+               -0.0
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.768031,
+             "max_step": 0.034916,
+             "points": 47,
+             "sim_duration": 2.3,
+             "steps": 47,
+             "commands": 11,
+             "profile": {
+              "points": 47,
+              "duration": 2.3,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.12114,
+                 "rms": 0.031124
+                },
+                "acc": {
+                 "peak": 2.422801,
+                 "rms": 0.707377
+                },
+                "jerk": {
+                 "peak": 80.929592,
+                 "rms": 23.022367
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.670566,
+                 "rms": 0.209521
+                },
+                "acc": {
+                 "peak": 5.734447,
+                 "rms": 2.7117
+                },
+                "jerk": {
+                 "peak": 117.833482,
+                 "rms": 67.740221
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.698318,
+                 "rms": 0.220464
+                },
+                "acc": {
+                 "peak": 5.777497,
+                 "rms": 2.691211
+                },
+                "jerk": {
+                 "peak": 98.98327,
+                 "rms": 66.693415
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.698318,
+               "acc": 5.777497,
+               "jerk": 117.833482
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": false
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "lift",
+              "tv": [
+               0.0,
+               0.037135,
+               0.35145,
+               0.379445,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.768031,
+              "max_step": 0.034916,
+              "points": 47,
+              "steps": 47,
+              "commands": 11,
+              "sim_duration": 2.3,
+              "profile": {
+               "points": 47,
+               "duration": 2.3,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.12114,
+                  "rms": 0.031124
+                 },
+                 "acc": {
+                  "peak": 2.422801,
+                  "rms": 0.707377
+                 },
+                 "jerk": {
+                  "peak": 80.929592,
+                  "rms": 23.022367
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.670566,
+                  "rms": 0.209521
+                 },
+                 "acc": {
+                  "peak": 5.734447,
+                  "rms": 2.7117
+                 },
+                 "jerk": {
+                  "peak": 117.833482,
+                  "rms": 67.740221
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.698318,
+                  "rms": 0.220464
+                 },
+                 "acc": {
+                  "peak": 5.777497,
+                  "rms": 2.691211
+                 },
+                 "jerk": {
+                  "peak": 98.98327,
+                  "rms": 66.693415
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.698318,
+                "acc": 5.777497,
+                "jerk": 117.833482
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": false
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.0
+             }
+            ]
+           }
+          },
+          {
+           "state": "TRANSFERRING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "4 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 3.313,
+            "samples": 122,
+            "configs": 122,
+            "totals": {
+             "segments": 4,
+             "tv_total": 14.553421,
+             "max_step": 4.931444,
+             "points": 23
+            },
+            "segments": [
+             {
+              "name": "rise",
+              "tv": [
+               0.0,
+               0.087014,
+               0.425828,
+               0.338814,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.851657,
+              "max_step": 0.171617,
+              "points": 9,
+              "q0_delta": 0.0,
+              "q_delta": [
+               0.0,
+               -0.087014,
+               0.425828,
+               -0.338814,
+               -0.0,
+               0.0
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "transit",
+              "tv": [
+               1.596727,
+               1.352493,
+               0.071523,
+               1.424015,
+               0.0,
+               1.596727
+              ],
+              "tv_total": 6.041485,
+              "max_step": 1.596727,
+              "points": 2,
+              "q0_delta": -1.596727,
+              "q_delta": [
+               -1.596727,
+               1.352493,
+               0.071523,
+               -1.424015,
+               0.0,
+               -1.596727
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "pre_place",
+              "tv": [
+               0.085095,
+               0.318983,
+               1.669225,
+               4.931444,
+               0.000266,
+               0.085034
+              ],
+              "tv_total": 7.090047,
+              "max_step": 4.931444,
+              "points": 2,
+              "q0_delta": 0.085095,
+              "q_delta": [
+               0.085095,
+               -0.318983,
+               1.669225,
+               4.931444,
+               -0.000266,
+               0.085034
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570531,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "place",
+              "tv": [
+               0.003206,
+               0.121519,
+               0.160977,
+               0.280997,
+               0.000266,
+               0.003267
+              ],
+              "tv_total": 0.570232,
+              "max_step": 0.13079,
+              "points": 10,
+              "q0_delta": 0.003206,
+              "q_delta": [
+               0.003206,
+               0.121519,
+               0.160977,
+               -0.280997,
+               0.000266,
+               0.003267
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570531,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 4,
+             "tv_total": 14.547792,
+             "max_step": 0.044464,
+             "points": 400,
+             "sim_duration": 19.8,
+             "steps": 400,
+             "commands": 61,
+             "profile": {
+              "points": 397,
+              "duration": 19.8,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.629572,
+                 "rms": 0.194835
+                },
+                "acc": {
+                 "peak": 5.747184,
+                 "rms": 2.031674
+                },
+                "jerk": {
+                 "peak": 99.090485,
+                 "rms": 37.505371
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.565479,
+                 "rms": 0.180145
+                },
+                "acc": {
+                 "peak": 5.558147,
+                 "rms": 2.140024
+                },
+                "jerk": {
+                 "peak": 98.659269,
+                 "rms": 44.955729
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.767491,
+                 "rms": 0.196275
+                },
+                "acc": {
+                 "peak": 5.951932,
+                 "rms": 2.425566
+                },
+                "jerk": {
+                 "peak": 98.174159,
+                 "rms": 50.555623
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.889273,
+                 "rms": 0.451542
+                },
+                "acc": {
+                 "peak": 5.997942,
+                 "rms": 4.039068
+                },
+                "jerk": {
+                 "peak": 120.651469,
+                 "rms": 67.178388
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.629582,
+                 "rms": 0.194844
+                },
+                "acc": {
+                 "peak": 5.747219,
+                 "rms": 2.031729
+                },
+                "jerk": {
+                 "peak": 99.093878,
+                 "rms": 37.506048
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.889273,
+               "acc": 5.997942,
+               "jerk": 120.651469
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": false
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "rise",
+              "tv": [
+               0.0,
+               0.088428,
+               0.425421,
+               0.338786,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.852635,
+              "max_step": 0.038375,
+              "points": 41,
+              "steps": 41,
+              "commands": 9,
+              "sim_duration": 2.0,
+              "profile": {
+               "points": 41,
+               "duration": 2.0,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.248685,
+                  "rms": 0.074116
+                 },
+                 "acc": {
+                  "peak": 3.592603,
+                  "rms": 1.32308
+                 },
+                 "jerk": {
+                  "peak": 80.547035,
+                  "rms": 36.949934
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.767491,
+                  "rms": 0.275623
+                 },
+                 "acc": {
+                  "peak": 5.951932,
+                  "rms": 3.015651
+                 },
+                 "jerk": {
+                  "peak": 97.959374,
+                  "rms": 67.841744
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.685661,
+                  "rms": 0.22909
+                 },
+                 "acc": {
+                  "peak": 5.767143,
+                  "rms": 2.861892
+                 },
+                 "jerk": {
+                  "peak": 120.651469,
+                  "rms": 67.899112
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.767491,
+                "acc": 5.951932,
+                "jerk": 120.651469
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": false
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.0
+             },
+             {
+              "name": "transit",
+              "tv": [
+               1.596697,
+               1.352288,
+               0.072294,
+               1.424126,
+               0.0,
+               1.596792
+              ],
+              "tv_total": 6.042197,
+              "max_step": 0.031479,
+              "points": 103,
+              "steps": 103,
+              "commands": 16,
+              "sim_duration": 5.1,
+              "profile": {
+               "points": 103,
+               "duration": 5.1,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.629572,
+                  "rms": 0.383172
+                 },
+                 "acc": {
+                  "peak": 5.747184,
+                  "rms": 3.98217
+                 },
+                 "jerk": {
+                  "peak": 99.090485,
+                  "rms": 72.366641
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.565479,
+                  "rms": 0.335486
+                 },
+                 "acc": {
+                  "peak": 5.558147,
+                  "rms": 3.720065
+                 },
+                 "jerk": {
+                  "peak": 98.659269,
+                  "rms": 69.249278
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.063119,
+                  "rms": 0.027101
+                 },
+                 "acc": {
+                  "peak": 1.262378,
+                  "rms": 0.583196
+                 },
+                 "jerk": {
+                  "peak": 36.295382,
+                  "rms": 17.620566
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.585301,
+                  "rms": 0.350489
+                 },
+                 "acc": {
+                  "peak": 5.626358,
+                  "rms": 3.829251
+                 },
+                 "jerk": {
+                  "peak": 99.067719,
+                  "rms": 70.736798
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.629582,
+                  "rms": 0.383191
+                 },
+                 "acc": {
+                  "peak": 5.747219,
+                  "rms": 3.982272
+                 },
+                 "jerk": {
+                  "peak": 99.093878,
+                  "rms": 72.365753
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.629582,
+                "acc": 5.747219,
+                "jerk": 99.093878
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -1.596697
+             },
+             {
+              "name": "pre_place",
+              "tv": [
+               0.084903,
+               0.318788,
+               1.668574,
+               4.928253,
+               0.0,
+               0.084839
+              ],
+              "tv_total": 7.085358,
+              "max_step": 0.044464,
+              "points": 222,
+              "steps": 222,
+              "commands": 27,
+              "sim_duration": 11.05,
+              "profile": {
+               "points": 222,
+               "duration": 11.05,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.037875,
+                  "rms": 0.015885
+                 },
+                 "acc": {
+                  "peak": 0.757501,
+                  "rms": 0.319661
+                 },
+                 "jerk": {
+                  "peak": 15.150011,
+                  "rms": 9.039155
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.144009,
+                  "rms": 0.054989
+                 },
+                 "acc": {
+                  "peak": 2.062762,
+                  "rms": 1.038785
+                 },
+                 "jerk": {
+                  "peak": 75.099637,
+                  "rms": 29.141948
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.446995,
+                  "rms": 0.226919
+                 },
+                 "acc": {
+                  "peak": 4.999865,
+                  "rms": 2.836818
+                 },
+                 "jerk": {
+                  "peak": 97.33925,
+                  "rms": 55.842939
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.889273,
+                  "rms": 0.539274
+                 },
+                 "acc": {
+                  "peak": 5.997942,
+                  "rms": 4.4673
+                 },
+                 "jerk": {
+                  "peak": 99.091968,
+                  "rms": 66.316089
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.037812,
+                  "rms": 0.015873
+                 },
+                 "acc": {
+                  "peak": 0.756241,
+                  "rms": 0.319406
+                 },
+                 "jerk": {
+                  "peak": 15.124814,
+                  "rms": 9.031788
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.889273,
+                "acc": 5.997942,
+                "jerk": 99.091968
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.084903
+             },
+             {
+              "name": "place",
+              "tv": [
+               0.003092,
+               0.121501,
+               0.161416,
+               0.278443,
+               0.0,
+               0.00315
+              ],
+              "tv_total": 0.567602,
+              "max_step": 0.035341,
+              "points": 34,
+              "steps": 34,
+              "commands": 9,
+              "sim_duration": 1.65,
+              "profile": {
+               "points": 34,
+               "duration": 1.65,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.022856,
+                  "rms": 0.005245
+                 },
+                 "acc": {
+                  "peak": 0.457114,
+                  "rms": 0.150656
+                 },
+                 "jerk": {
+                  "peak": 18.284545,
+                  "rms": 5.302392
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.422629,
+                  "rms": 0.120963
+                 },
+                 "acc": {
+                  "peak": 4.88796,
+                  "rms": 1.800495
+                 },
+                 "jerk": {
+                  "peak": 98.261585,
+                  "rms": 48.181981
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.496039,
+                  "rms": 0.151967
+                 },
+                 "acc": {
+                  "peak": 5.23866,
+                  "rms": 2.177413
+                 },
+                 "jerk": {
+                  "peak": 98.174159,
+                  "rms": 57.927775
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.706828,
+                  "rms": 0.236195
+                 },
+                 "acc": {
+                  "peak": 5.887523,
+                  "rms": 2.618299
+                 },
+                 "jerk": {
+                  "peak": 97.488671,
+                  "rms": 61.455244
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.023085,
+                  "rms": 0.005329
+                 },
+                 "acc": {
+                  "peak": 0.46171,
+                  "rms": 0.153057
+                 },
+                 "jerk": {
+                  "peak": 18.468383,
+                  "rms": 5.386891
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.706828,
+                "acc": 5.887523,
+                "jerk": 98.261585
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.003092
+             }
+            ]
+           }
+          },
+          {
+           "state": "RETREATING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "1 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 1.031,
+            "samples": 33,
+            "configs": 33,
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.628517,
+             "max_step": 0.135749,
+             "points": 11
+            },
+            "segments": [
+             {
+              "name": "retreat",
+              "tv": [
+               0.0,
+               0.092109,
+               0.22215,
+               0.314259,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.628517,
+              "max_step": 0.135749,
+              "points": 11,
+              "q0_delta": -0.0,
+              "q_delta": [
+               -0.0,
+               -0.092109,
+               -0.22215,
+               0.314259,
+               -0.0,
+               -0.0
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.6216,
+             "max_step": 0.035546,
+             "points": 38,
+             "sim_duration": 1.85,
+             "steps": 38,
+             "commands": 10,
+             "profile": {
+              "points": 38,
+              "duration": 1.85,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.354959,
+                 "rms": 0.092561
+                },
+                "acc": {
+                 "peak": 4.285972,
+                 "rms": 1.602909
+                },
+                "jerk": {
+                 "peak": 98.00638,
+                 "rms": 46.027935
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.563416,
+                 "rms": 0.176686
+                },
+                "acc": {
+                 "peak": 5.395824,
+                 "rms": 2.256702
+                },
+                "jerk": {
+                 "peak": 95.645749,
+                 "rms": 56.816724
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.710923,
+                 "rms": 0.233891
+                },
+                "acc": {
+                 "peak": 5.912562,
+                 "rms": 2.574487
+                },
+                "jerk": {
+                 "peak": 96.029424,
+                 "rms": 60.770251
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.710923,
+               "acc": 5.912562,
+               "jerk": 98.00638
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": true
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "retreat",
+              "tv": [
+               0.0,
+               0.091503,
+               0.220907,
+               0.30919,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.6216,
+              "max_step": 0.035546,
+              "points": 38,
+              "steps": 38,
+              "commands": 10,
+              "sim_duration": 1.85,
+              "profile": {
+               "points": 38,
+               "duration": 1.85,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.354959,
+                  "rms": 0.092561
+                 },
+                 "acc": {
+                  "peak": 4.285972,
+                  "rms": 1.602909
+                 },
+                 "jerk": {
+                  "peak": 98.00638,
+                  "rms": 46.027935
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.563416,
+                  "rms": 0.176686
+                 },
+                 "acc": {
+                  "peak": 5.395824,
+                  "rms": 2.256702
+                 },
+                 "jerk": {
+                  "peak": 95.645749,
+                  "rms": 56.816724
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.710923,
+                  "rms": 0.233891
+                 },
+                 "acc": {
+                  "peak": 5.912562,
+                  "rms": 2.574487
+                 },
+                 "jerk": {
+                  "peak": 96.029424,
+                  "rms": 60.770251
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.710923,
+                "acc": 5.912562,
+                "jerk": 98.00638
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.0
+             }
+            ]
+           }
+          }
+         ]
+        },
+        "material": {
+         "uid": 1,
+         "alias": "Part_0001",
+         "state": "RELEASED",
+         "handle": 277,
+         "parent": 208,
+         "pose": [
+          0.400039,
+          0.70197,
+          0.306941,
+          -0.000991,
+          4.1e-05,
+          -0.000182,
+          0.999999
+         ]
+        },
+        "material_pose": [
+         0.400039,
+         0.70197,
+         0.306941,
+         -0.000991,
+         4.1e-05,
+         -0.000182,
+         0.999999
+        ],
+        "material_state": "RELEASED",
+        "tray_check": {
+         "ok": true,
+         "detail": "local=(0.0085,-0.0010) z_error=-0.0001",
+         "relative_xy": [
+          0.008457,
+          -0.001042
+         ],
+         "z_error": -8.4e-05,
+         "pose": [
+          0.400039,
+          0.70197,
+          0.306941,
+          -0.000991,
+          4.1e-05,
+          -0.000182,
+          0.999999
+         ]
+        }
+       }
+      },
+      {
+       "task_id": "transport_uid1",
+       "kind": "transport",
+       "uid": 1,
+       "source": "dock_A",
+       "destination": "dock_B",
+       "dock": "B",
+       "status": "DONE",
+       "phase": "DONE",
+       "attempts": 1,
+       "created_sim_time": 0.85,
+       "started_sim_time": 35.65,
+       "finished_sim_time": 48.0,
+       "failure_reason": "",
+       "resources": [
+        "agv_lane",
+        "dock_B"
+       ],
+       "evidence": {
+        "route": {
+         "state": "DONE",
+         "failure_reason": "",
+         "spec": {
+          "route_id": "A_to_B",
+          "start": [
+           0.4,
+           0.7
+          ],
+          "end": [
+           0.4,
+           -0.7
+          ],
+          "heading": -1.570796,
+          "direction": 1,
+          "speed": 0.12,
+          "loaded": true,
+          "arrive_tol": 0.02,
+          "heading_tol": 0.08
+         },
+         "metrics": {
+          "route_id": "A_to_B",
+          "loaded": true,
+          "start_pose": [
+           0.401149,
+           0.710419,
+           0.138685,
+           -0.000722,
+           -0.000672,
+           -0.709976,
+           0.704225
+          ],
+          "end_pose": [
+           0.399864,
+           -0.680258,
+           0.138692,
+           -0.000672,
+           -0.000619,
+           -0.706976,
+           0.707237
+          ],
+          "target_pose": [
+           0.4,
+           -0.7,
+           0.138685,
+           0.0,
+           0.0,
+           -0.707107,
+           0.707107
+          ],
+          "stop_error": 0.019742,
+          "heading_error": -0.00037,
+          "duration_s": 12.35,
+          "max_speed": 0.119971,
+          "mean_speed": 0.112162,
+          "samples": 248,
+          "stable_samples": 225,
+          "stable_fraction": 0.9073,
+          "material_slip": 0.0,
+          "material_relative_start": [
+           0.008457,
+           -0.001042,
+           0.168256
+          ],
+          "material_relative_end": [
+           0.004765,
+           -0.002167,
+           0.168248
+          ],
+          "blocked": {},
+          "resumed": []
+         },
+         "version": "stage3_agv_route_20261025"
+        },
+        "material_state": {
+         "uid": 1,
+         "alias": "Part_0001",
+         "state": "RELEASED",
+         "handle": 277,
+         "parent": 208,
+         "pose": [
+          0.397693,
+          -0.684986,
+          0.30694,
+          -0.000915,
+          4.1e-05,
+          0.003919,
+          0.999992
+         ]
+        }
+       }
+      },
+      {
+       "task_id": "unload_B_uid1",
+       "kind": "unload_B",
+       "uid": 1,
+       "source": "AGV@dock_B",
+       "destination": "Station_B",
+       "dock": "B",
+       "status": "DONE",
+       "phase": "DONE",
+       "attempts": 1,
+       "created_sim_time": 0.85,
+       "started_sim_time": 48.05,
+       "finished_sim_time": 72.05,
+       "failure_reason": "",
+       "resources": [
+        "dock_B",
+        "arm_B"
+       ],
+       "evidence": {
+        "waits": [
+         {
+          "sim_time": 35.65,
+          "reason": "等待 AGV 到达 dock B 并释放预留"
+         }
+        ],
+        "controller": {
+         "uid": 1,
+         "target": "station",
+         "layout": "L2_MIRROR/B",
+         "state": "DONE",
+         "failure_reason": "",
+         "material_state": "RELEASED",
+         "pick_pose": [
+          0.39769,
+          -0.68484,
+          0.30694
+         ],
+         "agv_blocked": false,
+         "unit_id": "B",
+         "source": "agv",
+         "sink": "station",
+         "dock_id": "B",
+         "task_id": "unload_B_uid1",
+         "release_attempted": true,
+         "tray_check": {
+          "ok": true,
+          "detail": "local=(0.0047,-0.0022) z_error=-0.0001",
+          "relative_xy": [
+           0.004654520041605921,
+           -0.0021649433074453
+          ],
+          "z_error": -8.50955980972179e-05
+         },
+         "motion_opt_version": "2.01",
+         "agv_transfer_opt_version": "2.02",
+         "branch_anchor": "positive",
+         "compensation": {
+          "count": 0,
+          "long_compensation": false,
+          "overspeed_steps": 0
+         },
+         "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 1,
+          "signed_distance": 0.000626,
+          "lateral_offset": 0.001749,
+          "offset_xy": [
+           0.000798,
+           -0.001557
+          ],
+          "normal_angle": 0.001533,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+           "center_world": [
+            0.397273,
+            -0.683188,
+            0.356955
+           ],
+           "normal_world": [
+            7e-05,
+            0.001255,
+            0.999999
+           ],
+           "half_u": 0.05,
+           "half_v": 0.05,
+           "top_z_local": 0.05
+          },
+          "tool_position": [
+           0.398081,
+           -0.684738,
+           0.357583
+          ],
+          "tool_normal": [
+           0.001339,
+           -0.00186,
+           -0.999997
+          ]
+         },
+         "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+           0.17005,
+           -0.390533,
+           -1.386699,
+           0.205927,
+           1.570422,
+           -1.40072
+          ],
+          "links": [
+           {
+            "link": "link1_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link2_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link3_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link4_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link5_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link6_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "link7_visible",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           },
+           {
+            "link": "tcp",
+            "pos_err": 0.0,
+            "ang_err": 0.0
+           }
+          ]
+         },
+         "release": {
+          "pose": [
+           -0.200858,
+           -1.198959,
+           0.35015,
+           -0.000578,
+           0.000745,
+           0.003692,
+           0.999993
+          ]
+         },
+         "pick_box": {
+          "min": [
+           -0.05,
+           -0.05,
+           -0.05
+          ],
+          "max": [
+           0.05,
+           0.05,
+           0.05
+          ]
+         },
+         "stop": null,
+         "stability": null,
+         "motion_totals": {
+          "motions": 4,
+          "executed": 4,
+          "failed": 0,
+          "tv_total": 11.624323,
+          "max_step": 0.044566,
+          "sim_duration": 22.4,
+          "steps": 456,
+          "commands": 90
+         },
+         "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+         },
+         "attach_transform": [
+          -0.00088,
+          0.001581,
+          -0.050624,
+          -0.000305,
+          -0.000703,
+          -0.003706,
+          -0.999993
+         ],
+         "motion": [
+          {
+           "state": "APPROACHING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "free:direct",
+            "lock_policy": "free",
+            "message": "2 段通过粗筛与最终复核 (policy=free)",
+            "wall_s": 1.39,
+            "samples": 44,
+            "configs": 44,
+            "totals": {
+             "segments": 2,
+             "tv_total": 2.965995,
+             "max_step": 1.530567,
+             "points": 13
+            },
+            "segments": [
+             {
+              "name": "pre_pick",
+              "tv": [
+               1.530567,
+               0.332019,
+               0.011299,
+               0.343329,
+               0.001845,
+               0.04023
+              ],
+              "tv_total": 2.259288,
+              "max_step": 1.530567,
+              "points": 2,
+              "q0_delta": 1.530567,
+              "q_delta": [
+               1.530567,
+               -0.332019,
+               -0.011299,
+               0.343329,
+               -0.001845,
+               -0.04023
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.568951,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "pick",
+              "tv": [
+               0.000581,
+               0.176231,
+               0.176543,
+               0.352765,
+               5e-06,
+               0.000582
+              ],
+              "tv_total": 0.706707,
+              "max_step": 0.141663,
+              "points": 11,
+              "q0_delta": -0.000581,
+              "q_delta": [
+               -0.000581,
+               -0.176231,
+               -0.176543,
+               0.352765,
+               5e-06,
+               -0.000582
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.568951,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 2,
+             "tv_total": 2.963797,
+             "max_step": 0.044566,
+             "points": 114,
+             "sim_duration": 5.6,
+             "steps": 114,
+             "commands": 19,
+             "profile": {
+              "points": 113,
+              "duration": 5.6,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.891324,
+                 "rms": 0.422343
+                },
+                "acc": {
+                 "peak": 5.998263,
+                 "rms": 3.498288
+                },
+                "jerk": {
+                 "peak": 99.047409,
+                 "rms": 51.820556
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.470916,
+                 "rms": 0.148725
+                },
+                "acc": {
+                 "peak": 4.91929,
+                 "rms": 2.170928
+                },
+                "jerk": {
+                 "peak": 97.315578,
+                 "rms": 50.487362
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.474693,
+                 "rms": 0.083867
+                },
+                "acc": {
+                 "peak": 4.887808,
+                 "rms": 1.277488
+                },
+                "jerk": {
+                 "peak": 94.71992,
+                 "rms": 34.046865
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.74888,
+                 "rms": 0.192081
+                },
+                "acc": {
+                 "peak": 5.738864,
+                 "rms": 2.484363
+                },
+                "jerk": {
+                 "peak": 99.087116,
+                 "rms": 57.407638
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.00909,
+                 "rms": 0.001704
+                },
+                "acc": {
+                 "peak": 0.181796,
+                 "rms": 0.048424
+                },
+                "jerk": {
+                 "peak": 7.271855,
+                 "rms": 1.685059
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.064417,
+                 "rms": 0.019497
+                },
+                "acc": {
+                 "peak": 1.28834,
+                 "rms": 0.414114
+                },
+                "jerk": {
+                 "peak": 37.180746,
+                 "rms": 12.58902
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.891324,
+               "acc": 5.998263,
+               "jerk": 99.087116
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": true
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "pre_pick",
+              "tv": [
+               1.530437,
+               0.331952,
+               0.010961,
+               0.343205,
+               0.001804,
+               0.040225
+              ],
+              "tv_total": 2.258584,
+              "max_step": 0.044566,
+              "points": 71,
+              "steps": 71,
+              "commands": 9,
+              "sim_duration": 3.5,
+              "profile": {
+               "points": 71,
+               "duration": 3.5,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.891324,
+                  "rms": 0.534225
+                 },
+                 "acc": {
+                  "peak": 5.998263,
+                  "rms": 4.430435
+                 },
+                 "jerk": {
+                  "peak": 99.047409,
+                  "rms": 65.719403
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.344339,
+                  "rms": 0.156611
+                 },
+                 "acc": {
+                  "peak": 4.126902,
+                  "rms": 2.272453
+                 },
+                 "jerk": {
+                  "peak": 97.315578,
+                  "rms": 50.511554
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.029727,
+                  "rms": 0.008774
+                 },
+                 "acc": {
+                  "peak": 0.594547,
+                  "rms": 0.244198
+                 },
+                 "jerk": {
+                  "peak": 23.781874,
+                  "rms": 8.384909
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.355859,
+                  "rms": 0.161608
+                 },
+                 "acc": {
+                  "peak": 4.315262,
+                  "rms": 2.342062
+                 },
+                 "jerk": {
+                  "peak": 98.05564,
+                  "rms": 52.163979
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.00909,
+                  "rms": 0.002156
+                 },
+                 "acc": {
+                  "peak": 0.181796,
+                  "rms": 0.061418
+                 },
+                 "jerk": {
+                  "peak": 7.271855,
+                  "rms": 2.143172
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.064417,
+                  "rms": 0.024645
+                 },
+                 "acc": {
+                  "peak": 1.28834,
+                  "rms": 0.52456
+                 },
+                 "jerk": {
+                  "peak": 37.180746,
+                  "rms": 15.984467
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.891324,
+                "acc": 5.998263,
+                "jerk": 99.047409
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 1.530437
+             },
+             {
+              "name": "pick",
+              "tv": [
+               0.000413,
+               0.176173,
+               0.17547,
+               0.352765,
+               0.0,
+               0.000392
+              ],
+              "tv_total": 0.705213,
+              "max_step": 0.037444,
+              "points": 43,
+              "steps": 43,
+              "commands": 10,
+              "sim_duration": 2.1,
+              "profile": {
+               "points": 43,
+               "duration": 2.1,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.008262,
+                  "rms": 0.001275
+                 },
+                 "acc": {
+                  "peak": 0.165248,
+                  "rms": 0.036497
+                 },
+                 "jerk": {
+                  "peak": 6.609908,
+                  "rms": 1.280003
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.470916,
+                  "rms": 0.134558
+                 },
+                 "acc": {
+                  "peak": 4.91929,
+                  "rms": 2.013423
+                 },
+                 "jerk": {
+                  "peak": 95.1232,
+                  "rms": 51.610675
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.474693,
+                  "rms": 0.136485
+                 },
+                 "acc": {
+                  "peak": 4.887808,
+                  "rms": 2.073913
+                 },
+                 "jerk": {
+                  "peak": 94.71992,
+                  "rms": 55.038053
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.74888,
+                  "rms": 0.234218
+                 },
+                 "acc": {
+                  "peak": 5.738864,
+                  "rms": 2.731576
+                 },
+                 "jerk": {
+                  "peak": 99.087116,
+                  "rms": 66.107388
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.007837,
+                  "rms": 0.001209
+                 },
+                 "acc": {
+                  "peak": 0.156739,
+                  "rms": 0.034618
+                 },
+                 "jerk": {
+                  "peak": 6.26956,
+                  "rms": 1.214095
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.74888,
+                "acc": 5.738864,
+                "jerk": 99.087116
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -0.000413
+             }
+            ]
+           }
+          },
+          {
+           "state": "LIFTING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "1 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 1.016,
+            "samples": 31,
+            "configs": 31,
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.706645,
+             "max_step": 0.141209,
+             "points": 11
+            },
+            "segments": [
+             {
+              "name": "lift",
+              "tv": [
+               0.000458,
+               0.176247,
+               0.176617,
+               0.352865,
+               0.0,
+               0.000458
+              ],
+              "tv_total": 0.706645,
+              "max_step": 0.141209,
+              "points": 11,
+              "q0_delta": 0.000458,
+              "q_delta": [
+               0.000458,
+               0.176247,
+               0.176617,
+               -0.352865,
+               0.0,
+               0.000458
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.568956,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.702147,
+             "max_step": 0.037056,
+             "points": 43,
+             "sim_duration": 2.1,
+             "steps": 43,
+             "commands": 10,
+             "profile": {
+              "points": 43,
+              "duration": 2.1,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.008384,
+                 "rms": 0.001294
+                },
+                "acc": {
+                 "peak": 0.167671,
+                 "rms": 0.037032
+                },
+                "jerk": {
+                 "peak": 6.706853,
+                 "rms": 1.298776
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.474666,
+                 "rms": 0.135273
+                },
+                "acc": {
+                 "peak": 4.888083,
+                 "rms": 2.020215
+                },
+                "jerk": {
+                 "peak": 94.723295,
+                 "rms": 52.76884
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.464242,
+                 "rms": 0.132749
+                },
+                "acc": {
+                 "peak": 4.962123,
+                 "rms": 1.989533
+                },
+                "jerk": {
+                 "peak": 95.766213,
+                 "rms": 50.666057
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.741122,
+                 "rms": 0.234163
+                },
+                "acc": {
+                 "peak": 5.9044,
+                 "rms": 2.74228
+                },
+                "jerk": {
+                 "peak": 97.574149,
+                 "rms": 66.307978
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.741122,
+               "acc": 5.9044,
+               "jerk": 97.574149
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": true
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "lift",
+              "tv": [
+               0.000419,
+               0.17474,
+               0.175016,
+               0.351971,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.702147,
+              "max_step": 0.037056,
+              "points": 43,
+              "steps": 43,
+              "commands": 10,
+              "sim_duration": 2.1,
+              "profile": {
+               "points": 43,
+               "duration": 2.1,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.008384,
+                  "rms": 0.001294
+                 },
+                 "acc": {
+                  "peak": 0.167671,
+                  "rms": 0.037032
+                 },
+                 "jerk": {
+                  "peak": 6.706853,
+                  "rms": 1.298776
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.474666,
+                  "rms": 0.135273
+                 },
+                 "acc": {
+                  "peak": 4.888083,
+                  "rms": 2.020215
+                 },
+                 "jerk": {
+                  "peak": 94.723295,
+                  "rms": 52.76884
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.464242,
+                  "rms": 0.132749
+                 },
+                 "acc": {
+                  "peak": 4.962123,
+                  "rms": 1.989533
+                 },
+                 "jerk": {
+                  "peak": 95.766213,
+                  "rms": 50.666057
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.741122,
+                  "rms": 0.234163
+                 },
+                 "acc": {
+                  "peak": 5.9044,
+                  "rms": 2.74228
+                 },
+                 "jerk": {
+                  "peak": 97.574149,
+                  "rms": 66.307978
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.741122,
+                "acc": 5.9044,
+                "jerk": 97.574149
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.000419
+             }
+            ]
+           }
+          },
+          {
+           "state": "TRANSFERRING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "4 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 3.906,
+            "samples": 111,
+            "configs": 111,
+            "totals": {
+             "segments": 4,
+             "tv_total": 7.277672,
+             "max_step": 1.268382,
+             "points": 42
+            },
+            "segments": [
+             {
+              "name": "rise",
+              "tv": [
+               0.0,
+               0.144798,
+               0.814899,
+               0.780271,
+               0.0,
+               0.0
+              ],
+              "tv_total": 1.739969,
+              "max_step": 0.125628,
+              "points": 27,
+              "q0_delta": 0.0,
+              "q_delta": [
+               0.0,
+               -0.034628,
+               0.814899,
+               -0.780271,
+               -0.0,
+               0.0
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.568956,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "transit",
+              "tv": [
+               1.268382,
+               0.418478,
+               0.476207,
+               0.055733,
+               0.000854,
+               1.266787
+              ],
+              "tv_total": 3.48644,
+              "max_step": 1.268382,
+              "points": 2,
+              "q0_delta": -1.268382,
+              "q_delta": [
+               -1.268382,
+               0.418478,
+               -0.476207,
+               0.055733,
+               0.000854,
+               -1.266787
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.568956,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "pre_place",
+              "tv": [
+               0.092069,
+               0.442516,
+               0.1426,
+               0.587112,
+               0.000986,
+               0.093663
+              ],
+              "tv_total": 1.358947,
+              "max_step": 0.587112,
+              "points": 2,
+              "q0_delta": -0.092069,
+              "q_delta": [
+               -0.092069,
+               -0.442516,
+               -0.1426,
+               0.587112,
+               0.000986,
+               -0.093663
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.56981,
+              "min_workcell_distance": 0.01465
+             },
+             {
+              "name": "place",
+              "tv": [
+               5.6e-05,
+               0.130892,
+               0.215209,
+               0.346102,
+               0.0,
+               5.6e-05
+              ],
+              "tv_total": 0.692316,
+              "max_step": 0.138808,
+              "points": 11,
+              "q0_delta": 5.6e-05,
+              "q_delta": [
+               5.6e-05,
+               -0.130892,
+               -0.215209,
+               0.346102,
+               0.0,
+               5.6e-05
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 4,
+             "tv_total": 7.268733,
+             "max_step": 0.039254,
+             "points": 256,
+             "sim_duration": 12.6,
+             "steps": 256,
+             "commands": 50,
+             "profile": {
+              "points": 253,
+              "duration": 12.6,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.719615,
+                 "rms": 0.233341
+                },
+                "acc": {
+                 "peak": 5.906605,
+                 "rms": 2.303121
+                },
+                "jerk": {
+                 "peak": 99.099616,
+                 "rms": 40.988143
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.666134,
+                 "rms": 0.170265
+                },
+                "acc": {
+                 "peak": 5.74893,
+                 "rms": 2.147003
+                },
+                "jerk": {
+                 "peak": 114.499139,
+                 "rms": 47.093959
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.702006,
+                 "rms": 0.185052
+                },
+                "acc": {
+                 "peak": 5.792064,
+                 "rms": 2.545888
+                },
+                "jerk": {
+                 "peak": 98.920651,
+                 "rms": 60.55065
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.785083,
+                 "rms": 0.224955
+                },
+                "acc": {
+                 "peak": 5.961809,
+                 "rms": 2.510238
+                },
+                "jerk": {
+                 "peak": 98.983529,
+                 "rms": 56.930164
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0103,
+                 "rms": 0.001042
+                },
+                "acc": {
+                 "peak": 0.206008,
+                 "rms": 0.029522
+                },
+                "jerk": {
+                 "peak": 8.240304,
+                 "rms": 1.024712
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.719047,
+                 "rms": 0.233167
+                },
+                "acc": {
+                 "peak": 5.906565,
+                 "rms": 2.30416
+                },
+                "jerk": {
+                 "peak": 99.063853,
+                 "rms": 41.071846
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.785083,
+               "acc": 5.961809,
+               "jerk": 114.499139
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": false
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "rise",
+              "tv": [
+               0.0,
+               0.145329,
+               0.813974,
+               0.780325,
+               0.0,
+               0.0
+              ],
+              "tv_total": 1.739627,
+              "max_step": 0.0351,
+              "points": 111,
+              "steps": 111,
+              "commands": 26,
+              "sim_duration": 5.5,
+              "profile": {
+               "points": 111,
+               "duration": 5.5,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.150798,
+                  "rms": 0.045413
+                 },
+                 "acc": {
+                  "peak": 2.596434,
+                  "rms": 0.97372
+                 },
+                 "jerk": {
+                  "peak": 87.717938,
+                  "rms": 30.105652
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.702006,
+                  "rms": 0.19502
+                 },
+                 "acc": {
+                  "peak": 5.792064,
+                  "rms": 2.629213
+                 },
+                 "jerk": {
+                  "peak": 98.920651,
+                  "rms": 67.887733
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.671225,
+                  "rms": 0.184408
+                 },
+                 "acc": {
+                  "peak": 5.822996,
+                  "rms": 2.534919
+                 },
+                 "jerk": {
+                  "peak": 96.858762,
+                  "rms": 65.739147
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.702006,
+                "acc": 5.822996,
+                "jerk": 98.920651
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.0
+             },
+             {
+              "name": "transit",
+              "tv": [
+               1.268352,
+               0.418445,
+               0.47508,
+               0.055011,
+               0.000515,
+               1.266507
+              ],
+              "tv_total": 3.483909,
+              "max_step": 0.035981,
+              "points": 72,
+              "steps": 72,
+              "commands": 10,
+              "sim_duration": 3.55,
+              "profile": {
+               "points": 72,
+               "duration": 3.55,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.719615,
+                  "rms": 0.434395
+                 },
+                 "acc": {
+                  "peak": 5.906605,
+                  "rms": 4.201825
+                 },
+                 "jerk": {
+                  "peak": 99.099616,
+                  "rms": 70.385698
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.36295,
+                  "rms": 0.178693
+                 },
+                 "acc": {
+                  "peak": 4.549398,
+                  "rms": 2.595204
+                 },
+                 "jerk": {
+                  "peak": 98.38943,
+                  "rms": 58.133893
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.388684,
+                  "rms": 0.195736
+                 },
+                 "acc": {
+                  "peak": 5.316634,
+                  "rms": 2.674035
+                 },
+                 "jerk": {
+                  "peak": 98.88975,
+                  "rms": 56.682979
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.079778,
+                  "rms": 0.031021
+                 },
+                 "acc": {
+                  "peak": 1.59557,
+                  "rms": 0.681461
+                 },
+                 "jerk": {
+                  "peak": 48.907604,
+                  "rms": 21.127917
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0103,
+                  "rms": 0.001222
+                 },
+                 "acc": {
+                  "peak": 0.206008,
+                  "rms": 0.034822
+                 },
+                 "jerk": {
+                  "peak": 8.240304,
+                  "rms": 1.214967
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.719047,
+                  "rms": 0.433899
+                 },
+                 "acc": {
+                  "peak": 5.906565,
+                  "rms": 4.200003
+                 },
+                 "jerk": {
+                  "peak": 99.063853,
+                  "rms": 70.376166
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.719615,
+                "acc": 5.906605,
+                "jerk": 99.099616
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -1.268352
+             },
+             {
+              "name": "pre_place",
+              "tv": [
+               0.091245,
+               0.442342,
+               0.142552,
+               0.582952,
+               0.000915,
+               0.09274
+              ],
+              "tv_total": 1.352746,
+              "max_step": 0.039254,
+              "points": 30,
+              "steps": 30,
+              "commands": 4,
+              "sim_duration": 1.45,
+              "profile": {
+               "points": 30,
+               "duration": 1.45,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.224489,
+                  "rms": 0.105546
+                 },
+                 "acc": {
+                  "peak": 3.996872,
+                  "rms": 1.823939
+                 },
+                 "jerk": {
+                  "peak": 83.181068,
+                  "rms": 46.581544
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.666134,
+                  "rms": 0.387487
+                 },
+                 "acc": {
+                  "peak": 5.74893,
+                  "rms": 4.0836
+                 },
+                 "jerk": {
+                  "peak": 114.499139,
+                  "rms": 69.58915
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.312412,
+                  "rms": 0.15171
+                 },
+                 "acc": {
+                  "peak": 3.961427,
+                  "rms": 2.26321
+                 },
+                 "jerk": {
+                  "peak": 93.968196,
+                  "rms": 50.836359
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.785083,
+                  "rms": 0.481248
+                 },
+                 "acc": {
+                  "peak": 5.961809,
+                  "rms": 4.343332
+                 },
+                 "jerk": {
+                  "peak": 98.983529,
+                  "rms": 68.860764
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.009165,
+                  "rms": 0.002402
+                 },
+                 "acc": {
+                  "peak": 0.183299,
+                  "rms": 0.069148
+                 },
+                 "jerk": {
+                  "peak": 7.331956,
+                  "rms": 2.4393
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.225103,
+                  "rms": 0.107182
+                 },
+                 "acc": {
+                  "peak": 4.081365,
+                  "rms": 1.850311
+                 },
+                 "jerk": {
+                  "peak": 81.738241,
+                  "rms": 47.2627
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.785083,
+                "acc": 5.961809,
+                "jerk": 114.499139
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": false
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -0.091245
+             },
+             {
+              "name": "place",
+              "tv": [
+               0.000797,
+               0.131052,
+               0.213511,
+               0.346236,
+               0.0,
+               0.000855
+              ],
+              "tv_total": 0.692451,
+              "max_step": 0.036626,
+              "points": 43,
+              "steps": 43,
+              "commands": 10,
+              "sim_duration": 2.1,
+              "profile": {
+               "points": 43,
+               "duration": 2.1,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.015931,
+                  "rms": 0.002458
+                 },
+                 "acc": {
+                  "peak": 0.318626,
+                  "rms": 0.049761
+                 },
+                 "jerk": {
+                  "peak": 6.372515,
+                  "rms": 1.007583
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.395219,
+                  "rms": 0.10435
+                 },
+                 "acc": {
+                  "peak": 4.555838,
+                  "rms": 1.663044
+                 },
+                 "jerk": {
+                  "peak": 98.867974,
+                  "rms": 44.225257
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.536689,
+                  "rms": 0.158736
+                 },
+                 "acc": {
+                  "peak": 5.109135,
+                  "rms": 2.216216
+                 },
+                 "jerk": {
+                  "peak": 94.105713,
+                  "rms": 54.579913
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.732521,
+                  "rms": 0.230266
+                 },
+                 "acc": {
+                  "peak": 5.90775,
+                  "rms": 2.671275
+                 },
+                 "jerk": {
+                  "peak": 97.360762,
+                  "rms": 64.987618
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.017109,
+                  "rms": 0.00264
+                 },
+                 "acc": {
+                  "peak": 0.342179,
+                  "rms": 0.053439
+                 },
+                 "jerk": {
+                  "peak": 6.84359,
+                  "rms": 1.082067
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.732521,
+                "acc": 5.90775,
+                "jerk": 98.867974
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": true
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": -0.000797
+             }
+            ]
+           }
+          },
+          {
+           "state": "RETREATING",
+           "status": "DONE",
+           "reason": null,
+           "branch_anchor": "positive",
+           "plan": {
+            "status": "DIRECT_OK",
+            "strategy": "lock:direct",
+            "lock_policy": "lock",
+            "message": "1 段通过粗筛与最终复核 (policy=lock)",
+            "wall_s": 1.031,
+            "samples": 33,
+            "configs": 33,
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.692305,
+             "max_step": 0.129871,
+             "points": 12
+            },
+            "segments": [
+             {
+              "name": "retreat",
+              "tv": [
+               0.0,
+               0.131109,
+               0.215044,
+               0.346153,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.692305,
+              "max_step": 0.129871,
+              "points": 12,
+              "q0_delta": 0.0,
+              "q_delta": [
+               0.0,
+               0.131109,
+               0.215044,
+               -0.346153,
+               -0.0,
+               0.0
+              ],
+              "branch_start": "positive",
+              "branch_end": "positive",
+              "wrist_margin_min": 1.570796,
+              "min_workcell_distance": 0.01465
+             }
+            ]
+           },
+           "execution": {
+            "totals": {
+             "segments": 1,
+             "tv_total": 0.689646,
+             "max_step": 0.034188,
+             "points": 43,
+             "sim_duration": 2.1,
+             "steps": 43,
+             "commands": 11,
+             "profile": {
+              "points": 43,
+              "duration": 2.1,
+              "joints": [
+               {
+                "joint": 0,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 1,
+                "vel": {
+                 "peak": 0.383012,
+                 "rms": 0.101075
+                },
+                "acc": {
+                 "peak": 4.350216,
+                 "rms": 1.634285
+                },
+                "jerk": {
+                 "peak": 98.870062,
+                 "rms": 45.988562
+                }
+               },
+               {
+                "joint": 2,
+                "vel": {
+                 "peak": 0.497175,
+                 "rms": 0.151804
+                },
+                "acc": {
+                 "peak": 5.323019,
+                 "rms": 2.190089
+                },
+                "jerk": {
+                 "peak": 106.460381,
+                 "rms": 57.478014
+                }
+               },
+               {
+                "joint": 3,
+                "vel": {
+                 "peak": 0.683766,
+                 "rms": 0.223425
+                },
+                "acc": {
+                 "peak": 5.842996,
+                 "rms": 2.554819
+                },
+                "jerk": {
+                 "peak": 96.423933,
+                 "rms": 62.367913
+                }
+               },
+               {
+                "joint": 4,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               },
+               {
+                "joint": 5,
+                "vel": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "acc": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                },
+                "jerk": {
+                 "peak": 0.0,
+                 "rms": 0.0
+                }
+               }
+              ],
+              "max": {
+               "vel": 0.683766,
+               "acc": 5.842996,
+               "jerk": 106.460381
+              },
+              "limits": {
+               "vel": 1.5,
+               "acc": 6.0,
+               "jerk": 100.0
+              },
+              "within_limits": {
+               "vel": true,
+               "acc": true,
+               "jerk": false
+              }
+             }
+            },
+            "segments": [
+             {
+              "name": "retreat",
+              "tv": [
+               0.0,
+               0.131023,
+               0.212682,
+               0.345941,
+               0.0,
+               0.0
+              ],
+              "tv_total": 0.689646,
+              "max_step": 0.034188,
+              "points": 43,
+              "steps": 43,
+              "commands": 11,
+              "sim_duration": 2.1,
+              "profile": {
+               "points": 43,
+               "duration": 2.1,
+               "joints": [
+                {
+                 "joint": 0,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 1,
+                 "vel": {
+                  "peak": 0.383012,
+                  "rms": 0.101075
+                 },
+                 "acc": {
+                  "peak": 4.350216,
+                  "rms": 1.634285
+                 },
+                 "jerk": {
+                  "peak": 98.870062,
+                  "rms": 45.988562
+                 }
+                },
+                {
+                 "joint": 2,
+                 "vel": {
+                  "peak": 0.497175,
+                  "rms": 0.151804
+                 },
+                 "acc": {
+                  "peak": 5.323019,
+                  "rms": 2.190089
+                 },
+                 "jerk": {
+                  "peak": 106.460381,
+                  "rms": 57.478014
+                 }
+                },
+                {
+                 "joint": 3,
+                 "vel": {
+                  "peak": 0.683766,
+                  "rms": 0.223425
+                 },
+                 "acc": {
+                  "peak": 5.842996,
+                  "rms": 2.554819
+                 },
+                 "jerk": {
+                  "peak": 96.423933,
+                  "rms": 62.367913
+                 }
+                },
+                {
+                 "joint": 4,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                },
+                {
+                 "joint": 5,
+                 "vel": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "acc": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 },
+                 "jerk": {
+                  "peak": 0.0,
+                  "rms": 0.0
+                 }
+                }
+               ],
+               "max": {
+                "vel": 0.683766,
+                "acc": 5.842996,
+                "jerk": 106.460381
+               },
+               "limits": {
+                "vel": 1.5,
+                "acc": 6.0,
+                "jerk": 100.0
+               },
+               "within_limits": {
+                "vel": true,
+                "acc": true,
+                "jerk": false
+               }
+              },
+              "tcp_error": null,
+              "q0_delta": 0.0
+             }
+            ]
+           }
+          }
+         ]
+        },
+        "material": {
+         "uid": 1,
+         "alias": "Part_0001",
+         "state": "RELEASED",
+         "handle": 277,
+         "parent": 208,
+         "pose": [
+          -0.200919,
+          -1.199029,
+          0.35,
+          -0.0,
+          0.0,
+          0.003693,
+          0.999993
+         ]
+        },
+        "material_pose": [
+         -0.200919,
+         -1.199029,
+         0.35,
+         -0.0,
+         0.0,
+         0.003693,
+         0.999993
+        ],
+        "material_state": "RELEASED",
+        "place_error": 0.00133693754528776
+       }
+      },
+      {
+       "task_id": "return_uid1",
+       "kind": "return",
+       "uid": 1,
+       "source": "dock_B",
+       "destination": "dock_A",
+       "dock": "A",
+       "status": "DONE",
+       "phase": "DONE",
+       "attempts": 1,
+       "created_sim_time": 48.0,
+       "started_sim_time": 72.1,
+       "finished_sim_time": 84.1,
+       "failure_reason": "",
+       "resources": [
+        "agv_lane",
+        "dock_A"
+       ],
+       "evidence": {
+        "route": {
+         "state": "DONE",
+         "failure_reason": "",
+         "spec": {
+          "route_id": "B_to_A",
+          "start": [
+           0.4,
+           -0.7
+          ],
+          "end": [
+           0.4,
+           0.7
+          ],
+          "heading": -1.570796,
+          "direction": -1,
+          "speed": 0.12,
+          "loaded": false,
+          "arrive_tol": 0.02,
+          "heading_tol": 0.08
+         },
+         "metrics": {
+          "route_id": "B_to_A",
+          "loaded": false,
+          "start_pose": [
+           0.399555,
+           -0.676569,
+           0.138692,
+           -0.000673,
+           -0.000618,
+           -0.708113,
+           0.706099
+          ],
+          "end_pose": [
+           0.396501,
+           0.680794,
+           0.13865,
+           -0.001042,
+           -0.000988,
+           -0.707397,
+           0.706815
+          ],
+          "target_pose": [
+           0.4,
+           0.7,
+           0.138692,
+           0.0,
+           0.0,
+           -0.707107,
+           0.707107
+          ],
+          "stop_error": 0.019522,
+          "heading_error": 0.000822,
+          "duration_s": 12.0,
+          "max_speed": 0.123287,
+          "mean_speed": 0.112648,
+          "samples": 241,
+          "stable_samples": 219,
+          "stable_fraction": 0.9087,
+          "material_slip": null,
+          "material_relative_start": null,
+          "material_relative_end": null,
+          "blocked": {},
+          "resumed": []
+         },
+         "version": "stage3_agv_route_20261025"
+        },
+        "material_state": {}
+       }
+      }
+     ],
+     "rejections": [],
+     "all_done": true,
+     "any_failed": false
+    },
+    "resources": {
+     "policy_version": "stage3_resources_20261025",
+     "order": [
+      "pick_zone",
+      "agv_lane",
+      "dock_A",
+      "dock_B",
+      "arm_A",
+      "arm_B"
+     ],
+     "roles": {
+      "pick_zone": "共享传送带取料区: 同一时刻只允许一台 UR5 跨入/离开",
+      "agv_lane": "AGV 直线转运通道 x=0.40, y∈[-0.70,0.70]",
+      "dock_A": "dock A 装卸窗口: AGV 对接待命或机械臂装卸时独占",
+      "dock_B": "dock B 装卸窗口: AGV 对接待命或机械臂装卸时独占",
+      "arm_A": "A 臂运动包络 (诊断/串行化后备)",
+      "arm_B": "B 臂运动包络 (诊断/串行化后备)"
+     },
+     "snapshot": {
+      "order": [
+       "pick_zone",
+       "agv_lane",
+       "dock_A",
+       "dock_B",
+       "arm_A",
+       "arm_B"
+      ],
+      "owners": {
+       "pick_zone": null,
+       "agv_lane": null,
+       "dock_A": null,
+       "dock_B": null,
+       "arm_A": null,
+       "arm_B": null
+      },
+      "tasks": {
+       "pick_zone": null,
+       "agv_lane": null,
+       "dock_A": null,
+       "dock_B": null,
+       "arm_A": null,
+       "arm_B": null
+      },
+      "waiting": {
+       "pick_zone": [],
+       "agv_lane": [],
+       "dock_A": [],
+       "dock_B": [],
+       "arm_A": [],
+       "arm_B": []
+      }
+     },
+     "events": [
+      {
+       "sim_time": 0.85,
+       "action": "ACQUIRE",
+       "resource": "pick_zone",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "load_A start"
+      },
+      {
+       "sim_time": 0.85,
+       "action": "ACQUIRE",
+       "resource": "dock_A",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "load_A transfer"
+      },
+      {
+       "sim_time": 0.85,
+       "action": "ACQUIRE",
+       "resource": "arm_A",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "load_A motion"
+      },
+      {
+       "sim_time": 16.0,
+       "action": "RELEASE",
+       "resource": "pick_zone",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "TCP 已退出共享取料区"
+      },
+      {
+       "sim_time": 35.6,
+       "action": "RELEASE",
+       "resource": "arm_A",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "unit task complete"
+      },
+      {
+       "sim_time": 35.6,
+       "action": "RELEASE",
+       "resource": "dock_A",
+       "owner": "unit_A/task_load_A_uid1",
+       "task_id": "load_A_uid1",
+       "reason": "unit task complete"
+      },
+      {
+       "sim_time": 35.65,
+       "action": "ACQUIRE",
+       "resource": "agv_lane",
+       "owner": "agv/task_transport_uid1",
+       "task_id": "transport_uid1",
+       "reason": "A→B transit"
+      },
+      {
+       "sim_time": 35.65,
+       "action": "ACQUIRE",
+       "resource": "dock_B",
+       "owner": "agv/task_transport_uid1",
+       "task_id": "transport_uid1",
+       "reason": "B dock reservation"
+      },
+      {
+       "sim_time": 35.65,
+       "action": "WAIT",
+       "resource": "dock_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "holder=agv/task_transport_uid1; AGV 运输任务持有 dock_B 预留"
+      },
+      {
+       "sim_time": 48.0,
+       "action": "RELEASE",
+       "resource": "dock_B",
+       "owner": "agv/task_transport_uid1",
+       "task_id": "transport_uid1",
+       "reason": "route complete"
+      },
+      {
+       "sim_time": 48.0,
+       "action": "RELEASE",
+       "resource": "agv_lane",
+       "owner": "agv/task_transport_uid1",
+       "task_id": "transport_uid1",
+       "reason": "route complete"
+      },
+      {
+       "sim_time": 48.05,
+       "action": "ACQUIRE",
+       "resource": "dock_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "B unload"
+      },
+      {
+       "sim_time": 48.05,
+       "action": "ACQUIRE",
+       "resource": "arm_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "B motion"
+      },
+      {
+       "sim_time": 72.05,
+       "action": "RELEASE",
+       "resource": "arm_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "unit task complete"
+      },
+      {
+       "sim_time": 72.05,
+       "action": "RELEASE",
+       "resource": "dock_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "unit task complete"
+      },
+      {
+       "sim_time": 72.1,
+       "action": "ACQUIRE",
+       "resource": "agv_lane",
+       "owner": "agv/task_return_uid1",
+       "task_id": "return_uid1",
+       "reason": "B→A return"
+      },
+      {
+       "sim_time": 72.1,
+       "action": "ACQUIRE",
+       "resource": "dock_A",
+       "owner": "agv/task_return_uid1",
+       "task_id": "return_uid1",
+       "reason": "A dock reservation"
+      },
+      {
+       "sim_time": 84.1,
+       "action": "RELEASE",
+       "resource": "dock_A",
+       "owner": "agv/task_return_uid1",
+       "task_id": "return_uid1",
+       "reason": "route complete"
+      },
+      {
+       "sim_time": 84.1,
+       "action": "RELEASE",
+       "resource": "agv_lane",
+       "owner": "agv/task_return_uid1",
+       "task_id": "return_uid1",
+       "reason": "route complete"
+      }
+     ]
+    },
+    "resource_checks": [
+     {
+      "check": "event_owner_consistency",
+      "ok": true,
+      "detail": "events=19"
+     }
+    ],
+    "controllers": {},
+    "controller_history": [
+     {
+      "unit_id": "A",
+      "task_id": "load_A_uid1",
+      "state": "DONE",
+      "motion_totals": {
+       "motions": 4,
+       "executed": 4,
+       "failed": 0,
+       "tv_total": 18.731264,
+       "max_step": 0.045163,
+       "sim_duration": 29.6,
+       "steps": 600,
+       "commands": 101
+      }
+     },
+     {
+      "unit_id": "B",
+      "task_id": "unload_B_uid1",
+      "state": "DONE",
+      "motion_totals": {
+       "motions": 4,
+       "executed": 4,
+       "failed": 0,
+       "tv_total": 11.624323,
+       "max_step": 0.044566,
+       "sim_duration": 22.4,
+       "steps": 456,
+       "commands": 90
+      }
+     }
+    ],
+    "routes": [
+     {
+      "state": "DONE",
+      "failure_reason": "",
+      "spec": {
+       "route_id": "A_to_B",
+       "start": [
+        0.4,
+        0.7
+       ],
+       "end": [
+        0.4,
+        -0.7
+       ],
+       "heading": -1.570796,
+       "direction": 1,
+       "speed": 0.12,
+       "loaded": true,
+       "arrive_tol": 0.02,
+       "heading_tol": 0.08
+      },
+      "metrics": {
+       "route_id": "A_to_B",
+       "loaded": true,
+       "start_pose": [
+        0.401149,
+        0.710419,
+        0.138685,
+        -0.000722,
+        -0.000672,
+        -0.709976,
+        0.704225
+       ],
+       "end_pose": [
+        0.399864,
+        -0.680258,
+        0.138692,
+        -0.000672,
+        -0.000619,
+        -0.706976,
+        0.707237
+       ],
+       "target_pose": [
+        0.4,
+        -0.7,
+        0.138685,
+        0.0,
+        0.0,
+        -0.707107,
+        0.707107
+       ],
+       "stop_error": 0.019742,
+       "heading_error": -0.00037,
+       "duration_s": 12.35,
+       "max_speed": 0.119971,
+       "mean_speed": 0.112162,
+       "samples": 248,
+       "stable_samples": 225,
+       "stable_fraction": 0.9073,
+       "material_slip": 0.0,
+       "material_relative_start": [
+        0.008457,
+        -0.001042,
+        0.168256
+       ],
+       "material_relative_end": [
+        0.004765,
+        -0.002167,
+        0.168248
+       ],
+       "blocked": {},
+       "resumed": []
+      },
+      "version": "stage3_agv_route_20261025"
+     },
+     {
+      "state": "DONE",
+      "failure_reason": "",
+      "spec": {
+       "route_id": "B_to_A",
+       "start": [
+        0.4,
+        -0.7
+       ],
+       "end": [
+        0.4,
+        0.7
+       ],
+       "heading": -1.570796,
+       "direction": -1,
+       "speed": 0.12,
+       "loaded": false,
+       "arrive_tol": 0.02,
+       "heading_tol": 0.08
+      },
+      "metrics": {
+       "route_id": "B_to_A",
+       "loaded": false,
+       "start_pose": [
+        0.399555,
+        -0.676569,
+        0.138692,
+        -0.000673,
+        -0.000618,
+        -0.708113,
+        0.706099
+       ],
+       "end_pose": [
+        0.396501,
+        0.680794,
+        0.13865,
+        -0.001042,
+        -0.000988,
+        -0.707397,
+        0.706815
+       ],
+       "target_pose": [
+        0.4,
+        0.7,
+        0.138692,
+        0.0,
+        0.0,
+        -0.707107,
+        0.707107
+       ],
+       "stop_error": 0.019522,
+       "heading_error": 0.000822,
+       "duration_s": 12.0,
+       "max_speed": 0.123287,
+       "mean_speed": 0.112648,
+       "samples": 241,
+       "stable_samples": 219,
+       "stable_fraction": 0.9087,
+       "material_slip": null,
+       "material_relative_start": null,
+       "material_relative_end": null,
+       "blocked": {},
+       "resumed": []
+      },
+      "version": "stage3_agv_route_20261025"
+     }
+    ],
+    "injected": [],
+    "events": [
+     {
+      "sim_time": 0.85,
+      "message": "TASK_SUBMIT load_A_uid1 kind=load_A uid=1"
+     },
+     {
+      "sim_time": 0.85,
+      "message": "TASK_SUBMIT transport_uid1 kind=transport uid=1"
+     },
+     {
+      "sim_time": 0.85,
+      "message": "TASK_SUBMIT unload_B_uid1 kind=unload_B uid=1"
+     },
+     {
+      "sim_time": 0.85,
+      "message": "TASK_START load_A_uid1 unit=A source=conveyor sink=agv dock=A"
+     },
+     {
+      "sim_time": 16.05,
+      "message": "RESOURCE_RELEASE pick_zone: TCP 已退出 conveyor envelope"
+     },
+     {
+      "sim_time": 35.65,
+      "message": "TASK_DONE load_A_uid1: A 装载交接确认 (UID/载台/物理属性)"
+     },
+     {
+      "sim_time": 35.65,
+      "message": "TASK_START transport_uid1 route=A_to_B loaded=True direction=+1"
+     },
+     {
+      "sim_time": 48.05,
+      "message": "TASK_DONE transport_uid1: route metrics within limits"
+     },
+     {
+      "sim_time": 48.05,
+      "message": "TASK_SUBMIT return_uid1 kind=return uid=1"
+     },
+     {
+      "sim_time": 48.05,
+      "message": "TASK_START unload_B_uid1 unit=B source=agv sink=station dock=B"
+     },
+     {
+      "sim_time": 72.1,
+      "message": "TASK_DONE unload_B_uid1: B 卸载/放置完成 (UID/位置/物理属性)"
+     },
+     {
+      "sim_time": 72.1,
+      "message": "TASK_START return_uid1 route=B_to_A loaded=False direction=-1"
+     },
+     {
+      "sim_time": 84.15,
+      "message": "TASK_DONE return_uid1: route metrics within limits"
+     }
+    ],
+    "acceptance": {
+     "scenario": "route_baseline",
+     "fault": "none",
+     "tasks_done": true,
+     "handoff_ok": true,
+     "uid_consistent": true,
+     "any_safety_latch": false,
+     "safety_stop_confirmed": true,
+     "safety": {
+      "A": {
+       "engaged": false,
+       "code": "",
+       "reason": "",
+       "sim_time": null,
+       "details": {},
+       "stop_commanded": false,
+       "stop_command_ok": null,
+       "stop_confirmed": false,
+       "stop_checks": 0,
+       "stop_speed": null,
+       "stop_source": ""
+      },
+      "B": {
+       "engaged": false,
+       "code": "",
+       "reason": "",
+       "sim_time": null,
+       "details": {},
+       "stop_commanded": false,
+       "stop_command_ok": null,
+       "stop_confirmed": false,
+       "stop_checks": 0,
+       "stop_speed": null,
+       "stop_source": ""
+      }
+     },
+     "resources_released": true,
+     "aborted": false,
+     "stop_reason": "",
+     "material": {
+      "uid": 1,
+      "alias": "Part_0001",
+      "state": "RELEASED",
+      "handle": 277,
+      "parent": 208,
+      "pose": [
+       -0.200919,
+       -1.199029,
+       0.35,
+       -0.0,
+       0.0,
+       0.003693,
+       0.999993
+      ]
+     },
+     "duplicate_rejections": 0,
+     "resource_waits": [
+      {
+       "sim_time": 35.65,
+       "action": "WAIT",
+       "resource": "dock_B",
+       "owner": "unit_B/task_unload_B_uid1",
+       "task_id": "unload_B_uid1",
+       "reason": "holder=agv/task_transport_uid1; AGV 运输任务持有 dock_B 预留"
+      }
+     ],
+     "injected": [],
+     "return_done": true,
+     "route_baseline_ok": true,
+     "ok": true
+    }
+   },
+   "acceptance": {
+    "scenario": "route_baseline",
+    "fault": "none",
+    "tasks_done": true,
+    "handoff_ok": true,
+    "uid_consistent": true,
+    "any_safety_latch": false,
+    "safety_stop_confirmed": true,
+    "safety": {
+     "A": {
+      "engaged": false,
+      "code": "",
+      "reason": "",
+      "sim_time": null,
+      "details": {},
+      "stop_commanded": false,
+      "stop_command_ok": null,
+      "stop_confirmed": false,
+      "stop_checks": 0,
+      "stop_speed": null,
+      "stop_source": ""
+     },
+     "B": {
+      "engaged": false,
+      "code": "",
+      "reason": "",
+      "sim_time": null,
+      "details": {},
+      "stop_commanded": false,
+      "stop_command_ok": null,
+      "stop_confirmed": false,
+      "stop_checks": 0,
+      "stop_speed": null,
+      "stop_source": ""
+     }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "stop_reason": "",
+    "material": {
+     "uid": 1,
+     "alias": "Part_0001",
+     "state": "RELEASED",
+     "handle": 277,
+     "parent": 208,
+     "pose": [
+      -0.200919,
+      -1.199029,
+      0.35,
+      -0.0,
+      0.0,
+      0.003693,
+      0.999993
+     ]
+    },
+    "duplicate_rejections": 0,
+    "resource_waits": [
+     {
+      "sim_time": 35.65,
+      "action": "WAIT",
+      "resource": "dock_B",
+      "owner": "unit_B/task_unload_B_uid1",
+      "task_id": "unload_B_uid1",
+      "reason": "holder=agv/task_transport_uid1; AGV 运输任务持有 dock_B 预留"
+     }
+    ],
+    "injected": [],
+    "return_done": true,
+    "route_baseline_ok": true,
+    "ok": true
+   },
+   "material": {
+    "uid": 1,
+    "alias": "Part_0001",
+    "handle": 277,
+    "state": "RELEASED",
+    "pose": [
+     -0.200919,
+     -1.199029,
+     0.35,
+     -0.0,
+     0.0,
+     0.003693,
+     0.999993
+    ],
+    "parent": 208,
+    "parent_alias": "Part",
+    "physics": {
+     "static": 0,
+     "kinematic": 0,
+     "respondable": 1,
+     "mask": 65535,
+     "mass": 0.1,
+     "friction": 0.6
+    },
+    "dynamic_ok": true,
+    "respondable_ok": true,
+    "history": [
+     {
+      "sim_time": 0.85,
+      "from": "SPAWNED",
+      "to": "ON_CONVEYOR",
+      "reason": "entered conveyor effective zone"
+     },
+     {
+      "sim_time": 4.65,
+      "from": "ON_CONVEYOR",
+      "to": "READY_FOR_PICK",
+      "reason": "stopped and stable, measured pose"
+     },
+     {
+      "sim_time": 10.45,
+      "from": "READY_FOR_PICK",
+      "to": "HELD_BY_SUCTION",
+      "reason": "suction attach (TCP + sensor UID confirmed)"
+     },
+     {
+      "sim_time": 32.85,
+      "from": "HELD_BY_SUCTION",
+      "to": "ON_TRAY",
+      "reason": "placed at target pose"
+     },
+     {
+      "sim_time": 32.85,
+      "from": "ON_TRAY",
+      "to": "RELEASED",
+      "reason": "released speed=0.000 stable=True penetration=False"
+     },
+     {
+      "sim_time": 48.1,
+      "from": "RELEASED",
+      "to": "ON_TRAY",
+      "reason": "stage3 confirmed on AGV tray at dock B"
+     },
+     {
+      "sim_time": 48.3,
+      "from": "ON_TRAY",
+      "to": "READY_FOR_PICK",
+      "reason": "AGV tray material docked, stable and measured"
+     },
+     {
+      "sim_time": 54.05,
+      "from": "READY_FOR_PICK",
+      "to": "HELD_BY_SUCTION",
+      "reason": "suction attach (TCP + sensor UID confirmed)"
+     },
+     {
+      "sim_time": 69.05,
+      "from": "HELD_BY_SUCTION",
+      "to": "ON_TRAY",
+      "reason": "placed at target pose"
+     },
+     {
+      "sim_time": 69.05,
+      "from": "ON_TRAY",
+      "to": "RELEASED",
+      "reason": "released speed=0.000 stable=True penetration=False"
+     }
+    ]
+   },
+   "agv": {
+    "pose": [
+     0.396498,
+     0.680806,
+     0.13865,
+     -0.001042,
+     -0.000988,
+     -0.707398,
+     0.706814
+    ],
+    "state": "IDLE",
+    "left_wheel": 0.0,
+    "right_wheel": 0.0,
+    "is_stopped": true,
+    "is_upright": true
+   },
+   "ok": true,
+   "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09776,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 17,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01007,
+    "stop_ok": true
+   }
+  }
+ ],
+ "runtime_destroy": {
+  "arms": {
+   "A": {
+    "hazards_removed": 0,
+    "shadow_removed": 4,
+    "aliases": [
+     "Shadow_UR5_01",
+     "Shadow_SuctionPad_01",
+     "Shadow_TCP_01",
+     "Shadow_Load_01"
+    ]
+   },
+   "B": {
+    "hazards_removed": 0,
+    "shadow_removed": 4,
+    "aliases": [
+     "Shadow_UR5_02",
+     "Shadow_SuctionPad_02",
+     "Shadow_TCP_02",
+     "Shadow_Load_02"
+    ]
+   }
+  },
+  "leftover": []
+ },
+ "all_ok": true
+}

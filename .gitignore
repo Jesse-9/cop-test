@@ -24,6 +24,7 @@ factory_verify_*.log
 factory_arm_*.log
 stage1*.log
 stage2*.log
+stage3*.log
 step1_1*.log
 coppelia_console*.log*
 emergency_dump_*.json

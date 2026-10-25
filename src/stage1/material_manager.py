@@ -57,9 +57,15 @@ _ALLOWED: dict[MaterialState, frozenset] = {
                                               MaterialState.FAULT}),
     MaterialState.HELD_BY_SUCTION: frozenset({MaterialState.ON_TRAY,
                                               MaterialState.FAULT}),
-    MaterialState.ON_TRAY:         frozenset({MaterialState.RELEASED,
+    # 阶段三双工位: B 工位从 AGV 载台取料时, ON_TRAY 必须先经过
+    # READY_FOR_PICK (与传送带取料共用同一吸附前置条件), 不允许直接吸附.
+    MaterialState.ON_TRAY:         frozenset({MaterialState.READY_FOR_PICK,
+                                              MaterialState.RELEASED,
                                               MaterialState.FAULT}),
-    MaterialState.RELEASED:        frozenset({MaterialState.FAULT}),
+    # 阶段三: A 工位把物料释放到 AGV 后状态为 RELEASED; B 工位在 dock B
+    # 确认同一 UID 仍在载台后, 重新登记为 ON_TRAY 再进入取料流程.
+    MaterialState.RELEASED:        frozenset({MaterialState.ON_TRAY,
+                                              MaterialState.FAULT}),
     MaterialState.FAULT:           frozenset({MaterialState.FAULT}),
 }
 

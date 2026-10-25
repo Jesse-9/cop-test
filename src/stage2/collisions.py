@@ -284,18 +284,26 @@ def discover_conveyor_parts(sim, belt: int) -> tuple[list[int], list[int]]:
     return pads, coarse
 
 
-def discover_workcell(sim, scene) -> list[int]:
-    """工位/仓库/地面/AGV 车体与载台; 不含安装平台与 conveyor 粗代理."""
+def discover_workcell(sim, scene, *, station_aliases=None,
+                      extra_obstacles=()) -> list[int]:
+    """工位/仓库/地面/AGV 车体与载台; 不含安装平台与 conveyor 粗代理.
+
+    阶段三用 ``station_aliases`` 同时纳入 A/B 两个置物台, 用
+    ``extra_obstacles`` 纳入另一台真实机械臂的连杆/吸盘与岛体. 传入的
+    ``scene`` 可以是 `Stage3Scene` 或单工位视图, 只要实现 ``handle``.
+    """
     belt = scene.handle(base.ALIASES["conveyor"])
     pads, _ = discover_conveyor_parts(sim, belt)
     handles: list[int] = list(pads)
-    for alias in (base.ALIASES["station"], base.ALIASES["warehouse"],
-                  base.ALIASES["floor"]):
+    stations = (station_aliases
+                if station_aliases is not None
+                else (base.ALIASES["station"],))
+    for alias in (*stations, base.ALIASES["warehouse"], base.ALIASES["floor"]):
         h = scene.handle(alias)
         if h >= 0:
             handles.append(int(h))
     # AGV: 车体可见网格 + 载台 + 挡边; 车轮/脚轮与地面的滚动接触不作为障碍.
-    agv = scene.agv_root
+    agv = getattr(scene, "agv_root", -1)
     if agv >= 0:
         for h in subtree(sim, agv):
             if not _is_shape(sim, h):
@@ -303,6 +311,9 @@ def discover_workcell(sim, scene) -> list[int]:
             alias = alias_of(sim, h)
             if alias.startswith(("leftWheel", "rightWheel", "caster")):
                 continue
+            handles.append(int(h))
+    for h in extra_obstacles or ():
+        if h is not None and int(h) >= 0:
             handles.append(int(h))
     return _dedupe(handles)
 
@@ -394,12 +405,16 @@ class CollisionRuntime:
 
     @classmethod
     def build(cls, sim, scene, *, link_handles, link_aliases,
-              pad_body: int, load_handle: int = -1) -> "CollisionRuntime":
+              pad_body: int, load_handle: int = -1,
+              mount_alias: Optional[str] = None,
+              station_aliases=None,
+              extra_obstacles=()) -> "CollisionRuntime":
         pads, coarse = discover_conveyor_parts(
             sim, scene.handle(base.ALIASES["conveyor"]))
-        mount = scene.handle(base.ALIASES["island"])
+        mount_alias = mount_alias or base.ALIASES["island"]
+        mount = scene.handle(mount_alias)
         if mount < 0:
-            raise CollisionError("找不到安装平台 Island_A")
+            raise CollisionError(f"找不到安装平台 {mount_alias}")
         geometry = SceneGeometry(
             links=[int(h) for h in link_handles],
             link_aliases=list(link_aliases),
@@ -407,7 +422,9 @@ class CollisionRuntime:
             conveyor_pads=[int(h) for h in pads],
             coarse_proxies=[int(h) for h in coarse],
             mount=int(mount),
-            workcell=discover_workcell(sim, scene),
+            workcell=discover_workcell(
+                sim, scene, station_aliases=station_aliases,
+                extra_obstacles=extra_obstacles),
         )
         geometry.workcell_aliases = [alias_of(sim, h)
                                      for h in geometry.workcell]

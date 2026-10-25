@@ -590,10 +590,11 @@ def main(argv=None) -> int:
             manager.validate()
             if (manager.artifact is not None
                     and manager.artifact.manifest.get("source_phase")
-                    == "stage2"):
+                    in ("stage2", "stage3")):
                 logger.error(
-                    "[LIFECYCLE] 拒绝用 stage1 runner 运行 stage2 工件: %s; "
-                    "请使用 python src/run_stage2.py 或 lifecycle start",
+                    "[LIFECYCLE] 拒绝用 stage1 runner 运行 %s 工件: %s; "
+                    "请使用对应的 run_stage2.py / run_stage3.py 或 lifecycle start",
+                    manager.artifact.manifest.get("source_phase"),
                     manager.session.artifact_id)
                 return 2
             logger.info("[SCENE] 已加载并校验工件: %s",

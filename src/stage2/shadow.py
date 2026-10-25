@@ -41,16 +41,37 @@ class ShadowArm:
     load: int = -1
     all_shapes: list[int] = field(default_factory=list)
     visibility_applied: bool = False
+    aliases: dict = field(default_factory=dict)
+    base_pose: Optional[list[float]] = None
+
+    @property
+    def alias_names(self) -> list[str]:
+        """本影子臂的全部稳定别名 (用于选择性清理/校验)."""
+        values = dict(self.aliases or {})
+        if not values:
+            values = {
+                "arm": cfg.SHADOW_ARM_ALIAS,
+                "pad": cfg.SHADOW_PAD_ALIAS,
+                "tcp": cfg.SHADOW_TCP_ALIAS,
+                "load": cfg.SHADOW_LOAD_ALIAS,
+            }
+        names = [values.get(key) for key in ("arm", "pad", "tcp", "load")]
+        return [str(name) for name in names if name]
 
     def as_dict(self) -> dict:
+        names = self.alias_names
         return {
-            "root_alias": cfg.SHADOW_ARM_ALIAS,
+            "root_alias": names[0] if names else cfg.SHADOW_ARM_ALIAS,
+            "aliases": list(names),
             "joints": len(self.joints),
             "link_aliases": list(self.link_aliases),
             "pad_body": int(self.pad_body),
-            "load_alias": cfg.SHADOW_LOAD_ALIAS if self.load >= 0 else None,
+            "load_alias": (names[3] if len(names) > 3 and self.load >= 0
+                           else None),
             "shape_count": len(self.all_shapes),
             "visibility_hidden": self.visibility_applied,
+            "base_pose": (None if self.base_pose is None else
+                          [round(float(v), 6) for v in self.base_pose]),
             "policy": "session_resource",
         }
 
@@ -92,17 +113,35 @@ def _hide(sim, handles: Iterable[int]) -> bool:
     return applied
 
 
-def build_shadow_arm(sim, scene) -> ShadowArm:
-    """在当前场景中构建影子臂; 场景必须处于仿真停止态或尚未启动."""
-    layout = scene.layout
-    if layout is None:
-        raise ShadowError("场景缺少 layout, 无法确定 UR5 基座")
-    island_root = scene.handle(base.ALIASES["roots"][2])
-    if island_root < 0:
-        raise ShadowError("找不到 Island 层级根")
+def build_shadow_arm(sim, scene, *, arm_base=None, aliases=None,
+                     base_pose=None) -> ShadowArm:
+    """在当前场景中构建影子臂; 场景必须处于仿真停止态或尚未启动.
 
-    arm = _load_model(sim, "ur5", cfg.SHADOW_ARM_ALIAS,
-                      layout.arm_base, island_root)
+    ``aliases`` 用于阶段三多臂场景, 形如
+    ``{"arm": "Shadow_UR5_02", "pad": ..., "tcp": ..., "load": ...}``;
+    缺省保持阶段二的单臂别名. ``arm_base``/``base_pose`` 允许调用方
+    指定该臂的基座, 而不是读取 ``scene.layout.arm_base``.
+    """
+    names = dict(aliases or {
+        "arm": cfg.SHADOW_ARM_ALIAS,
+        "pad": cfg.SHADOW_PAD_ALIAS,
+        "tcp": cfg.SHADOW_TCP_ALIAS,
+        "load": cfg.SHADOW_LOAD_ALIAS,
+    })
+    layout = scene.layout
+    if arm_base is None:
+        if layout is None:
+            raise ShadowError("场景缺少 layout, 无法确定 UR5 基座")
+        arm_base = layout.arm_base
+    island_alias = getattr(scene, "root_alias", base.ALIASES["roots"][2])
+    island_root = scene.handle(island_alias)
+    if island_root < 0:
+        raise ShadowError(f"找不到 Island 层级根: {island_alias}")
+
+    arm = _load_model(sim, "ur5", names["arm"],
+                      arm_base, island_root)
+    if base_pose is not None:
+        sim.setObjectPose(arm, list(base_pose), sim.handle_world)
     for h in [arm] + subtree(sim, arm):
         if _is_shape(sim, h):
             phys.set_static(sim, h, True)
@@ -119,7 +158,7 @@ def build_shadow_arm(sim, scene) -> ShadowArm:
 
     joints = _chain_joints(sim, arm, connection)
     if len(joints) != 6:
-        _remove_aliases(sim)
+        _remove_aliases(sim, names=names)
         raise ShadowError(f"影子 UR5 关节数不是 6: {len(joints)}")
     low, high = base.ARM_JOINT_LIMIT
     for joint, q in zip(joints, base.ARM_SEED_JOINTS):
@@ -127,7 +166,7 @@ def build_shadow_arm(sim, scene) -> ShadowArm:
         sim.setJointMode(joint, sim.jointmode_kinematic, 0)
         sim.setJointPosition(joint, float(q))
 
-    pad = _load_model(sim, "suction_pad", cfg.SHADOW_PAD_ALIAS, None,
+    pad = _load_model(sim, "suction_pad", names["pad"], None,
                       connection)
     sim.setObjectPose(pad, [0.0, 0.0, base.SUCTION_MOUNT_Z,
                             *base.SUCTION_MOUNT_QUATERNION], connection)
@@ -137,14 +176,14 @@ def build_shadow_arm(sim, scene) -> ShadowArm:
             phys.set_respondable(sim, h, False)
 
     tcp = int(sim.createDummy(0.01))
-    sim.setObjectAlias(tcp, cfg.SHADOW_TCP_ALIAS)
+    sim.setObjectAlias(tcp, names["tcp"])
     sim.setObjectParent(tcp, pad, True)
     sim.setObjectPose(tcp, [*base.TCP_LOCAL_POS, *base.TCP_LOCAL_QUATERNION],
                       sim.handle_parent)
 
     load = int(sim.createPrimitiveShape(sim.primitiveshape_cuboid,
                                         list(base.MATERIAL_SIZE)))
-    sim.setObjectAlias(load, cfg.SHADOW_LOAD_ALIAS)
+    sim.setObjectAlias(load, names["load"])
     sim.setObjectParent(load, tcp, True)
     sim.setObjectPose(load, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], tcp)
     phys.set_static(sim, load, True)
@@ -157,7 +196,7 @@ def build_shadow_arm(sim, scene) -> ShadowArm:
     links, link_aliases = discover_shadow_links(sim, arm)
     pad_body = _find_alias(sim, pad, "Body")
     if pad_body < 0 or not _is_shape(sim, pad_body):
-        _remove_aliases(sim)
+        _remove_aliases(sim, names=names)
         raise ShadowError("影子吸盘找不到 Body shape")
 
     all_shapes = [h for h in [arm, *subtree(sim, arm)] if _is_shape(sim, h)]
@@ -171,7 +210,10 @@ def build_shadow_arm(sim, scene) -> ShadowArm:
                      link_aliases=list(link_aliases),
                      pad_body=int(pad_body), load=int(load),
                      all_shapes=[int(h) for h in all_shapes],
-                     visibility_applied=bool(hidden))
+                     visibility_applied=bool(hidden),
+                     aliases=names,
+                     base_pose=(None if base_pose is None
+                                else [float(v) for v in base_pose]))
 
 
 def discover_shadow_links(sim, arm_root: int) -> tuple[list[int], list[str]]:
@@ -189,13 +231,28 @@ def discover_shadow_links(sim, arm_root: int) -> tuple[list[int], list[str]]:
     return [by_alias[a] for a in aliases], aliases
 
 
-def _remove_aliases(sim) -> list[int]:
-    """删除所有 Shadow_* 会话资源 (子对象可能因父级删除而孤立)."""
+def _remove_aliases(sim, names=None, prefix: Optional[str] = None
+                    ) -> list[int]:
+    """删除指定影子会话资源 (缺省删除全部 Shadow_*).
+
+    ``names`` 用于阶段三多臂场景: 只删除本臂的 4 个根别名, 不误删另一台
+    影子臂. 删除根对象会连同其子树一起移除; 失败时按前缀/别名再清理孤立
+    对象.
+    """
+    wanted = {str(name) for name in (names or ()) if name}
+    prefix = cfg.SESSION_RESOURCE_PREFIX if (not wanted and prefix is None) \
+        else prefix
+
+    def matches(alias: str) -> bool:
+        if not alias:
+            return False
+        if wanted and alias in wanted:
+            return True
+        return bool(prefix) and alias.startswith(prefix)
+
     removed: list[int] = []
     for _ in range(3):
-        pending = [int(h) for h in all_objects(sim)
-                   if (alias_of(sim, h) or "").startswith(
-                       cfg.SESSION_RESOURCE_PREFIX)]
+        pending = [int(h) for h in all_objects(sim) if matches(alias_of(sim, h))]
         if not pending:
             break
         for h in pending:
@@ -335,8 +392,11 @@ class ShadowProbe:
 
     # ── 清理 ────────────────────────────────────────────────
 
-    def destroy(self) -> list[int]:
-        return _remove_aliases(self.sim)
+    def destroy(self, names=None) -> list[int]:
+        """删除本影子臂的会话资源; 缺省按本臂别名精确清理."""
+        return _remove_aliases(self.sim,
+                               names=(self.shadow.alias_names if names is None
+                                      else names))
 
 
 def _quat_angle(a, b) -> float:

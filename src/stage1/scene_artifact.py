@@ -32,7 +32,7 @@ from . import config as cfg
 
 SCHEMA_VERSION = "1.0"
 SUPPORTED_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
-PHASES = ("stage1", "stage2", "diagnostic")
+PHASES = ("stage1", "stage2", "stage3", "diagnostic")
 PROTECTED_PHASES = frozenset({"stage1"})
 ARTIFACT_FILES = ("scene.ttt", "manifest.json", "validation.json",
                   "lifecycle.jsonl")
@@ -589,10 +589,16 @@ def build_manifest(sim, scene, *, source_phase: str, artifact_id: str,
     if source_phase not in PHASES:
         raise ArtifactPathError(f"未知阶段: {source_phase!r}")
     type_names = object_type_names(sim)
-    objects = normalize_objects(scene.describe(), cfg.REQUIRED_ALIASES,
+    objects = normalize_objects(scene.describe(),
+                                required_aliases_for_phase(source_phase),
                                 type_names)
     report = dict(getattr(scene, "build_report", {}) or {})
     layout = dataclasses.asdict(scene.layout) if scene.layout else {}
+    builder = getattr(scene, "builder_info", None) or {
+        "module": "stage1.scene",
+        "version": getattr(cfg, "SCENE_BUILDER_VERSION", "unknown"),
+        "clear_scene": True,
+    }
     return {
         "schema_version": SCHEMA_VERSION,
         "artifact_id": artifact_id,
@@ -615,11 +621,7 @@ def build_manifest(sim, scene, *, source_phase: str, artifact_id: str,
         "tool": _jsonable(scene.tool_geometry()),
         "physics": _physics_summary(sim, scene),
         "scripts": _script_policy(scene),
-        "builder": {
-            "module": "stage1.scene",
-            "version": getattr(cfg, "SCENE_BUILDER_VERSION", "unknown"),
-            "clear_scene": True,
-        },
+        "builder": builder,
         "contract": {
             "ok": bool(report.get("ok")),
             "checks": _jsonable(report.get("checks", [])),
@@ -635,6 +637,18 @@ def build_manifest(sim, scene, *, source_phase: str, artifact_id: str,
 
 _POS_TOL_STATIC = 0.002
 _POS_TOL_DYNAMIC = 0.02
+
+
+def required_aliases_for_phase(source_phase: Optional[str]) -> list[str]:
+    """按工件阶段返回必须存在的稳定别名集合.
+
+    阶段三的必需别名包含 A/B 两个工位; 阶段一/二仍使用阶段一基线.
+    延迟导入避免 stage1 模块在导入期依赖 stage3.
+    """
+    if source_phase == "stage3":
+        from stage3 import config as s3cfg
+        return list(s3cfg.REQUIRED_ALIASES)
+    return list(cfg.REQUIRED_ALIASES)
 
 
 def validate_scene_against_manifest(sim, manifest: dict, scene=None,
@@ -746,9 +760,16 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None,
 
     if scene is None:
         try:
-            from .layout import layout_from_dict
-            layout = layout or layout_from_dict(manifest.get("layout") or {})
-            scene = adopt_scene(sim, layout=layout)
+            if manifest.get("source_phase") == "stage3":
+                from stage3.layout import layout_from_dict as s3_layout
+                from stage3.scene import adopt_stage3_scene
+                scene = adopt_stage3_scene(
+                    sim, layout=s3_layout(manifest.get("layout") or {}))
+            else:
+                from .layout import layout_from_dict
+                layout = layout or layout_from_dict(
+                    manifest.get("layout") or {})
+                scene = adopt_scene(sim, layout=layout)
         except Exception as exc:
             _check(checks, "scene_adopt", False,
                    f"{type(exc).__name__}: {exc}")
@@ -801,7 +822,8 @@ def validate_artifact(sim, artifact: "Artifact", *, scene=None,
     env = validate_manifest_environment(
         artifact.manifest,
         simulator=simulator_info(sim),
-        required_aliases=cfg.REQUIRED_ALIASES)
+        required_aliases=required_aliases_for_phase(
+            artifact.manifest.get("source_phase")))
     checks.extend(env["checks"])
     differences.extend(env["differences"])
 

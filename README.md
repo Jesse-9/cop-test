@@ -9,9 +9,11 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
 > 📖 **MCP 工具**：24 个工具（A 读取/B 诊断/C 控制 + 场景工件生命周期；默认 stage1 后端，legacy 可选）见 [docs/wiki/98-ProjectUsage/MCP_USAGE.md](docs/wiki/98-ProjectUsage/MCP_USAGE.md)。
 > 📖 **架构与模块**：见 [CLAUDE.md](CLAUDE.md)。
 
-## 当前实施范围：阶段一单元闭环
+## 当前实施范围：阶段一~三（阶段三双工位 2026-10-25 通过）
 
-阶段零（参数冻结）与阶段一（单工位单元闭环）已于 2026-10-17 实施并通过验收：
+阶段零（参数冻结）、阶段一（单工位单元闭环）、阶段二/2.01/2.02（物理约束、
+运动规划、AGV 转运实验）与阶段三（双工位柔性搬运）已实施；阶段 2.1 统一
+故障恢复与阶段四多岛车间尚未开始。
 
 ```bash
 # 运行工位目标 (默认加载 current 工件; 首次需先按步骤 1.2 构建/保存)
@@ -38,11 +40,14 @@ simIK + UR5 + suction pad、proximity sensor、以及 pioneer p3dx 轮速 AGV �
    碰撞/局部避障、场景构建与仿真启动解耦、统一故障状态和传送带停机验证；
    阶段 2.01 动作与轨迹优化已完成（2026-10-21）；阶段 2.02 AGV 转运路径
    优化能力已实现（2026-10-25，实验开关默认关闭）；阶段 2.1（统一故障恢复）待开始；
-2. 阶段三：双工位柔性搬运，包括第二工位、任务队列、资源锁和 AGV 调度；
+2. 阶段三：双工位柔性搬运（2026-10-25 已通过五个精简验收场景），包括
+   第二工位、任务队列、资源锁、AGV 两站转运和受控阻塞/不稳定卸载拒绝；
+   遇到阶段二安全锁存时冻结原任务，不自动恢复；
 3. 阶段四：多岛车间，包括 A–E 拓扑、仓库供料、节拍追踪和共享 AGV 调度。
 
-阶段三依赖阶段二物理接口和阶段 2.1 的恢复契约；阶段 2.1 完成前不进入双工位
-或多岛扩展。步骤 1.2（2026-10-21）已把场景构建与仿真启动解耦：`start`
+阶段三复用阶段二物理接口并在锁存时冻结任务；阶段 2.1 的统一恢复契约仍待
+实现，阶段四不依赖阶段 2.1 的结构性能力，但任何自动恢复行为必须等待该契约。
+步骤 1.2（2026-10-21）已把场景构建与仿真启动解耦：`start`
 不再隐式 build/clear，阶段一基线已保存为只读工件
 `docs/scene_artifacts/stage1/L1_S1/v002_20261020_234403/`。
 
@@ -128,6 +133,42 @@ vel/acc/jerk 剖面和段内平滑钩子。默认仍是 `baseline` + `greedy` + 
   `docs/measurement/probe_stage2_agv_transfer.py`。
 - 边界：候选偏移的 3 次实机重复运行、执行平顺性（jerk 峰值 120.65 >
   100 rad/s³）仍属后续工作。
+
+## 阶段三：双工位柔性搬运（2026-10-25 通过）
+
+阶段三从已验收 stage2 工件只读派生 `stage3` 副本，增加 B 工位、两个 AGV
+dock、共享 pick_zone 资源锁和 A→B 任务链。A 单元、共享传送带和 AGV 模型
+不变；AGV 初始位姿在构建期设为 dock A 朝 −Y，运行期仍只通过轮速驱动。
+
+```bash
+# 从 stage2 父工件派生 stage3 场景 (只需一次; current 指向新工件)
+.venv/Scripts/python src/run_scene_lifecycle.py load stage2/L1_S1/v013_20261024_232558
+.venv/Scripts/python src/run_scene_lifecycle.py build --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558 --note "阶段三派生"
+
+# 五个精简验收场景 (默认加载 stage3 current + validate + start)
+.venv/Scripts/python src/run_stage3.py --scenario closed_loop --time 300
+.venv/Scripts/python src/run_stage3.py --scenario contention --time 300
+.venv/Scripts/python src/run_stage3.py --scenario blocked --time 300
+.venv/Scripts/python src/run_stage3.py --scenario unstable_unload --time 300
+.venv/Scripts/python src/run_stage3.py --scenario route_baseline --time 300
+
+# 布局静态筛选 / 当前场景只读测量
+.venv/Scripts/python docs/measurement/probe_stage3_layout.py --sim
+```
+
+- 报告：[docs/implementation/PHASE3_REPORT.md](docs/implementation/PHASE3_REPORT.md)
+- 方案与实施记录：[06-12](docs/wiki/06-工业案例/06-12-柔性工业车间阶段三双工位详细实施步骤.md)、
+  [06-13](docs/wiki/06-工业案例/06-13-柔性工业车间阶段三双工位实施记录.md)
+- 当前工件：`docs/scene_artifacts/stage3/L2_MIRROR/v004_20261025_131837/`
+- 阶段三模块：`src/stage3/`（config / layout / scene / resources / tasks /
+  agv_route / runtime / unit_controller / coordinator / scene_contract / run），
+  `src/run_stage3.py` 为兼容入口；安装后可用 `uv run run-stage3`。
+- 实测：A→B 闭环 3 任务 DONE，AGV 停靠误差 0.0197 m、滑移 0.0；竞争场景
+  3 个重复请求被拒绝；BLOCKED 后可清障续行；不稳定卸载在释放前锁存并保留
+  载荷。MQ-01/02/03 动作质量遗留问题仍未关闭。
 
 ## 步骤 1.2：场景工件与生命周期（2026-10-21 通过）
 
@@ -416,6 +457,25 @@ cop-test/
 │   │   ├── pioneer_controller.py  # p3dx 差速轮速
 │   │   ├── unit_controller.py     # §2.11 单步状态机
 │   │   └── run.py                 # 阶段一运行 CLI (默认加载工件, --build 才重建)
+│   ├── stage2/                    # 阶段二: 物理约束/规划/轨迹/联锁
+│   │   ├── config.py              # 阶段二/2.01/2.02 参数
+│   │   ├── contact.py / collisions.py / shadow.py
+│   │   ├── path_planning.py / trajectory.py / safety.py
+│   │   ├── conveyor_safety.py / suction.py / runtime.py
+│   │   ├── branch.py / metrics.py / diagnostics.py
+│   │   ├── unit_controller.py     # 阶段二单步状态机
+│   │   ├── scene_contract.py      # extra.stage2 契约
+│   │   └── run.py                 # 阶段二 runner/CLI
+│   ├── stage3/                    # 阶段三: 双工位/资源锁/AGV 两站转运
+│   │   ├── config.py              # 布局/资源表/任务流/路线/故障注入
+│   │   ├── layout.py / scene.py   # L2_MIRROR 布局与第二单元构建
+│   │   ├── resources.py / tasks.py
+│   │   ├── agv_route.py           # 直线穿梭/停靠/BLOCKED/续行
+│   │   ├── runtime.py             # 两台影子臂与独立碰撞集合
+│   │   ├── unit_controller.py     # 传送带/AGV 托盘取料源
+│   │   ├── coordinator.py         # 任务编排/资源互斥/故障注入
+│   │   ├── scene_contract.py      # extra.stage3 契约
+│   │   └── run.py                 # 五个验收场景 runner/CLI
 │   ├── stage1_1/                  # 步骤 1.1: 布局与无挡板取料验证
 │   │   ├── config.py              # 候选布局/允许抓取区/试验矩阵
 │   │   ├── layout_eval.py         # 场景测量 + simIK 扫描 + 选择
@@ -423,6 +483,8 @@ cop-test/
 │   │   ├── pickup.py              # A/B/C 单步试验控制
 │   │   └── run_step1_1.py         # 步骤 1.1 CLI
 │   ├── run_stage1.py              # 阶段一兼容入口 (薄包装)
+│   ├── run_stage2.py              # 阶段二兼容入口 (薄包装)
+│   ├── run_stage3.py              # 阶段三兼容入口 (薄包装)
 │   ├── run_scene_lifecycle.py     # 步骤 1.2 生命周期 CLI 兼容入口
 │   ├── run_step1_1.py             # 步骤 1.1 兼容入口 (薄包装)
 │   └── reference/                 # 历史五岛完整场景层 (阶段一不调用)

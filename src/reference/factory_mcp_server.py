@@ -251,15 +251,16 @@ class FactoryMCPServer:
 
     def start(self, total_time: float, log_file: str,
               backend: str = "stage1", target: str = "station",
-              fault: str = "none") -> str:
+              fault: str = "none", scenario: str = "") -> str:
         """启动仿真主循环 (守护线程) — Start simulation in a daemon thread.
 
         backend="stage1" (默认/当前实现) 只启动**已加载且已校验**的场景,
-        不执行 build/clear; 若当前工件 source_phase=stage2, 自动路由到
-        阶段二规划/碰撞/联锁 runner。backend="legacy" 运行旧五岛控制器。
+        不执行 build/clear; 若当前工件 source_phase=stage2/stage3, 自动
+        路由到阶段二/阶段三 runner。backend="legacy" 运行旧五岛控制器。
         """
         if backend == "stage1":
-            return self._start_stage1(total_time, log_file, target, fault)
+            return self._start_stage1(total_time, log_file, target, fault,
+                                      scenario=scenario)
         if backend == "legacy":
             return self._start_legacy(total_time, log_file)
         return f"未知 backend: {backend!r} (可选 stage1/legacy)"
@@ -309,21 +310,20 @@ class FactoryMCPServer:
                     f"用 status 查看推进情况")
 
     def _start_stage1(self, total_time: float, log_file: str,
-                      target: str, fault: str) -> str:
-        """启动当前已加载且校验通过的 stage1 场景。
+                      target: str, fault: str,
+                      scenario: str = "") -> str:
+        """启动当前已加载且校验通过的 stage1/stage2/stage3 场景。
 
         步骤 1.2 起本方法**不构建、不清场、不加载默认场景**; 调用方必须
-        先显式 build 或 load + validate。
+        先显式 build 或 load + validate。阶段由工件 `source_phase` 决定,
+        不接受调用方指定更低的 runner。
         """
         from stage1 import config as s1cfg
         from stage1 import run as s1run
         from stage1.lifecycle import LifecycleError
         from stage2.config import STAGE2_FAULT_CHOICES
+        from stage3 import config as s3cfg
 
-        if target not in ("station", "agv", "both"):
-            return f"target 必须是 station/agv/both: {target!r}"
-        if fault not in STAGE2_FAULT_CHOICES:
-            return f"fault 必须是 {STAGE2_FAULT_CHOICES}: {fault!r}"
         with self._lock:
             if self.is_running():
                 return "仿真已在运行中, 先 stop 再启动"
@@ -331,7 +331,8 @@ class FactoryMCPServer:
                 return "未连接 CoppeliaSim, 先调用 connect"
             simIK = getattr(self.connector, "simIK", None)
             if simIK is None:
-                return "当前连接缺少 simIK 模块, 无法运行 stage1/stage2"
+                return ("当前连接缺少 simIK 模块, 无法运行 "
+                        "stage1/stage2/stage3")
             manager = self._ensure_lifecycle()
             try:
                 prepared = manager.prepare_start(target=target)
@@ -341,13 +342,35 @@ class FactoryMCPServer:
                         "请先 build, 或 load + validate 一个场景工件")
             artifact = getattr(manager, "artifact", None)
             manifest = getattr(artifact, "manifest", {}) if artifact else {}
-            is_stage2 = bool(manifest.get("source_phase") == "stage2")
-            if is_stage2 and fault not in STAGE2_FAULT_CHOICES:
-                manager.finish_run("FAILED", f"未知 stage2 fault: {fault}")
-                return f"stage2 fault 必须是 {STAGE2_FAULT_CHOICES}: {fault!r}"
-            if not is_stage2 and fault not in s1cfg.FAULT_CHOICES:
-                manager.finish_run("FAILED", f"未知 stage1 fault: {fault}")
-                return f"stage1 fault 必须是 {s1cfg.FAULT_CHOICES}: {fault!r}"
+            source_phase = manifest.get("source_phase")
+            is_stage2 = bool(source_phase == "stage2")
+            is_stage3 = bool(source_phase == "stage3")
+            scenario_name = ""
+            if is_stage3:
+                scenario_name = (scenario or
+                                 (target if target in s3cfg.STAGE3_SCENARIOS
+                                  else s3cfg.SCENARIO_CLOSED_LOOP))
+                if scenario_name not in s3cfg.STAGE3_SCENARIOS:
+                    manager.finish_run("FAILED",
+                                       f"未知 stage3 scenario: {scenario_name}")
+                    return (f"stage3 scenario 必须是 "
+                            f"{s3cfg.STAGE3_SCENARIOS}: {scenario_name!r}")
+                if fault not in s3cfg.STAGE3_FAULT_CHOICES:
+                    manager.finish_run("FAILED", f"未知 stage3 fault: {fault}")
+                    return (f"stage3 fault 必须是 "
+                            f"{s3cfg.STAGE3_FAULT_CHOICES}: {fault!r}")
+            else:
+                if target not in ("station", "agv", "both"):
+                    manager.finish_run("FAILED", f"未知 target: {target}")
+                    return f"target 必须是 station/agv/both: {target!r}"
+                if is_stage2 and fault not in STAGE2_FAULT_CHOICES:
+                    manager.finish_run("FAILED", f"未知 stage2 fault: {fault}")
+                    return (f"stage2 fault 必须是 "
+                            f"{STAGE2_FAULT_CHOICES}: {fault!r}")
+                if not is_stage2 and fault not in s1cfg.FAULT_CHOICES:
+                    manager.finish_run("FAILED", f"未知 stage1 fault: {fault}")
+                    return (f"stage1 fault 必须是 "
+                            f"{s1cfg.FAULT_CHOICES}: {fault!r}")
             self.stage1_scene = manager.scene
             self.stage1_comp = None
             self.stage1_controller = None
@@ -357,12 +380,17 @@ class FactoryMCPServer:
             self.stage1_stop.clear()
             self.stage1_pause.clear()
             self.stage1_pause_ack.clear()
-            self.backend = "stage2" if is_stage2 else "stage1"
+            self.backend = ("stage3" if is_stage3
+                            else ("stage2" if is_stage2 else "stage1"))
             self.last_error = None
 
         logger = setup_logger(log_file=log_file)
         try:
-            if is_stage2:
+            if is_stage3:
+                from stage3.run import build_components_stage3
+                comp = build_components_stage3(
+                    self.sim, simIK, manager.scene, logger)
+            elif is_stage2:
                 from stage2.run import build_components_stage2
                 comp = build_components_stage2(
                     self.sim, simIK, manager.scene, logger)
@@ -372,24 +400,35 @@ class FactoryMCPServer:
             s1run.start_stepping(self.sim)
         except Exception as e:  # noqa: BLE001
             manager.finish_run("FAILED", f"{type(e).__name__}: {e}")
-            self.last_error = f"stage2 启动失败: {e}" if is_stage2 else \
-                f"stage1 启动失败: {e}"
-            return f"stage2 启动失败: {e}" if is_stage2 else \
-                f"stage1 启动失败: {e}"
+            label = ("stage3" if is_stage3
+                     else ("stage2" if is_stage2 else "stage1"))
+            self.last_error = f"{label} 启动失败: {e}"
+            return f"{label} 启动失败: {e}"
         self.stage1_comp = comp
 
         tt = total_time if total_time and total_time > 0 else 90.0
-        runner = self._run_stage2 if is_stage2 else self._run_stage1
-        t = threading.Thread(
-            target=runner,
-            args=(target, fault, tt, logger, manager),
-            name=("stage2-mcp-loop" if is_stage2 else "stage1-mcp-loop"),
-            daemon=True,
-        )
+        if is_stage3:
+            runner = self._run_stage3
+            args = (scenario_name, fault, tt, logger, manager)
+            thread_name = "stage3-mcp-loop"
+        elif is_stage2:
+            runner = self._run_stage2
+            args = (target, fault, tt, logger, manager)
+            thread_name = "stage2-mcp-loop"
+        else:
+            runner = self._run_stage1
+            args = (target, fault, tt, logger, manager)
+            thread_name = "stage1-mcp-loop"
+        t = threading.Thread(target=runner, args=args, name=thread_name,
+                             daemon=True)
         self.stage1_runner = t
         t.start()
-        backend = "stage2" if is_stage2 else "stage1"
-        return (f"阶段二仿真已启动 (backend={backend}, target={target}, "
+        backend = self.backend
+        label = ("阶段三" if is_stage3
+                 else ("阶段二" if is_stage2 else "阶段一"))
+        detail = (f"scenario={scenario_name}, " if is_stage3
+                  else f"target={target}, ")
+        return (f"{label}仿真已启动 (backend={backend}, {detail}"
                 f"fault={fault}, 单任务上限={tt:.1f}s, "
                 f"run_id={self.stage1_run_id}, "
                 f"artifact={manager.session.artifact_id}, log={log_file}); "
@@ -490,6 +529,74 @@ class FactoryMCPServer:
             except Exception as exc:  # noqa: BLE001
                 logger.exception("[MCP] finish_run 失败: %s", exc)
             self.stage1_run_id = None
+
+    def _run_stage3(self, scenario: str, fault: str,
+                    max_sim_time: float, logger, manager) -> None:
+        """阶段三 MCP 运行线程: 双工位任务链 + 会话资源清理."""
+        from stage1.run import stop_simulation
+        from stage3.run import run_scenario_stage3
+
+        outcome, error = "DONE", None
+        try:
+            evidence = run_scenario_stage3(
+                self.sim, self.stage1_scene, self.stage1_comp,
+                scenario=scenario, max_sim_time=max_sim_time,
+                logger=logger, fault=fault,
+                stop_event=self.stage1_stop,
+                pause_event=self.stage1_pause,
+                pause_ack_event=self.stage1_pause_ack,
+                on_start=self._on_stage1_controller,
+            )
+            self.stage1_results.append(evidence)
+            self._write_stage3_report(scenario, fault)
+            if not evidence.get("ok"):
+                outcome = "FAILED"
+        except Exception as e:  # noqa: BLE001 - 线程入口需兜底所有异常
+            outcome, error = "FAILED", f"{type(e).__name__}: {e}"
+            self.last_error = f"stage3 run 异常: {error}"
+            logger.exception("[MCP] stage3 run 异常")
+        finally:
+            try:
+                stop_simulation(self.sim)
+            except Exception:
+                pass
+            try:
+                if self.stage1_comp is not None and \
+                        self.stage1_comp.get("runtime") is not None:
+                    self.stage1_comp["runtime"].destroy()
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("[MCP] stage3 runtime 清理失败: %s", exc)
+            try:
+                manager.finish_run(outcome, error)
+                self.stage1_scene = manager.scene
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("[MCP] finish_run 失败: %s", exc)
+            self.stage1_run_id = None
+
+    def _write_stage3_report(self, scenario: str, fault: str) -> None:
+        """把 MCP 触发的阶段三运行结果写入 docs/implementation/runs/."""
+        from datetime import datetime
+        from stage1 import run as s1run
+
+        os.makedirs(s1run.REPORT_DIR, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(
+            s1run.REPORT_DIR, f"phase3_mcp_{scenario}_{stamp}.json")
+        summary = {
+            "timestamp": stamp,
+            "backend": "stage3",
+            "run_id": self.stage1_run_id,
+            "artifact_id": (self.stage1_lifecycle.session.artifact_id
+                            if self.stage1_lifecycle is not None else None),
+            "scenario": scenario,
+            "fault": fault,
+            "results": self.stage1_results,
+            "all_ok": bool(self.stage1_results) and all(
+                r.get("ok") for r in self.stage1_results),
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
+        self.stage1_report_path = path
 
     def _write_stage2_report(self, target: str, fault: str) -> None:
         """把 MCP 触发的阶段二运行结果写入 docs/implementation/runs/."""
@@ -612,7 +719,10 @@ class FactoryMCPServer:
         except Exception as e:  # noqa: BLE001
             self.last_error = f"save_scene 失败: {e}"
             return f"save_scene 失败: {type(e).__name__}: {e}"
-        self.backend = "stage1"
+        artifact = getattr(manager, "artifact", None)
+        self.backend = ((artifact.manifest.get("source_phase")
+                         if artifact is not None else None)
+                        or "stage1")
         self.stage1_scene = manager.scene
         self.stage1_comp = None
         return json.dumps({"ok": True, **result}, ensure_ascii=False,
@@ -628,7 +738,10 @@ class FactoryMCPServer:
         except Exception as e:  # noqa: BLE001
             self.last_error = f"load_scene 失败: {e}"
             return f"load_scene 失败: {type(e).__name__}: {e}"
-        self.backend = "stage1"
+        artifact = getattr(manager, "artifact", None)
+        self.backend = ((artifact.manifest.get("source_phase")
+                         if artifact is not None else None)
+                        or "stage1")
         self.stage1_scene = manager.scene
         self.stage1_comp = None
         self.stage1_controller = None
@@ -752,7 +865,7 @@ class FactoryMCPServer:
     def status(self) -> dict:
         """采集当前仿真状态 — Gather live status for the status tool."""
         running = self.is_running()
-        if running and self.backend in ("stage1", "stage2"):
+        if running and self.backend in ("stage1", "stage2", "stage3"):
             # 主连接被 stage1 runner 独占; 探活会与主循环抢锁, 直接视为已连接。
             connected = True
         else:
@@ -767,7 +880,8 @@ class FactoryMCPServer:
             "port": self.connector.port if self.connector else None,
             "last_error": self.last_error,
         }
-        if self.backend in ("stage1", "stage2") or self.stage1_scene is not None:
+        if self.backend in ("stage1", "stage2", "stage3") \
+                or self.stage1_scene is not None:
             info["backend"] = self.backend
             info["scene_built"] = self.stage1_scene is not None
             info["paused"] = self.stage1_pause.is_set()
@@ -778,6 +892,20 @@ class FactoryMCPServer:
                                   if self.stage1_scene.layout else None)
                 info["tool_version"] = cfg_suction_tool_version()
             ctrl = self.stage1_controller
+            if self.backend == "stage3" and ctrl is not None \
+                    and hasattr(ctrl, "queue"):
+                info.update({
+                    "scenario": ctrl.scenario,
+                    "fault": ctrl.fault,
+                    "sim_time": round(ctrl._sim_time(), 3),
+                    "aborted": bool(ctrl.aborted),
+                    "stop_reason": ctrl.stop_reason,
+                    "task_states": {
+                        task.task_id: task.status.value
+                        for task in ctrl.queue.all()},
+                    "resources": ctrl.resources.snapshot(),
+                })
+                ctrl = None
             if ctrl is not None:
                 sim_time = float(ctrl.sim_time)
                 if self.stage1_pause.is_set():
@@ -1102,8 +1230,8 @@ def save_scene(phase: str = "stage1", parent: str | None = None,
     阶段一工件默认 protected=True, 不允许覆盖。
 
     Args:
-        phase:     命名空间: "stage1" / "stage2" / "diagnostic"。
-        parent:    父工件 ID (阶段二从阶段一基线派生时必填)。
+        phase:     命名空间: "stage1" / "stage2" / "stage3" / "diagnostic"。
+        parent:    父工件 ID (阶段二从 stage1、阶段三从 stage2 派生时必填)。
         note:      版本说明。
         protected: 是否设置为只读基线。
 
@@ -1166,12 +1294,13 @@ def start_simulation(total_time: float = 0.0,
                      log_file: str = "factory_sim.log",
                      backend: str = "stage1",
                      target: str = "station",
-                     fault: str = "none") -> str:
+                     fault: str = "none",
+                     scenario: str = "") -> str:
     """在后台线程启动仿真主循环。
 
     backend="stage1" (默认/当前实现): **不重建场景**; 只启动当前已加载
-    且通过 validate_scene 的场景。若工件 source_phase=stage2, 由同一
-    生命周期/运行锁路由到阶段二 runner (高位中转、碰撞检查、联锁)。
+    且通过 validate_scene 的场景。若工件 source_phase=stage2/stage3, 由
+    同一生命周期/运行锁路由到阶段二/阶段三 runner。
     没有合格场景时返回明确错误, 请先 build_scene 或 load_scene +
     validate_scene。
     backend="legacy": 运行旧五岛 FactoryController。
@@ -1183,14 +1312,17 @@ def start_simulation(total_time: float = 0.0,
                     legacy 为仿真总时长 (0=无限直到 stop)。
         log_file:   日志文件路径。
         backend:    "stage1" (默认) 或 "legacy"。
-        target:     stage1 目标: "station" / "agv" / "both"。
-        fault:      stage1 故障注入: "none" 等 (见 stage1.config.FAULT_CHOICES)。
+        target:     stage1 目标: "station" / "agv" / "both";
+                    stage3 也可直接传场景名。
+        fault:      stage1/stage2/stage3 故障注入 (见各阶段 FAULT_CHOICES)。
+        scenario:   stage3 场景: closed_loop / contention / blocked /
+                    unstable_unload / route_baseline。
 
     Returns:
         启动结果描述 (含 run_id 与 artifact_id)。
     """
     return server.start(total_time, log_file, backend=backend,
-                        target=target, fault=fault)
+                        target=target, fault=fault, scenario=scenario)
 
 
 @mcp.tool()

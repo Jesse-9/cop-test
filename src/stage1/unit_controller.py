@@ -153,6 +153,18 @@ class Stage1UnitController:
     # ── 单步 ────────────────────────────────────────────────
 
     def step(self) -> None:
+        """阶段一单控制器循环: 全部逻辑 + 推进一个仿真步."""
+        self.pre_tick()
+        self.sim.step()
+        self.post_tick()
+
+    def pre_tick(self) -> None:
+        """本控制步的全部逻辑, **不**推进物理引擎.
+
+        阶段三需要两台控制器共享同一个时钟: 协调器先对所有活动控制器调用
+        `pre_tick()`, 再统一下发 AGV 命令、`sim.step()`, 最后调用
+        `post_tick()`. 阶段一/二单控制器路径的 `step()` 行为保持不变.
+        """
         self.sim_time = self._sim_time()
         if self._started_at is None:
             self._started_at = self.sim_time
@@ -163,7 +175,10 @@ class Stage1UnitController:
         self._advance_task()               # 4-8
         self._update_agv()                 # 9
         self._log_step()                   # 10
-        self.sim.step()                    # 11 — 永远最后
+
+    def post_tick(self) -> None:
+        """物理步进后的只读检查; 阶段一没有运行期联锁."""
+        return None
 
     # ── 1. 通信/仿真状态 ────────────────────────────────────
 

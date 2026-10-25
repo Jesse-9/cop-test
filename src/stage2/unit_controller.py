@@ -87,6 +87,18 @@ class Stage2UnitController(Stage1UnitController):
     # ═══════════════════════════════════════════════════════
 
     def step(self) -> None:
+        """阶段二单控制器循环: 联锁/任务 + 推进物理 + 步后联锁."""
+        self.pre_tick()
+        self.sim.step()
+        self.post_tick()
+
+    def pre_tick(self) -> None:
+        """本控制步的联锁/传感器/任务逻辑, 不推进物理引擎.
+
+        阶段三协调器对两台控制器依次调用 `pre_tick()`, 再统一下发 AGV
+        轮速并 `sim.step()`, 最后调用 `post_tick()`; 阶段二单控制器路径
+        `step()` 的顺序与结果保持不变.
+        """
         self.sim_time = self._sim_time()
         if self._started_at is None:
             self._started_at = self.sim_time
@@ -101,7 +113,8 @@ class Stage2UnitController(Stage1UnitController):
                 self._advance_task()
                 self._update_agv()
         self._log_step()
-        self.sim.step()
+
+    def post_tick(self) -> None:
         self._post_step_interlock()
 
     # ═══════════════════════════════════════════════════════

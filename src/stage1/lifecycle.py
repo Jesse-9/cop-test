@@ -162,6 +162,8 @@ class SessionState:
     last_error: Optional[str] = None
     has_run_since_build: bool = False
     background: bool = False        # --keep-running: 无控制循环但仿真仍运行
+    built_phase: Optional[str] = None
+    built_layout: Optional[dict] = None
     updated_at: str = ""
 
     def to_dict(self) -> dict:
@@ -178,6 +180,8 @@ class SessionState:
             "last_error": self.last_error,
             "has_run_since_build": bool(self.has_run_since_build),
             "background": bool(self.background),
+            "built_phase": self.built_phase,
+            "built_layout": self.built_layout,
             "updated_at": self.updated_at or sa.utc_now(),
         }
 
@@ -201,6 +205,8 @@ class SessionState:
             last_error=data.get("last_error"),
             has_run_since_build=bool(data.get("has_run_since_build")),
             background=bool(data.get("background")),
+            built_phase=data.get("built_phase"),
+            built_layout=data.get("built_layout"),
             updated_at=data.get("updated_at", ""),
         )
 
@@ -363,14 +369,23 @@ def _new_run_id() -> str:
 # ═══════════════════════════════════════════════════════════════
 
 def _default_manifest_extra(phase: str, sim, scene, parent_info) -> Optional[dict]:
-    if phase != "stage2":
-        return None
-    from stage2.scene_contract import build_stage2_extra
-    return {"stage2": build_stage2_extra(
-        sim=sim, scene=scene, parent_info=parent_info)}
+    if phase == "stage2":
+        from stage2.scene_contract import build_stage2_extra
+        return {"stage2": build_stage2_extra(
+            sim=sim, scene=scene, parent_info=parent_info)}
+    if phase == "stage3":
+        from stage3.scene_contract import build_stage3_extra
+        return {"stage3": build_stage3_extra(
+            sim=sim, scene=scene, parent_info=parent_info)}
+    return None
 
 
 def _default_extra_validator(artifact, sim, scene) -> Optional[dict]:
+    source_phase = artifact.manifest.get("source_phase")
+    extra = (artifact.manifest.get("extra") or {}).get("stage3")
+    if source_phase == "stage3" or extra is not None:
+        from stage3.scene_contract import validate_stage3_contract
+        return validate_stage3_contract(sim, artifact, scene=scene)
     extra = (artifact.manifest.get("extra") or {}).get("stage2")
     if extra is None:
         return None
@@ -383,10 +398,16 @@ def _merge_extra_validation(result: dict, extra: Optional[dict]) -> dict:
         return result
     result.setdefault("checks", []).extend(extra.get("checks", []))
     result.setdefault("differences", []).extend(extra.get("differences", []))
-    result["stage2_contract"] = {
+    contract = {
         "ok": bool(extra.get("ok")),
         "contract_version": extra.get("contract_version"),
     }
+    result["stage_contract"] = contract
+    if str(extra.get("contract_version", "")).startswith("stage3"):
+        result["stage3_contract"] = contract
+    else:
+        # 阶段二与旧测试的兼容字段
+        result["stage2_contract"] = contract
     result["ok"] = bool(result.get("ok")) and bool(extra.get("ok"))
     return result
 
@@ -485,18 +506,35 @@ class LifecycleManager:
                     self.artifact = None
 
     def _ensure_scene(self):
-        """跨 CLI 进程恢复 Stage1Scene: 按会话来源重新解析句柄。"""
+        """跨 CLI 进程恢复场景: 按会话来源与阶段重新解析句柄。"""
         if self.scene is not None:
             return self.scene
         from .layout import default_layout, layout_from_dict
         from .scene import adopt_scene
 
         layout = None
-        if self.session.scene_origin == "ARTIFACT"                 and self.session.artifact_id:
+        phase = None
+        if self.session.scene_origin == "ARTIFACT" and self.session.artifact_id:
             artifact = self.store.find(self.session.artifact_id)
             self.artifact = artifact
+            phase = artifact.manifest.get("source_phase")
+            if phase == "stage3":
+                from stage3.layout import layout_from_dict as s3_layout
+                from stage3.scene import adopt_stage3_scene
+                self.scene = adopt_stage3_scene(
+                    self.sim, layout=s3_layout(
+                        artifact.manifest.get("layout") or {}))
+                return self.scene
             layout = layout_from_dict(artifact.manifest.get("layout") or {})
         elif self.session.scene_origin == "BUILT":
+            phase = self.session.built_phase or "stage1"
+            if phase == "stage3":
+                from stage3.layout import layout_from_dict as s3_layout
+                from stage3.scene import adopt_stage3_scene
+                payload = self.session.built_layout or {}
+                self.scene = adopt_stage3_scene(
+                    self.sim, layout=s3_layout(payload))
+                return self.scene
             layout = default_layout()
         if layout is None:
             return None
@@ -585,11 +623,16 @@ class LifecycleManager:
         }
 
     # ── 动作: build ─────────────────────────────────────────
-    def build(self, clear: bool = True, layout=None) -> dict:
+    def build(self, clear: bool = True, layout=None,
+              phase: str = "stage1", parent: Optional[str] = None) -> dict:
         self.refresh()
         self._guard("build")
         self._ensure_stopped("build")
         self._require_no_live_lock("build")
+        if phase == "stage3":
+            return self._build_stage3(layout=layout, parent=parent)
+        if phase not in ("stage1", "stage2", "diagnostic"):
+            raise LifecycleError(f"build 不支持阶段: {phase!r}")
         from .scene import build_scene
 
         try:
@@ -608,11 +651,73 @@ class LifecycleManager:
         self.session.validated_at = sa.utc_now()
         self.session.run_id = None
         self.session.last_error = None
+        self.session.built_phase = phase
+        self.session.built_layout = None
         self.sm.transition("build")
         self._apply(LifecycleState.SCENE_VALIDATED, origin="BUILT",
                     event="built", layout=scene.layout.name,
-                    checks=len(scene.build_report.get("checks", [])))
+                    checks=len(scene.build_report.get("checks", [])),
+                    built_phase=phase)
         return self.summary()
+
+    def _build_stage3(self, *, layout=None, parent: Optional[str] = None
+                      ) -> dict:
+        """从已验收 stage2 工件派生 stage3 副本并增加第二单元.
+
+        不覆盖父工件; 加载父 scene.ttt 后在停止态增加 B 单元, 然后执行
+        阶段三构建契约. 保存仍由显式 `save --phase stage3 --parent ...`
+        完成 (步骤 1.2 生命周期语义不变).
+        """
+        if not parent:
+            raise LifecycleError(
+                "stage3 build 必须指定 --parent (已验收 stage2 工件)")
+        parent_art = self.store.find(parent, phase="stage2")
+        if parent_art.manifest.get("source_phase") != "stage2":
+            raise LifecycleError(
+                f"stage3 parent 必须是 stage2 工件, 当前为 "
+                f"{parent_art.manifest.get('source_phase')!r}")
+        if not parent_art.scene_path.exists():
+            raise sa.ArtifactNotFoundError(str(parent_art.scene_path))
+
+        from .layout import layout_from_dict
+        from .scene import adopt_scene
+        from stage3.layout import default_layout as s3_default_layout
+        from stage3.scene import build_second_unit
+
+        try:
+            self.sim.loadScene(str(parent_art.scene_path))
+            self._ensure_stopped("build")
+            base_scene = adopt_scene(
+                self.sim,
+                layout=layout_from_dict(parent_art.manifest.get("layout") or {}))
+            stage3_layout = layout if layout is not None else s3_default_layout()
+            scene = build_second_unit(self.sim, base_scene,
+                                      layout=stage3_layout)
+        except Exception as exc:
+            self._fail(f"stage3 build 失败: {type(exc).__name__}: {exc}",
+                       event="build_failed", parent=parent_art.artifact_id)
+            raise
+
+        self.scene = scene
+        self.artifact = None
+        self.last_validation = None
+        self.has_run_since_build = False
+        self.session.has_run_since_build = False
+        self.session.artifact_id = None
+        self.session.manifest_digest = None
+        self.session.validated_at = sa.utc_now()
+        self.session.run_id = None
+        self.session.last_error = None
+        self.session.built_phase = "stage3"
+        self.session.built_layout = stage3_layout.as_dict()
+        self.sm.transition("build")
+        self._apply(LifecycleState.SCENE_VALIDATED, origin="BUILT",
+                    event="built_stage3", layout=scene.layout.name,
+                    checks=len(scene.build_report.get("checks", [])),
+                    parent=parent_art.artifact_id)
+        result = self.summary()
+        result["parent_artifact"] = parent_art.artifact_id
+        return result
 
     # ── 动作: load ──────────────────────────────────────────
     def load(self, artifact_ref: str, phase: Optional[str] = None) -> dict:
@@ -631,7 +736,9 @@ class LifecycleManager:
         self._require_no_live_lock("load")
         artifact = self.store.find(artifact_ref, phase=phase)
         schema = sa.validate_manifest_schema(
-            artifact.manifest, cfg.REQUIRED_ALIASES)
+            artifact.manifest,
+            sa.required_aliases_for_phase(
+                artifact.manifest.get("source_phase")))
         if not sa.checks_ok(schema):
             failed = [c for c in schema if not c["ok"]]
             self._fail(f"manifest schema 校验失败: {failed}",
@@ -661,9 +768,16 @@ class LifecycleManager:
             self._fail(f"loadScene 失败: {exc}", event="load_failed")
             raise
         self._ensure_stopped("load")
-        layout = layout_from_dict(artifact.manifest.get("layout") or {})
         try:
-            scene = adopt_scene(self.sim, layout=layout)
+            if artifact.manifest.get("source_phase") == "stage3":
+                from stage3.layout import layout_from_dict as s3_layout
+                from stage3.scene import adopt_stage3_scene
+                scene = adopt_stage3_scene(
+                    self.sim,
+                    layout=s3_layout(artifact.manifest.get("layout") or {}))
+            else:
+                layout = layout_from_dict(artifact.manifest.get("layout") or {})
+                scene = adopt_scene(self.sim, layout=layout)
         except Exception as exc:
             self._fail(f"加载后句柄解析失败: {exc}", event="load_failed")
             raise
@@ -677,6 +791,8 @@ class LifecycleManager:
         self.session.validated_at = None
         self.session.run_id = None
         self.session.last_error = None
+        self.session.built_phase = None
+        self.session.built_layout = None
         self.sm.transition("load")
         self._apply(LifecycleState.SCENE_LOADED, origin="ARTIFACT",
                     event="loaded", path=str(artifact.scene_path))
@@ -782,10 +898,20 @@ class LifecycleManager:
         parent_info = None
         parent_art = None
         if parent:
-            parent_art = self.store.find(parent)
+            parent_phase = None
+            if phase == "stage3" and parent == "current":
+                parent_phase = "stage2"
+            parent_art = self.store.find(parent, phase=parent_phase)
+            parent_extra = parent_art.manifest.get("extra") or {}
+            parent_stage2 = parent_extra.get("stage2") or {}
             parent_info = {
                 "artifact_id": parent_art.artifact_id,
                 "manifest_digest": parent_art.manifest_digest,
+                "source_phase": parent_art.manifest.get("source_phase"),
+                "stage2_contract_version": parent_stage2.get(
+                    "contract_version"),
+                "stage2_config_digest": (parent_stage2.get("config") or {}
+                                         ).get("digest"),
             }
         if phase == "stage2" and parent_art is None:
             raise LifecycleError(
@@ -794,6 +920,14 @@ class LifecycleManager:
                 and parent_art.manifest.get("source_phase") != "stage1"):
             raise LifecycleError(
                 f"stage2 parent 必须是 stage1 工件, 当前为 "
+                f"{parent_art.manifest.get('source_phase')!r}")
+        if phase == "stage3" and parent_art is None:
+            raise LifecycleError(
+                "stage3 工件必须指定 --parent (从已验收 stage2 工件派生)")
+        if (phase == "stage3" and parent_art is not None
+                and parent_art.manifest.get("source_phase") != "stage2"):
+            raise LifecycleError(
+                f"stage3 parent 必须是 stage2 工件, 当前为 "
                 f"{parent_art.manifest.get('source_phase')!r}")
 
         draft = self.store.create(phase, self.scene.layout.name)
@@ -817,6 +951,12 @@ class LifecycleManager:
                 manifest = sanitize_manifest_sections(manifest)
                 manifest["parent_artifact"]["differences"] = \
                     diff_stage2_manifest(parent_art.manifest, manifest)
+            elif phase == "stage3":
+                from stage3.scene_contract import (
+                    diff_stage3_manifest, sanitize_manifest_sections)
+                manifest = sanitize_manifest_sections(manifest)
+                manifest["parent_artifact"]["differences"] = \
+                    diff_stage3_manifest(parent_art.manifest, manifest)
             else:
                 manifest["parent_artifact"]["differences"] = \
                     sa.diff_manifest(parent_art.manifest, manifest)
@@ -842,8 +982,15 @@ class LifecycleManager:
         try:
             self.sim.loadScene(str(partial))
             self._ensure_stopped("save")
-            loaded_scene = adopt_scene(
-                self.sim, layout=layout_from_dict(manifest.get("layout") or {}))
+            if phase == "stage3":
+                from stage3.layout import layout_from_dict as s3_layout
+                from stage3.scene import adopt_stage3_scene
+                loaded_scene = adopt_stage3_scene(
+                    self.sim, layout=s3_layout(manifest.get("layout") or {}))
+            else:
+                loaded_scene = adopt_scene(
+                    self.sim,
+                    layout=layout_from_dict(manifest.get("layout") or {}))
             loaded_scene.verify()
             # 校验针对尚未改名的 partial 文件; 通过后再原子改名为 scene.ttt。
             validation_manifest = json.loads(json.dumps(manifest))
@@ -903,6 +1050,8 @@ class LifecycleManager:
         self.session.manifest_digest = final_artifact.manifest_digest
         self.session.validated_at = result["validated_at"]
         self.session.last_error = None
+        self.session.built_phase = None
+        self.session.built_layout = None
         self.sm.transition("save")
         self._apply(LifecycleState.SCENE_VALIDATED, origin="ARTIFACT",
                     event="saved", path=str(final_scene),
@@ -1157,19 +1306,48 @@ def _manager(args, client, sim, simIK) -> LifecycleManager:
 def _run_start(args, manager: LifecycleManager) -> dict:
     """在 CLI 进程内启动并执行已校验场景; 返回运行报告.
 
-    按工件 ``source_phase`` 显式路由: stage2 工件必须使用阶段二 runner,
-    不允许 stage1 runner 静默运行阶段二场景 (06-09 §8.6)。
+    按工件 ``source_phase`` 显式路由: stage2 工件使用阶段二 runner,
+    stage3 工件使用阶段三双工位 runner; 不允许阶段一 runner 静默运行
+    更高阶段场景 (06-09 §8.6 / 06-12 §3.0).
     """
     from .run import setup_logger
 
     prepared = manager.prepare_start(target=args.target)
     phase = (manager.artifact.manifest.get("source_phase")
              if manager.artifact is not None else None)
+    logger = setup_logger(args.log)
+    if phase == "stage3":
+        from stage3.run import run_loaded_scene_stage3 as runner
+        scenario = getattr(args, "scenario", None) or "closed_loop"
+        try:
+            summary = runner(
+                manager.sim, manager.simIK, manager.scene,
+                scenario=scenario, target=scenario,
+                fault=args.fault, max_sim_time=args.time,
+                repeat=1, out_dir=Path(args.out_dir), logger=logger,
+                keep_running=False, run_id=prepared["run_id"],
+                artifact_id=manager.session.artifact_id)
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            try:
+                manager.stop()
+            except Exception:
+                pass
+            manager.finish_run("FAILED", error)
+            raise
+        finally:
+            try:
+                manager.stop()
+            except Exception:
+                manager.finish_run("STOP_UNCERTAIN")
+        summary["lifecycle"] = manager.finish_run(
+            "DONE" if summary.get("all_ok") else "FAILED")
+        return summary
+
     if phase == "stage2":
         from stage2.run import run_loaded_scene_stage2 as runner
     else:
         from .run import run_loaded_scene as runner
-    logger = setup_logger(args.log)
     try:
         summary = runner(
             manager.sim, manager.simIK, manager.scene,
@@ -1218,6 +1396,11 @@ def build_parser():
     p = sub.add_parser("build", help="显式构建场景并执行构建契约校验")
     p.add_argument("--no-clear", action="store_true",
                    help="不清场 (只允许在空场景/自有场景上使用)")
+    p.add_argument("--phase", default="stage1",
+                   choices=("stage1", "stage3"),
+                   help="stage1: 从空场景构建; stage3: 从 stage2 工件派生")
+    p.add_argument("--parent", default=None,
+                   help="stage3 构建时的父 stage2 工件 ID")
 
     p = sub.add_parser("save", help="停止态保存为新版本工件并重载校验")
     p.add_argument("--phase", default="stage1",
@@ -1241,10 +1424,16 @@ def build_parser():
 
     p = sub.add_parser("start", help="启动当前已加载且校验通过的场景")
     p.add_argument("--target", choices=("station", "agv", "both"),
-                   default="station")
+                   default="station",
+                   help="阶段一/二目标; 阶段三可用 --scenario 选择场景")
+    p.add_argument("--scenario", default=None,
+                   help="阶段三场景: closed_loop/contention/blocked/"
+                        "unstable_unload/route_baseline")
     try:
         from stage2.config import STAGE2_FAULT_CHOICES
-        fault_choices = list(STAGE2_FAULT_CHOICES)
+        from stage3.config import STAGE3_FAULT_CHOICES
+        fault_choices = list(dict.fromkeys(
+            [*STAGE2_FAULT_CHOICES, *STAGE3_FAULT_CHOICES]))
     except Exception:
         fault_choices = list(cfg.FAULT_CHOICES)
     p.add_argument("--fault", choices=fault_choices,
@@ -1278,7 +1467,9 @@ def main(argv=None) -> int:
     manager = _manager(args, client, sim, simIK)
     try:
         if args.action == "build":
-            result = manager.build(clear=not args.no_clear)
+            result = manager.build(
+                clear=not args.no_clear, phase=getattr(args, "phase", "stage1"),
+                parent=getattr(args, "parent", None))
         elif args.action == "save":
             result = manager.save(
                 phase=args.phase, parent=args.parent, note=args.note,

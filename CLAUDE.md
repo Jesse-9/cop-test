@@ -21,6 +21,10 @@
 │                   planning/trajectory/safety/run    │
 │                   branch/metrics (阶段 2.01)        │
 │                   diagnostics/整链/路径变体 (2.02)  │
+│  stage3/ (当前) — 双工位/资源锁/AGV 两站转运        │
+│                   layout/scene/resources/tasks      │
+│                   agv_route/runtime/unit_controller │
+│                   coordinator/scene_contract/run    │
 │  reference/ (历史) — factory_controller/island/AGV  │
 │  reference/factory_robot.py — 关键帧兼容层          │
 │  reference/factory_types.py — 枚举/数据类/物料      │
@@ -262,6 +266,15 @@ CLI：
 .venv/Scripts/python src/run_scene_lifecycle.py stop
 .venv/Scripts/python src/run_scene_lifecycle.py status
 .venv/Scripts/python src/run_scene_lifecycle.py list
+
+# 阶段三: 从 stage2 工件派生, 保存到 stage3 命名空间
+.venv/Scripts/python src/run_scene_lifecycle.py build --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558 --note "..."
+.venv/Scripts/python src/run_scene_lifecycle.py load current --phase stage3
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --scenario closed_loop --time 300
 ```
 
 全局参数（`--host`/`--port`/`--artifact-root`/`--out-dir`）必须写在子命令之前。
@@ -338,9 +351,9 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
   （1e-4 m / 1e-3 rad）；不一致立即锁存。
 - 锁存后停带/停车、保持最后实测构型、确认真实停止；不自动恢复、不
   重试。故障恢复属阶段 2.1。
-- 生命周期 `start` 按工件 `source_phase` 显式路由 stage1/stage2 runner；
-  stage1 runner 拒绝 stage2 工件。MCP `start_simulation` 复用同一
-  生命周期/运行锁并在加载 stage2 工件时路由到阶段二线程。
+- 生命周期 `start` 按工件 `source_phase` 显式路由 stage1/stage2/stage3
+  runner；stage1 runner 拒绝 stage2/stage3 工件。MCP `start_simulation`
+  复用同一生命周期/运行锁并在加载 stage2/stage3 工件时路由到对应线程。
 
 阶段 2.01 不变量：
 
@@ -425,6 +438,98 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
 .venv/Scripts/python docs/measurement/probe_stage2_ik_candidates.py
 .venv/Scripts/python docs/measurement/probe_stage2_path_rejection.py
 ```
+
+### 阶段三双工位（当前实施范围，2026-10-25 通过）
+
+阶段三从已验收 stage2 工件只读派生 `stage3` 副本，增加 B 单元、两个 AGV
+dock、共享取料区资源锁和 A→B 任务链。A 单元、共享传送带和 AGV 模型不变；
+AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍只通过左右轮
+`setJointTargetVelocity` 驱动。入口与证据见 [PHASE3_REPORT.md](docs/implementation/PHASE3_REPORT.md)、
+[06-13](docs/wiki/06-工业案例/06-13-柔性工业车间阶段三双工位实施记录.md)。
+
+当前工件：`stage3/L2_MIRROR/v004_20261025_131837`，父
+`stage2/L1_S1/v013_20261024_232558`；保存/加载 **229 项只读校验**通过，
+父差异为新增 11 个 B/共享 alias、无 alias 移除；109 项场景构建契约通过。
+`extra.stage3.contract_version = stage3_contract_20261025_v1`。修改
+`src/stage3/config.py` 后旧工件会因 digest 失败，必须从 stage2 父工件重新
+派生，不得手改 manifest。
+
+| 文件 | 职责 |
+|------|------|
+| [config.py](src/stage3/config.py) | 双工位布局/资源表/任务流/AGV 路线/故障注入/验收参数 |
+| [layout.py](src/stage3/layout.py) | `L2_MIRROR` 布局、`UnitLayoutView`、候选静态筛选、序列化 |
+| [scene.py](src/stage3/scene.py) | 从 stage2 工件增加 B 单元、`Stage3Scene`、构建契约 |
+| [resources.py](src/stage3/resources.py) | 6 资源固定顺序锁表、等待/释放/顺序违规日志 |
+| [tasks.py](src/stage3/tasks.py) | UID 任务状态机、活动任务去重、拒绝记录 |
+| [agv_route.py](src/stage3/agv_route.py) | 直线穿梭、速度剖面、停靠/航向/滑移、BLOCKED/续行 |
+| [runtime.py](src/stage3/runtime.py) | 两台影子臂、独立碰撞集合/规划器/锁存、会话资源清理 |
+| [unit_controller.py](src/stage3/unit_controller.py) | 传送带/AGV 托盘两种取料源、AGV 保持静止 |
+| [coordinator.py](src/stage3/coordinator.py) | 任务编排、资源互斥、AGV 调度、故障注入、验收 |
+| [scene_contract.py](src/stage3/scene_contract.py) | `extra.stage3` 契约、布局/配置摘要、只读校验 |
+| [run.py](src/stage3/run.py) | 五个验收场景 runner、证据、CLI |
+| [run_stage3.py](src/run_stage3.py) | CLI 兼容入口；安装后 `uv run run-stage3` |
+
+阶段三不变量：
+
+- **两臂独立资源**：每台 UR5 使用独立 simIK environment、影子臂、碰撞
+  集合、`ConfigurationChecker`、`LocalPlanner` 和 `Stage2Safety`；不得
+  共享句柄、IK context 或可变任务状态。另一台**真实**臂的可见连杆与吸盘
+  Body 必须加入本臂工作区碰撞集合。另一台真实臂的 `collidable`/`measurable`
+  只在会话期启用，`Stage3Runtime.destroy()` 必须恢复原值（不改变
+  static/respondable/质量/摩擦/掩码）。
+- **一次 `sim.step()`**：阶段三协调器先对两台控制器调用 `pre_tick()`，
+  再下发 AGV 轮速、注入故障、`sim.step()`，最后对所有控制器调用
+  `post_tick()`（包括已 FAILED 的控制器，以便确认锁存后停止）。不得让
+  两台控制器各自 `sim.step()`。
+- **资源顺序**：`pick_zone → agv_lane → dock_A → dock_B → arm_A → arm_B`；
+  严格按序申请，禁止反向获取。`pick_zone` 在 TCP 退出 conveyor envelope
+  后释放；AGV 运输任务持有 `agv_lane`/`dock_B`，B 工位在运输途中记录
+  WAIT 但不提前获取，避免死锁。失败/停止释放普通调度锁，安全锁存不由
+  资源释放清除。
+- **任务 UID 与去重**：任务以 `(kind, uid)` 去重；活动任务重复提交必须
+  REJECTED，不得产生第二次吸附/派车。`FAILED`/`BLOCKED` 不得改写成
+  `DONE`；任务完成必须由物料状态、父对象/位姿、载台区域和 UID 证据确认。
+- **AGV 路线**：x=0.40 直线穿梭，A→B 前进带载、B→A 倒车空载；不在 dock
+  处原地旋转。停靠判据为位置 ≤0.02 m、航向 ≤0.08 rad、连续 5 步低速稳定；
+  带载滑移 ≤0.02 m。BLOCKED 后必须停车、保留任务/资源；只有无安全锁存、
+  障碍移除、位置/航向和资源所有权重新确认才允许 0.08 m/s 续行，不自动重试。
+- **物料状态**：A 释放到 AGV 后状态为 `RELEASED`；B 在 dock B 确认同一
+  UID 仍在载台后转 `ON_TRAY`，再进入 `READY_FOR_PICK`。不得跳过载台/UID
+  校验直接吸附。
+- **锁存后冻结**：任一臂安全锁存立即取消轨迹、停带/停车、保持实测构型、
+  确认真实停止；其他任务中止并释放普通调度锁，但不得清除 `SafetyLatch`、
+  不得自动复位/续作。阶段 2.1 统一恢复仍未实现。
+
+```bash
+# 从 stage2 父工件派生 stage3 场景并保存
+.venv/Scripts/python src/run_scene_lifecycle.py load stage2/L1_S1/v013_20261024_232558
+.venv/Scripts/python src/run_scene_lifecycle.py build --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558
+.venv/Scripts/python src/run_scene_lifecycle.py save --phase stage3 \
+  --parent stage2/L1_S1/v013_20261024_232558 --note "阶段三派生"
+
+# 五个精简验收场景（默认 load stage3 current + validate + start）
+.venv/Scripts/python src/run_stage3.py --scenario closed_loop --time 300
+.venv/Scripts/python src/run_stage3.py --scenario contention --time 300
+.venv/Scripts/python src/run_stage3.py --scenario blocked --time 300
+.venv/Scripts/python src/run_stage3.py --scenario unstable_unload --time 300
+.venv/Scripts/python src/run_stage3.py --scenario route_baseline --time 300
+
+# 生命周期入口
+.venv/Scripts/python src/run_scene_lifecycle.py load current --phase stage3
+.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py start --scenario closed_loop --time 300
+
+# 布局静态筛选 / 当前场景只读测量
+.venv/Scripts/python docs/measurement/probe_stage3_layout.py --sim
+```
+
+阶段三实测（2026-10-25，v004）：A→B 闭环 3 任务 DONE，AGV 停靠误差
+0.019706 m、航向 −0.000557 rad、载荷滑移 0.0；竞争场景 3 个重复请求被
+拒绝、dock_B 等待 1 次；受控阻塞 t=44.85 BLOCKED、t=54.90 续行；不稳定
+卸载 `LOAD_DRIFT(0.0400>0.02)` 锁存、unload FAILED、载荷仍
+`HELD_BY_SUCTION`。A 装载总 TV 18.732 rad、`pre_place` 的 q[3] TV
+4.931 rad；实测 jerk 峰值 113.9–120.7 rad/s³ > 100，MQ-01/02/03 仍未关闭。
 
 ### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
 
@@ -577,15 +682,18 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
 
 **默认后端为 `stage1`（当前阶段一实现）**: `build_scene` / `start_simulation` /
 `get_config` / `set_config` 均接受 `backend` 参数；`start_simulation` 额外接受
-`target` (`station`/`agv`/`both`) 与 `fault`。`backend="legacy"` 才运行旧五岛
-`FactoryController`。**共 24 个工具**，其中步骤 1.2 新增
-`save_scene` / `load_scene` / `validate_scene` / `lifecycle_status`；
-`start_simulation` 不再隐式 build/clear，必须先 `build_scene` 或
-`load_scene` + `validate_scene`。**加载 stage2 工件时，`start_simulation`
-按 manifest `source_phase` 自动路由到阶段二 runner**（同一生命周期与
-运行锁），并接受 `fault=runtime_obstacle`。stage1 运行结果写入
+`target` (`station`/`agv`/`both`)、`fault` 与阶段三 `scenario`
+(`closed_loop`/`contention`/`blocked`/`unstable_unload`/`route_baseline`)。
+`backend="legacy"` 才运行旧五岛 `FactoryController`。**共 24 个工具**，其中
+步骤 1.2 新增 `save_scene` / `load_scene` / `validate_scene` /
+`lifecycle_status`；`start_simulation` 不再隐式 build/clear，必须先
+`build_scene` 或 `load_scene` + `validate_scene`。**加载 stage2/stage3 工件时，
+`start_simulation` 按 manifest `source_phase` 自动路由到对应 runner**（同一
+生命周期与运行锁），stage2 接受 `fault=runtime_obstacle`，stage3 接受
+`fault=agv_blocked` / `unstable_unload`。stage1 运行结果写入
 `docs/implementation/runs/phase1_mcp_<target>_<fault>_<stamp>.json`；
-阶段二写入 `phase2_mcp_<target>_<fault>_<stamp>.json`。
+阶段二写入 `phase2_mcp_<target>_<fault>_<stamp>.json`；阶段三写入
+`phase3_mcp_<scenario>_<stamp>.json`。
 
 **CoppeliaSim 控制台实时输出**: CoppeliaSim 自身的控制台消息 (脚本 `print` /
 `sim.addLog`、插件与 add-on 报错、冻结前最后一条消息) 不在 ZMQ API 里, 需用
@@ -931,3 +1039,53 @@ Claude Code 在本项目会话会自动加载。详细使用见 [docs/wiki/98-Pr
     transit，会退化成 rise→pre_place 对角段，改变 gate B 的单变量比较；
     只有 high_align 的 transit 与 high_above_place 重合时才省略。修改
     该逻辑必须同步更新 `tests/test_stage2_agv_transfer.py` 和 06-10 §8。
+
+34. **阶段三配置漂移会拒绝旧工件 (预期保护)**: `extra.stage3.config.digest`
+    记录阶段三全部参数；修改 `src/stage3/config.py` 后，已保存的 stage3
+    工件在 `start`/`validate` 前会失败。必须从 stage2 父工件重新
+    `build --phase stage3` + `save`，不得手改 manifest 或关闭校验。
+    本轮因 `UNSTABLE_INJECT_DELAY_STEPS` 与 `SAFETY_STOP_SETTLE_STEPS`
+    调整派生到 v003，因共享对象清单补全派生到 v004；历史工件保留。
+
+35. **阶段三两台控制器必须共享一次 `sim.step()` (阶段三实测)**:
+    阶段一/二控制器的 `step()` 内部各自推进物理；阶段三不能同时调用两台
+    控制器的 `step()`，否则每逻辑步推进两次物理。实现把单步拆成
+    `pre_tick()`（传感器/传送带/任务/IK/吸附）和 `post_tick()`（步后联锁），
+    协调器统一顺序：两臂 `pre_tick` → AGV 轮速 → 故障注入 → `sim.step()`
+    → 两臂 `post_tick`。锁存后即使控制器已 FAILED 也必须调用 `post_tick`，
+    否则 `SafetyLatch.stop_confirmed` 永远为 false。
+
+36. **阶段三资源锁只解决调度互斥, 不代替碰撞检查**: 固定顺序
+    `pick_zone → agv_lane → dock_A → dock_B → arm_A → arm_B`；B 工位在
+    AGV 运输途中只能记录 `dock_B` WAIT，不能提前获取 dock，否则会与运输
+    任务形成死锁。另一台真实臂的可见连杆/吸盘 Body 必须加入本臂工作区
+    碰撞集合；资源释放不会清除 `Stage2Safety` 锁存。
+
+37. **AGV dock 朝向改变会与 Station 台面干涉 (阶段三实测)**:
+    原 L1_S1 的 AGV 在 dock A `(0.40,0.75)` 朝 +X；改为朝 −Y 后车体长轴
+    沿 Y，车体端部到 `y=1.0095`，与 Station A `y>=1.0` 相撞。阶段三把
+    dock A/B 内移到 `y=±0.70`，AGV 初始位姿在构建期（停止态）一次设置，
+    并在场景契约中断言位置/航向。运行期仍禁止 `setObjectPosition` 瞬移。
+
+38. **B 工位从 AGV 取料需要 `RELEASED → ON_TRAY` 重新确认 (阶段三)**:
+    A 工位释放到 AGV 后物料状态是 `RELEASED`（阶段一语义），B 工位必须
+    在 dock B 校验同一 UID、载台区域和稳定后才允许转 `ON_TRAY` →
+    `READY_FOR_PICK`；不得跳过 UID/载台检查直接吸附。
+
+39. **不稳定卸载注入必须早于 `pre_tick` 联锁 (阶段三实测)**:
+    `PLACING` 通常只持续一个控制步，下一 `pre_tick` 就进入 `RELEASING`。
+    故障注入必须在控制器 `pre_tick` **之前**执行，才能让
+    `Stage2Safety` 在释放前检出 `LOAD_DRIFT`；延迟设为 1 步。锁存后
+    协调器继续推进 `SAFETY_STOP_SETTLE_STEPS=20` 步，由 `post_tick`
+    读取真实带速/车体速度确认停止。
+
+40. **阶段三影子臂清理必须按别名精确清理**: `ShadowProbe.destroy()` 缺省
+    只删除本臂的 4 个根别名；阶段二单臂场景仍等价于清理全部 `Shadow_*`。
+    不得在另一臂仍在运行时用全局前缀清理，否则会误删另一台影子臂。
+
+41. **阶段三工件受保护且 current 指向最新版本**: CLI `save` 默认
+    `protected=true`；`stage3/L2_MIRROR/v001..v004` 均保留，current 指向
+    v004。派生新版本只能 `save --phase stage3 --parent ...` 创建新目录，
+    不得覆盖受保护工件。保存时 `adopt_stage3_scene` 必须解析阶段一/二
+    共享对象的非必需别名（AGV 载台/挡边、出口传感器），否则父子差异会
+    误报对象被移除。

@@ -89,3 +89,25 @@
   - `phase2_02_agv_transfer_detour_20261025_001651.json` — detour 路径
     探针：0.20/0.10/0.00 m 下加入 +0.06 m 水平绕行点均比对应 high_align
     增加 TV（+2.2%/+3.7%/+5.9%），本次无直线路径被拒绝，故不启用。
+
+- 阶段三双工位柔性搬运（2026-10-25，工件
+  `stage3/L2_MIRROR/v004_20261025_131837`，父
+  `stage2/L1_S1/v013_20261024_232558`，契约
+  `stage3_contract_20261025_v1`）：
+  - `phase3_run_closed_loop_20261025_140903.json` — A→B 闭环：3 任务
+    DONE，停靠误差 0.019733 m，航向 −0.000203 rad，载荷滑移 0.0；
+  - `phase3_run_contention_20261025_132245.json` — 3 个重复请求被拒绝，
+    dock_B 等待 1 次，资源最终全部释放；
+  - `phase3_run_blocked_20261025_141704.json` — t=44.90 进入 BLOCKED，
+    t=54.95 清障续行，停靠误差 0.019773 m；
+  - `phase3_run_unstable_unload_20261025_134050.json` — 释放前
+    `LOAD_DRIFT(0.0400>0.02)` 锁存；unload FAILED，载荷仍
+    `HELD_BY_SUCTION`，`release_attempted=false`，停止已确认；
+  - `phase3_run_route_baseline_20261025_133223.json` — A→B 带载
+    0.019742 m、B→A 空载 0.019522 m，滑移 0.0；
+  - `phase3_mcp_closed_loop_20261025_133838.json` — MCP 自动 backend=stage3，
+    三任务 DONE，生命周期/运行锁复用；
+  - `scene_validation_stage3_L2_MIRROR_v004_20261025_131837_20261025_134050.json`
+    — v004 工件 229 项只读校验通过；
+  - `stage3_layout_20261025.json` — `L2_MIRROR` 50 项静态检查通过、
+    `L3_SAME_SIDE` 被拒、当前场景两工位/AGV dock 只读测量。

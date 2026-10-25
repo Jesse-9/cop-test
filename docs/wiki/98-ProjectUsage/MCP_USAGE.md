@@ -27,11 +27,11 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 ## 运行模型
 
 - **stdio 传输**: Claude Code 通过启动一个 Python 子进程与服务器通信，无需额外端口。
-- **双后端 + 阶段二路由**: `build_scene` / `start_simulation` / `get_config` /
+- **双后端 + 阶段路由**: `build_scene` / `start_simulation` / `get_config` /
   `set_config` 均有 `backend` 参数。默认 `backend="stage1"`（当前阶段一
-  单元闭环实现），`backend="legacy"` 运行旧五岛参考层。加载 stage2 工件后，
-  `start_simulation` 按 manifest `source_phase` 自动路由到阶段二 runner，
-  复用同一生命周期与运行锁。
+  单元闭环实现），`backend="legacy"` 运行旧五岛参考层。加载 stage2/stage3
+  工件后，`start_simulation` 按 manifest `source_phase` 自动路由到对应
+  runner，复用同一生命周期与运行锁。
 - **主连接复用**: 写/控制类工具 (start/stop/step/set_config 等) 与当前仿真循环共享一个
   `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。连接时同时加载
   `sim` 与 `simIK`（`simIK` 仅供 stage1 使用）。
@@ -43,6 +43,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   - stage2: 当前工件 `source_phase=stage2` 时，同一入口在 daemon 线程运行
     `stage2.run.run_task_stage2`（规划/碰撞/联锁），写
     `docs/implementation/runs/phase2_mcp_*.json`；会话资源在结束时销毁。
+  - stage3: 当前工件 `source_phase=stage3` 时，同一入口运行
+    `stage3.run.run_scenario_stage3`（双工位/资源锁/AGV 两站），接受
+    `scenario=closed_loop|contention|blocked|unstable_unload|route_baseline`，
+    写 `docs/implementation/runs/phase3_mcp_*.json`；两台影子臂/集合在结束时销毁。
   - legacy: `FactoryController.run()` 在 daemon 线程运行。
 - **启动探活** (legacy): 启动 5s 后若 `sim_time` 不推进，自动在
   `status.last_error` 写入冻结告警。
@@ -65,7 +69,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 |------|------|---------|
 | `connect` | 连接 CoppeliaSim ZMQ Remote API | `host` (默认 localhost), `port` (默认 23000) |
 | `build_scene` | 显式构建场景并执行构建契约；不自动保存工件 | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
-| `save_scene` | 停止态保存为新版本工件；保存后立即重载校验，通过才更新 current | `phase` (`stage1`/`stage2`/`diagnostic`), `parent`, `note`, `protected` |
+| `save_scene` | 停止态保存为新版本工件；保存后立即重载校验，通过才更新 current | `phase` (`stage1`/`stage2`/`stage3`/`diagnostic`), `parent`, `note`, `protected` |
 | `load_scene` | 停止态加载指定工件并重新解析句柄 | `artifact` (ID/目录名/`current`), `phase` |
 | `validate_scene` | 只读校验当前场景与 manifest (不修复/不补建) | `artifact` (可选, 必须与当前加载一致) |
 | `lifecycle_status` | 生命周期状态/工件/运行锁/允许动作 | — |
@@ -75,7 +79,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `start_simulation` | 后台线程启动仿真；stage1 **只启动当前已加载且已校验的场景**，不重建 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`), `fault` |
+| `start_simulation` | 后台线程启动仿真；stage1 **只启动当前已加载且已校验的场景**，不重建 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`; stage3 也可传场景名), `fault`, `scenario` (stage3) |
 | `stop_simulation` | 停止仿真 (stage1 置 stop 事件并等待收尾, legacy 最多等 5s) | — |
 | `step_simulation` | 单步/多步推进 (stepping 模式) | `n` (默认 1, 上限 1000); stage1 需先 `pause_simulation` |
 
@@ -131,6 +135,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 阶段二:
   load_scene("current", phase="stage2") → validate_scene
   → start_simulation(target="station") → stop_simulation
+
+阶段三:
+  load_scene("current", phase="stage3") → validate_scene
+  → start_simulation(scenario="closed_loop") → stop_simulation
 ```
 
 - `start_simulation` 不再调用 `build_scene`。没有已加载且已校验的场景时返回
