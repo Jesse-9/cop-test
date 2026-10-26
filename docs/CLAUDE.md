@@ -1,5 +1,7 @@
 # 知识库 Schema
 
+本文只规定 CoppeliaSim wiki 的结构、元数据和写作质量，不维护本项目的仿真运行命令。运行方式统一见 [项目使用指南](wiki/98-ProjectUsage/USAGE.md)，代码和工程约束见仓库根目录 [CLAUDE.md](../CLAUDE.md) 及 [工程参考](../PROJECT_ENGINEERING_REFERENCE.md)。
+
 ## 这是什么
 
 一个以 **CoppeliaSim 4.10** 为底座的 LLM 知识库，专注于**工业场景仿真**的学习与实现。涵盖机器人仿真建模、运动规划、力控制、视觉感知、数字孪生、V-REP API、Remote API、插件开发、协同仿真等主题。

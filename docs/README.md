@@ -1,5 +1,7 @@
 # cop-test 文档与知识库
 
+本目录的导航、文档职责和快速入口见本文件。具体运行命令由根目录下的 [项目使用指南](wiki/98-ProjectUsage/USAGE.md) 维护；不要在此复制阶段运行步骤。
+
 本目录是 `cop-test`（岛式车间柔性生产仿真）的文档与 LLM 知识库根目录。
 
 ## 目录结构
@@ -22,7 +24,7 @@ docs/
 │   ├── 05-数字孪生与协同仿真/ # 6 条 (ROS2/ROS1/Python/b0/legacy/simROS2)
 │   ├── 06-工业案例/    # 13 条 (UR5案例/岛式车间/阶段一~三实施与文档)
 │   ├── 07-API脚本示例/ # 1 条 (Lua脚本模式)
-│   ├── 98-ProjectUsage/ # 2 条 (MCP使用/项目使用指南)
+│   ├── 98-ProjectUsage/ # 项目使用指南与 MCP 使用说明
 │   └── 99-附录/       # 3 条 (术语表/快捷键/对话框)
 └── outputs/           # 生成产物
     ├── reports/       # 研究报告
@@ -36,6 +38,7 @@ docs/
 |---------|------|
 | 从安装到运行的使用指南 | [wiki/98-ProjectUsage/USAGE.md](wiki/98-ProjectUsage/USAGE.md) |
 | 用 MCP 编排仿真 | [wiki/98-ProjectUsage/MCP_USAGE.md](wiki/98-ProjectUsage/MCP_USAGE.md) |
+| 本项目工程约束与实测记录 | [../PROJECT_ENGINEERING_REFERENCE.md](../PROJECT_ENGINEERING_REFERENCE.md) |
 | 了解知识库写作规范 | [CLAUDE.md](CLAUDE.md) |
 | 查官方手册原文 | [raw/](raw/) |
 | 学 CoppeliaSim | [wiki/index.md](wiki/index.md) |
