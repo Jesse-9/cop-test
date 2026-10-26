@@ -7,7 +7,8 @@
     .venv/Scripts/python.exe src/run_stage1.py --target station --fault ik_unreachable
     # 或安装后: uv run run-stage1 --target station
 
-流程: 连接 → 构建阶段一场景 → 启动 stepping → 逐任务运行
+流程: 连接 → 加载工件 (或 --build 显式构建并保存)
+      → prepare_start 启动点校验 → 启动 stepping → 逐任务运行
       → 收集场景/物料/AGV 证据 → 停止仿真 → 写 JSON 报告。
 """
 
@@ -447,7 +448,7 @@ def run_loaded_scene(sim, simIK, scene: Stage1Scene, *,
                      pause_ack_event=None, on_start=None,
                      run_id: str | None = None,
                      artifact_id: str | None = None) -> dict:
-    """在**已加载且已校验**的场景上执行任务; 不 build、不清场。
+    """在**已加载且启动点校验通过**的场景上执行任务; 不 build、不清场。
 
     步骤 1.2 起 start 只允许走这里。返回写入 runs/ 的报告摘要。
     """
@@ -552,7 +553,7 @@ def _lifecycle_manager(sim, simIK, ns):
 def main(argv=None) -> int:
     """阶段一运行入口。
 
-    默认从当前已保存/已校验工件加载后启动; ``--build`` 显式重建场景。
+    默认加载当前已保存工件, 在启动点校验通过后启动; ``--build`` 显式重建场景。
     start 本身永远不会隐式 build 或 clear (步骤 1.2 §3.1)。
     """
     ap = argparse.ArgumentParser(description="阶段一单元闭环运行")
@@ -587,7 +588,6 @@ def main(argv=None) -> int:
                         saved.get("artifact_id"))
         else:
             manager.load(ns.artifact)
-            manager.validate()
             if (manager.artifact is not None
                     and manager.artifact.manifest.get("source_phase")
                     in ("stage2", "stage3")):
@@ -597,7 +597,7 @@ def main(argv=None) -> int:
                     manager.artifact.manifest.get("source_phase"),
                     manager.session.artifact_id)
                 return 2
-            logger.info("[SCENE] 已加载并校验工件: %s",
+            logger.info("[SCENE] 已加载工件 (启动点校验): %s",
                         manager.session.artifact_id)
         prepared = manager.prepare_start(target=ns.target)
     except Exception as exc:

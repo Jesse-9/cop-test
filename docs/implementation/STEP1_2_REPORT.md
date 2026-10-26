@@ -7,6 +7,12 @@
   只读校验、启动、停止是可单独调用、语义一致的动作；`start` 不再隐式
   build/clear；两次 CoppeliaSim 进程重启后均可从工件恢复并完成 station 任务。
 
+> **2026-10-26 工作流调整**：此后 `SCENE_LOADED` 可直接 `start`，
+> `validate` 改为可选诊断；启动点仍由 `prepare_start` 在运行锁内执行
+> 完整只读校验。本报告中“必须先 validate 才能 start”“只启动已加载且
+> 已校验场景”等描述是当时的实现记录。详见
+> [LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md](LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
+
 ## 1. 目标与边界
 
 本步骤只建立“场景可复用”的基础设施：工件、manifest、版本保护、只读

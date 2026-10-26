@@ -245,7 +245,11 @@ TCP 抓取目标并执行 simIK 接近/吸附。旧 `stage1_baseline` 布局与�
   `SCENE_VALIDATED` / `SIMULATION_RUNNING` / `ERROR`。运行中拒绝
   build/load/save/validate/重复 start；跨进程由
   `docs/scene_artifacts/.runtime/run.lock`（PID + run_id）拒绝第二路控制。
-- `prepare_start` 先取运行锁再做只读校验；校验失败释放锁并进入 ERROR。
+- `start` 可从 `SCENE_LOADED`（load 后直接启动）或 `SCENE_VALIDATED`
+  （显式 validate 后）发起；`prepare_start` 先取运行锁再做完整只读校验，
+  校验失败释放锁并进入 ERROR。显式 `validate` 只是可选诊断，不是 start
+  的前置条件；`save` 仍要求 `SCENE_VALIDATED`，派生保存流程保持
+  load → validate → save。
 - manifest 不含运行时句柄；加载后由 `scene.adopt_scene()` 按 alias 重建
   句柄。配置摘要、模型 sha256、仿真器版本/引擎、对象 alias/类型/父级/
   世界坐标、43 项构建契约任一不匹配都会在 start 前失败并输出差异。

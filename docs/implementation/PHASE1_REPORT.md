@@ -13,7 +13,8 @@
 > **2026-10-21 步骤 1.2 入口变更**：场景构建与仿真启动已解耦，`start` 不再
 > 隐式清场重建。本报告第 1、3 节记录的是步骤 1.2 之前的历史执行方式；
 > 当前运行入口见 [STEP1_2_REPORT.md](STEP1_2_REPORT.md)：
-> `python src/run_scene_lifecycle.py load current && validate && start ...`。
+> `python src/run_scene_lifecycle.py load current && start ...`
+> （2026-10-26 起 load 后可直接 start，validate 为可选诊断）。
 > 阶段一的功能与验收结论不变。
 
 ## 1. 环境

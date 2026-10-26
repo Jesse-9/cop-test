@@ -254,8 +254,9 @@ class FactoryMCPServer:
               fault: str = "none", scenario: str = "") -> str:
         """启动仿真主循环 (守护线程) — Start simulation in a daemon thread.
 
-        backend="stage1" (默认/当前实现) 只启动**已加载且已校验**的场景,
-        不执行 build/clear; 若当前工件 source_phase=stage2/stage3, 自动
+        backend="stage1" (默认/当前实现) 只启动**已加载**的场景, 不执行
+        build/clear; 启动点由 LifecycleManager.prepare_start() 取运行锁并
+        执行完整只读校验。若当前工件 source_phase=stage2/stage3, 自动
         路由到阶段二/阶段三 runner。backend="legacy" 运行旧五岛控制器。
         """
         if backend == "stage1":
@@ -312,11 +313,12 @@ class FactoryMCPServer:
     def _start_stage1(self, total_time: float, log_file: str,
                       target: str, fault: str,
                       scenario: str = "") -> str:
-        """启动当前已加载且校验通过的 stage1/stage2/stage3 场景。
+        """启动当前已加载的 stage1/stage2/stage3 场景。
 
         步骤 1.2 起本方法**不构建、不清场、不加载默认场景**; 调用方必须
-        先显式 build 或 load + validate。阶段由工件 `source_phase` 决定,
-        不接受调用方指定更低的 runner。
+        先显式 build 或 load。load 后可直接 start: ``prepare_start()`` 会在
+        取得运行锁后执行完整只读校验, 失败时拒绝启动并释放锁。阶段由工件
+        `source_phase` 决定, 不接受调用方指定更低的 runner。
         """
         from stage1 import config as s1cfg
         from stage1 import run as s1run
@@ -339,7 +341,7 @@ class FactoryMCPServer:
             except LifecycleError as exc:
                 self.last_error = f"{exc.code}: {exc}"
                 return (f"start 被拒绝 ({exc.code}): {exc}; "
-                        "请先 build, 或 load + validate 一个场景工件")
+                        "请先 build 或 load 一个场景工件")
             artifact = getattr(manager, "artifact", None)
             manifest = getattr(artifact, "manifest", {}) if artifact else {}
             source_phase = manifest.get("source_phase")
@@ -652,8 +654,9 @@ class FactoryMCPServer:
                     backend: str = "stage1") -> str:
         """构建场景 — stage1 (默认/当前实现) 或 legacy 五岛参考层.
 
-        stage1 为显式动作: 仅在仿真停止态执行, 完成后状态为
-        SCENE_VALIDATED (构建契约通过), 但 start 仍需当前场景已通过校验。
+        完成后状态为 SCENE_VALIDATED (构建契约通过); 构建本身没有 manifest,
+        不能声称完成工件级全量校验。临时场景不保存时, start 会重新执行
+        构建契约检查; 需要完整工件校验时请 build → save。
         """
         if self.is_running():
             return "仿真运行中, 先 stop_simulation"
@@ -1206,7 +1209,8 @@ def build_scene(clear: bool = True, backend: str = "stage1") -> str:
 
     backend="stage1" (默认): 构建单工位阶段一场景 (内置 conveyor + UR5 +
     suction pad + p3dx), 执行构建契约校验, 生命周期状态变为
-    SCENE_VALIDATED (scene_origin=BUILT)。
+    SCENE_VALIDATED (scene_origin=BUILT)。构建本身没有工件 manifest;
+    需要完整工件校验时请继续 save_scene。
     backend="legacy": 构建旧五岛参考场景 (reference.build_scene)。
 
     前置: 已 connect 且仿真处于停止态。start_simulation 不会调用本工具。
@@ -1250,24 +1254,27 @@ def load_scene(artifact: str = "current", phase: str | None = None) -> str:
     ``docs/scene_artifacts/<phase>/current.json`` 的 ``artifact_id``，
     再加载对应工件目录的 ``scene.ttt``（``phase`` 默认 ``stage1``）。
     不自动改写、重建或升级模型，也不读取 ``factory-sim.ttt``/``scenes``；
-    加载后需再调用 validate_scene。
+    加载后可直接 start_simulation，启动点会在取得运行锁后执行完整只读
+    校验；validate_scene 仅用于可选的主动检查/差异报告。
 
     Args:
         artifact: 工件 ID (如 stage1/L1_S1/v001_...) / 目录名 / current。
         phase:    仅在按短名/current 查找时限定命名空间。
 
     Returns:
-        JSON (lifecycle_state=SCENE_LOADED, requires_validation=true)。
+        JSON (lifecycle_state=SCENE_LOADED, validation_at_start=true)。
     """
     return server.load_scene(artifact=artifact, phase=phase)
 
 
 @mcp.tool()
 def validate_scene(artifact: str | None = None) -> str:
-    """只读校验当前已加载场景与 manifest (不修复/不重命名/不补建)。
+    """只读校验当前已加载场景与 manifest (可选诊断; 不修复/不补建)。
 
     对比场景文件摘要、配置摘要、模型摘要、仿真器版本/引擎、对象
     alias/类型/父级/位姿和场景契约。任何影响行为的差异都会拒绝 start。
+    start_simulation 在启动点总会重新执行同一套完整校验; 本工具用于
+    主动检查并查看详细差异报告, 不是 start 的前置条件。
 
     Args:
         artifact: 可选; 必须与当前已加载工件一致。
@@ -1299,13 +1306,15 @@ def start_simulation(total_time: float = 0.0,
     """在后台线程启动仿真主循环。
 
     backend="stage1" (默认/当前实现): **不重建场景**; 只启动当前已加载
-    且通过 validate_scene 的场景。若工件 source_phase=stage2/stage3, 由
-    同一生命周期/运行锁路由到阶段二/阶段三 runner。
-    没有合格场景时返回明确错误, 请先 build_scene 或 load_scene +
-    validate_scene。
+    的场景 (build 或 load 后均可)。启动点会取得运行锁并执行完整只读
+    校验, 失败则拒绝启动; validate_scene 是可选诊断, 不是前置条件。
+    若工件 source_phase=stage2/stage3, 由同一生命周期/运行锁路由到
+    阶段二/阶段三 runner。
+    没有已加载场景时返回明确错误, 请先 build_scene 或 load_scene。
     backend="legacy": 运行旧五岛 FactoryController。
 
-    前置: 已 connect, 仿真停止, 当前场景已校验, 无其他控制循环持有运行锁。
+    前置: 已 connect, 仿真停止, 当前场景已加载, 无其他控制循环持有
+    运行锁; 启动点校验通过后才进入运行。
 
     Args:
         total_time: stage1 为单任务最大仿真时间 (s, 0→默认 90);

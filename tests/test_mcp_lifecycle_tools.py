@@ -31,7 +31,7 @@ class FakeManager:
         self.calls.append(("load", artifact, phase))
         return {"artifact_id": artifact,
                 "lifecycle_state": "SCENE_LOADED",
-                "requires_validation": True}
+                "validation_at_start": True}
 
     def validate(self, artifact=None):
         self.calls.append(("validate", artifact))
@@ -82,7 +82,7 @@ def test_load_scene_delegates_and_clears_components():
     srv.stage1_comp = object()
     out = json.loads(srv.load_scene("current", phase="stage1"))
     assert out["lifecycle_state"] == "SCENE_LOADED"
-    assert out["requires_validation"] is True
+    assert out["validation_at_start"] is True
     assert manager.calls == [("load", "current", "stage1")]
     assert srv.stage1_comp is None
 

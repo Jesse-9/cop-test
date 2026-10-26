@@ -1,7 +1,7 @@
 """run.py — 阶段三双工位 runner 与 CLI (06-12 §4–§5).
 
 流程:
-  生命周期 load(stage3) + validate + prepare_start
+  生命周期 load(stage3) → prepare_start (启动点校验)
     → 构建两台 IK/影子臂/碰撞集合/吸盘
     → 生成 1 个物料 UID, 提交 A 装载 / AGV 转运 / B 卸载任务
     → 协调器逐步执行, 每步只 `sim.step()` 一次
@@ -368,7 +368,6 @@ def main(argv=None) -> int:
                 manager.artifact.manifest.get("source_phase") != "stage3":
             logger.error("[LIFECYCLE] 不是 stage3 工件: %s", ns.artifact)
             return 2
-        manager.validate()
         prepared = manager.prepare_start(target=ns.scenario)
     except Exception as exc:
         logger.error("[LIFECYCLE] 启动前置失败 (%s): %s",

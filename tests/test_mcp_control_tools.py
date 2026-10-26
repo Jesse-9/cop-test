@@ -46,7 +46,8 @@ class TestPauseResumeStepN:
         assert "未运行" in r or "失败" in r
 
     def test_pause_resume_roundtrip(self, stage1_temp_lifecycle):
-        # 步骤 1.2: start 不再隐式 build; 显式 build→save→load→validate。
+        # 步骤 1.2: start 不再隐式 build; 显式 build→save→load。
+        # 2026-10-26: load 后可直达 start, validate 仅作为可选诊断保留。
         from reference.factory_mcp_server import (build_scene, save_scene,
                                                   load_scene, validate_scene,
                                                   start_simulation,

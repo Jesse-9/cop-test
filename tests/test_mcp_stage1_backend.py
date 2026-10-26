@@ -102,7 +102,7 @@ def test_stage1_start_does_not_build_scene():
 
     manager = FakeManager(
         state="CONNECTED_STOPPED",
-        prepare_exc=InvalidTransitionError("start 需要已校验场景"))
+        prepare_exc=InvalidTransitionError("start 需要已加载场景"))
     srv = _server_with_fake_connector(manager)
     called = []
     srv.build_scene = lambda *a, **k: called.append("build") or "x"
@@ -110,6 +110,24 @@ def test_stage1_start_does_not_build_scene():
     assert "start 被拒绝" in out
     assert called == []
     assert manager.prepare_calls == ["station"]
+
+
+def test_stage1_start_returns_validation_failure_details():
+    """MCP 对 SCENE_LOADED 启动失败返回现有错误结构, 不启动 runner。"""
+    from stage1.lifecycle import ValidationFailedError
+
+    manager = FakeManager(
+        state="SCENE_LOADED",
+        prepare_exc=ValidationFailedError(
+            "start 前只读校验失败",
+            report={"differences": [{"kind": "config", "key": "X"}]}))
+    srv = _server_with_fake_connector(manager)
+    out = srv._start_stage1(30.0, "x.log", "station", "none")
+    assert "VALIDATION_FAILED" in out
+    assert "start 前只读校验失败" in out
+    assert manager.prepare_calls == ["station"]
+    assert manager.finish_calls == []
+    assert srv.stage1_runner is None
 
 
 def test_stage1_start_passes_run_id_to_status(tmp_path):

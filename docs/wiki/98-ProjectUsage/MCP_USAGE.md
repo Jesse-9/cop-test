@@ -36,10 +36,11 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
   `CoppeliaConnector` (ZMQ → CoppeliaSim:23000)，避免重复握手。连接时同时加载
   `sim` 与 `simIK`（`simIK` 仅供 stage1 使用）。
 - **仿真在守护线程**:
-  - stage1: `start_simulation` **不重建场景**；只启动当前已加载且已通过
-    `validate_scene` 的工件/场景 → `start_stepping` → 在 daemon 线程运行
-    `stage1.run.run_task`，立即返回；任务结束自动写
-    `docs/implementation/runs/phase1_mcp_*.json`。
+  - stage1: `start_simulation` **不重建场景**；只启动当前已加载的工件/场景
+    → 启动点由 `LifecycleManager.prepare_start()` 取得运行锁并执行完整只读
+    校验 → `start_stepping` → 在 daemon 线程运行 `stage1.run.run_task`，
+    立即返回；任务结束自动写 `docs/implementation/runs/phase1_mcp_*.json`。
+    `validate_scene` 是可选诊断，不是启动前置条件。
   - stage2: 当前工件 `source_phase=stage2` 时，同一入口在 daemon 线程运行
     `stage2.run.run_task_stage2`（规划/碰撞/联锁），写
     `docs/implementation/runs/phase2_mcp_*.json`；会话资源在结束时销毁。
@@ -68,10 +69,10 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
 | `connect` | 连接 CoppeliaSim ZMQ Remote API | `host` (默认 localhost), `port` (默认 23000) |
-| `build_scene` | 显式构建场景并执行构建契约；不自动保存工件 | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
+| `build_scene` | 显式构建场景并执行构建契约；不自动保存工件，也不产生工件 manifest | `clear` (默认 true), `backend` (默认 `stage1`, 可选 `legacy`) |
 | `save_scene` | 停止态保存为新版本工件；保存后立即重载校验，通过才更新 current | `phase` (`stage1`/`stage2`/`stage3`/`diagnostic`), `parent`, `note`, `protected` |
-| `load_scene` | 停止态加载指定工件并重新解析句柄 | `artifact` (ID/目录名/`current`), `phase` |
-| `validate_scene` | 只读校验当前场景与 manifest (不修复/不补建) | `artifact` (可选, 必须与当前加载一致) |
+| `load_scene` | 停止态加载指定工件并重新解析句柄；加载后可直接 start | `artifact` (ID/目录名/`current`), `phase` |
+| `validate_scene` | 可选诊断：只读校验当前场景与 manifest (不修复/不补建)；start 会重新校验 | `artifact` (可选, 必须与当前加载一致) |
 | `lifecycle_status` | 生命周期状态/工件/运行锁/允许动作 | — |
 | `disconnect` | 断开连接 (会先停止运行中的仿真) | — |
 
@@ -79,7 +80,7 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 
 | 工具 | 说明 | 关键参数 |
 |------|------|---------|
-| `start_simulation` | 后台线程启动仿真；stage1 **只启动当前已加载且已校验的场景**，不重建 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`; stage3 也可传场景名), `fault`, `scenario` (stage3) |
+| `start_simulation` | 后台线程启动仿真；stage1 **只启动当前已加载场景**，不重建；启动点取运行锁并执行完整只读校验 | `total_time` (stage1 单任务上限 s, 0→90; legacy 总时长, 0=无限), `log_file`, `backend` (默认 `stage1`), `target` (`station`/`agv`/`both`; stage3 也可传场景名), `fault`, `scenario` (stage3) |
 | `stop_simulation` | 停止仿真 (stage1 置 stop 事件并等待收尾, legacy 最多等 5s) | — |
 | `step_simulation` | 单步/多步推进 (stepping 模式) | `n` (默认 1, 上限 1000); stage1 需先 `pause_simulation` |
 
@@ -127,28 +128,36 @@ Claude Code 启动本项目会话时自动加载。用 `/mcp` 命令可确认 `f
 ```text
 首次:
   build_scene → save_scene(phase="stage1") → load_scene("current")
-  → validate_scene → start_simulation → stop_simulation
+  → start_simulation → stop_simulation
 
 复用:
-  load_scene("current") → validate_scene → start_simulation → stop_simulation
+  load_scene("current") → start_simulation → stop_simulation
 
 阶段二:
-  load_scene("current", phase="stage2") → validate_scene
+  load_scene("current", phase="stage2")
   → start_simulation(target="station") → stop_simulation
 
 阶段三:
-  load_scene("current", phase="stage3") → validate_scene
+  load_scene("current", phase="stage3")
   → start_simulation(scenario="closed_loop") → stop_simulation
 ```
 
-- `start_simulation` 不再调用 `build_scene`。没有已加载且已校验的场景时返回
-  `INVALID_STATE` / `VALIDATION_FAILED`；运行锁被占用时返回 `RUN_CONFLICT`。
+- `start_simulation` 不再调用 `build_scene`。没有已加载场景时返回
+  `INVALID_STATE`；启动点完整校验失败返回 `VALIDATION_FAILED`；运行锁
+  被占用时返回 `RUN_CONFLICT`。校验失败会释放本次运行锁并进入 `ERROR`。
+- `validate_scene` 是可选诊断工具：显式调用可主动查看 `checks`/
+  `differences` 报告；之后 `start_simulation` 仍会在启动点重新执行完整校验，
+  不会因为“刚 validate 过”而跳过。构建但未 `save_scene` 的临时场景没有
+  manifest，start 改为重新执行构建契约检查，不能当作工件级全量校验。
 - `load_scene("current")` 默认读取
   `docs/scene_artifacts/stage1/current.json` → `artifact_id` → 工件目录的
   `scene.ttt`，再用 `sim.loadScene()` 载入并按 alias 重建句柄；不会构建
   场景，也不读取 `factory-sim.ttt` / `scenes/*.ttt`。`phase` 可切换命名空间。
+  返回 `validation_at_start=true` 表示启动点会校验，而不是要求先手动调用
+  `validate_scene`。
 - `save_scene` 只允许仿真停止态；保存后立即重新加载校验，失败不更新
-  `current.json`。
+  `current.json`。`save_scene` 仍要求场景已处于 `SCENE_VALIDATED`，因此
+  派生保存流程保持 load → validate_scene → save_scene。
 - `phase="stage1"` 工件默认 `protected=true`，拒绝覆盖；阶段二使用
   `phase="stage2"` + `parent=<stage1 artifact id>` 派生副本。CLI `save`
   默认对所有 phase 设 `protected=true`；需要可变诊断副本时加 `--no-protect`。
@@ -168,8 +177,7 @@ connect                                      → 连接 CoppeliaSim
 build_scene                                  → 显式构建阶段一单工位场景 (返回 build_report)
 save_scene(phase="stage1")                   → 保存只读工件 (重载校验通过才更新 current)
 load_scene("current")                        → 从工件恢复场景并重建句柄
-validate_scene                               → 只读校验 manifest/对象/配置/模型
-start_simulation(total_time=90, target="station") → 启动已校验场景 (不重建)
+start_simulation(total_time=90, target="station") → 启动; 启动点校验通过才运行 (不重建)
 status                                       → unit_state / material_state / sim_time
 pause_simulation                             → 暂停 runner (连接空闲)
 step_simulation(n=10)                        → 手动逐帧
@@ -179,7 +187,8 @@ stop_simulation                              → 停止并写 runs/phase1_mcp_*.
 
 `target` 可选 `station` / `agv` / `both`；`fault` 可注入
 `ik_unreachable` / `no_target` / `uid_mismatch` / `sensor_disabled` /
-`agv_blocked` / `release_unstable`。
+`agv_blocked` / `release_unstable`。需要详细校验报告时，可在 load 后、
+start 前单独调用一次可选的 `validate_scene`；start 仍会重新校验。
 
 ### 2. 旧五岛流程 (backend=legacy)
 
@@ -414,9 +423,9 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 .venv/Scripts/python src/reference/factory_mcp_server.py --inspect
 
 # 直接跑各 CLI (不经 MCP)
-.venv/Scripts/python src/run_scene_lifecycle.py load current       # 先加载已校验工件
-.venv/Scripts/python src/run_scene_lifecycle.py validate
+.venv/Scripts/python src/run_scene_lifecycle.py load current       # 先加载工件
 .venv/Scripts/python src/run_scene_lifecycle.py start --target station --time 30
+.venv/Scripts/python src/run_scene_lifecycle.py validate           # 可选诊断
 .venv/Scripts/python src/run_stage1.py --target station --time 30   # 兼容: 默认加载 current
 .venv/Scripts/python src/reference/build_scene.py                   # legacy 五岛
 .venv/Scripts/python src/reference/run_simulation.py --time 60
@@ -424,6 +433,12 @@ tail_coppelia_console(offset=next_offset)    → 只取新增内容 (持续跟�
 
 ## 变更记录
 
+- **2026-10-26（生命周期校验流程调整）**: `load_scene` 后可直接
+  `start_simulation`；`start_simulation` 保持“不重建场景”，在取得运行锁后
+  执行完整只读工件校验，失败返回 `VALIDATION_FAILED` 并释放锁。
+  `validate_scene` 保留为可选诊断工具；`save_scene` 仍要求
+  `SCENE_VALIDATED`（派生保存保持 load → validate_scene → save_scene）。
+  `load_scene` 返回字段由 `requires_validation` 改为 `validation_at_start`。
 - **2026-10-21（步骤 1.2）**: 新增 `save_scene` / `load_scene` /
   `validate_scene` / `lifecycle_status`（共 24 工具）；stage1
   `start_simulation` 不再隐式 build/clear，必须先 build 或 load + validate；

@@ -258,7 +258,7 @@ load_A_uid1 (conveyor → AGV@A)
 .venv/Scripts/python src/run_scene_lifecycle.py save --phase stage3 \
   --parent stage2/L1_S1/v013_20261024_232558 --note "阶段三派生"
 
-# 2. 五个精简验收场景 (默认加载 stage3 current + validate + start)
+# 2. 五个精简验收场景 (默认加载 stage3 current, 启动点自动校验)
 .venv/Scripts/python src/run_stage3.py --scenario closed_loop --time 300
 .venv/Scripts/python src/run_stage3.py --scenario contention --time 300
 .venv/Scripts/python src/run_stage3.py --scenario blocked --time 300
@@ -271,11 +271,10 @@ load_A_uid1 (conveyor → AGV@A)
   --out docs/measurement/stage3_layout_<stamp>.json
 ```
 
-生命周期 CLI 也可直接启动：
+生命周期 CLI 也可直接启动（validate 可选，start 会在启动点重新校验）：
 
 ```bash
 .venv/Scripts/python src/run_scene_lifecycle.py load current --phase stage3
-.venv/Scripts/python src/run_scene_lifecycle.py validate
 .venv/Scripts/python src/run_scene_lifecycle.py start --scenario closed_loop --time 300
 ```
 

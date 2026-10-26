@@ -46,13 +46,18 @@ def test_rejects_mutating_actions_while_running(action):
     assert sm.state is LifecycleState.SIMULATION_RUNNING
 
 
-def test_start_requires_validated_scene():
+def test_start_requires_loaded_scene():
     for state in (LifecycleState.DISCONNECTED,
-                  LifecycleState.CONNECTED_STOPPED,
-                  LifecycleState.SCENE_LOADED):
+                  LifecycleState.CONNECTED_STOPPED):
         sm = LifecycleStateMachine(state)
         with pytest.raises(InvalidTransitionError):
             sm.transition("start")
+
+
+def test_loaded_scene_allows_start_transition():
+    """SCENE_LOADED 可直接 start; 全量校验由 prepare_start() 在锁内完成。"""
+    sm = LifecycleStateMachine(LifecycleState.SCENE_LOADED)
+    assert sm.transition("start") is LifecycleState.SIMULATION_RUNNING
 
 
 def test_validate_requires_loaded_scene():

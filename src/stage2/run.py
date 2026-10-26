@@ -7,7 +7,8 @@
   - ``--fault runtime_obstacle`` 在 TRANSFERRING 期间插入受控障碍, 用于
     验证运行期锁存 (实验副本, 不进入生产工件).
 
-本入口不 build、不清场; 必须先通过生命周期加载并校验 stage2 工件。
+本入口不 build、不清场; 必须先通过生命周期加载 stage2 工件; 启动点校验
+由 ``LifecycleManager.prepare_start()`` 统一执行 (含阶段二扩展契约)。
 """
 
 from __future__ import annotations
@@ -33,7 +34,6 @@ from stage1.unit_controller import UnitTaskState
 
 from . import config as cfg
 from .runtime import build_stage2_runtime
-from .scene_contract import validate_stage2_contract
 from .suction import Stage2SuctionController
 from .unit_controller import Stage2UnitController
 
@@ -341,7 +341,6 @@ def main(argv=None) -> int:
                 manager.artifact.manifest.get("source_phase") != "stage2":
             logger.error("[LIFECYCLE] 不是 stage2 工件: %s", ns.artifact)
             return 2
-        manager.validate()
         prepared = manager.prepare_start(target=ns.target)
     except Exception as exc:
         logger.error("[LIFECYCLE] 启动前置失败 (%s): %s",

@@ -134,9 +134,12 @@ def test_load_sets_loaded_not_validated(tmp_path, monkeypatch):
     mgr = _manager(tmp_path, sim)
     result = mgr.load(art.artifact_id)
     assert result["lifecycle_state"] == "SCENE_LOADED"
-    assert result["requires_validation"] is True
+    assert result["validation_at_start"] is True
     assert sim.loaded == str(art.scene_path)
     assert mgr.session.artifact_id == art.artifact_id
+    actions = mgr.allowed_actions()
+    assert "start" in actions
+    assert "validate" in actions
 
 
 def test_load_rejects_digest_mismatch(tmp_path):
@@ -160,16 +163,93 @@ def test_validate_requires_loaded_artifact(tmp_path):
         mgr.validate()
 
 
-def test_start_requires_validated_scene(tmp_path, monkeypatch):
+def test_start_after_load_in_separate_process(tmp_path, monkeypatch):
+    """CLI 每条命令独立进程: 新 manager 从会话恢复并完成启动点校验。"""
     import stage1.scene as scene_mod
 
     art = _publish(tmp_path)
     monkeypatch.setattr(scene_mod, "adopt_scene",
                         lambda sim, layout=None: FakeScene())
+    seen = {}
+
+    def fake_validate(sim, artifact, **kwargs):
+        seen["owner"] = mgr2.run_lock.owner()
+        return {"ok": True, "artifact_id": artifact.artifact_id,
+                "manifest_digest": artifact.manifest_digest,
+                "validated_at": sa.utc_now(), "checks": [],
+                "differences": []}
+
+    monkeypatch.setattr(sa, "validate_artifact", fake_validate)
+    mgr1 = _manager(tmp_path)
+    mgr1.load(art.artifact_id)
+    mgr2 = _manager(tmp_path)               # 模拟新的 start 进程
+    assert mgr2.sm.state is LifecycleState.SCENE_LOADED
+    prepared = mgr2.prepare_start()
+    assert prepared["lifecycle_state"] == "SIMULATION_RUNNING"
+    assert mgr2.artifact is not None
+    assert mgr2.scene is not None
+    assert seen["owner"]["run_id"] == prepared["run_id"]
+    mgr2.finish_run("DONE")
+    assert mgr2.run_lock.owner() is None
+
+
+def test_start_without_loaded_scene_is_rejected(tmp_path):
     mgr = _manager(tmp_path)
-    mgr.load(art.artifact_id)                 # SCENE_LOADED
     with pytest.raises(InvalidTransitionError):
         mgr.prepare_start()
+
+
+def test_start_from_loaded_artifact_validates_under_lock(tmp_path, monkeypatch):
+    """load 后可直接 start; 校验必须发生在取得运行锁之后。"""
+    import stage1.scene as scene_mod
+
+    art = _publish(tmp_path)
+    monkeypatch.setattr(scene_mod, "adopt_scene",
+                        lambda sim, layout=None: FakeScene())
+    seen = {}
+
+    def fake_validate(sim, artifact, **kwargs):
+        seen["owner"] = mgr.run_lock.owner()
+        seen["scene"] = kwargs.get("scene")
+        return {"ok": True, "artifact_id": artifact.artifact_id,
+                "manifest_digest": artifact.manifest_digest,
+                "validated_at": sa.utc_now(), "checks": [],
+                "differences": []}
+
+    monkeypatch.setattr(sa, "validate_artifact", fake_validate)
+    mgr = _manager(tmp_path)
+    mgr.load(art.artifact_id)
+    assert mgr.sm.state is LifecycleState.SCENE_LOADED
+    prepared = mgr.prepare_start()
+    assert prepared["lifecycle_state"] == "SIMULATION_RUNNING"
+    assert seen["owner"] is not None
+    assert seen["owner"]["run_id"] == prepared["run_id"]
+    assert seen["scene"] is mgr.scene
+    assert mgr.session.validated_at == mgr.last_validation["validated_at"]
+    assert mgr.session.manifest_digest == art.manifest_digest
+    mgr.finish_run("DONE")
+    assert mgr.sm.state is LifecycleState.SCENE_VALIDATED
+    assert mgr.run_lock.owner() is None
+
+
+def test_start_from_loaded_validation_failure_releases_lock(tmp_path,
+                                                           monkeypatch):
+    import stage1.scene as scene_mod
+
+    art = _publish(tmp_path)
+    monkeypatch.setattr(scene_mod, "adopt_scene",
+                        lambda sim, layout=None: FakeScene())
+    monkeypatch.setattr(sa, "validate_artifact", lambda *a, **k: {
+        "ok": False, "artifact_id": art.artifact_id, "checks": [],
+        "differences": [{"kind": "config", "key": "X"}],
+        "validated_at": sa.utc_now()})
+    mgr = _manager(tmp_path)
+    mgr.load(art.artifact_id)
+    with pytest.raises(ValidationFailedError):
+        mgr.prepare_start()
+    assert mgr.run_lock.owner() is None
+    assert mgr.sm.state is LifecycleState.ERROR
+    assert list((tmp_path / "runs").glob("scene_validation_*.json"))
 
 
 def test_validate_then_start_acquires_lock(tmp_path, monkeypatch):
@@ -292,6 +372,7 @@ def test_prepare_start_holds_lock_before_validation(tmp_path, monkeypatch):
 
     def fake_validate(sim, artifact, **kwargs):
         seen["owner"] = mgr.run_lock.owner()
+        seen["calls"] = seen.get("calls", 0) + 1
         return {"ok": True, "artifact_id": artifact.artifact_id,
                 "manifest_digest": artifact.manifest_digest,
                 "validated_at": sa.utc_now(), "checks": [],
@@ -304,6 +385,7 @@ def test_prepare_start_holds_lock_before_validation(tmp_path, monkeypatch):
     prepared = mgr.prepare_start()
     assert seen["owner"] is not None
     assert seen["owner"]["run_id"] == prepared["run_id"]
+    assert seen["calls"] == 2            # 显式 validate + 启动点重新校验
     mgr.finish_run()
 
 
@@ -358,6 +440,33 @@ def test_start_built_scene_reverifies_contract(tmp_path, monkeypatch):
     assert prepared["lifecycle_state"] == "SIMULATION_RUNNING"
     mgr.finish_run()
     assert mgr.sm.state is LifecycleState.SCENE_VALIDATED
+
+
+def test_start_built_scene_uses_build_contract_not_artifact_validation(
+        tmp_path, monkeypatch):
+    """临时构建场景没有 manifest, 启动点只能复核 scene.verify()。"""
+    import stage1.scene as scene_mod
+
+    class CheckingScene(FakeScene):
+        def __init__(self):
+            self.verify_calls = 0
+
+        def verify(self):
+            self.verify_calls += 1
+            return {"ok": True, "checks": []}
+
+    scene = CheckingScene()
+    monkeypatch.setattr(scene_mod, "build_scene",
+                        lambda sim, clear=True, layout=None: scene)
+    artifact_validations = []
+    monkeypatch.setattr(sa, "validate_artifact",
+                        lambda *a, **k: artifact_validations.append(1))
+    mgr = _manager(tmp_path)
+    mgr.build()
+    mgr.prepare_start()
+    assert scene.verify_calls == 1
+    assert artifact_validations == []
+    mgr.finish_run()
 
 
 def test_enter_background_releases_lock_but_keeps_running_state(tmp_path):

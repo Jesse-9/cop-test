@@ -74,7 +74,10 @@ sim.loadScene(scene.ttt) → adopt_scene() 按 alias 重建句柄
 - 指针只在新工件写入、`loadScene` 回读并只读校验通过后原子更新；指向的
   工件必然是保存时校验通过的版本。
 - 加载不会构建场景，也不会读取 `factory-sim.ttt` 或 `scenes/*.ttt`。
-- 加载后状态为 `SCENE_LOADED`，必须 `validate` 才能 `start`。
+- 加载后状态为 `SCENE_LOADED`，可直接 `start`；启动点会在取得运行锁后执行
+  完整只读工件校验，失败则拒绝启动并释放锁。`validate` 是可选诊断入口，
+  用于主动检查并查看详细差异报告。`save` 仍要求场景已处于
+  `SCENE_VALIDATED`（派生保存需先 `validate`）。
 - 也支持直接指定完整工件 ID、目录名或工件根内路径。
 
 ## 覆盖与派生规则
@@ -85,27 +88,34 @@ sim.loadScene(scene.ttt) → adopt_scene() 按 alias 重建句柄
 3. 阶段二派生:
    ```bash
    python src/run_scene_lifecycle.py load current
-   python src/run_scene_lifecycle.py validate
+   python src/run_scene_lifecycle.py validate   # save 要求 SCENE_VALIDATED
    python src/run_scene_lifecycle.py save --phase stage2 --parent <stage1-artifact-id>
    ```
-   派生副本默认保持几何/布局/坐标/模型/物理参数不变, 只扩展 manifest
+   这里的 `validate` 是 `save` 的状态前置 (与 `start` 无关); `start` 本身
+   可直接从加载态发起并在启动点校验。派生副本默认保持几何/布局/坐标/
+   模型/物理参数不变, 只扩展 manifest
    契约; 任何物理改动必须在 manifest 的 `extra`/差异清单中记录理由和前后值。
    阶段二 `save` 会剥离 `tool.handles`、`conveyor.script_handle`、
    `sim_time` 等会话/易变字段, 父差异 `[]` 表示对象、配置、布局、模型和
    脚本摘要一致。
 4. `current.json` 只在新工件写入、重新加载并校验通过后原子更新。
+5. `build` 只执行构建契约检查，不产生工件 manifest；`build → save` 才会
+   保存、回读并执行工件级完整只读校验。未保存的临时构建场景在 `start`
+   时只复核 `scene.verify()`，不能报告为工件级全量校验通过。
 
 ## 命令
 
 ```bash
-# 显式构建 → 保存 → 加载 → 校验
+# 显式构建 → 保存 → 加载 → 启动 (启动点自动校验)
 python src/run_scene_lifecycle.py build
 python src/run_scene_lifecycle.py save --phase stage1 --note "..."
 python src/run_scene_lifecycle.py load current
+python src/run_scene_lifecycle.py start --target station --time 45
+
+# 可选诊断: 主动查看完整校验报告 (start 仍会重新校验)
 python src/run_scene_lifecycle.py validate
 
-# 启动/停止/状态/列表
-python src/run_scene_lifecycle.py start --target station --time 45
+# 停止/状态/列表
 python src/run_scene_lifecycle.py stop
 python src/run_scene_lifecycle.py status
 python src/run_scene_lifecycle.py list
@@ -114,6 +124,6 @@ python src/run_scene_lifecycle.py list
 #      start_simulation / stop_simulation / lifecycle_status
 ```
 
-`start` 不会隐式构建或清场; 没有已加载且校验通过的场景时会被拒绝。
-运行中 `build`/`load`/`save`/`validate` 和第二路 `start` 都会被拒绝
-(状态机 + 跨进程运行锁)。
+`start` 不会隐式构建或清场; 没有已加载场景时会被拒绝; 加载后可直接启动,
+启动点校验失败同样拒绝并释放本次运行锁。运行中 `build`/`load`/`save`/
+`validate` 和第二路 `start` 都会被拒绝 (状态机 + 跨进程运行锁)。

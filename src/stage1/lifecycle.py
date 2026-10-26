@@ -5,11 +5,13 @@
     build_scene     → 从空白/当前场景构建并执行构建契约校验
     save_scene      → 停止态保存为新版本工件, 重新加载并校验
     load_scene      → 停止态加载指定 .ttt 工件
-    validate_scene  → 只读校验当前场景与 manifest
-    start_simulation→ 仅启动当前已加载且校验通过的场景
+    validate_scene  → 只读校验当前场景与 manifest (可选诊断)
+    start_simulation→ 仅启动当前已加载场景; 先取运行锁再执行启动点全量校验
     stop_simulation → 停止仿真并确认停止态
 
 start 绝不隐式 build/clear; 运行中拒绝 build/load/save/validate/重复 start。
+SCENE_LOADED 可直接 start; 校验发生在 prepare_start() 取得运行锁之后,
+显式 validate 只是可选诊断, 不是 start 的前置条件。
 """
 
 from __future__ import annotations
@@ -88,6 +90,9 @@ _TRANSITIONS: dict[tuple[LifecycleState, str], LifecycleState] = {
         LifecycleState.SCENE_VALIDATED,
     (LifecycleState.SCENE_LOADED, "validate"):
         LifecycleState.SCENE_VALIDATED,
+    # 已加载场景可直接启动; 状态转换仅在 prepare_start() 完成锁内校验后提交。
+    (LifecycleState.SCENE_LOADED, "start"):
+        LifecycleState.SIMULATION_RUNNING,
     (LifecycleState.SCENE_VALIDATED, "build"):
         LifecycleState.SCENE_VALIDATED,
     (LifecycleState.SCENE_VALIDATED, "load"):
@@ -727,8 +732,9 @@ class LifecycleManager:
         current.json`` → ``artifact_id`` → 工件目录的 ``scene.ttt``；
         ``phase`` 默认 ``stage1``。随后用 ``sim.loadScene()`` 从磁盘把该
         ``.ttt`` 载入 CoppeliaSim（替换当前场景），再由 ``adopt_scene()``
-        按 alias 重新建立句柄。加载后状态为 ``SCENE_LOADED``，必须再调用
-        ``validate()`` 才能 ``start``。
+        按 alias 重新建立句柄。加载后状态为 ``SCENE_LOADED``，可直接调用
+        ``start``/``prepare_start()``；启动点会在持有运行锁后执行完整只读
+        工件校验。``validate()`` 仅用于可选的主动检查/差异报告。
         """
         self.refresh()
         self._guard("load")
@@ -796,7 +802,7 @@ class LifecycleManager:
         self.sm.transition("load")
         self._apply(LifecycleState.SCENE_LOADED, origin="ARTIFACT",
                     event="loaded", path=str(artifact.scene_path))
-        return {**self.summary(), "requires_validation": True}
+        return {**self.summary(), "validation_at_start": True}
 
     # ── 动作: validate ──────────────────────────────────────
     def validate(self, artifact_ref: Optional[str] = None) -> dict:
@@ -1061,6 +1067,13 @@ class LifecycleManager:
 
     # ── 动作: start 前置 ────────────────────────────────────
     def prepare_start(self, target: str = "station") -> dict:
+        """取得运行锁并执行启动点校验, 通过后进入 SIMULATION_RUNNING。
+
+        接受 SCENE_LOADED (load 后直接启动) 与 SCENE_VALIDATED (显式
+        validate 后启动)。工件场景每次启动都重新做完整只读校验; 无 manifest
+        的临时构建场景重新执行 ``scene.verify()`` 构建契约。校验失败进入
+        ERROR 并释放本次运行锁。
+        """
         self.refresh()
         self._guard("start")                  # 先确认状态允许, 再执行慢校验
         self._ensure_stopped("start")
@@ -1109,6 +1122,10 @@ class LifecycleManager:
                                differences=len(result.get("differences", [])))
                     raise ValidationFailedError("start 前只读校验失败",
                                                 report=result)
+                # 启动点校验同时作为本会话的有效校验记录, 供 status/后续动作读取。
+                self.session.validated_at = result.get("validated_at")
+                self.session.manifest_digest = self.artifact.manifest_digest
+                self.session.last_error = None
             elif not self.scene.verify().get("ok"):
                 self._fail("start 前构建契约未通过", event="start_refused")
                 raise ValidationFailedError("start 前构建契约未通过")
@@ -1304,7 +1321,7 @@ def _manager(args, client, sim, simIK) -> LifecycleManager:
 
 
 def _run_start(args, manager: LifecycleManager) -> dict:
-    """在 CLI 进程内启动并执行已校验场景; 返回运行报告.
+    """在 CLI 进程内启动当前已加载场景并执行任务; 返回运行报告.
 
     按工件 ``source_phase`` 显式路由: stage2 工件使用阶段二 runner,
     stage3 工件使用阶段三双工位 runner; 不允许阶段一 runner 静默运行
@@ -1382,7 +1399,8 @@ def build_parser():
     import argparse
 
     ap = argparse.ArgumentParser(
-        description="阶段一场景生命周期: 显式 build/save/load/validate/start/stop")
+        description="阶段一场景生命周期: 显式 build/save/load/validate/start/stop"
+                    " (validate 为可选诊断; start 在启动点校验)")
     ap.add_argument("--host", default="localhost")
     ap.add_argument("--port", type=int, default=23000)
     ap.add_argument("--artifact-root", default=None)
@@ -1413,16 +1431,23 @@ def build_parser():
     p.add_argument("--allow-after-run", action="store_true",
                    help="允许保存运行后的非初始位姿 (不作为基线)")
 
-    p = sub.add_parser("load", help="在停止态加载指定工件")
+    p = sub.add_parser(
+        "load", help="在停止态加载指定工件 (加载后可直接 start)",
+        description="在停止态加载指定工件; 加载后可直接 start (启动点校验)。")
     p.add_argument("artifact",
                    help="工件 ID / 目录名 / 工件根内路径 / current")
     p.add_argument("--phase", default=None, choices=list(sa.PHASES),
                    help="current 指针所属命名空间 (默认 stage1)")
 
-    p = sub.add_parser("validate", help="只读校验当前场景与 manifest")
+    p = sub.add_parser(
+        "validate", help="只读校验当前场景与 manifest (可选诊断; start 会重新校验)",
+        description="只读校验当前场景与 manifest; 本动作是可选诊断, "
+                    "start 总会重新校验。")
     p.add_argument("artifact", nargs="?", default=None)
 
-    p = sub.add_parser("start", help="启动当前已加载且校验通过的场景")
+    p = sub.add_parser(
+        "start", help="启动当前已加载场景 (取运行锁后执行启动点全量校验)",
+        description="启动当前已加载场景; 先取得运行锁, 再执行启动点全量校验。")
     p.add_argument("--target", choices=("station", "agv", "both"),
                    default="station",
                    help="阶段一/二目标; 阶段三可用 --scenario 选择场景")

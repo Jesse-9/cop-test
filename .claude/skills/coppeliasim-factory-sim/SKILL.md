@@ -317,9 +317,12 @@ loop) and `ro_connector` (read-only diagnostics, guarded by `ro_lock`).
 `build_scene`, `start_simulation`, `get_config`, and `set_config` accept a
 `backend` argument (`stage1` default, `legacy` for the five-island reference);
 `start_simulation` also accepts `target` (`station`/`agv`/`both`) and `fault`.
-Since step 1.2 (2026-10-21), stage1 `start_simulation` does **not** rebuild:
-it starts only the currently loaded and validated scene/artifact. Use
-`build_scene` (explicit) or `load_scene` + `validate_scene` first.
+Since step 1.2 (2026-10-21) and the 2026-10-26 validation workflow
+adjustment, stage1 `start_simulation` does **not** rebuild: it starts only
+the currently loaded scene/artifact and performs the full read-only
+validation at startup while holding the run lock. Use `build_scene`
+(explicit) or `load_scene` first; `validate_scene` is an optional diagnostic
+and start re-runs the full validation regardless.
 `save_scene` / `load_scene` / `validate_scene` / `lifecycle_status` manage
 versioned scene artifacts under `docs/scene_artifacts/` (stage1 baseline
 `stage1/L1_S1/v002_20261020_234403` is protected/read-only).
@@ -336,10 +339,12 @@ For stage1, `pause_simulation` also stops the runner from touching ZMQ so
 | C — Control (2) | `pause_simulation`, `resume_simulation` |
 
 **Scene lifecycle semantics**: `build_scene` → `save_scene` → `load_scene`
-→ `validate_scene` → `start_simulation` → `stop_simulation`. `start` refuses
-to run without a validated scene; while running, build/load/save/validate
-and a second start are rejected by the state machine and the cross-process
-run lock (`docs/scene_artifacts/.runtime/run.lock`).
+→ `start_simulation` → `stop_simulation`; `load_scene` → `start_simulation`
+is also valid. `validate_scene` is optional diagnostics (start re-validates
+under the run lock). `start` refuses to run without a loaded scene or when
+startup validation fails; while running, build/load/save/validate and a
+second start are rejected by the state machine and the cross-process run lock
+(`docs/scene_artifacts/.runtime/run.lock`).
 
 > `tail_coppelia_console` reads CoppeliaSim's **own** console output (script
 > `print` / `sim.addLog`, plugin & add-on errors, the last message before a
