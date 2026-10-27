@@ -1,12 +1,4 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# 阶段 2.01 实施报告：动作与轨迹优化
-=======
 # 阶段 2.01 实施报告：基础动作与轨迹优化
->>>>>>> Stashed changes
-=======
-# 阶段 2.01 实施报告：基础动作与轨迹优化
->>>>>>> Stashed changes
 
 日期：2026-10-21
 分支：`codex/phase2-physics-motion`
@@ -14,36 +6,16 @@
 父工件：`stage1/L1_S1/v002_20261020_234403`
 阶段二工件：`stage2/L1_S1/v012_20261021_210539`
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-> 2026-10-25 阶段 2.02 已从同一 stage1 父工件派生
-> `stage2/L1_S1/v013_20261024_232558`（契约 `stage2_contract_20261024_v3`），
-> 2.01 的默认行为与本文结论不变；AGV 转运路径实验能力见
-=======
-=======
->>>>>>> Stashed changes
 > 阶段编号表示实施工作包，不等同于代码或工件契约版本。阶段 2.01 完成基础动作优化；
 > 2026-10-25 阶段 2.02（AGV 转运专项）已从同一 stage1 父工件派生
 > `stage2/L1_S1/v013_20261024_232558`（契约 `stage2_contract_20261024_v3`），
 > 阶段 2.01 的基础默认行为与本文结论不变；阶段 2.02 已实现 AGV 专项实验能力，
 > 候选策略未采纳且默认关闭，见
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 > [PHASE2_02_REPORT.md](PHASE2_02_REPORT.md)。
 
 ## 1. 结论
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-阶段 2.01 已完成：在不改变场景几何、布局、目标放置位姿、物理参数和控制模式的
-=======
 阶段 2.01 的基础工作已完成：在不改变场景几何、布局、目标放置位姿、物理参数和控制模式的
->>>>>>> Stashed changes
-=======
-阶段 2.01 的基础工作已完成：在不改变场景几何、布局、目标放置位姿、物理参数和控制模式的
->>>>>>> Stashed changes
 前提下，加入腕部分支硬约束、段内固定 q[0]、逐段关节/腕部指标、候选一步前瞻与
 可行性点精简。正常 station/agv/both、运行期障碍锁存和 364 项测试均通过。
 
@@ -73,15 +45,7 @@ AGV 任务仍 DONE、载荷跟随误差 0.0100 m；其真实加载状态使低 T
 |---|---|
 | `src/stage2/branch.py` (新) | q[4] 归一化角、`positive/negative/singular` 分支、距奇异边界 0/±π 裕量 |
 | `src/stage2/metrics.py` (新) | 逐段 TV、最大单步、点数、q[0] 变化、锁定偏差、腕部统计、TCP 误差 |
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-| `src/stage2/config.py` | `WRIST_BRANCH_*`、`Q0_LOCK_*`、lookahead 权重、压缩容差、`MOTION_OPT_VERSION=2.01`；契约版本 `stage2_contract_20261021_v2` |
-=======
 | `src/stage2/config.py` | `WRIST_BRANCH_*`、`Q0_LOCK_*`、lookahead 权重、压缩容差；配置功能标识 `MOTION_OPT_VERSION=2.01`；工件契约版本 `stage2_contract_20261021_v2` |
->>>>>>> Stashed changes
-=======
-| `src/stage2/config.py` | `WRIST_BRANCH_*`、`Q0_LOCK_*`、lookahead 权重、压缩容差；配置功能标识 `MOTION_OPT_VERSION=2.01`；工件契约版本 `stage2_contract_20261021_v2` |
->>>>>>> Stashed changes
 | `src/stage2/path_planning.py` | 分支硬约束；`simIK` 段内关节区间锁定；候选一步前瞻排序；用上一构型实际 TCP 承接笛卡尔段；逐段复核/指标；可行性点精简 |
 | `src/stage2/trajectory.py` | 执行器记录实测 q/命令，输出逐段执行指标；新增 `WRIST_BRANCH` 状态 |
 | `src/stage2/unit_controller.py` | 腕部锚点与实测越界锁存；按段下发锁轴；规划优先从上一计划终点开始；`motion` 逐段证据（含失败/锁存部分） |
@@ -169,15 +133,7 @@ TV 不跨零折叠、锁轴偏差、锁轴回退、转运语义点、压缩共�
 ## 5. 未实现 / 边界
 
 - OMPL 未启用（N/A）；局部规划失败仍停止并报告，不回退未检查直线。
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-- 故障恢复、自动重试仍属阶段 2.1；锁存后保持最后实测构型。
-=======
 - 故障恢复、自动重试归项目最终阶段（06-05 §6）；本阶段锁存后保持最后实测构型。
->>>>>>> Stashed changes
-=======
-- 故障恢复、自动重试归项目最终阶段（06-05 §6）；本阶段锁存后保持最后实测构型。
->>>>>>> Stashed changes
 - `TRANSFER_SPLIT_HIGH_ABOVE_PLACE` 默认关闭；只有重新定义高位/预接近语义并
   完成整段净空验证后才应打开。
 - `pre_place` 锁轴在当前 L1_S1 布局不可用；若未来布局改变，必须重新执行
