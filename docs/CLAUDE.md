@@ -6,31 +6,28 @@
 
 一个以 **CoppeliaSim 4.10** 为底座的 LLM 知识库，专注于**工业场景仿真**的学习与实现。涵盖机器人仿真建模、运动规划、力控制、视觉感知、数字孪生、V-REP API、Remote API、插件开发、协同仿真等主题。
 
-## 知识库结构
+## 文档分类与归档
 
 ```
-docs/                          # 本知识库根目录 (即 cop-test/docs)
-├── CLAUDE.md                  # 本文件 — 知识库 Schema 和维护指南
-├── README.md                  # 文档入口导航
-├── raw/                       # 未处理的源材料（官方文档HTML/MD、论文、网页存档等）
-│   ├── README.md              # 原始资料清单与来源验证
-│   └── ...                    # ⚠️ 永远不要修改这些文件
-├── wiki/                      # 整理后的维基，完全由 AI 维护
-│   ├── index.md               # 维基导航索引
-│   ├── 00-基础知识/            # CoppeliaSim 基础概念、安装、界面
-│   ├── 01-API参考/             # V-REP API、Remote API、Plugin API 详解
-│   ├── 02-仿真建模/            # 场景搭建、模型导入、关节/传感器配置
-│   ├── 03-运动规划与控制/       # OMPL、逆运动学、轨迹规划、力/位控制
-│   ├── 04-感知与视觉/          # 视觉传感器、点云、图像处理
-│   ├── 05-数字孪生与协同仿真/   # 与Simulink/Python/ROS等协同
-│   ├── 06-工业案例/            # 典型工业场景仿真案例
-│   ├── 07-API脚本示例/          # Lua/Python 脚本代码片段与注释
-│   └── 99-附录/               # 术语表、快捷键、资源链接
-└── outputs/                   # 生成的报告、问答记录、分析结果
-    ├── reports/               # 研究报告、调研报告
-    ├── qa/                    # LLM 问答记录/QA pairs
-    └── analysis/              # 技术分析、对比评测
+docs/
+├── README.md                  # 文档总导航：按读者任务和资料用途索引
+├── CLAUDE.md                  # 本文件：wiki 元数据、分类和维护规则
+├── wiki/                      # 通用 CoppeliaSim 知识 + 本项目案例与操作指南
+│   ├── index.md               # wiki 导航
+│   ├── 00–07/                 # 基础、API、建模、运动、视觉、协同、案例、脚本
+│   ├── 98-ProjectUsage/       # 项目仿真与 MCP 使用指南
+│   └── 99-附录/               # 术语、快捷键和界面参考
+├── implementation/            # 项目阶段报告、实施方案和审查记录
+│   ├── README.md              # 实施资料索引
+│   ├── evidence/              # 报告引用的长期证据副本
+│   └── runs/                  # 被 Git 忽略的临时运行输出
+├── measurement/               # 可复现测量脚本和原始测量数据
+│   └── README.md              # 按测量用途索引
+├── scene_artifacts/           # 版本化场景、manifest、校验与生命周期数据
+└── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
+
+仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。阶段详细设计放在 `wiki/06-工业案例/`，验收结论放在 `implementation/`，不要把两者合并成重复的大文档。运行输出与测量原始数据不得当作正式证据；正式报告引用的证据副本归入 `implementation/evidence/`。
 
 ## 文件命名规范
 
@@ -130,7 +127,8 @@ sim_version: "4.10"     # 适用仿真版本
 
 ### 更新频率
 - wiki/ 中的内容随学习进度持续更新
-- outputs/ 在每次深度研究后生成报告
+- 阶段报告、实施方案和审查记录归入 `implementation/`，入口维护在 `implementation/README.md`
+- 可复现探针和原始测量结果归入 `measurement/`，入口维护在 `measurement/README.md`
 - 对 raw/ 中的资料定期回顾，过时的标注 `状态/归档`
 
 ## 许可证与约定
@@ -145,4 +143,4 @@ sim_version: "4.10"     # 适用仿真版本
 1. 浏览 `wiki/00-基础知识/` 了解 CoppeliaSim 基本概念
 2. 查阅 `wiki/01-API参考/` 学习脚本编程
 3. 参考 `wiki/06-工业案例/` 进行实践
-4. 学习中遇到的问题记录在 `outputs/qa/` 中
+4. 项目运行问题记录到对应 issue/报告；不要创建未定义的 `outputs/qa/` 归档目录
