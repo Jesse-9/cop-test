@@ -1,7 +1,7 @@
 {
-  "artifact_id": "stage2/L1_S1/v013_20261024_232558",
-  "manifest_digest": "f472761c2a39d51f587f1d54011ade42c626965fa932ccb181ec314c4d8779e7",
-  "path": "L1_S1/v013_20261024_232558",
-  "scene_sha256": "541e4f13a1eef50425ce46a1fd7acca2540e0332524d1cfb06ffa38c8f421b11",
-  "updated_at": "2026-10-24T23:26:07+08:00"
+  "artifact_id": "stage2/L1_S1/v014_20261028_175742",
+  "manifest_digest": "aa41e7f1853aa9df9f86c4fb30571cb2d1c657f843d7d6f40d6f4f6dddd94412",
+  "path": "L1_S1/v014_20261028_175742",
+  "scene_sha256": "2b25e70d9468e6a0a802dfe4108a25a5b595b8d00c22b4230de11b3032f88670",
+  "updated_at": "2026-10-28T17:57:51+08:00"
 }

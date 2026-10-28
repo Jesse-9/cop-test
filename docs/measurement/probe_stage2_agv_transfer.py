@@ -1,21 +1,21 @@
-"""probe_stage2_agv_transfer.py — 阶段 2.02 AGV 转运路径 A/B 探针 (06-10 §8.5).
+"""probe_stage2_agv_transfer.py — 06-15 水平带载转运规划探针.
 
 在已加载、已停止的 stage2 场景上 (影子臂, 不启动仿真):
 
-  - 实验卡 A: 复现当前 AGV 转运路径, 导出逐段/逐 waypoint 证据;
-  - 实验卡 B: transit 偏移 0.20/0.10/0.00 m 单变量比较;
-  - 实验卡 C: baseline / high_align / detour 三类 TCP 路径比较;
-  - 实验卡 D: transit→pre_place 采样位姿的 IK 候选覆盖扫描;
-  - 实验卡 E: greedy 与 beam 整链选链的规划 A/B.
+  - 准备带载起始构型: approach → lift 到 H_transfer;
+  - 对 station/AGV 分别规划 TRANSFERRING(pre_place) 与 PLACING(place),
+    比较 greedy / beam 整链选链;
+  - 扫描水平段 lift→pre_place 的 IK 候选覆盖 (只做可达性统计, 不是安全检查);
+  - 导出逐段 TV、q[0]/q[3] 变化、净空与规划耗时.
 
-本探针只做**规划** (影子 FK/碰撞查询), 不驱动真实机械臂, 因此不产生
-执行速度/加速度/jerk 证据; 实验卡 F 必须用 ``run_stage2.py`` 的真实运行
-报告 (其中已包含 ``execution.trace`` 与 ``execution.totals.profile``).
+06-15 方案已移除 rise/transit 路径点及其策略/偏移/绕行开关, 本探针不再
+提供 2.02 的路径变体矩阵. 探针只做**规划** (影子 FK/碰撞查询), 不驱动
+真实机械臂; 执行速度/加速度/jerk 证据来自 ``run_stage2.py`` 的真实运行报告.
 
 用法 (CoppeliaSim 已启动, 场景已加载并停止):
     .venv/Scripts/python docs/measurement/probe_stage2_agv_transfer.py
     .venv/Scripts/python docs/measurement/probe_stage2_agv_transfer.py \
-        --policies baseline high_align --offsets 0.20 0.00 --max-variants 2
+        --targets agv --chain-modes greedy beam
 """
 
 from __future__ import annotations
@@ -40,12 +40,13 @@ from stage2 import config as cfg
 from stage2.contact import (contact_pose, quat_conjugate, quat_multiply,
                             quat_rotate)
 from stage2.metrics import chain_cost
-from stage2.path_planning import Goal, MotionContext, PlanStatus
+from stage2.path_planning import Goal, MotionContext
 from stage2.runtime import build_stage2_runtime
 from stage2.scene_contract import stage2_config_digest
 from stage2.suction import Stage2SuctionController
 from stage2.trajectory import cartesian_poses
-from stage2.unit_controller import transfer_goal_variants
+from stage2.unit_controller import (horizontal_transfer_check, lift_pose,
+                                    transfer_goal_variants, transfer_goals)
 
 OUT = Path("docs/measurement")
 
@@ -59,14 +60,9 @@ def chain_mode(mode: str):
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="阶段 2.02 AGV 转运路径 A/B 规划探针")
+        description="06-15 水平带载转运规划探针")
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=23000)
-    parser.add_argument("--policies", nargs="+",
-                        default=["baseline", "high_align", "detour"])
-    parser.add_argument("--offsets", nargs="+", type=float,
-                        default=[0.20, 0.10, 0.00])
-    parser.add_argument("--max-variants", type=int, default=2)
     parser.add_argument("--chain-modes", nargs="+", default=["greedy", "beam"])
     parser.add_argument("--targets", nargs="+",
                         choices=("agv", "station"), default=["agv", "station"])
@@ -91,13 +87,12 @@ def main() -> int:
     manager = MaterialManager()
     report = {
         "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
-        "agv_transfer_opt_version": cfg.AGV_TRANSFER_OPT_VERSION,
+        "transfer_trajectory_version": cfg.TRANSFER_TRAJECTORY_VERSION,
         "motion_opt_version": cfg.MOTION_OPT_VERSION,
+        "transfer_height": cfg.TRANSFER_HEIGHT,
         "config_digest": stage2_config_digest(),
         "layout": scene.layout.name,
         "contract_version": cfg.STAGE2_CONTRACT_VERSION,
-        "policies": list(args.policies),
-        "offsets": [float(v) for v in args.offsets],
         "chain_modes": list(args.chain_modes),
         "plans": [],
         "coverage": {},
@@ -139,7 +134,7 @@ def main() -> int:
                 runtime, start_q, start_tcp, place, target, args))
             if not args.skip_coverage:
                 report["coverage"][target] = _coverage_scan(
-                    runtime, start_q, start_tcp, place, target)
+                    runtime, start_tcp, place, target)
         report["summary"] = _summary(report["plans"])
     finally:
         if runtime is not None:
@@ -200,8 +195,8 @@ def _prepare_carrying(runtime, manager, scene, pick_pose, box):
     context = MotionContext(phase="LIFT", target_handle=-1, carrying=True,
                             snapshot="probe-agv-lift",
                             allow_start_load_contact=True)
-    lift = Goal("lift", contact_pose(pick_pose, box,
-                                     cfg.PRE_APPROACH_CLEARANCE),
+    lift = Goal("lift", lift_pose(contact_pose(pick_pose, box, 0.0),
+                                  base.TOOL_TARGET_QUATERNION),
                 cartesian=True, lock_joint=cfg.Q0_LOCK_JOINT)
     plan = planner.plan(start_q, [lift], context, start_pose=start_tcp,
                         lock_fallback=False)
@@ -217,32 +212,55 @@ def _prepare_carrying(runtime, manager, scene, pick_pose, box):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 计划矩阵
+# 计划矩阵: TRANSFERRING → PLACING
 # ═══════════════════════════════════════════════════════════════
 
 def _plan_matrix(runtime, start_q, start_tcp, place, target, args) -> list[dict]:
     planner = runtime.planner
     out: list[dict] = []
-    context = MotionContext(phase="PLACE", target_handle=-1, carrying=True,
-                            snapshot=f"probe-agv-{target}")
-    for policy in args.policies:
-        for offset in args.offsets:
-            variants = transfer_goal_variants(
-                place, start_tcp, runtime.scene.layout.arm_base,
-                policy=policy, transit_offset=offset,
-                max_variants=args.max_variants)
-            for name, goals, info in variants:
-                for mode in args.chain_modes:
-                    with chain_mode(mode):
-                        plan = planner.plan(start_q, goals, context,
-                                            start_pose=start_tcp,
-                                            lock_fallback=False)
-                    out.append(_record(
-                        target, policy, offset, name, mode, info, plan))
+    for mode in args.chain_modes:
+        chosen = None
+        for name, goals, info in transfer_goal_variants(place, start_tcp):
+            with chain_mode(mode):
+                transfer_context = MotionContext(
+                    phase="TRANSFER", target_handle=-1, carrying=True,
+                    snapshot=f"probe-transfer-{target}")
+                transfer = planner.plan(
+                    start_q, goals, transfer_context,
+                    start_pose=start_tcp, lock_fallback=False,
+                    direct_only=True,
+                    wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+                check = None
+                if transfer.ok:
+                    check = horizontal_transfer_check(
+                        transfer.waypoints, planner.checker,
+                        orientation=place[3:7])
+            out.append(_record(target, f"transfer:{name}", mode, transfer,
+                               check, info))
+            if transfer.ok and (check is None or check["ok"]):
+                chosen = transfer
+                break
+        if chosen is None:
+            continue
+        transfer_q = list(chosen.waypoints[-1])
+        transfer_tcp = planner.checker.tcp_at(transfer_q)
+        place_goal = Goal("place", list(place), cartesian=True,
+                          strict_orientation=True,
+                          allow_final_load_contact=True,
+                          lock_joint=cfg.Q0_LOCK_JOINT)
+        with chain_mode(mode):
+            placing_context = MotionContext(
+                phase="PLACE", target_handle=-1, carrying=True,
+                snapshot=f"probe-placing-{target}")
+            placing = planner.plan(transfer_q, [place_goal], placing_context,
+                                   start_pose=transfer_tcp,
+                                   lock_fallback=False, direct_only=True,
+                                   wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+        out.append(_record(target, "placing", mode, placing, None))
     return out
 
 
-def _record(target, policy, offset, name, mode, info, plan) -> dict:
+def _record(target, stage, mode, plan, check, info=None) -> dict:
     cost = chain_cost(plan.waypoints) if plan.waypoints else {}
     totals = (plan.metrics or {}).get("totals", {})
     segments = []
@@ -264,9 +282,7 @@ def _record(target, policy, offset, name, mode, info, plan) -> dict:
         })
     return {
         "target": target,
-        "policy": policy,
-        "transit_offset": round(float(offset), 6),
-        "variant": name,
+        "stage": stage,
         "chain_mode": mode,
         "info": info,
         "status": plan.status.value,
@@ -281,28 +297,19 @@ def _record(target, policy, offset, name, mode, info, plan) -> dict:
         "chain_cost": cost,
         "chain_search": plan.chain_search,
         "diagnostics": plan.diagnostics,
-        "transfer_variants": plan.transfer_variants,
+        "horizontal_check": check,
     }
 
 
 # ═══════════════════════════════════════════════════════════════
-# 候选覆盖 (实验卡 D: IK 覆盖, 不是安全检查)
+# 候选覆盖 (水平段 IK 覆盖, 不是安全检查)
 # ═══════════════════════════════════════════════════════════════
 
-def _coverage_scan(runtime, start_q, start_tcp, place, target) -> dict:
+def _coverage_scan(runtime, start_tcp, place, target) -> dict:
     planner = runtime.planner
-    goals = transfer_goal_variants(
-        place, start_tcp, runtime.scene.layout.arm_base,
-        policy="baseline", transit_offset=cfg.TRANSFER_TRANSIT_OFFSET,
-        max_variants=1)[0][1]
-    transit_goal = next((goal for goal in goals if goal.name == "transit"),
-                        None)
-    pre_goal = next(goal for goal in goals if goal.name == "pre_place")
-    if transit_goal is None:
-        return {"skipped": "no transit waypoint"}
+    pre = transfer_goals(place)[0].pose
     seeds = list(cfg.IK_SEED_VARIANTS) + [list(base.ARM_SEED_JOINTS)]
-    poses = cartesian_poses(transit_goal.pose, pre_goal.pose,
-                            cfg.CARTESIAN_IK_STEP)
+    poses = cartesian_poses(start_tcp, pre, cfg.CARTESIAN_IK_STEP)
     rows = []
     previous = None
     for index, pose in enumerate(poses):
@@ -333,8 +340,7 @@ def _coverage_scan(runtime, start_q, start_tcp, place, target) -> dict:
 def _summary(plans) -> dict:
     out = {}
     for row in plans:
-        key = (row["target"], row["policy"], row["transit_offset"],
-               row["variant"], row["chain_mode"])
+        key = (row["target"], row["stage"], row["chain_mode"])
         out["|".join(str(v) for v in key)] = {
             "ok": row["ok"],
             "status": row["status"],

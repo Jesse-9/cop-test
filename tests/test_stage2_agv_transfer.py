@@ -1,7 +1,8 @@
-"""阶段 2.02: AGV 转运路径优化测试 (06-10 §8).
+"""阶段 2.02/06-15: 整链搜索、逐点诊断、平滑与工件契约测试.
 
-覆盖纯函数 (分层代价/执行剖面)、有界整链 beam 选链、转运路径变体、
-逐点诊断、平滑与契约字段. 全部使用 fake IK/checker, 不依赖 CoppeliaSim.
+覆盖分层代价、有界整链 beam 选链、逐点诊断、平滑与契约字段. 全部使用
+fake IK/checker, 不依赖 CoppeliaSim. 06-15 已移除 rise/transit 路径变体,
+本文件不再覆盖旧版 A/B 开关.
 """
 
 import math
@@ -19,14 +20,8 @@ from stage2.path_planning import (ConfigCheck, Goal, LocalPlanner,
                                   smooth_plan_waypoints)
 from stage2.scene_contract import build_stage2_extra
 from stage2.trajectory import ExecutorStatus, JointStreamExecutor
-from stage2.unit_controller import (transfer_goal_variants, transfer_goals,
-                                    transfer_detour_pose,
-                                    transfer_transit_pose)
 
 WRIST_UP = math.pi / 2
-PLACE = [-0.2, 1.2, 0.4, 0.0, 0.0, 0.0, 1.0]
-START_TCP = [-0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 1.0]
-ARM_BASE = (-0.2, 0.55, 0.3)
 
 
 def q(q3=0.0, q0=0.0):
@@ -191,91 +186,6 @@ def test_beam_reports_failure_when_every_branch_blocked(monkeypatch):
     assert planner.last_chain_search["failure_layer"] == 1
 
 
-# ── 转运路径变体 (06-10 §8.2) ───────────────────────────────
-
-def test_transit_offset_variants_move_only_toward_arm_base():
-    for offset in cfg.TRANSFER_TRANSIT_OFFSET_VARIANTS:
-        transit = transfer_transit_pose(PLACE, ARM_BASE, offset)
-        assert abs(transit[0] - PLACE[0]) < 1e-9
-        assert abs(transit[1] - (PLACE[1] - offset)) < 1e-9
-        assert transit[2] >= cfg.TRANSFER_TRANSIT_HEIGHT_MIN
-
-
-def test_baseline_policy_keeps_stage201_route():
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="baseline")
-    assert len(variants) == 1
-    name, goals, info = variants[0]
-    assert name == "baseline"
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "pre_place", "place"]
-    assert info["transit_offset"] == cfg.TRANSFER_TRANSIT_OFFSET
-
-
-def test_high_align_adds_target_above_waypoint():
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="high_align")
-    goals = variants[0][1]
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "high_above_place", "pre_place", "place"]
-    high = goals[2].pose
-    assert high[0] == PLACE[0] and high[1] == PLACE[1]
-    assert abs(high[2] - goals[1].pose[2]) < 1e-9
-    assert goals[2].lock_joint is None
-
-
-def test_high_align_without_transit_offset_omits_transit():
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="high_align",
-                                      transit_offset=0.0)
-    goals = variants[0][1]
-    assert [goal.name for goal in goals] == [
-        "rise", "high_above_place", "pre_place", "place"]
-
-
-def test_baseline_keeps_transit_even_at_zero_offset():
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="baseline",
-                                      transit_offset=0.0)
-    goals = variants[0][1]
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "pre_place", "place"]
-    transit = goals[1].pose
-    assert transit[0] == PLACE[0] and transit[1] == PLACE[1]
-    assert transit[2] >= cfg.TRANSFER_TRANSIT_HEIGHT_MIN
-
-
-def test_detour_is_perpendicular_and_keeps_transit_height():
-    transit = transfer_transit_pose(PLACE, ARM_BASE, 0.20)
-    detour = transfer_detour_pose(PLACE, transit, 0.06,
-                                  reference_xy=START_TCP)
-    assert abs(detour[2] - transit[2]) < 1e-9
-    assert abs(detour[1] - PLACE[1]) < 1e-9
-    assert abs(detour[0] - (PLACE[0] - 0.06)) < 1e-9
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="detour")
-    names = [variant[0] for variant in variants]
-    assert names[0] == "high_align"
-    assert any(name.startswith("detour_") for name in names)
-    detour_goals = next(variant[1] for variant in variants
-                        if variant[0] == "detour_+0.06")
-    assert [goal.name for goal in detour_goals][:4] == [
-        "rise", "transit", "detour", "high_above_place"]
-
-
-def test_auto_policy_is_bounded_by_max_variants():
-    variants = transfer_goal_variants(PLACE, START_TCP, ARM_BASE,
-                                      policy="auto", max_variants=3)
-    assert [variant[0] for variant in variants] == [
-        "baseline", "high_align", "detour_+0.06"]
-
-
-def test_transfer_goals_backward_compatible():
-    goals = transfer_goals(PLACE, START_TCP, ARM_BASE)
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "pre_place", "place"]
-
-
 # ── 逐点诊断 ────────────────────────────────────────────────
 
 class _Probe:
@@ -403,14 +313,21 @@ def test_executor_reports_profile_and_trace():
 
 # ── 工件契约 ────────────────────────────────────────────────
 
-def test_stage2_contract_records_agv_transfer_optimization():
+def test_stage2_contract_records_horizontal_transfer_trajectory():
     extra = build_stage2_extra(parent_info={"artifact_id":
                                             "stage1/L1_S1/v002"})
     planning = extra["planning"]
-    assert planning["agv_transfer_opt"]["version"] == \
-        cfg.AGV_TRANSFER_OPT_VERSION
-    assert planning["agv_transfer_opt"]["path_policy"] == "baseline"
+    transfer = planning["transfer"]
+    assert transfer["height"] == cfg.TRANSFER_HEIGHT
+    assert transfer["path"] == "fixed_height_horizontal_cartesian"
+    assert transfer["lift_ends_at_transfer_height"] is True
+    assert transfer["placing_descends_from_pre_place"] is True
+    assert transfer["horizontal_detour_offsets"] == list(
+        cfg.TRANSFER_HORIZONTAL_DETOUR_OFFSETS)
+    assert transfer["plan_wall_budget_s"] == cfg.TRANSFER_PLAN_WALL_BUDGET_S
+    assert "agv_transfer_opt" not in planning
+    assert "transfer_split" not in planning
     assert planning["chain_search"]["mode"] == "greedy"
     assert planning["smoothing"]["enabled"] is False
-    assert extra["controller"]["agv_transfer_opt_version"] == "2.02"
-    assert extra["contract_version"].endswith("_v3")
+    assert extra["controller"]["transfer_trajectory_version"] == "06-15"
+    assert extra["contract_version"].endswith("_v4")

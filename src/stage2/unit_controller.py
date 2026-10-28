@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import math
-import time
 from enum import Enum, auto
 from typing import Optional
 
@@ -32,8 +31,8 @@ from stage1.unit_controller import (Stage1UnitController, UnitTaskState,
 
 from . import config as cfg
 from .branch import branch_ok
-from .contact import (LocalBox, contact_pose, quat_conjugate, quat_multiply,
-                      quat_rotate)
+from .contact import (LocalBox, contact_pose, quat_angle_between,
+                      quat_multiply, quat_rotate)
 from .conveyor_safety import (ConveyorStopMonitor, MaterialStabilityTracker,
                               StopStatus, bounded_transport_step,
                               read_conveyor_speed)
@@ -81,6 +80,10 @@ class Stage2UnitController(Stage1UnitController):
         # 上一段已执行计划的终点构型: 实测在其容差内时作为下一段规划起点,
         # 保证 A/B 与复跑使用同一冻结起点; 超出则退回实测并记录.
         self._planned_end_q: Optional[list[float]] = None
+        # 06-15: PLACING 是独立下探运动; 下探前先确认 pre_place 与目标设备
+        # 条件, 确认后同一状态内规划并执行 pre_place → place.
+        self._placing_ready = False
+        self._transfer_check: Optional[dict] = None
 
     # ═══════════════════════════════════════════════════════
     # 单步顺序: 联锁 → 传感器/传送带 → 任务 → AGV → 日志 → step
@@ -266,6 +269,9 @@ class Stage2UnitController(Stage1UnitController):
         if self.state is Stage2TaskState.RETREATING:
             self._run_motion()
             return
+        if self.state is UnitTaskState.PLACING:
+            self._advance_placing()
+            return
         if self.state is UnitTaskState.ATTACHING:
             check = self._verify_attach_configuration()
             if check is not None and not check.ok:
@@ -333,6 +339,50 @@ class Stage2UnitController(Stage1UnitController):
         return Stage2TaskState.RETREATING
 
     # ═══════════════════════════════════════════════════════
+    # 放置前下探 (06-15)
+    # ═══════════════════════════════════════════════════════
+
+    def _advance_placing(self) -> None:
+        """PLACING: 先确认目标设备, 再执行 pre_place → place 法向下探."""
+        if not self._placing_ready:
+            if not self._placing_target_ready():
+                return
+            self._placing_ready = True
+            try:
+                tcp = [float(v) for v in self.ik.tcp_pose()]
+            except Exception:
+                tcp = None
+            self._event(
+                "PLACING: 下探许可 (target=%s, tcp=%s)" % (
+                    self.target,
+                    None if tcp is None else [round(v, 4) for v in tcp[:3]]))
+        self._run_motion()
+
+    def _placing_target_ready(self) -> bool:
+        """下探前条件: AGV 到站/停稳/水平; 未满足时等待, 超时失败.
+
+        检查先于任何下探命令; 失败时不生成 pre_place → place 计划,
+        保持既有 ``AGV_DOCK_TIMEOUT`` 行为.
+        """
+        if self.target != "agv":
+            return True
+        docked = self.scene.agv_dock_hit(self.scene.agv_root)
+        stopped = self._agv_stationary() and self._agv_upright()
+        if docked and stopped:
+            self._dock_wait_since = None
+            return True
+        if self._dock_wait_since is None:
+            self._dock_wait_since = self.sim_time
+        elif (self.sim_time - self._dock_wait_since
+              > base.AGV_DOCK_TIMEOUT):
+            self._fail(
+                f"AGV_DOCK_TIMEOUT: 下探前 AGV 未就绪 "
+                f"(dock_sensor={docked}, stopped={stopped}); "
+                "未生成 pre_place → place 命令")
+            return False
+        return False
+
+    # ═══════════════════════════════════════════════════════
     # 运动
     # ═══════════════════════════════════════════════════════
 
@@ -347,12 +397,15 @@ class Stage2UnitController(Stage1UnitController):
         self._motion_pose = None
         self._motion_cmd = None
         self._motion_reported = False
+        self._placing_ready = False
+        self._dock_wait_since = None
         rec = self.materials.by_uid(self.uid)
         if state is UnitTaskState.APPROACHING:
             self.runtime.update_materials(self.materials, self.uid,
                                           carrying=False)
             self.runtime.set_attach_transform(None)
-        elif state in (UnitTaskState.LIFTING, UnitTaskState.TRANSFERRING):
+        elif state in (UnitTaskState.LIFTING, UnitTaskState.TRANSFERRING,
+                       UnitTaskState.PLACING):
             self.runtime.update_materials(self.materials, self.uid,
                                           carrying=True)
             self.runtime.set_attach_transform(
@@ -489,24 +542,19 @@ class Stage2UnitController(Stage1UnitController):
             self._begin_motion(UnitTaskState.TRANSFERRING,
                                reason="lift complete")
         elif state is UnitTaskState.TRANSFERRING:
-            self._enter(UnitTaskState.PLACING, "transfer complete")
+            self._begin_motion(UnitTaskState.PLACING,
+                               reason="transfer complete")
+        elif state is UnitTaskState.PLACING:
+            self._enter(UnitTaskState.RELEASING, "descent complete")
         elif state is Stage2TaskState.RETREATING:
             self._enter(UnitTaskState.DONE, "retreat complete")
         else:
             self._fail(f"UNKNOWN_MOTION_STATE: {state}")
 
-    def _transfer_transit_pose(self, place_pose) -> list[float]:
-        """兼容入口: 转发到模块级纯函数."""
-        return transfer_transit_pose(place_pose, self.layout.arm_base)
-
     @staticmethod
     def _lock_for(name: str):
         """阶段 2.01 段内固定 q[0] 策略 (值在规划时取段起始构型)."""
         return lock_for(name)
-
-    def _transfer_goals(self, place_pose, current_tcp) -> list[Goal]:
-        """转运目标序列: rise → transit → [high_above_place] → pre_place → place."""
-        return transfer_goals(place_pose, current_tcp, self.layout.arm_base)
 
     def _planning_start(self) -> tuple[list[float], list[float], str]:
         """选择规划起始构型: 优先上一段计划终点, 偏差超限退回实测."""
@@ -559,8 +607,10 @@ class Stage2UnitController(Stage1UnitController):
             if self._pick_pose is None or self._pick_box is None:
                 self._fail("PICK_TARGET_MISSING")
                 return None
-            lift = contact_pose(self._pick_pose, self._pick_box,
-                                cfg.PRE_APPROACH_CLEARANCE)
+            # 06-15: 吸附抬升直接到达共享转运高度 H_transfer; 工具姿态与
+            # pre_place 一致, 使 TRANSFERRING 全程只做水平平移.
+            pick = contact_pose(self._pick_pose, self._pick_box, 0.0)
+            lift = lift_pose(pick, self._place_pose()[3:7])
             goals = [Goal("lift", lift, cartesian=True,
                           lock_joint=self._lock_for("lift"))]
             context = MotionContext(phase="LIFT", target_handle=-1,
@@ -571,6 +621,20 @@ class Stage2UnitController(Stage1UnitController):
 
         if state is UnitTaskState.TRANSFERRING:
             return self._plan_transfer(current_q, current_tcp, snapshot)
+
+        if state is UnitTaskState.PLACING:
+            # 06-15: PLACING 是独立的下探运动 pre_place → place.
+            place = self._place_pose()
+            goals = [Goal("place", place, cartesian=True,
+                          strict_orientation=True,
+                          allow_final_load_contact=True,
+                          lock_joint=self._lock_for("place"))]
+            context = MotionContext(phase="PLACE", target_handle=-1,
+                                    carrying=True, snapshot=snapshot)
+            return self.planner.plan(current_q, goals, context,
+                                     start_pose=current_tcp,
+                                     direct_only=True,
+                                     wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
 
         if state is Stage2TaskState.RETREATING:
             retreat = list(current_tcp)
@@ -598,32 +662,44 @@ class Stage2UnitController(Stage1UnitController):
         return None
 
     def _plan_transfer(self, current_q, current_tcp,
-                       snapshot: str) -> Optional[MotionPlan]:
-        """按 06-10 §8.2 依次尝试转运路径变体, 记录每类失败原因.
+                       snapshot: str) -> MotionPlan:
+        """06-15: TRANSFERRING 把 TCP 固定高度/姿态带到 pre_place.
 
-        默认 ``TRANSFER_PATH_POLICY="baseline"`` 只产生一个变体, 与阶段
-        2.01 完全一致; ``high_align``/``detour``/``auto`` 是 A/B 实验策略.
-        任何变体都必须通过同一 ``LocalPlanner`` 的完整检查, 不因换路径而
-        放松姿态、接触、腕部分支或碰撞约束.
+        目标由放置点与共享高度 ``TRANSFER_HEIGHT`` 固定; 先尝试水平直线,
+        直线被自身运动学奇异/分支拒绝时, 只允许一个固定高度的横向绕行点
+        (两段笛卡尔水平线). 所有候选都以 ``direct_only=True`` 规划, 不走
+        HOME/抬高中转等关节路径. 计划完成后逐 waypoint 复核水平高度与
+        工具姿态.
         """
         place = self._place_pose()
-        context = MotionContext(phase="PLACE", target_handle=-1,
+        context = MotionContext(phase="TRANSFER", target_handle=-1,
                                 carrying=True, snapshot=snapshot)
-        variants = transfer_goal_variants(place, current_tcp,
-                                          self.layout.arm_base)
+        self._transfer_check = None
         reports: list[dict] = []
         best: Optional[MotionPlan] = None
-        started = time.monotonic()
-        for name, goals, info in variants:
-            if len(reports) >= cfg.TRANSFER_MAX_VARIANTS:
-                break
-            if reports and time.monotonic() - started > \
-                    cfg.TRANSFER_VARIANT_WALL_BUDGET_S:
-                self._event("TRANSFER_VARIANTS: 墙钟预算耗尽, 停止尝试")
-                break
+        for name, goals, info in transfer_goal_variants(place, current_tcp):
             plan = self.planner.plan(current_q, goals, context,
-                                     start_pose=current_tcp)
+                                     start_pose=current_tcp,
+                                     direct_only=True,
+                                     wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
             plan.transfer_path = name
+            check = None
+            if plan.ok:
+                check = horizontal_transfer_check(
+                    plan.waypoints, self.checker, orientation=place[3:7])
+                plan.metrics.setdefault("horizontal_check", check)
+                self._transfer_check = check
+                if check.get("query_unknown"):
+                    plan.status = PlanStatus.QUERY_UNKNOWN
+                    plan.message = ("水平转运路径复核查询未知: "
+                                    f"{check.get('error')}")
+                elif not check["ok"]:
+                    plan.status = PlanStatus.PATH_DEVIATION
+                    plan.message = (
+                        f"水平转运路径偏差 z={check['max_z']:.4f} m "
+                        f"ang={check['max_ang']:.4f} rad > "
+                        f"{cfg.EXEC_TCP_POS_TOL} m / "
+                        f"{cfg.EXEC_TCP_ANG_TOL} rad")
             totals = (plan.metrics or {}).get("totals", {})
             row = {
                 "variant": name,
@@ -631,18 +707,23 @@ class Stage2UnitController(Stage1UnitController):
                 "status": plan.status.value,
                 "message": plan.message,
                 "strategy": plan.strategy,
-                "lock_policy": plan.lock_policy,
-                "wall_s": round(float(plan.wall_s), 3),
                 "tv_total": totals.get("tv_total"),
                 "points": totals.get("points"),
-                "segments": len(plan.segments),
+                "horizontal_ok": None if check is None else check["ok"],
+                "max_z": None if check is None else check.get("max_z"),
+                "max_ang": None if check is None else check.get("max_ang"),
             }
-            plan.transfer_variants = reports + [row]
             self._event(
-                f"TRANSFER_VARIANT {name}: {plan.status.value} "
+                f"TRANSFER {name}: {plan.status.value} "
                 f"strategy={plan.strategy} tv={totals.get('tv_total')} "
                 f"wall={plan.wall_s:.2f}s {plan.message}")
+            if plan.status is PlanStatus.QUERY_UNKNOWN:
+                # 未知读数按现有安全锁存契约处理: 不再尝试其他变体.
+                reports.append(row)
+                plan.transfer_variants = reports
+                return plan
             if plan.ok:
+                plan.transfer_variants = reports + [row]
                 return plan
             reports.append(row)
             if best is None or failure_priority(plan.status) > \
@@ -927,8 +1008,9 @@ class Stage2UnitController(Stage1UnitController):
             "controller_id": cfg.STAGE2_CONTROLLER_ID,
             "stage2": True,
             "motion_opt_version": cfg.MOTION_OPT_VERSION,
-            "agv_transfer_opt_version": cfg.AGV_TRANSFER_OPT_VERSION,
-            "transfer_path_policy": cfg.TRANSFER_PATH_POLICY,
+            "transfer_trajectory_version": cfg.TRANSFER_TRAJECTORY_VERSION,
+            "transfer_height": cfg.TRANSFER_HEIGHT,
+            "transfer_check": self._transfer_check,
             "safety": self.safety.latch.as_dict(),
             "plan": self._last_plan.as_dict() if self._last_plan else None,
             "motion": self._motion_reports,
@@ -972,158 +1054,120 @@ def lock_for(name: str):
     return cfg.Q0_LOCK_JOINT if name in cfg.Q0_LOCK_SEGMENTS else None
 
 
-def transfer_transit_pose(place_pose, arm_base, offset=None) -> list[float]:
-    """带载转运的高位中转位姿: 向基座方向偏移, 保持工具姿态.
+def transfer_height_pose(pose, height=None) -> list[float]:
+    """把位姿平移到共享转运高度 H_transfer, 保留 XY 与工具姿态."""
+    out = [float(v) for v in pose]
+    out[2] = float(cfg.TRANSFER_HEIGHT if height is None else height)
+    return out
 
-    ``offset`` 缺省用 :data:`stage2.config.TRANSFER_TRANSIT_OFFSET`; 06-10
-    §8.4 B 通过显式传入 0.20/0.10/0 做单变量 A/B, 不修改生产默认值.
+
+def lift_pose(pick_tcp, orientation, height=None) -> list[float]:
+    """吸附后的抬升目标: 取料 TCP 的 XY、绝对高度 H_transfer、放置姿态.
+
+    工具姿态取放置点姿态, 保证 ``lift`` 与 ``pre_place`` 四元数一致;
+    抓取面若有微小倾斜, 其姿态调整发生在 LIFTING 段内, 水平转运段
+    不再改变姿态.
     """
-    place = [float(v) for v in place_pose]
-    base_xy = arm_base[:2]
-    dx = float(base_xy[0]) - place[0]
-    dy = float(base_xy[1]) - place[1]
-    norm = math.hypot(dx, dy)
-    if norm > 1e-9:
-        dx, dy = dx / norm, dy / norm
-    distance = (cfg.TRANSFER_TRANSIT_OFFSET if offset is None
-                else float(offset))
-    return [place[0] + dx * distance, place[1] + dy * distance,
-            max(cfg.TRANSFER_TRANSIT_HEIGHT_MIN, place[2] + 0.40),
-            *place[3:7]]
+    return [float(pick_tcp[0]), float(pick_tcp[1]),
+            float(cfg.TRANSFER_HEIGHT if height is None else height),
+            *[float(v) for v in orientation[:4]]]
 
 
-def transfer_detour_pose(place_pose, transit_pose, offset,
-                         reference_xy=None) -> list[float]:
-    """高位水平绕行点: 目标 XY 沿水平运动法向偏移, 高度与 transit 相同.
+def pre_place_pose(place_pose, height=None) -> list[float]:
+    """放置点正上方的共享高度 pre_place: 同 XY、同高度、同工具姿态."""
+    return transfer_height_pose(place_pose, height)
 
-    06-10 §8.2 要求只在直线路径被碰撞/净空拒绝后加入最少中间点, 优先
-    维持高位. 偏移方向取 transit→place 水平方向的法向; 两者重合时退回
-    ``reference_xy→place`` (通常是 rise/pick 的实测 TCP).
-    """
-    place = [float(v) for v in place_pose]
-    transit = [float(v) for v in transit_pose]
-    dx = place[0] - transit[0]
-    dy = place[1] - transit[1]
-    if math.hypot(dx, dy) < 1e-9 and reference_xy is not None:
-        dx = place[0] - float(reference_xy[0])
-        dy = place[1] - float(reference_xy[1])
+
+def transfer_goals(place_pose, height=None) -> list[Goal]:
+    """TRANSFERRING 的直线目标: 固定高度、固定姿态的 ``pre_place``."""
+    pre = pre_place_pose(place_pose, height)
+    return [Goal("pre_place", pre, cartesian=True, strict_orientation=True)]
+
+
+def transfer_detour_pose(place_pose, start_pose, offset,
+                         height=None) -> list[float]:
+    """固定高度横向绕行点: 起止点中点沿水平运动法向偏移 ``offset``."""
+    pre = pre_place_pose(place_pose, height)
+    start = [float(v) for v in start_pose]
+    dx = pre[0] - start[0]
+    dy = pre[1] - start[1]
     norm = math.hypot(dx, dy)
     if norm < 1e-9:
         dx, dy, norm = 1.0, 0.0, 1.0
     perp_x, perp_y = -dy / norm, dx / norm
-    return [place[0] + perp_x * float(offset),
-            place[1] + perp_y * float(offset),
-            transit[2], *place[3:7]]
+    return [(start[0] + pre[0]) / 2.0 + perp_x * float(offset),
+            (start[1] + pre[1]) / 2.0 + perp_y * float(offset),
+            float(cfg.TRANSFER_HEIGHT if height is None else height),
+            *[float(v) for v in place_pose[3:7]]]
 
 
-def _transfer_goal_set(place_pose, current_tcp, arm_base,
-                       transit_offset: float, split: bool,
-                       detour_offset: Optional[float] = None) -> list[Goal]:
-    place = [float(v) for v in place_pose]
-    transit = transfer_transit_pose(place, arm_base, transit_offset)
-    rise = list(current_tcp)
-    rise[2] += cfg.TRANSFER_RISE_HEIGHT
-    if cfg.TRANSFER_RISE_ALIGN_TRANSIT:
-        rise[2] = max(rise[2], transit[2])
-    pre = list(place)
-    pre[2] += cfg.PRE_APPROACH_CLEARANCE
-    goals = [
-        Goal("rise", rise, cartesian=True, lock_joint=lock_for("rise")),
-    ]
-    # baseline 的 transit 是独立语义点; 只有 high_align 在偏移为 0 时
-    # 会与 high_above_place 重合, 才省略 transit (避免同一点重复).
-    if (not split) or float(transit_offset) > 1e-9:
-        goals.append(Goal("transit", transit, strict_orientation=True,
-                          lock_joint=lock_for("transit")))
-    if split:
-        high = [place[0], place[1], transit[2], *place[3:7]]
-        if detour_offset is not None and abs(float(detour_offset)) > 1e-9:
-            detour = transfer_detour_pose(place, transit, detour_offset,
-                                          reference_xy=current_tcp)
-            goals.append(Goal("detour", detour, strict_orientation=True,
-                              lock_joint=lock_for("detour")))
-        goals.append(Goal("high_above_place", high,
-                          strict_orientation=True,
-                          lock_joint=lock_for("high_above_place")))
-    goals.extend([
-        Goal("pre_place", pre, strict_orientation=True,
-             lock_joint=lock_for("pre_place")),
-        Goal("place", place, cartesian=True,
-             strict_orientation=True, allow_final_load_contact=True,
-             lock_joint=lock_for("place")),
-    ])
-    return goals
-
-
-def transfer_goal_variants(place_pose, current_tcp, arm_base,
-                           policy: Optional[str] = None,
-                           transit_offset: Optional[float] = None,
-                           max_variants: Optional[int] = None
+def transfer_goal_variants(place_pose, start_pose, height=None,
+                           offsets=None
                            ) -> list[tuple[str, list[Goal], dict]]:
-    """06-10 §8.2 的三类转运 TCP 路径, 返回 ``(名称, goals, 说明)``.
+    """TRANSFERRING 候选: 直线优先, 失败后只允许固定高度横向绕行.
 
-    - ``baseline``: 当前生产路径; ``high_above_place`` 仍由
-      ``TRANSFER_SPLIT_HIGH_ABOVE_PLACE`` 决定;
-    - ``high_align``: rise/transit → 目标正上方 → 竖直下降 → 放置;
-    - ``detour``: high_align 失败后, 在 transit 高度加一个水平绕行点;
-    - ``auto``: 依次尝试以上三类, 由控制器记录每类失败原因.
-
-    变体数量由 ``TRANSFER_MAX_VARIANTS`` 限制, 不改变任何安全检查.
+    所有候选都只含位置线性、姿态恒定的笛卡尔段, 调用方必须以
+    ``direct_only=True`` 规划, 不产生关节中转路径. 绕行点仍在
+    ``TRANSFER_HEIGHT``, 通过同一碰撞/分支/净空与水平姿态复核.
     """
-    chosen = cfg.TRANSFER_PATH_POLICY if policy is None else str(policy)
-    if chosen not in cfg.TRANSFER_PATH_POLICIES:
-        raise ValueError(f"未知 TRANSFER_PATH_POLICY: {chosen}")
-    offset = (cfg.TRANSFER_TRANSIT_OFFSET if transit_offset is None
-              else float(transit_offset))
-    variants: list[tuple[str, list[Goal], dict]] = []
-
-    def add(name: str, split: bool, detour: Optional[float] = None) -> None:
-        goals = _transfer_goal_set(place_pose, current_tcp, arm_base,
-                                   offset, split, detour)
-        variants.append((name, goals, {
-            "policy": chosen,
-            "transit_offset": round(float(offset), 6),
-            "split": bool(split),
-            "detour_offset": (None if detour is None
-                              else round(float(detour), 6)),
-            "semantic_points": [goal.name for goal in goals],
-        }))
-
-    if chosen == "baseline":
-        add("baseline", bool(cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE))
-    else:
-        if chosen == "auto":
-            add("baseline", bool(cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE))
-        add("high_align", True)
-        if chosen in ("detour", "auto"):
-            for detour in cfg.TRANSFER_DETOUR_OFFSETS:
-                add(f"detour_{detour:+.2f}", True, detour)
-    limit = (cfg.TRANSFER_MAX_VARIANTS if max_variants is None
-             else int(max_variants))
-    return variants[:max(1, limit)]
+    pre = pre_place_pose(place_pose, height)
+    variants: list[tuple[str, list[Goal], dict]] = [(
+        "horizontal_direct",
+        [Goal("pre_place", pre, cartesian=True, strict_orientation=True)],
+        {"detour_offset": None, "semantic_points": ["pre_place"]},
+    )]
+    values = (cfg.TRANSFER_HORIZONTAL_DETOUR_OFFSETS if offsets is None
+              else offsets)
+    for offset in values:
+        if abs(float(offset)) < 1e-9:
+            continue
+        via = transfer_detour_pose(place_pose, start_pose, offset, height)
+        variants.append((
+            f"horizontal_detour_{float(offset):+.2f}",
+            [Goal("detour", via, cartesian=True, strict_orientation=True),
+             Goal("pre_place", pre, cartesian=True, strict_orientation=True)],
+            {"detour_offset": round(float(offset), 6),
+             "semantic_points": ["detour", "pre_place"]},
+        ))
+    return variants
 
 
-def transfer_goals(place_pose, current_tcp, arm_base,
-                   policy: Optional[str] = None,
-                   transit_offset: Optional[float] = None,
-                   detour_offset: Optional[float] = None) -> list[Goal]:
-    """兼容入口: 返回当前策略的首个转运目标序列.
+def horizontal_transfer_check(waypoints, checker, height=None,
+                              orientation=None) -> dict:
+    """复核水平段计划: 所有 waypoint 的 TCP 高度与工具姿态偏差.
 
-    阶段 2.01 调用方 (探针/测试) 仍可只传前三个参数; 默认 policy
-    ``baseline`` 且 ``TRANSFER_SPLIT_HIGH_ABOVE_PLACE`` 不变, 因此行为与
-    阶段 2.01 一致.
+    返回 ``ok``/``max_z``/``max_ang``/``points``; TCP 不可读时标记
+    ``query_unknown=True``, 由调用方按未知查询契约处理.
     """
-    if detour_offset is not None:
-        goals = _transfer_goal_set(place_pose, current_tcp, arm_base,
-                                   (cfg.TRANSFER_TRANSIT_OFFSET
-                                    if transit_offset is None
-                                    else float(transit_offset)),
-                                   True, detour_offset)
-        return goals
-    return transfer_goal_variants(place_pose, current_tcp, arm_base,
-                                  policy=policy,
-                                  transit_offset=transit_offset,
-                                  max_variants=1)[0][1]
+    target_height = float(cfg.TRANSFER_HEIGHT if height is None else height)
+    reference = ([float(v) for v in orientation[:4]]
+                 if orientation is not None else None)
+    max_z = 0.0
+    max_ang = 0.0
+    points = 0
+    for q in waypoints:
+        tcp = checker.tcp_at(q)
+        if tcp is None:
+            return {"ok": False, "query_unknown": True, "points": points,
+                    "max_z": round(max_z, 6), "max_ang": round(max_ang, 6),
+                    "height": target_height, "error": "TCP 不可读"}
+        if reference is None:
+            reference = list(tcp[3:7])
+        max_z = max(max_z, abs(float(tcp[2]) - target_height))
+        max_ang = max(max_ang, quat_angle_between(tcp[3:7], reference))
+        points += 1
+    return {
+        "ok": (points > 0
+               and max_z <= cfg.EXEC_TCP_POS_TOL
+               and max_ang <= cfg.EXEC_TCP_ANG_TOL),
+        "query_unknown": False,
+        "points": points,
+        "max_z": round(max_z, 6),
+        "max_ang": round(max_ang, 6),
+        "height": target_height,
+        "pos_tol": cfg.EXEC_TCP_POS_TOL,
+        "ang_tol": cfg.EXEC_TCP_ANG_TOL,
+    }
 
 
 def _motion_totals(reports) -> dict:

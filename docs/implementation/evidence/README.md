@@ -90,6 +90,27 @@
     探针：0.20/0.10/0.00 m 下加入 +0.06 m 水平绕行点均比对应 high_align
     增加 TV（+2.2%/+3.7%/+5.9%），本次无直线路径被拒绝，故不启用。
 
+- 06-15 水平带载转运与放置下探（2026-10-28，工件
+  `stage2/L1_S1/v014_20261028_175742`、`stage3/L2_MIRROR/v006_20261028_180722`）：
+  - `scene_validation_stage2_L1_S1_v014_20261028_175742_20261028_175802.json`
+    — stage2 v014 只读校验通过（契约 `stage2_contract_20261028_v4`）；
+  - `phase2_run_station_none_20261028_180806.json` — station：直线第 48 层
+    `IK_FAILED`，`horizontal_detour_+0.30` 成功；水平段 z 漂移 2.56e-4 m，
+    5 个运动阶段 DONE，`all_ok`；
+  - `phase2_run_agv_none_20261028_181035.json` — AGV：直线转运，z 漂移
+    2.27e-4 m，5 个运动阶段 DONE，AGV follow ok；
+  - `phase2_run_both_none_20261028_181920.json` — station（绕行）+ agv
+    （直线）两任务 DONE，无串任务；
+  - `phase2_run_station_runtime_obstacle_20261028_182301.json` — 运行期
+    障碍在 TRANSFERRING 检出 `Fault_Runtime_Obstacle` 碰撞并锁存，停止确认；
+  - `scene_validation_stage3_L2_MIRROR_v006_20261028_180722_20261028_181245.json`
+    — stage3 v006 只读校验通过（父 stage2 v014）；
+  - `phase3_run_closed_loop_20261028_181245.json` — A/B 各 5 个运动阶段
+    DONE，水平段 z 漂移 1.98e-4 / 1.67e-4 m，两站任务全部 `TASK_DONE`；
+  - `phase3_run_unstable_unload_20261028_181559.json` — 注入
+    `phase=RELEASING`；`LOAD_DRIFT(0.0400>0.02)` 在释放前锁存，
+    `release_attempted=false`，载荷仍 `HELD_BY_SUCTION`。
+
 - 阶段三双工位柔性搬运（2026-10-25，工件
   `stage3/L2_MIRROR/v004_20261025_131837`，父
   `stage2/L1_S1/v013_20261024_232558`，契约

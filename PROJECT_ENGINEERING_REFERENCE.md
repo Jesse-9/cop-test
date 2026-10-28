@@ -281,22 +281,31 @@ CLI：
 [PHASE2_01_REPORT.md](docs/implementation/PHASE2_01_REPORT.md) 和
 [06-10](docs/wiki/06-工业案例/06-10-柔性工业车间阶段2.01-动作轨迹优化.md)。
 
-阶段 2.02（2026-10-25 实现，实验能力默认关闭）按 06-10 §8 增加 AGV 转运
-路径诊断、路径变体、有界整链 beam 选链、分层代价、执行 vel/acc/jerk 剖面
-与平滑钩子；默认仍为 `baseline` + `greedy` + 无平滑，2.01 生产行为不变。
+阶段 2.02（2026-10-25 实现）按 06-10 §8 增加有界整链 beam 选链、分层代价、
+执行 vel/acc/jerk 剖面与平滑钩子；默认 `greedy` + 无平滑。06-15 已移除
+rise/transit 路径变体、偏移与绕行策略开关，这些 2.02 实验能力不再存在。
 入口与证据见 [PHASE2_02_REPORT.md](docs/implementation/PHASE2_02_REPORT.md)。
 
-当前工件：`stage2/L1_S1/v013_20261024_232558`，父
-`stage1/L1_S1/v002_20261020_234403`；保存/加载 **145 项只读校验**通过，
-父差异 `[]`；`extra.stage2.contract_version = stage2_contract_20261024_v3`，
-动作优化版本 `2.01`、AGV 转运优化版本 `2.02`；stage1 `current.json`、v002
-scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是 2.01 过渡
-工件，v013 是 2.02 工件；修改 `src/stage2/config.py` 后旧工件会因 digest
-失败，必须重新派生。
+06-15 方案（2026-10-28）把带载路径固定为
+`LIFTING(→H_transfer) → TRANSFERRING(水平) → PLACING(法向下探)` 三个运动
+状态：`pre_place` 与 `lift` 共享绝对高度 `TRANSFER_HEIGHT=0.80 m` 和放置
+工具姿态；水平段固定 Z/姿态，直线被自身运动学奇异拒绝时只允许一个同高度
+横向绕行点（`TRANSFER_HORIZONTAL_DETOUR_OFFSETS`，默认 ±0.30 m），不回到
+关节路径。阶段二工件契约升级为 `stage2_contract_20261028_v4`，配置摘要
+包含 `TRANSFER_HEIGHT` 与绕行偏移；旧 2.02 工件及由其派生的 stage3 工件
+必须重新派生。
+
+当前工件：`stage2/L1_S1/v014_20261028_175742`（父 stage1 v002，契约
+`stage2_contract_20261028_v4`，`transfer_trajectory_version="06-15"`）与
+`stage3/L2_MIRROR/v006_20261028_180722`（父 stage2 v014）。2026-10-28 回归：
+stage2 station（绕行）/agv/both 通过，`runtime_obstacle` 在 TRANSFERRING
+按预期锁存；stage3 `closed_loop` 通过，`unstable_unload` 在 RELEASING
+释放前锁存。v013 是 2.02 历史工件（契约 v3），v009–v012 是 2.01 过渡工件；
+修改 `src/stage2/config.py` 后旧工件会因 digest/契约版本失败，必须重新派生。
 
 | 文件 | 职责 |
 |------|------|
-| [config.py](src/stage2/config.py) | 阶段二/2.01/2.02 全部新参数（接触/碰撞/采样/预算/执行/停带/安全/分支/锁轴/前瞻/转运路径/整链/代价/平滑/诊断） |
+| [config.py](src/stage2/config.py) | 阶段二/2.01/2.02/06-15 全部新参数（接触/碰撞/采样/预算/执行/停带/安全/分支/锁轴/前瞻/转运高度与绕行/整链/代价/平滑/诊断） |
 | [branch.py](src/stage2/branch.py) | q[4] 归一化腕部分支、奇异边界裕量、跨支拒绝 |
 | [metrics.py](src/stage2/metrics.py) | 逐段 TV/最大单步/点数/q[0] 变化/锁定偏差/腕部/TCP 误差；2.02 整链分层代价与执行剖面 |
 | [diagnostics.py](src/stage2/diagnostics.py) | 逐 waypoint q/TCP/载荷/分支/净空证据（只读影子探针） |
@@ -329,8 +338,9 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
 - 接触判据使用物料局部包围盒实测 min/max（不是对象原点到顶面的距离），
   检查带符号间隙、杯口覆盖、横向偏移和工具法向；接近段允许绕法向 yaw，
   最终放置点严格检查完整姿态。
-- 带载转运固定为“抬升 → 高位中转（z≥0.80 m）→ 预放置 → 法向放置”；
+- 带载转运固定为“抬升到 H_transfer → 固定高度水平转运 → 法向下探”；
   载荷只在抬升起点和放置终点允许与承载面接触，中间构型严格检查。
+  `lift`/`pre_place` 同高、同工具四元数；直线失败只允许同高度横向绕行段。
 - 规划只返回完整通过粗筛和最终 2° 复核的 `MotionPlan`；预算耗尽返回
   `PLAN_BUDGET_EXCEEDED`，不回退到未检查的直线动作。OMPL 未启用（N/A）。
 - 执行器每步只提交经 `check_segment` 复核的下一构型；同一目标不重复
@@ -348,10 +358,10 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
 - 腕部分支以 q[4] 归一化角判定（`positive`/`negative`，奇异边界 0/±π），
   `WRIST_BRANCH_MARGIN=0.30 rad`；候选、路径采样、最终复核和执行步进
   共用同一检查入口。跨支/近奇异立即拒绝或锁存，不回退到另一分支。
-- 段内固定 q[0] 只作用于 `lift`、`rise`、`place`、`retreat`；通过
+- 段内固定 q[0] 只作用于 `lift`、`place`、`retreat`；通过
   `simIK.setJointInterval` 临时收窄区间实现，`syncFromSim` 后应用、
-  `handleGroup` 后恢复，不修改场景关节限位。`pre_place` 实测不可锁
-  （station 跨支、AGV 载荷扫带），保留自由 IK。
+  `handleGroup` 后恢复，不修改场景关节限位。`pre_place` 与水平段保留
+  自由 IK，否则基座无法完成 XY 直线/绕行。
 - 自由目标候选按“本段关节距离 + 下一自由目标一步前瞻”排序；前瞻只用于
   排序，逐段碰撞检查仍是唯一放行依据。后续笛卡尔段从上一构型实际 TCP
   承接，不直接用目标位姿（IK 端点允许 10 mm 误差）。
@@ -359,28 +369,26 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
   让 A/B 与复跑使用同一冻结起点；超限退回实测并记录 `PLAN_START_ACTUAL`。
 - 语义 waypoint 永不删除；只压缩段内共线且 FK 偏差 ≤1 mm / 0.01 rad 的
   数值点，压缩后重新执行 2° 全路径复核，失败则恢复原路径。
-- `TRANSFER_SPLIT_HIGH_ABOVE_PLACE` 默认关闭：A/B 实测拆分把 station
-  计划 TV 提高 29.2%、AGV 提高 11.6%；能力保留，打开前必须重新验收。
 - 运行证据必须包含逐段计划/执行 TV、最大单步、点数、q[0] 变化、锁定
   偏差、腕部分支/最小裕量、最小工作区距离和 TCP 误差；失败/锁存段也要
   保留部分实测，不得只报告已完成段。
 
-阶段 2.02 不变量：
+阶段 2.02/06-15 不变量：
 
-- 默认 `TRANSFER_PATH_POLICY="baseline"`、`CARTESIAN_CHAIN_SEARCH="greedy"`、
-  `TRAJECTORY_SMOOTHING_ENABLED=False`。2026-10-25 的影子规划 A/B 显示
-  transit 偏移 0.10/0.00 m 可把 AGV transfer TV 降低约 47%、q[3] 降低约
-  79.5%，但 `rise → transit` 的 q[0] TV 从 1.510 升到 2.065–2.094 rad；
-  未满足 06-10 §8.4 B 的 q[0] 下降条件，且候选偏移尚未做 3 次实机重复，
-  因此不得切换默认值。
-- `transfer_goal_variants` 的 baseline 在任何偏移下都保留 `transit` 语义点；
-  只有 high_align 在偏移为 0 时 `transit` 与 `high_above_place` 重合才省略。
-  detour 只在直线路径被碰撞/净空拒绝后引入一个高位水平绕行点，并记录引入
-  原因和绕行距离；本次所有直线路径均通过，detour 只增加 TV，不默认启用。
-- beam 整链搜索与 greedy 使用同一 IK、姿态/偏差判据和 `check_segment`；
-  beam 宽度 8、每层候选 6、节点上限 512。预算耗尽返回
-  `PLAN_BUDGET_EXCEEDED`，不得静默退化为未比较路径。当前布局 greedy 与
-  beam 计划 TV/代价完全相同，不得因“能力存在”而默认打开。
+- 转运与下探固定使用 `direct_only=True` 的笛卡尔段，不生成 HOME/抬高中转
+  等关节路径。水平直线因自身运动学奇异/腕部分支失败时，只按
+  `TRANSFER_HORIZONTAL_DETOUR_OFFSETS` 增加一个同高度 `detour` 点（两段
+  笛卡尔水平线）；绕行仍通过同一 IK、碰撞/净空、分支和水平姿态复核。
+  绕行段较长，规划使用 `TRANSFER_PLAN_WALL_BUDGET_S=150 s` 独立墙钟预算，
+  只放宽时间，不减少检查；影子实测 detour +0.30 约需 90 s。
+- 计划完成后逐 waypoint 复核水平段 TCP 的 z 偏差与工具姿态；超过
+  `EXEC_TCP_POS_TOL` / `EXEC_TCP_ANG_TOL` 的计划以 `PATH_DEVIATION` 失败。
+  不能仅因 `lift`/`pre_place` 端点同高就推断整段合规。
+- `PLACING` 先确认 AGV 到站、停稳且水平（`AGV_DOCK_TIMEOUT`），再规划并
+  执行 `pre_place → place` 法向下探；条件未满足时不得生成下探命令。
+- `CARTESIAN_CHAIN_SEARCH` 默认 `greedy`；beam 与 greedy 使用同一 IK、
+  姿态/偏差判据和 `check_segment`；beam 宽度 8、每层候选 6、节点上限 512。
+  预算耗尽返回 `PLAN_BUDGET_EXCEEDED`，不得静默退化为未比较路径。
 - 分层代价 `J = 1.0·TV_all + 0.5·TV(q[0]) + 0.5·TV(q[3]) + 0.2·B_all +
   0.2·A_all` 只用于候选比较；`A_all` 的规划采样 `dt` 与执行仿真实时
   不可混用，有限位关节不做 wrap。
@@ -390,10 +398,9 @@ scene/manifest 摘要未变化。v009 是阶段二历史工件，v010–v012 是
   降采样并标记 `truncated`。执行 profile 只报告实测 vel/acc/jerk，不因
   目标参数已设限就宣称平顺；2026-10-25 实测 TRANSFERRING jerk 峰值
   120.65 rad/s³ > `EXEC_JOINT_JERK=100`。
-- 阶段 2.02 工件必须从 stage1 v002 重新派生；v013 的
-  `extra.stage2.agv_transfer_opt` 记录路径策略、偏移变体、绕行、beam、
-  分层代价、平滑与诊断字段。修改 `src/stage2/config.py` 后旧工件失败是
-  预期保护。
+- 06-15 工件必须从 stage1 v002 重新派生；`extra.stage2.transfer` 记录
+  `TRANSFER_HEIGHT`、水平路径类型与绕行偏移，`controller.transfer_trajectory_version`
+  为 `06-15`。修改 `src/stage2/config.py` 后旧工件失败是预期保护。
 
 阶段二运行命令和测量探针入口见 [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md) 与阶段报告；本节只记录规划/执行约束和实验结论。
 
@@ -827,14 +834,15 @@ AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍�
     - 控制器规划优先从上一段已验证计划终点开始（实测偏差 ≤2×
       `EXEC_JOINT_TOL`），否则 A/B 复跑会因 0.01 rad 级差异选到不同路线。
 
-29. **转运拆分与 pre_place 锁轴的负结果 (阶段 2.01 实测)**:
-    - `transit → high_above_place → pre_place` 拆分能力已实现，但 A/B 把
-      station 计划 TV 从 12.395 提高到 16.013 rad、AGV 从 11.968 提高到
-      13.354 rad，因此 `TRANSFER_SPLIT_HIGH_ABOVE_PLACE=False`。不要因为
-      “几何上更规整”就默认打开；必须重新做净空/碰撞/总行程验收。
-    - `pre_place`（未拆分时的对角段）锁 q[0] 在 station 会迫使腕部跨支、
-      在 AGV 会让载荷扫过 conveyor pad；`Q0_LOCK_SEGMENTS` 只含
-      `lift/rise/place/retreat`。
+29. **水平转运直线可能穿过臂基座正上方 (06-15 实测)**:
+    - 从传送带取料点 `(-0.20, 0.0)` 到置物台 `(-0.20, 1.20)` 的固定高度
+      直线正好经过基座 `(-0.20, 0.55)` 上方；连续 IK 在路径中段发生腕部
+      分支跳变，`_cartesian_deviation` 报 lateral≈0.67 m，direct 策略失败。
+      AGV 目标 `(0.40, 0.70)` 的直线不经过基座，direct 成功。
+    - 不得用 HOME/抬高中转关节路径兜底；使用同高度 `detour`（±0.30 m，
+      两段水平线）可通过分支/碰撞/水平姿态复核。
+    - `pre_place` 与水平段不锁 q[0]；`Q0_LOCK_SEGMENTS` 只含
+      `lift/place/retreat`。
 
 30. **锁存路径必须先保留运动证据再清空执行器 (阶段 2.01 修复)**:
     `_safety_fail` 原先先 `cancel()`/清空 `_executor`、`_plan`，再调用
@@ -856,11 +864,11 @@ AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍�
     不得报告“已平顺”。`execution.totals.profile.within_limits.jerk` 为
     false 是有效证据，不是脚本错误。
 
-33. **baseline 的 transit 在零偏移时仍是独立语义点 (阶段 2.02 修复)**:
-    `transfer_goal_variants` 的 baseline 若在 `transit_offset=0` 时省略
-    transit，会退化成 rise→pre_place 对角段，改变 gate B 的单变量比较；
-    只有 high_align 的 transit 与 high_above_place 重合时才省略。修改
-    该逻辑必须同步更新 `tests/test_stage2_agv_transfer.py` 和 06-10 §8。
+33. **水平段必须复核整段而不是端点 (06-15)**:
+    `lift` 与 `pre_place` 端点同高并不代表中间 waypoint 同高；`direct_only`
+    规划仍可能返回抬升/姿态偏移的路径或 IK 数值偏差。控制器必须用
+    `horizontal_transfer_check` 逐 waypoint 检查 z 与工具姿态，超限计划以
+    `PATH_DEVIATION` 失败。只检查终点会让载荷在转运途中升高或扫过设备。
 
 34. **阶段三配置漂移会拒绝旧工件 (预期保护)**: `extra.stage3.config.digest`
     记录阶段三全部参数；修改 `src/stage3/config.py` 后，已保存的 stage3
@@ -895,8 +903,9 @@ AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍�
     `READY_FOR_PICK`；不得跳过 UID/载台检查直接吸附。
 
 39. **不稳定卸载注入必须早于 `pre_tick` 联锁 (阶段三实测)**:
-    `PLACING` 通常只持续一个控制步，下一 `pre_tick` 就进入 `RELEASING`。
-    故障注入必须在控制器 `pre_tick` **之前**执行，才能让
+    06-15 后 `PLACING` 是独立下探运动，不再表示“已到放置位”；故障注入
+    改在 B 臂 `RELEASING` 的第一个控制步，此时载荷仍吸附、`suction.release`
+    尚未执行。注入必须在控制器 `pre_tick` **之前**执行，才能让
     `Stage2Safety` 在释放前检出 `LOAD_DRIFT`；延迟设为 1 步。锁存后
     协调器继续推进 `SAFETY_STOP_SETTLE_STEPS=20` 步，由 `post_tick`
     读取真实带速/车体速度确认停止。

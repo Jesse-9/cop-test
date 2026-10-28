@@ -172,22 +172,17 @@ def build_stage2_extra(*, sim=None, scene=None, parent_info=None,
             "fail_penalty": cfg.PLAN_LOOKAHEAD_FAIL_PENALTY,
             "note": "只用于候选排序; 逐段碰撞检查仍是唯一放行依据",
         },
-        "transfer_split": {
-            "high_above_place": cfg.TRANSFER_SPLIT_HIGH_ABOVE_PLACE,
-            "rise_align_transit": cfg.TRANSFER_RISE_ALIGN_TRANSIT,
-        },
-        "agv_transfer_opt": {
-            "version": cfg.AGV_TRANSFER_OPT_VERSION,
-            "path_policy": cfg.TRANSFER_PATH_POLICY,
-            "path_policies": list(cfg.TRANSFER_PATH_POLICIES),
-            "transit_offset": cfg.TRANSFER_TRANSIT_OFFSET,
-            "transit_offset_variants": list(
-                cfg.TRANSFER_TRANSIT_OFFSET_VARIANTS),
-            "detour_offsets": list(cfg.TRANSFER_DETOUR_OFFSETS),
-            "max_variants": cfg.TRANSFER_MAX_VARIANTS,
-            "variant_wall_budget_s": cfg.TRANSFER_VARIANT_WALL_BUDGET_S,
-            "note": "默认 baseline; high_align/detour/auto 为 A/B 实验策略, "
-                    "未通过 §8.4 G 重复回归前不得切换默认值",
+        "transfer": {
+            "height": cfg.TRANSFER_HEIGHT,
+            "path": "fixed_height_horizontal_cartesian",
+            "lift_ends_at_transfer_height": True,
+            "placing_descends_from_pre_place": True,
+            "horizontal_detour_offsets": list(
+                cfg.TRANSFER_HORIZONTAL_DETOUR_OFFSETS),
+            "plan_wall_budget_s": cfg.TRANSFER_PLAN_WALL_BUDGET_S,
+            "note": "06-15: LIFTING→TRANSFERRING→PLACING 三段; 水平段保持 "
+                    "H_transfer 与工具姿态, 直线失败后只允许固定高度横向"
+                    "绕行段, 不走关节路径",
         },
         "chain_search": {
             "mode": cfg.CARTESIAN_CHAIN_SEARCH,
@@ -278,7 +273,7 @@ def build_stage2_extra(*, sim=None, scene=None, parent_info=None,
             "runner": cfg.STAGE2_RUNNER_ID,
             "phase": cfg.STAGE2_PHASE,
             "motion_opt_version": cfg.MOTION_OPT_VERSION,
-            "agv_transfer_opt_version": cfg.AGV_TRANSFER_OPT_VERSION,
+            "transfer_trajectory_version": cfg.TRANSFER_TRAJECTORY_VERSION,
         },
         "config": {
             "digest": stage2_config_digest(),
@@ -334,11 +329,11 @@ def validate_stage2_contract(sim, artifact, scene=None) -> dict:
     _check(checks, "stage2_runner_id",
            controller.get("runner") == cfg.STAGE2_RUNNER_ID,
            f"saved={controller.get('runner')!r}")
-    _check(checks, "stage2_agv_transfer_opt_version",
-           controller.get("agv_transfer_opt_version")
-           == cfg.AGV_TRANSFER_OPT_VERSION,
-           f"saved={controller.get('agv_transfer_opt_version')!r} "
-           f"current={cfg.AGV_TRANSFER_OPT_VERSION!r}")
+    _check(checks, "stage2_transfer_trajectory_version",
+           controller.get("transfer_trajectory_version")
+           == cfg.TRANSFER_TRAJECTORY_VERSION,
+           f"saved={controller.get('transfer_trajectory_version')!r} "
+           f"current={cfg.TRANSFER_TRAJECTORY_VERSION!r}")
 
     saved_digest = (extra.get("config") or {}).get("digest")
     current_digest = stage2_config_digest()

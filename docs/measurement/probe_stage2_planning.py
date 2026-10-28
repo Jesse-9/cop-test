@@ -3,7 +3,8 @@
 在已加载的 stage1 基线场景 (仿真停止态) 上:
   1. 构建 stage2 运行时 (影子臂/碰撞集合/查询自检/FK);
   2. 在取料点生成物料, 设置目标角色;
-  3. 依次规划 approach / lift / transfer / retreat 四个运动;
+  3. 依次规划 approach / lift / transfer(pre_place) / placing(place)
+     四个运动; 06-15 起 transfer 为固定高度水平段, placing 独立下探;
   4. 输出 MotionPlan 状态、策略、段数、采样与耗时, 结束后删除物料与
      会话资源, 不保存场景.
 
@@ -14,7 +15,6 @@
 from __future__ import annotations
 
 import json
-import math
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +30,8 @@ from stage1.ur5_ik_controller import Ur5IkController
 from stage2 import config as cfg
 from stage2.contact import contact_pose
 from stage2.path_planning import Goal, MotionContext, PlanBudget
+from stage2.unit_controller import (horizontal_transfer_check,
+                                    transfer_goal_variants)
 from stage2.runtime import build_stage2_runtime
 from stage2.suction import Stage2SuctionController
 
@@ -109,44 +111,63 @@ def main() -> int:
                 for joint, q in zip(scene.robot_joints, plan_lift.waypoints[-1]):
                     sim.setJointPosition(joint, float(q))
                 place = scene.layout.station_tcp_pose
-                pre_place = list(place)
-                pre_place[2] += cfg.PRE_APPROACH_CLEARANCE
                 tcp_now = list(sim.getObjectPose(scene.tcp,
                                                  sim.handle_world))
-                rise = list(tcp_now)
-                rise[2] += cfg.TRANSFER_RISE_HEIGHT
-                base_x, base_y = scene.layout.arm_base[:2]
-                dx = float(base_x) - float(place[0])
-                dy = float(base_y) - float(place[1])
-                norm = math.hypot(dx, dy)
-                if norm > 1e-9:
-                    dx, dy = dx / norm, dy / norm
-                transit = [
-                    place[0] + dx * cfg.TRANSFER_TRANSIT_OFFSET,
-                    place[1] + dy * cfg.TRANSFER_TRANSIT_OFFSET,
-                    max(cfg.TRANSFER_TRANSIT_HEIGHT_MIN, place[2] + 0.40),
-                    *place[3:7],
-                ]
-                ctx_place = MotionContext(phase="PLACE", target_handle=-1,
-                                          carrying=True, snapshot="probe-place")
-                goals = [
-                    Goal("rise", rise, cartesian=True),
-                    Goal("transit", transit, strict_orientation=True),
-                    Goal("pre_place", pre_place, strict_orientation=True),
-                    Goal("place", place, cartesian=True,
-                         strict_orientation=True,
-                         allow_final_load_contact=True),
-                ]
-                plan_place = runtime.planner.plan(
-                    plan_lift.waypoints[-1], goals, ctx_place,
-                    start_pose=tcp_now)
-                report["plans"]["transfer"] = plan_place.as_dict()
-                print("transfer", plan_place.status.value,
-                      plan_place.strategy, f"{plan_place.wall_s:.2f}s",
-                      plan_place.message)
-                if not plan_place.ok:
-                    print("  attempts:", json.dumps(plan_place.attempts,
+                ctx_transfer = MotionContext(
+                    phase="TRANSFER", target_handle=-1, carrying=True,
+                    snapshot="probe-transfer")
+                plan_transfer = None
+                for name, goals, _info in transfer_goal_variants(
+                        place, tcp_now):
+                    candidate = runtime.planner.plan(
+                        plan_lift.waypoints[-1], goals, ctx_transfer,
+                        start_pose=tcp_now, direct_only=True,
+                        wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+                    check = None
+                    if candidate.ok:
+                        check = horizontal_transfer_check(
+                            candidate.waypoints, runtime.planner.checker,
+                            orientation=place[3:7])
+                    print("transfer-variant", name, candidate.status.value,
+                          "horizontal_ok="
+                          f"{None if check is None else check['ok']}",
+                          candidate.message)
+                    if candidate.ok and (check is None or check["ok"]):
+                        plan_transfer = candidate
+                        break
+                    if plan_transfer is None:
+                        plan_transfer = candidate
+                report["plans"]["transfer"] = plan_transfer.as_dict()
+                print("transfer", plan_transfer.status.value,
+                      plan_transfer.strategy, f"{plan_transfer.wall_s:.2f}s",
+                      plan_transfer.message)
+                if not plan_transfer.ok:
+                    print("  attempts:", json.dumps(plan_transfer.attempts,
                                                     ensure_ascii=False))
+                if plan_transfer.ok:
+                    for joint, q in zip(scene.robot_joints,
+                                        plan_transfer.waypoints[-1]):
+                        sim.setJointPosition(joint, float(q))
+                    tcp_pre = list(sim.getObjectPose(scene.tcp,
+                                                     sim.handle_world))
+                    ctx_place = MotionContext(phase="PLACE", target_handle=-1,
+                                              carrying=True,
+                                              snapshot="probe-place")
+                    plan_place = runtime.planner.plan(
+                        plan_transfer.waypoints[-1],
+                        [Goal("place", place, cartesian=True,
+                              strict_orientation=True,
+                              allow_final_load_contact=True,
+                              lock_joint=cfg.Q0_LOCK_JOINT)],
+                        ctx_place, start_pose=tcp_pre, direct_only=True,
+                        wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+                    report["plans"]["placing"] = plan_place.as_dict()
+                    print("placing", plan_place.status.value,
+                          plan_place.strategy,
+                          f"{plan_place.wall_s:.2f}s", plan_place.message)
+                    if not plan_place.ok:
+                        print("  attempts:", json.dumps(plan_place.attempts,
+                                                        ensure_ascii=False))
     finally:
         if runtime is not None:
             print("destroy", runtime.destroy())

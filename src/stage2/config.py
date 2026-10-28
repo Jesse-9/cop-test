@@ -23,7 +23,7 @@ from stage1 import config as base
 # 契约与控制器标识
 # ═══════════════════════════════════════════════════════════════
 
-STAGE2_CONTRACT_VERSION = "stage2_contract_20261024_v3"
+STAGE2_CONTRACT_VERSION = "stage2_contract_20261028_v4"
 STAGE2_CONTROLLER_ID = "stage2.unit_controller.Stage2UnitController"
 STAGE2_RUNNER_ID = "stage2.run.run_loaded_scene_stage2"
 STAGE2_PHASE = "stage2"
@@ -134,12 +134,20 @@ PLAN_MAX_DFS_NODES = 48                     # 局部回溯节点上限
 PLAN_LOOKAHEAD_WEIGHT = 0.5                 # 前瞻关节距离权重
 PLAN_LOOKAHEAD_FAIL_PENALTY = 10.0          # 前瞻无解惩罚
 
-# 带载转运: 先竖直抬升, 再经基座与放置点之间的高位中转, 最后法向放置.
-# 2026-10-21 实测: 直接从 lift 关节插值到 pre_place 会让 10 cm 载荷扫过
-# 传送带/工位台面; 高位中转 (z>=0.80) 在 station 上找到完整安全路径.
-TRANSFER_RISE_HEIGHT = 0.12                 # m, 从 lift 再抬升
-TRANSFER_TRANSIT_HEIGHT_MIN = 0.80          # m, 中转 TCP 最低高度
-TRANSFER_TRANSIT_OFFSET = 0.20              # m, 中转点向基座方向偏移
+# 带载转运共享绝对高度 H_transfer (06-15): LIFTING 的终点与 TRANSFERRING 的
+# 终点 pre_place 同高, 水平段保持该高度和工具姿态; PLACING 再从 pre_place
+# 沿放置面法向下探. 0.80 m 取自已验收的高位中转高度 (2026-10-21 station /
+# AGV 完整路径实测), 4.10 IK 探针确认在当前 dock 的放置点正上方可达.
+# 旧 rise/transit 路径点、偏移和变体开关已移除, 不再保留第二套转运语义.
+TRANSFER_HEIGHT = 0.80                      # m, H_transfer
+
+# 水平直线被自身运动学奇异/腕部分支拒绝时, 允许一个固定高度的横向绕行点:
+# 仍是两段笛卡尔水平段, 保持 H_transfer 与工具姿态, 走同一 IK、碰撞/净空
+# 与分支复核. 这不是关节路径回退, 只在 direct 水平段失败后按顺序尝试.
+TRANSFER_HORIZONTAL_DETOUR_OFFSETS = (0.30, -0.30)   # m, 中点沿法向偏移
+# 绕行段比单一直线长, 冷启动时逐点净空指标 + 最终 2° 复核可能超过默认
+# 60 s 墙钟预算; 转运/下探使用独立预算, 只放宽时间, 不减少任何检查.
+TRANSFER_PLAN_WALL_BUDGET_S = 150.0         # s
 
 # ═══════════════════════════════════════════════════════════════
 # 轨迹执行 (06-09 §5.6–§5.7)
@@ -230,22 +238,19 @@ WRIST_BRANCH_MARGIN = 0.30
 Q0_LOCK_JOINT = 0
 Q0_LOCK_IK_TOL = 0.010                      # simIK 区间半宽 (rad)
 Q0_LOCK_TOL = 0.02                          # 候选/执行验收允许偏差 (rad)
-# 默认锁定段: pick→lift→rise (lift/rise)、pre-place→place、place→retreat.
-# 2026-10-21 station/AGV 实测: 锁 pre_place 的 transit→pre_place 对角段在
-# station 会迫使腕部跨支、在 AGV 会让载荷扫过 conveyor pad, 因此不默认锁定;
-# 该段仍受腕部分支与逐段碰撞检查约束.
-Q0_LOCK_SEGMENTS = frozenset({"lift", "rise", "place", "retreat"})
+# 默认锁定段: pick→lift (lift)、pre_place→place (place)、place→retreat.
+# 2026-10-21 station/AGV 实测: 锁水平/对角段会迫使腕部跨支或让载荷扫过
+# conveyor pad, 因此 TRANSFERRING 不锁 q[0]; 该段仍受腕部分支与逐段碰撞
+# 检查约束.
+Q0_LOCK_SEGMENTS = frozenset({"lift", "place", "retreat"})
 Q0_LOCK_FALLBACK = True                     # 固定轴无解 → 同分支自由 IK
 
-# 转运末段拆分: transit → high_above_place (同高、水平) →
-# pre_place (同 XY、竖直). 2026-10-21 A/B 实测该拆分把 station transfer
-# TV 从 8.27 提高到 11.74 rad、AGV 从 7.64 提高到 11.20 rad (强制基座
-# 翻转), 因此**默认关闭**; 能力保留给未来布局/净空验证, 需要时显式打开.
-TRANSFER_SPLIT_HIGH_ABOVE_PLACE = False
-TRANSFER_RISE_ALIGN_TRANSIT = True          # rise 不低于中转高度
+# 水平转运段仍允许 q[0] 参与 (XY 直线/绕行需要基座旋转); 不提供旧 2.02 的
+# 路径策略开关; 直线失败时只允许同高度横向绕行段, 不自动改走未验证的关节
+# 路径.
 
 # 数值冗余点精简: 只删除段内共线且 FK 偏差在容差内的点;
-# 接触/抬升/中转/pre-place/place/retreat 等语义点永不删除.
+# 接触/抬升/pre-place/detour/place/retreat 等语义点永不删除.
 TRAJECTORY_COMPACTION_ENABLED = True
 COMPACTION_TCP_POS_TOL = 0.001              # m
 COMPACTION_TCP_ANG_TOL = 0.01               # rad
@@ -255,30 +260,15 @@ COMPACTION_SAMPLES = 5
 MOTION_METRICS_ENABLED = True
 
 # ═══════════════════════════════════════════════════════════════
-# 阶段 2.02: AGV 转运路径优化 (06-10 §8)
+# 06-15: 水平带载转运 (不是阶段工作包编号)
 # ═══════════════════════════════════════════════════════════════
 
-# 本阶段按 06-10 §8.4 先建立可诊断基线, 再做路径/选链 A/B. 所有新能力
-# 默认关闭或保持 ``baseline``, 不改变阶段 2.01 的生产行为; 只有 §8.4 G
-# 的重复回归证明收益后才允许切换默认值. 参数标 ``待实测冻结``.
-AGV_TRANSFER_OPT_VERSION = "2.02"
-
-# 转运 TCP 路径类型 (06-10 §8.2):
-#   baseline  — rise → transit → pre_place → place (当前生产路径)
-#   high_align— rise → [transit] → high_above_place → pre_place → place
-#   detour    — high_align 失败后, 在 transit 高度加一个水平绕行点
-#   auto      — 依次尝试 baseline → high_align → detour, 记录每类失败原因
-# baseline 时 high_above_place 仍由 TRANSFER_SPLIT_HIGH_ABOVE_PLACE 控制,
-# 保持阶段 2.01 行为不变.
-TRANSFER_PATH_POLICIES = ("baseline", "high_align", "detour", "auto")
-TRANSFER_PATH_POLICY = "baseline"           # 待实测冻结
-# gate B: 仅改变 transit 沿"目标指向基座"方向的偏移, 其余端点/代价不变.
-TRANSFER_TRANSIT_OFFSET_VARIANTS = (0.20, 0.10, 0.0)   # m, 待实测冻结
-# gate C: 只在直线路径被碰撞/净空拒绝时加入一个水平绕行点; 偏移沿水平
-# 运动方向的法向, 正负号都测试, 每个点记录引入原因与绕行距离.
-TRANSFER_DETOUR_OFFSETS = (0.06, -0.06, 0.12, -0.12)   # m, 待实测冻结
-TRANSFER_MAX_VARIANTS = 4                   # 单次转运最多尝试的路径变体
-TRANSFER_VARIANT_WALL_BUDGET_S = 150.0      # 变体总墙钟预算 (s)
+# 06-15 方案把带载路径固定为 LIFTING → TRANSFERRING → PLACING 三个运动状态:
+# LIFTING 抬到 H_transfer, TRANSFERRING 保持高度/姿态水平移动, PLACING 法向
+# 下探. 旧的 rise/transit 路径点及其策略/偏移/绕行开关已从配置移除, 因此
+# 版本标识改为 transfer_trajectory_version, 只写入运行证据与工件契约,
+# 不参与 dispatch. 该标识刻意不使用 2.0x, 避免与阶段工作包编号冲突.
+TRANSFER_TRAJECTORY_VERSION = "06-15"
 
 # 8.3.3 有界整段候选选择: 每个笛卡尔采样层保留有限候选, 相邻层只在
 # check_segment 通过时连边; beam/dynamic-programming 在整段上选链, 而不是

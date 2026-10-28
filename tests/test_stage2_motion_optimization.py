@@ -9,7 +9,8 @@ from stage2.metrics import joint_stats, segment_metrics
 from stage2.path_planning import (MotionPlan, MotionSegment, PlanStatus,
                                   SegmentCheck, compact_plan_waypoints)
 from stage2.trajectory import ExecutorStatus, JointStreamExecutor
-from stage2.unit_controller import transfer_goals
+from stage2.unit_controller import (horizontal_transfer_check, lift_pose,
+                                    pre_place_pose, transfer_goals)
 
 WRIST_UP = math.pi / 2
 
@@ -73,37 +74,83 @@ def test_segment_metrics_report_lock_deviation_and_branch():
     assert stats["wrist_margin_min"] > cfg.WRIST_BRANCH_MARGIN
 
 
-# ── 转运语义 waypoint ──────────────────────────────────────
+# ── 转运语义 waypoint (06-15) ───────────────────────────────
 
-def test_transfer_goals_split_horizontal_and_vertical_segments(monkeypatch):
-    monkeypatch.setattr(cfg, "TRANSFER_SPLIT_HIGH_ABOVE_PLACE", True)
-    place = [-0.2, 1.2, 0.4, 0.0, 0.0, 0.0, 1.0]
-    current_tcp = [-0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 1.0]
-    goals = transfer_goals(place, current_tcp, (-0.2, 0.55, 0.3))
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "high_above_place", "pre_place", "place"]
-    transit = goals[1].pose
-    high = goals[2].pose
-    pre = goals[3].pose
-    assert high[0] == place[0] and high[1] == place[1]
-    assert abs(high[2] - transit[2]) < 1e-9
-    assert abs(pre[2] - (place[2] + cfg.PRE_APPROACH_CLEARANCE)) < 1e-9
-    assert goals[0].pose[2] >= transit[2]
-    # 默认锁定竖直段; 水平/中转/对角段允许 q[0] 参与
-    assert goals[0].lock_joint == cfg.Q0_LOCK_JOINT
-    assert goals[1].lock_joint is None
-    assert goals[2].lock_joint is None
-    assert goals[3].lock_joint is None
-    assert goals[4].lock_joint == cfg.Q0_LOCK_JOINT
+PLACE = [-0.2, 1.2, 0.4, 0.0, 0.0, 0.0, 1.0]
 
 
-def test_transfer_goals_default_keeps_measured_safe_route():
-    place = [-0.2, 1.2, 0.4, 0.0, 0.0, 0.0, 1.0]
-    current_tcp = [-0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 1.0]
-    goals = transfer_goals(place, current_tcp, (-0.2, 0.55, 0.3))
-    assert [goal.name for goal in goals] == [
-        "rise", "transit", "pre_place", "place"]
-    assert goals[2].lock_joint is None
+def test_transfer_goals_only_reach_pre_place_at_shared_height():
+    goals = transfer_goals(PLACE)
+    assert [goal.name for goal in goals] == ["pre_place"]
+    pre = goals[0].pose
+    assert goals[0].cartesian is True
+    assert goals[0].strict_orientation is True
+    assert goals[0].allow_final_load_contact is False
+    assert abs(pre[2] - cfg.TRANSFER_HEIGHT) < 1e-9
+    assert pre[0] == PLACE[0] and pre[1] == PLACE[1]
+    assert pre[3:7] == PLACE[3:7]
+    assert goals[0].lock_joint is None
+
+
+def test_lift_and_pre_place_share_height_and_tool_orientation():
+    pick_tcp = [-0.3, 0.0, 0.55, 0.0, 0.0, 0.0, 1.0]
+    orientation = PLACE[3:7]
+    lift = lift_pose(pick_tcp, orientation)
+    pre = pre_place_pose(PLACE)
+    assert abs(lift[2] - pre[2]) < 1e-9
+    assert abs(lift[2] - cfg.TRANSFER_HEIGHT) < 1e-9
+    assert lift[0] == pick_tcp[0] and lift[1] == pick_tcp[1]
+    assert lift[3:7] == orientation
+    assert pre[3:7] == orientation
+
+
+def test_horizontal_transfer_check_accepts_fixed_height_and_attitude():
+    class Checker:
+        def tcp_at(self, values):
+            return [float(values[0]), float(values[1]),
+                    cfg.TRANSFER_HEIGHT, *PLACE[3:7]]
+
+    waypoints = [[0.0, 0.0, 0.0, 0.0, math.pi / 2, 0.0],
+                 [0.1, 0.1, 0.0, 0.0, math.pi / 2, 0.0]]
+    report = horizontal_transfer_check(waypoints, Checker(),
+                                       orientation=PLACE[3:7])
+    assert report["ok"] is True
+    assert report["points"] == 2
+    assert report["max_z"] == 0.0
+    assert report["max_ang"] == 0.0
+
+
+def test_horizontal_transfer_check_rejects_height_or_attitude_drift():
+    class HeightDrift:
+        def tcp_at(self, values):
+            return [float(values[0]), float(values[1]),
+                    cfg.TRANSFER_HEIGHT + 0.02, *PLACE[3:7]]
+
+    waypoints = [[0.0, 0.0, 0.0, 0.0, math.pi / 2, 0.0]]
+    report = horizontal_transfer_check(waypoints, HeightDrift(),
+                                       orientation=PLACE[3:7])
+    assert report["ok"] is False
+    assert report["max_z"] == 0.02
+
+    class YawDrift:
+        def tcp_at(self, values):
+            return [float(values[0]), float(values[1]),
+                    cfg.TRANSFER_HEIGHT, 0.0, 0.0, 0.2, 1.0]
+
+    report = horizontal_transfer_check(waypoints, YawDrift(),
+                                       orientation=PLACE[3:7])
+    assert report["ok"] is False
+    assert report["max_ang"] > cfg.EXEC_TCP_ANG_TOL
+
+
+def test_horizontal_transfer_check_reports_unknown_query():
+    class Unknown:
+        def tcp_at(self, values):
+            return None
+
+    report = horizontal_transfer_check([[0.0] * 6], Unknown())
+    assert report["ok"] is False
+    assert report["query_unknown"] is True
 
 
 # ── 轨迹压缩 ────────────────────────────────────────────────

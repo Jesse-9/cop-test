@@ -72,7 +72,8 @@ sim_version: "4.10+"
 
 ## 阶段二：物理约束与运动规划
 
-当前基线为 stage2/L1_S1/v013_20261024_232558。运行入口默认加载 stage2 的 current 工件：
+当前基线为 `stage2/L1_S1/v014_20261028_175742`（06-15 契约
+`stage2_contract_20261028_v4`）。运行入口默认加载 stage2 的 current 工件：
 
     .venv/Scripts/python.exe src/run_stage2.py --target station --time 150
     .venv/Scripts/python.exe src/run_stage2.py --target agv --time 150
@@ -87,7 +88,8 @@ sim_version: "4.10+"
 
 ## 阶段三：双工位柔性搬运
 
-当前基线为 stage3/L2_MIRROR/v004_20261025_131837。五种运行场景：
+当前基线为 `stage3/L2_MIRROR/v006_20261028_180722`（由 stage2 v014 派生）。
+五种运行场景：
 
     .venv/Scripts/python.exe src/run_stage3.py --scenario closed_loop --time 300
     .venv/Scripts/python.exe src/run_stage3.py --scenario contention --time 300
@@ -97,9 +99,9 @@ sim_version: "4.10+"
 
 如需重建 stage3，从已验收 stage2 工件派生（build 成功后状态已是已校验，可直接 save）：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v013_20261024_232558
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v013_20261024_232558
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v013_20261024_232558 --note "阶段三派生"
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v014_20261028_175742
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v014_20261028_175742
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v014_20261028_175742 --note "阶段三派生"
 
 ## 手动操作生命周期
 

@@ -142,7 +142,7 @@ class Stage3Coordinator:
             self.started_at = sim_time
         self._poll_tasks(sim_time)
         # 不稳定载荷必须在控制器 pre_tick 的联锁检查之前注入, 这样
-        # Stage2Safety 会在 RELEASING 之前检出载荷漂移并锁存.
+        # Stage2Safety 会在 RELEASING 执行释放之前检出载荷漂移并锁存.
         self._maybe_inject_fault(sim_time)
 
         for record in list(self.controllers.values()):
@@ -570,8 +570,8 @@ class Stage3Coordinator:
                for item in self.injected):
             return
         record = self.controllers.get("B")
-        if record is None or record.controller.state is not \
-                UnitTaskState.PLACING:
+        if (record is None
+                or record.controller.state.name != cfg.UNSTABLE_INJECT_PHASE):
             self._unstable_steps = 0
             return
         self._unstable_steps += 1

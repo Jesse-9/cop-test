@@ -43,6 +43,7 @@ class PlanStatus(str, Enum):
     LIMITS_EXCEEDED = "LIMITS_EXCEEDED"
     COLLISION_AT_GOAL = "COLLISION_AT_GOAL"
     PATH_COLLISION = "PATH_COLLISION"
+    PATH_DEVIATION = "PATH_DEVIATION"
     NEAR_COLLISION = "NEAR_COLLISION"
     TARGET_CONTACT_VIOLATION = "TARGET_CONTACT_VIOLATION"
     QUERY_UNKNOWN = "QUERY_UNKNOWN"
@@ -59,6 +60,7 @@ _FAILURE_PRIORITY = {
     PlanStatus.QUERY_UNKNOWN: 100,
     PlanStatus.TARGET_CONTACT_VIOLATION: 90,
     PlanStatus.PATH_COLLISION: 80,
+    PlanStatus.PATH_DEVIATION: 78,
     PlanStatus.GOAL_CONFIG_INVALID: 75,
     PlanStatus.START_CONFIG_INVALID: 70,
     PlanStatus.WRIST_SINGULARITY: 68,
@@ -772,10 +774,27 @@ class LocalPlanner:
     def plan(self, start_q: Sequence[float], goals: Sequence[Goal],
              context: MotionContext,
              start_pose: Optional[Sequence[float]] = None,
-             lock_fallback: Optional[bool] = None
+             lock_fallback: Optional[bool] = None,
+             direct_only: bool = False,
+             wall_s: Optional[float] = None,
+             max_samples: Optional[int] = None
              ) -> MotionPlan:
+        """规划入口.
+
+        ``direct_only=True`` 只使用 ``direct`` 策略, 禁止 HOME/抬高中转等
+        关节路径变体; 06-15 的水平转运与法向下探使用该模式, 保证不会
+        自动改走未验证的关节路径. ``wall_s``/``max_samples`` 为单次规划
+        的预算覆盖, 只放宽时间/采样上限, 不减少任何检查.
+        """
         started = time.monotonic()
-        budget = self.budget or PlanBudget()
+        if wall_s is not None or max_samples is not None:
+            budget = PlanBudget(
+                wall_s=(cfg.PLAN_WALL_BUDGET_S if wall_s is None
+                        else float(wall_s)),
+                max_samples=(cfg.PLAN_MAX_TOTAL_SAMPLES
+                             if max_samples is None else int(max_samples)))
+        else:
+            budget = self.budget or PlanBudget()
         self.checker.budget = budget
         anchor, margin = wrist_branch(start_q)
         if anchor is None or margin < cfg.WRIST_BRANCH_MARGIN:
@@ -803,6 +822,8 @@ class LocalPlanner:
         for policy, goals_variant in passes:
             for name, transit, strategy_goals in self._strategies(
                     goals_variant):
+                if direct_only and name != "direct":
+                    continue
                 label = f"{policy}:{name}"
                 try:
                     plan = self._attempt(

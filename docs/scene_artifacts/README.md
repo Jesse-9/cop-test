@@ -35,22 +35,25 @@
 `sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代, 仅保留为
 审计历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 
-## 当前阶段二工件
+## 当前阶段二工件（06-15）
 
-- 工件 ID: `stage2/L1_S1/v013_20261024_232558`
+- 工件 ID: `stage2/L1_S1/v014_20261028_175742`
 - 父工件: `stage1/L1_S1/v002_20261020_234403`
-- 契约: `extra.stage2.contract_version = stage2_contract_20261024_v3`;
-  控制器 `stage2.unit_controller.Stage2UnitController`，动作优化版本 `2.01`，
-  AGV 转运优化版本 `2.02`（实验能力默认关闭）
-- 校验: 145 项通过, 父差异 `[]`; stage2 manifest 不写会话句柄
-  (`tool.handles`/`conveyor.script_handle`/`sim_time` 已剥离)
-- 保护: v013 由 CLI 保存为 `protected: true`（文件只读）；v009–v012 是阶段二/
-  2.01 历史与过渡工件。修改 `src/stage2/config.py` 后旧工件会因
-  `stage2_config_digest` 拒绝 start, 必须重新派生
+- 契约: `extra.stage2.contract_version = stage2_contract_20261028_v4`;
+  `extra.stage2.transfer` 记录 `TRANSFER_HEIGHT=0.80`、水平绕行偏移与规划预算，
+  控制器 `transfer_trajectory_version = "06-15"`
+- 回归: stage2 station/agv/both 与 runtime_obstacle 已通过；证据见
+  [`docs/implementation/runs/`](../implementation/runs/) 中
+  `phase2_run_*_20261028_*`
+- 历史: v013 是 2.02 工件（契约 v3、动作优化 2.01、AGV 转运优化 2.02）；
+  v009–v012 是阶段二/2.01 历史与过渡工件。修改 `src/stage2/config.py`
+  后旧工件会因 `stage2_config_digest`/契约版本拒绝 start，必须重新派生
+- 保护: 工件均由 CLI 保存为 `protected: true`（文件只读）
 - 运行: `python src/run_stage2.py --target station|agv|both`
 - 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)、
   [`PHASE2_01_REPORT.md`](../implementation/PHASE2_01_REPORT.md)、
-  [`PHASE2_02_REPORT.md`](../implementation/PHASE2_02_REPORT.md)
+  [`PHASE2_02_REPORT.md`](../implementation/PHASE2_02_REPORT.md)、
+  [06-15 方案](../wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md)
 
 影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,

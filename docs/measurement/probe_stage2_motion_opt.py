@@ -1,12 +1,13 @@
-"""probe_stage2_motion_opt.py — 阶段 2.01 腕部分支与锁轴 A/B 规划探针.
+"""probe_stage2_motion_opt.py — 阶段 2.01/2.03 腕部分支与锁轴 A/B 规划探针.
 
 在已加载、已停止的 stage1/stage2 场景上 (不启动仿真):
 
   1. 采集 station/AGV 目标位姿的多解 IK 候选, 统计 q[4] 归一化角、
      腕部分支与奇异裕量, 验证分支拒绝规则;
-  2. 对 station 与 AGV 分别按 ``free`` / ``lock`` 两种策略规划
-     approach → lift → transfer → retreat, 输出逐段 TV、最大单步、
-     点数、q[0] 变化、分支、最小净空与规划耗时.
+  2. 对 station 与 AGV 分别按 ``free`` / ``production`` 两种策略规划
+     approach → lift → transfer(pre_place) → placing(place) → retreat,
+     输出逐段 TV、最大单步、点数、q[0] 变化、分支、最小净空与规划耗时.
+     06-15 起 lift 直达 H_transfer, transfer 固定高度水平, placing 独立下探.
 
 本探针只在影子臂上规划, 不移动真实机械臂、不保存场景; 结束后删除
 物料与 Shadow_* 会话资源.
@@ -36,10 +37,11 @@ from stage2.contact import (contact_pose, quat_conjugate, quat_multiply,
 from stage2.path_planning import Goal, MotionContext
 from stage2.runtime import build_stage2_runtime
 from stage2.suction import Stage2SuctionController
-from stage2.unit_controller import transfer_goals
+from stage2.unit_controller import (lift_pose, pre_place_pose,
+                                    transfer_goal_variants)
 
 OUT = Path("docs/measurement")
-POLICIES = ("no_split_free", "split_free", "split_lock", "production")
+POLICIES = ("free", "production")
 
 
 def main() -> int:
@@ -54,7 +56,7 @@ def main() -> int:
         import stage2.path_planning as planning
         planning.wrist_branch = lambda q: ("positive", 9.0)
         planning.branch_ok = lambda q, anchor, margin: (True, "positive", 9.0)
-    policies = ("no_split_free",) if args.no_branch_guard else POLICIES
+    policies = ("free",) if args.no_branch_guard else POLICIES
     client = RemoteAPIClient(host="localhost", port=23000)
     sim = client.require("sim")
     simIK = client.require("simIK")
@@ -94,20 +96,16 @@ def main() -> int:
             sim, manager, scene.tcp, scene.suction_sensor,
             pad_handle=scene.suction_root).material_box(material)
 
+        pick_tcp = contact_pose(pick_pose, box, 0.0)
         poses = {
             "pre_pick": contact_pose(pick_pose, box,
                                      cfg.PRE_APPROACH_CLEARANCE),
-            "pick": contact_pose(pick_pose, box, 0.0),
-            "lift": contact_pose(pick_pose, box,
-                                 cfg.PRE_APPROACH_CLEARANCE),
-            "rise": _raise(contact_pose(pick_pose, box,
-                                        cfg.PRE_APPROACH_CLEARANCE),
-                           cfg.TRANSFER_RISE_HEIGHT),
-            "pre_station": _raise(scene.layout.station_tcp_pose,
-                                  cfg.PRE_APPROACH_CLEARANCE),
+            "pick": pick_tcp,
+            "lift": lift_pose(pick_tcp,
+                              scene.layout.station_tcp_pose[3:7]),
+            "pre_station": pre_place_pose(scene.layout.station_tcp_pose),
             "station": list(scene.layout.station_tcp_pose),
-            "pre_agv": _raise(scene.layout.agv_tcp_pose,
-                              cfg.PRE_APPROACH_CLEARANCE),
+            "pre_agv": pre_place_pose(scene.layout.agv_tcp_pose),
             "agv": list(scene.layout.agv_tcp_pose),
         }
         seeds = list(cfg.IK_SEED_VARIANTS) + [list(base.ARM_SEED_JOINTS)]
@@ -186,8 +184,7 @@ def _plan_chain(scene, runtime, ik, manager, pick_pose, box, place, target,
     out = {"policy": policy, "stages": {}, "ok": True}
     q = list(start_q)
     tcp = list(start_tcp)
-    use_lock = policy in ("split_lock", "production")
-    split = policy in ("split_free", "split_lock")
+    use_lock = policy == "production"
 
     approach_goals = [
         Goal("pre_pick", contact_pose(pick_pose, box,
@@ -212,9 +209,8 @@ def _plan_chain(scene, runtime, ik, manager, pick_pose, box, place, target,
     runtime.update_materials(manager, 1, carrying=True)
 
     lift_goal = _with_lock(
-        Goal("lift", contact_pose(pick_pose, box,
-                                  cfg.PRE_APPROACH_CLEARANCE),
-             cartesian=True), use_lock)
+        Goal("lift", lift_pose(contact_pose(pick_pose, box, 0.0),
+                               place[3:7]), cartesian=True), use_lock)
     context = MotionContext(phase="LIFT", target_handle=-1, carrying=True,
                             snapshot=f"probe-lift-{target}-{policy}",
                             allow_start_load_contact=True)
@@ -227,22 +223,34 @@ def _plan_chain(scene, runtime, ik, manager, pick_pose, box, place, target,
     q = plan.waypoints[-1]
     tcp = planner.checker.tcp_at(q)
 
-    goals = transfer_goals(place, tcp, scene.layout.arm_base)
-    if split:
-        transit = next(goal for goal in goals if goal.name == "transit")
-        high = Goal("high_above_place",
-                    [place[0], place[1], transit.pose[2], *place[3:7]],
-                    strict_orientation=True)
-        goals.insert(goals.index(transit) + 1, high)
-    if use_lock:
-        goals = [_with_lock(goal, True) for goal in goals]
-    else:
-        goals = [replace(goal, lock_joint=None) for goal in goals]
-    context = MotionContext(phase="PLACE", target_handle=-1, carrying=True,
-                            snapshot=f"probe-transfer-{target}-{policy}")
-    plan = planner.plan(q, goals, context, start_pose=tcp,
-                        lock_fallback=False)
+    plan = None
+    for _name, goals, _info in transfer_goal_variants(place, tcp):
+        goals = [_with_lock(goal, use_lock) for goal in goals]
+        context = MotionContext(phase="TRANSFER", target_handle=-1,
+                                carrying=True,
+                                snapshot=f"probe-transfer-{target}-{policy}")
+        candidate = planner.plan(q, goals, context, start_pose=tcp,
+                                 lock_fallback=False, direct_only=True,
+                                 wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+        plan = candidate
+        if candidate.ok:
+            break
     out["stages"]["transfer"] = _record(plan)
+    if not plan.ok:
+        out["ok"] = False
+        return out
+    q = plan.waypoints[-1]
+    tcp = planner.checker.tcp_at(q)
+
+    place_goal = _with_lock(
+        Goal("place", list(place), cartesian=True, strict_orientation=True,
+             allow_final_load_contact=True), use_lock)
+    context = MotionContext(phase="PLACE", target_handle=-1, carrying=True,
+                            snapshot=f"probe-placing-{target}-{policy}")
+    plan = planner.plan(q, [place_goal], context, start_pose=tcp,
+                        lock_fallback=False, direct_only=True,
+                        wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+    out["stages"]["placing"] = _record(plan)
     if not plan.ok:
         out["ok"] = False
         return out

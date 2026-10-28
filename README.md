@@ -17,10 +17,10 @@
 |---|---|---|---|
 | 阶段一 | 已验收 | 单工位取放、传送带和 pioneer p3dx AGV；只读基线 stage1/L1_S1/v002_20261020_234403 | [阶段一报告](docs/implementation/PHASE1_REPORT.md) |
 | 步骤 1.1 / 1.2 | 已完成 | L1_S1 布局与取料流程收敛；版本化场景生命周期 | [1.1 报告](docs/implementation/STEP1_1_REPORT.md) · [1.2 报告](docs/implementation/STEP1_2_REPORT.md) |
-| 阶段二 | 已验收 | 碰撞检查、局部规划、轨迹执行、接触判据与安全锁存；基线 stage2/L1_S1/v013_20261024_232558 | [阶段二报告](docs/implementation/PHASE2_REPORT.md) |
+| 阶段二 | 已验收 | 碰撞检查、局部规划、轨迹执行、接触判据与安全锁存；基线 stage2/L1_S1/v014_20261028_175742（06-15 已派生并回归） | [阶段二报告](docs/implementation/PHASE2_REPORT.md) |
 | 阶段 2.01 | 已验收 | 动作与轨迹优化；生产路径采用已验证配置 | [报告](docs/implementation/PHASE2_01_REPORT.md) |
-| 阶段 2.02 | 已实现，实验能力默认关闭 | AGV 转运候选优化尚未满足切换默认配置的门槛 | [报告](docs/implementation/PHASE2_02_REPORT.md) |
-| 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v004_20261025_131837 | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
+| 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；回归通过 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
+| 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v006_20261028_180722（06-15 已派生并回归） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
 | 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
 | 阶段四多岛生产 | 未开始 | A–E 拓扑、仓库供料、节拍与共享 AGV 调度 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
 

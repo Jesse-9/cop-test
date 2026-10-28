@@ -271,12 +271,14 @@ AGV_BLOCK_OBSTACLE_ALIAS = "Fault_Stage3_AGV_Obstacle"
 AGV_BLOCK_OBSTACLE_POS = (AGV_ROUTE_X, 0.0, 0.15)
 AGV_BLOCK_CLEAR_AFTER_S = 10.0      # BLOCKED 持续该仿真时间后移除障碍
 
-# 不稳定卸载: 在 B 臂 PLACING 阶段把已吸附载荷相对 TCP 偏移该量;
-# 联锁应在释放前检出载荷漂移并锁存, 任务不得进入 DONE.
-UNSTABLE_INJECT_PHASE = "PLACING"
+# 不稳定卸载: 在 B 臂 RELEASING 的第一个控制步 (释放执行前) 把已吸附载荷
+# 相对 TCP 偏移该量; 联锁应在释放前检出载荷漂移并锁存, 任务不得进入 DONE.
+# 06-15 起 PLACING 是独立下探运动, 不再表示"已到达放置位"; RELEASING 在
+# 下探到位后才进入, 用它触发可保持原有注入时序.
+UNSTABLE_INJECT_PHASE = "RELEASING"
 UNSTABLE_LOAD_OFFSET = (0.040, 0.0, 0.0)
-# PLACING 通常只持续一个控制步 (下一 pre_tick 就进入 RELEASING), 因此
-# 在第一次观察到 PLACING 时立即注入, 让随后的 pre_tick 联锁先于释放执行.
+# RELEASING 只持续一个控制步 (未锁存时同一步内执行释放并进入 SETTLING),
+# 因此第一次观察到该状态立即注入, 让随后的 pre_tick 联锁先于释放执行.
 UNSTABLE_INJECT_DELAY_STEPS = 1
 
 # 锁存后继续推进的步数: 让控制器 post_tick 读取真实带速/车体速度并确认
