@@ -64,7 +64,12 @@ _ALLOWED: dict[MaterialState, frozenset] = {
                                               MaterialState.FAULT}),
     # 阶段三: A 工位把物料释放到 AGV 后状态为 RELEASED; B 工位在 dock B
     # 确认同一 UID 仍在载台后, 重新登记为 ON_TRAY 再进入取料流程.
+    # 阶段四: 固定交接台/传送带入口的物料同样以 RELEASED 落地, 取料方
+    # 重新确认后可回到 READY_FOR_PICK (静态承载面) 或 ON_CONVEYOR
+    # (C→E 传送带入口), 不代表隐式恢复.
     MaterialState.RELEASED:        frozenset({MaterialState.ON_TRAY,
+                                              MaterialState.ON_CONVEYOR,
+                                              MaterialState.READY_FOR_PICK,
                                               MaterialState.FAULT}),
     MaterialState.FAULT:           frozenset({MaterialState.FAULT}),
 }

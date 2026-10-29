@@ -85,6 +85,16 @@ class BeltGeometry:
                 y,
                 self.entry[2] + d[2] * s if abs(d[2]) > 1e-9 else z]
 
+    def advance(self, position, delta: float) -> list[float]:
+        """沿带面切线推进 ``delta`` 米, 保留横向/高度偏移.
+
+        与 ``position_at`` 的 X 专用语义不同, 本方法对 Y 向传送带同样
+        有效; 阶段四的三条支线包含 Y 向安装.
+        """
+        d = self.direction
+        step = float(delta)
+        return [float(position[i]) + d[i] * step for i in range(3)]
+
 
 @dataclass
 class TransportStep:
@@ -109,7 +119,7 @@ def transport_step(position, geometry: BeltGeometry, belt_speed: float,
     remaining = (1.0 - progress) * geometry.length
     delta = max(0.0, min(abs(belt_speed) * dt, remaining, max_step))
     new_progress = progress + delta / geometry.length
-    new_pos = geometry.position_at(new_progress, position[1], position[2])
+    new_pos = geometry.advance(position, delta)
     return TransportStep(progress=new_progress, delta=delta,
                          new_position=new_pos,
                          at_stop=new_progress >= 1.0 - 1e-9)

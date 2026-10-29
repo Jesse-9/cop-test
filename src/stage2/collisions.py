@@ -285,16 +285,23 @@ def discover_conveyor_parts(sim, belt: int) -> tuple[list[int], list[int]]:
 
 
 def discover_workcell(sim, scene, *, station_aliases=None,
+                      conveyor_aliases=None,
                       extra_obstacles=()) -> list[int]:
     """工位/仓库/地面/AGV 车体与载台; 不含安装平台与 conveyor 粗代理.
 
     阶段三用 ``station_aliases`` 同时纳入 A/B 两个置物台, 用
     ``extra_obstacles`` 纳入另一台真实机械臂的连杆/吸盘与岛体. 传入的
     ``scene`` 可以是 `Stage3Scene` 或单工位视图, 只要实现 ``handle``.
+    阶段四用 ``conveyor_aliases`` 把所有物流线的承载 pad 纳入工作区.
     """
-    belt = scene.handle(base.ALIASES["conveyor"])
-    pads, _ = discover_conveyor_parts(sim, belt)
-    handles: list[int] = list(pads)
+    aliases = tuple(conveyor_aliases or (base.ALIASES["conveyor"],))
+    handles: list[int] = []
+    for alias in aliases:
+        belt = scene.handle(alias)
+        if belt < 0:
+            continue
+        pads, _ = discover_conveyor_parts(sim, belt)
+        handles.extend(pads)
     stations = (station_aliases
                 if station_aliases is not None
                 else (base.ALIASES["station"],))
@@ -408,9 +415,18 @@ class CollisionRuntime:
               pad_body: int, load_handle: int = -1,
               mount_alias: Optional[str] = None,
               station_aliases=None,
+              conveyor_aliases=None,
               extra_obstacles=()) -> "CollisionRuntime":
-        pads, coarse = discover_conveyor_parts(
-            sim, scene.handle(base.ALIASES["conveyor"]))
+        aliases = tuple(conveyor_aliases or (base.ALIASES["conveyor"],))
+        pads: list[int] = []
+        coarse: list[int] = []
+        for alias in aliases:
+            belt = scene.handle(alias)
+            if belt < 0:
+                continue
+            belt_pads, belt_coarse = discover_conveyor_parts(sim, belt)
+            pads.extend(belt_pads)
+            coarse.extend(belt_coarse)
         mount_alias = mount_alias or base.ALIASES["island"]
         mount = scene.handle(mount_alias)
         if mount < 0:
@@ -424,6 +440,7 @@ class CollisionRuntime:
             mount=int(mount),
             workcell=discover_workcell(
                 sim, scene, station_aliases=station_aliases,
+                conveyor_aliases=aliases,
                 extra_obstacles=extra_obstacles),
         )
         geometry.workcell_aliases = [alias_of(sim, h)
