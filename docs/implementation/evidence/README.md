@@ -132,3 +132,30 @@
     — v004 工件 229 项只读校验通过；
   - `stage3_layout_20261025.json` — `L2_MIRROR` 50 项静态检查通过、
     `L3_SAME_SIDE` 被拒、当前场景两工位/AGV dock 只读测量。
+
+- 阶段四五岛生产（2026-10-28/29，工件
+  `stage4/L4_COLUMN/v008_20261028_225634`，父
+  `stage3/L2_MIRROR/v006_20261028_180722`，契约
+  `stage4_contract_20261028_v1`）：
+  - `phase4_analysis_full_flow_20261028_234140.json` — 13/13 任务
+    DONE，1 个 FINAL（父件 1/3），1 个未配对 SEMI_CE；四条路线停靠
+    误差 0.0196 m，滑移 0.0；
+  - `phase4_analysis_no_pair_20261029_000629.json` — 7/7 任务 DONE，
+    1 个 FINAL（父件 1/2），无未配对半成品；
+  - `phase4_analysis_agv_priority_20261029_001906.json` — 13/13 任务
+    DONE，两次派车均满足优先级，`no_preemption = true`；
+  - `phase4_analysis_agv_blocked_20261029_010133.json` — B→A 与
+    D→E 各一次 BLOCKED/清障续行，路线 29.6 s / 66.3 s，1 个 FINAL；
+  - `phase4_analysis_conveyor_fault_20261029_012444.json` — 停
+    `line_ce` 后 `e_conveyor` BLOCKED、整线冻结、无 FINAL、资源释放；
+  - `scene_validation_stage4_L4_COLUMN_v008_20261028_225634_20261029_012444.json`
+    — v008 启动点 452 项只读校验通过；
+  - `stage4_layout_20261029_v008.json` — 145 项静态检查、185 项场景
+    契约检查通过，五臂 13 个 IK 目标全部成功；
+  - `phase3_run_closed_loop_20261029_013344.json` — 阶段三 v006
+    回归，三任务 DONE，停靠误差 0.019924 m，滑移 0.0。
+
+  阶段四原始运行报告（6–18 MB/份）保留在
+  `docs/implementation/runs/phase4_run_*.json`，不纳入版本控制；
+  本目录的分析摘要由 `docs/measurement/analyze_stage4_run.py` 生成，
+  含验收、任务、路线、物料与指标字段。
