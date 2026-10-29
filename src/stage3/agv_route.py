@@ -145,13 +145,15 @@ class AGVRouteController:
 
     def __init__(self, sim, agv: PioneerController, spec: RouteSpec,
                  material_manager=None, uid: Optional[int] = None,
-                 logger=None) -> None:
+                 logger=None, timeout_s: Optional[float] = None) -> None:
         self.sim = sim
         self.agv = agv
         self.spec = spec
         self.materials = material_manager
         self.uid = uid
         self.logger = logger
+        self.timeout_s = float(cfg.AGV_ROUTE_TIMEOUT
+                               if timeout_s is None else timeout_s)
 
         self.state = RouteState.IDLE
         self.started_at: Optional[float] = None
@@ -226,13 +228,13 @@ class AGVRouteController:
                         f"HEADING_ERROR: {heading_error:.4f} rad > "
                         f"{self.spec.heading_tol:.4f} rad")
                 return self._finish(sim_time, pose, distance, heading_error)
-            if sim_time - self.started_at > cfg.AGV_ROUTE_TIMEOUT:
+            if sim_time - self.started_at > self.timeout_s:
                 return self._fail("SETTLE_TIMEOUT: 到站后未停稳")
             return self.state
 
-        if sim_time - self.started_at > cfg.AGV_ROUTE_TIMEOUT:
+        if sim_time - self.started_at > self.timeout_s:
             return self._fail(
-                f"ROUTE_TIMEOUT: {cfg.AGV_ROUTE_TIMEOUT:.1f}s 未到站")
+                f"ROUTE_TIMEOUT: {self.timeout_s:.1f}s 未到站")
 
         # 速度剖面: 距目标越近, 目标速度越低.
         remaining = max(0.0, distance - self.spec.arrive_tol)

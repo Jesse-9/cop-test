@@ -130,3 +130,12 @@ def test_route_spec_serialization():
     assert data["route_id"] == "x"
     assert data["direction"] == 1
     assert data["loaded"] is False
+
+
+def test_route_timeout_can_be_overridden():
+    spec = route_specs(default_layout())["A_to_B"]
+    default = AGVRouteController(FakeSim(), FakeAGV(), spec)
+    assert default.timeout_s == cfg.AGV_ROUTE_TIMEOUT
+    long_route = AGVRouteController(
+        FakeSim(), FakeAGV(), spec, timeout_s=150.0)
+    assert long_route.timeout_s == 150.0
