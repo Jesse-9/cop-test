@@ -82,33 +82,44 @@ git 历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
   重新派生。
 - 报告: [`PHASE3_REPORT.md`](../implementation/PHASE3_REPORT.md)。
 
-## 当前阶段四工件
+## 当前阶段四工件（阶段 4.1 `L5_UFLOW`）
 
-- 工件 ID: `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件）
-- 父工件: `stage3/L2_MIRROR/v006_20261028_180722`；06-15 将 H 调整到
-  0.65 后，需从 stage3 v008 重新派生 stage4 并重跑回归
-- 契约: `extra.stage4.contract_version = stage4_contract_20261028_v1`;
+- 工件 ID: `stage4/L5_UFLOW/v004_20261029_133249`
+- 父工件: `stage3/L2_MIRROR/v008_20261029_112305`（stage3，protected）
+- 契约: `extra.stage4.contract_version = stage4_contract_20261029_v2`;
   `extra.stage4.inheritance` 记录 stage3 契约/配置/布局摘要与 stage2
-  上游摘要。
+  上游摘要；`extra.stage4.layout.height_datum` 记录 `Z_base=0.30 m`、
+  `Z_work`、`Z_belt=0.45 m`、`H_transfer=0.65 m`。
+- 布局: A/B 保持阶段三锚点；C `(0.35,1.35)`、D `(2.34,-1.35)`、
+  E `(2.34,1.35)` 全部 0.30 m 基座；C→E 与 S2→D 沿 +X；D/E dock 在
+  x=2.90，与 x=0.40 的 A/B dock 不共线。
+- AGV 路网: 西直道 x=0.40、南横道 y=-2.10、东直道 x=2.90；转向节点
+  `J_SW`/`J_SE`，停车原地转向；载货 B→A / D→E 仍是单段直道。
 - 场景新增 C/D/E 工位、S1→B/S2→D/C→E 三条物流线、S2 仓库、A→C 交接
-  传感器、E 两个输入缓冲与输出 dummy；A/B 坐标、AGV 初始位姿和地面不变。
-- 几何约束：C 岛/基座 0.45 m 高，A 放置后撤离到交接台南侧 park 位姿，
-  避免 C 臂 link3/link6 与 A 交接台/腕部碰撞；改变这些几何必须重新
-  派生并重跑 C 任务回归。
+  传感器、E 两个输入缓冲、`E_Output_Table` 输出台与输出 dummy；A/B
+  坐标、AGV 初始位姿和地面不变。
+- 几何约束：E 的两个缓冲位于机械臂基座东西两侧的同一径向线上，使
+  AGV 卸货和 C 线取料→buffer 的水平转运不发生横向折叠；成品输出在
+  岛外东侧独立台 `(3.50,1.35)`，不进入 E 臂 0.85 m 包络，也不占用
+  东直道/AGV dock。改变 E 岛、缓冲或输出位置必须重新派生并重跑 E 任务。
 - 派生: `load stage3/...` → `build --phase stage4 --parent <stage3>` →
   `save --phase stage4 --parent <stage3>`。
-- 修改 `src/stage4/config.py` 后旧工件会因 `stage4_config_digest` 拒绝，
-  必须重新派生；不得手改 manifest。
-- 历史: v001–v007 已从工作区清理，保留在 git 历史（v001 是父摘要读取
-  错误的失败草稿；v002 物流线仍以 `targetVel=0.2` 启动；v003 起物流线
-  启动即停止；v004 把 C 岛/基座抬高到 0.45 m；v005–v008 调整 S1→B/S2→D
-  支线、B/D 取料点与 D 岛高度）。当前保留的 v008 是 H=0.80 基线，H=0.65
-  下可达性更宽裕，但带载净空需重新检查。
-- 验收: 2026-10-29 五个场景（full_flow/no_pair/agv_priority/
-  agv_blocked/conveyor_fault）全部通过；证据见
-  [`phase4_analysis_*`](../implementation/evidence/) 与
-  [`stage4_layout_20261029_v008.json`](../implementation/evidence/stage4_layout_20261029_v008.json)。
-- 报告: [`PHASE4_REPORT.md`](../implementation/PHASE4_REPORT.md)。
+- 校验: 保存/重载只读校验 461 项通过、0 差异；布局静态筛选 274 项通过；
+  五台臂 13 个 pick/place/dock/buffer 目标 simIK 全部成功且在关节限位内。
+- 版本: `v001` 是 E 输出仍在岛面的失败候选（已删除，失败运行证据保留
+  在 `docs/implementation/runs/`）；`v002/v003` 是 `layout_from_dict`
+  兼容旧 manifest 形态时的失败保存草稿（已删除）；当前有效为 `v004`。
+- 修改 `src/stage4/config.py` 后旧工件会因 `stage4_config_digest` /
+  `stage4_layout_digest` 拒绝，必须重新派生；不得手改 manifest。
+- 报告: [`PHASE4_REPORT.md`](../implementation/PHASE4_REPORT.md) §12。
+
+### 阶段四重排前基线
+
+`stage4/L4_COLUMN/v008_20261028_225634`（父 stage3 v006，H=0.80）作为
+阶段 4.1 的对照基线保留，不再是 `current`。它使用列式布局、四个 dock
+共线 x=0.40、单段直线 AGV；在 `stage4_contract_20261029_v2` 下会因
+config/layout digest 不符而拒绝启动，属预期保护。其验收数据见
+[`PHASE4_REPORT.md`](../implementation/PHASE4_REPORT.md) §7。
 
 ## `current` 指针
 

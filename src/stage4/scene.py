@@ -353,6 +353,22 @@ class Stage4Scene(Stage3Scene):
                   f"pos={[round(v, 4) for v in pos]}")
         except Exception as exc:
             check("stage4_e_output_target", False, str(exc))
+        try:
+            table = self.handle(cfg.E_OUTPUT_TABLE["alias"])
+            size = _shape_size(self.sim, table)
+            pos = list(self.sim.getObjectPosition(table,
+                                                  self.sim.handle_world))
+            expected_size = list(cfg.E_OUTPUT_TABLE["size"])
+            check("stage4_e_output_table",
+                  size is not None
+                  and all(abs(size[i] - expected_size[i]) <= 0.002
+                          for i in range(3))
+                  and abs(pos[0] - cfg.E_OUTPUT_TABLE["position"][0]) <= 0.002
+                  and abs(pos[1] - cfg.E_OUTPUT_TABLE["position"][1]) <= 0.002
+                  and abs(pos[2] - expected_size[2] / 2.0) <= 0.002,
+                  f"size={size} pos={[round(v, 4) for v in pos]}")
+        except Exception as exc:
+            check("stage4_e_output_table", False, str(exc))
 
         # 来源 dummy
         for key, spec in cfg.SOURCE_ITEMS.items():
@@ -576,6 +592,7 @@ def _stage4_aliases() -> set[str]:
         cfg.ALIASES["dock_sensor"]["D"],
         cfg.ALIASES["dock_sensor"]["E"],
         cfg.E_OUTPUT["alias"],
+        cfg.E_OUTPUT_TABLE["alias"],
         "PlaceTarget_Conveyor_C_to_E",
         "PlaceTarget_AGV_Dock_D",
     })
@@ -690,6 +707,11 @@ def _create_e_targets(sim, island_root: int) -> None:
                        material_z + 0.10],
             local_orientation=base.PICK_SENSOR_ORIENTATION,
             range_=base.PICK_SENSOR_RANGE, radius=base.PICK_SENSOR_RADIUS)
+    table = cfg.E_OUTPUT_TABLE
+    _create_box(sim, table["alias"], table["size"],
+                [table["position"][0], table["position"][1],
+                 table["size"][2] / 2.0],
+                color=(0.55, 0.55, 0.62), parent=island_root)
     out = cfg.E_OUTPUT
     _create_dummy(sim, out["alias"],
                   [out["position"][0], out["position"][1],

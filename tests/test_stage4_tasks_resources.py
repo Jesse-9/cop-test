@@ -83,7 +83,7 @@ def test_wait_block_unblock_evidence():
 
 def test_resource_acquire_all_is_all_or_nothing():
     table = ResourceTable()
-    resources = ("line_ce", "handoff_ac", "zone_ac", "zone_ce", "arm_C")
+    resources = ("line_ce", "handoff_ac", "zone_ac", "arm_C")
     ok, busy = table.acquire_all(resources, "unit_C/task_c", "c_uid1", 0.0)
     assert ok and busy == ""
     assert all(table.owner(name) == "unit_C/task_c" for name in resources)

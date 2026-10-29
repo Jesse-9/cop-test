@@ -1,0 +1,85 @@
+{
+  "file": "docs\\implementation\\runs\\phase4_run_staggered_batch_20261029_150621.json",
+  "scenario": "staggered_batch",
+  "fault": "none",
+  "all_ok": false,
+  "results": [
+    {
+      "scenario": "staggered_batch",
+      "ok": false,
+      "error": "墙钟 150.33s > 150.0s"
+    }
+  ],
+  "sim_time": null,
+  "acceptance": {},
+  "tasks": [],
+  "routes": [],
+  "material_types": {},
+  "metrics": {
+    "throughput": null,
+    "tasks": null,
+    "devices": null,
+    "agv": null,
+    "window": null,
+    "queues": null
+  },
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 320,
+      "failed": []
+    },
+    "leftover": []
+  }
+}

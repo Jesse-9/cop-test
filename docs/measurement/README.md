@@ -11,8 +11,9 @@
 | 阶段二场景/规划探针 | `probe_stage2_inventory.py`、`probe_stage2_ik_candidates.py`、`probe_stage2_planning.py`、`probe_stage2_path_rejection.py` |
 | 阶段 2.01/2.02 动作与 AGV 路径实验 | `probe_stage2_motion_opt.py`、`probe_stage2_transfer_branches.py`、`probe_stage2_transfer_search.py`、`probe_stage2_agv_transfer.py` |
 | 阶段三布局测量 | `probe_stage3_layout.py` |
-| 阶段四布局与五台臂 IK 测量 | `probe_stage4_layout.py`（结果归档为 `../implementation/evidence/stage4_layout_20261029_v008.json`） |
-| 阶段四运行报告提取 | `analyze_stage4_run.py` |
+| 阶段四布局与五台臂 IK 测量 | `probe_stage4_layout.py`（`--layout` 可读候选 JSON；`--ik` 用与规划器一致的多解种子枚举目标；当前证据 `../implementation/evidence/stage4_layout_20261029_L5_UFLOW.json`） |
+| 阶段四布局俯视预览 | `preview_stage4_layout.py`（从 `Stage4Layout` 配置生成 SVG；当前图 `../implementation/evidence/stage4_layout_L5_UFLOW_preview.svg`） |
+| 阶段四运行报告提取 | `analyze_stage4_run.py`（含航段/lane/转向字段） |
 | 仓库级完整测量索引 | [wiki/06-工业案例](../wiki/06-工业案例/) 对应阶段方案与报告；当前证据副本索引见 [implementation/evidence/README.md](../implementation/evidence/README.md) |
 
 ## 原始结果与正式证据

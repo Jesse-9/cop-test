@@ -14,7 +14,7 @@
 | 阶段 2.01 | [PHASE2_01_REPORT.md](PHASE2_01_REPORT.md) | 基础动作与轨迹优化 |
 | 阶段 2.02 | [PHASE2_02_REPORT.md](PHASE2_02_REPORT.md) | AGV 转运实验能力的历史记录；路径方案已由 [06-15](../wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) 取代 |
 | 阶段三 | [PHASE3_REPORT.md](PHASE3_REPORT.md) | 双工位、资源和 AGV 转运验收 |
-| 阶段四 | [PHASE4_REPORT.md](PHASE4_REPORT.md) | 五岛物流链、共享 AGV 调度、E 岛配对与故障冻结验收 |
+| 阶段四 | [PHASE4_REPORT.md](PHASE4_REPORT.md) | 五岛物流链、共享 AGV 调度、E 岛配对与故障冻结验收；§12 为阶段 4.1 `L5_UFLOW` 布局/路网/高度 datum 与交错批次 |
 
 ## 方案与审查
 

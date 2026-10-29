@@ -165,6 +165,29 @@ def test_budget_exhaustion_is_not_success():
     assert plan.status is PlanStatus.PLAN_BUDGET_EXCEEDED
 
 
+def test_forced_q_is_used_for_joint_goal():
+    """forced_q 必须原样进入路径 (阶段 4.1 A 臂 pre_pick 分支选择)."""
+    from stage2.trajectory import joint_distance
+    forced = [0.2, 0.0, 0.7, 0.0, WRIST_UP, 0.0]
+    planner = LocalPlanner(FakeChecker(), FakeIK())
+    plan = planner.plan(
+        start_q(), [Goal("pre_pick", [0.2, 0.0, 0.7, 0.0, 0.0, 0.0, 1.0],
+                         forced_q=forced)],
+        context(), start_pose=[0.0, 0.0, 0.5, 0, 0, 0, 1])
+    assert plan.ok
+    assert any(joint_distance(w, forced) <= 1e-9 for w in plan.waypoints)
+
+
+def test_forced_q_not_reaching_goal_is_rejected():
+    forced = [0.9, 0.9, 0.9, 0.0, WRIST_UP, 0.0]
+    planner = LocalPlanner(FakeChecker(), FakeIK())
+    plan = planner.plan(
+        start_q(), [Goal("pre_pick", [0.2, 0.0, 0.7, 0.0, 0.0, 0.0, 1.0],
+                         forced_q=forced)],
+        context(), start_pose=[0.0, 0.0, 0.5, 0, 0, 0, 1])
+    assert not plan.ok
+
+
 def test_singular_start_is_rejected():
     planner = LocalPlanner(FakeChecker(), FakeIK())
     q = start_q()

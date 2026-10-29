@@ -3,7 +3,7 @@
 日期：2026-10-28（实施） / 2026-10-29（验收）
 上游计划：[06-16-柔性工业车间阶段四多岛实施步骤](../wiki/06-工业案例/06-16-柔性工业车间阶段四多岛实施步骤.md)
 父工件：`stage3/L2_MIRROR/v006_20261028_180722`（stage3，protected）
-阶段四工件：`stage4/L4_COLUMN/v008_20261028_225634`
+阶段四工件：`stage4/L4_COLUMN/v008_20261028_225634`（重排前基线）；阶段 4.1 工件：`stage4/L5_UFLOW/v004_20261029_133249`（§12）
 
 > 本报告记录阶段四代码、L4_COLUMN 场景派生、五岛任务链、共享 AGV
 > 调度、E 岛配对与验收结果。阶段四不包含阶段 2.1 的统一故障恢复：
@@ -41,7 +41,8 @@ SEMI_CE + PART_DE 配对生成 FINAL。
 
 > 阶段四场景布局、平台高度差和设备联动的复审与优化计划见
 > [[wiki/06-工业案例/06-17-柔性工业车间阶段4.1场景布局与联动优化方案]]；
-> `L4_COLUMN` 及本报告中的验收数据作为重排前基线保留。
+> 该方案已于 2026-10-29 实施为 `L5_UFLOW`（§12）。`L4_COLUMN` 及本文
+> §1–11 的验收数据作为重排前基线保留。
 
 ## 2. 工件与契约
 
@@ -67,6 +68,9 @@ SEMI_CE + PART_DE 配对生成 FINAL。
   `GOAL_CONFIG_INVALID`）；v005 将 S1→B 支线靠近 B 臂；v006/v007/v008
   调整 S2→D 支线、D 岛高度/尺寸与 D 基座，使 B/D 的 H_transfer=0.80
   垂直抬升处于 UR5 可达范围。current 指向 v008。
+- 阶段 4.1 的工件、契约（`stage4_contract_20261029_v2`）、布局与
+  摘要见 §12.1；`L5_UFLOW/v004` 是当前 current，`L4_COLUMN/v008`
+  作为重排前基线保留。
 
 ## 3. 代码模块
 
@@ -311,7 +315,7 @@ python src/run_stage4.py --scenario full_flow --time 1500
 
 - 分支：`main` 工作区；本报告、阶段四代码/测试/工件/文档随同一提交进入
   版本库；具体 commit 以 `git log` 为准。
-- 完整测试套件（2026-10-29）：`pytest -q` → **481 passed, 3 skipped**。
+- 完整测试套件（2026-10-29）：`pytest -q` → **492 passed, 3 skipped**。
 - 未改写或回退用户已有的未提交修改；未覆盖 stage1/2/3 父工件。
 - 阶段一基线 `stage1/L1_S1/v002_20261020_234403`、阶段二
   `stage2/L1_S1/v014_20261028_175742`、阶段三
@@ -338,3 +342,166 @@ python src/run_stage4.py --scenario full_flow --time 1500
 原始 `phase4_run_*.json`（每份 6–18 MB）与场景快照保留在
 `docs/implementation/runs/`，该目录按仓库约定不纳入版本控制；其
 文件名与分析摘要中的 `file` 字段一一对应。
+
+阶段 4.1（`L5_UFLOW`）证据：
+
+- `stage4_layout_L5_UFLOW_preview.svg` — 从最终布局配置生成的俯视预览；
+- `stage4_layout_20261029_L5_UFLOW.json` — 274 项静态筛选、187 项场景
+  契约与五臂 13 个多解种子 IK 只读测量；
+- `scene_validation_stage4_L5_UFLOW_v004_20261029_133249_20261029_133359.json`
+  — v004 保存/重载 461 项只读校验通过、0 差异；
+- `phase4_41_analysis_full_flow_20261029_173632.json` — 修复后
+  `full_flow`：343.90 s、13/13 DONE、1 个 FINAL；
+- `phase4_41_analysis_staggered_batch_20261029_170923.json` — 修复后
+  `staggered_batch`：549.05 s、20/20 DONE、2 个 FINAL、最大并发 3；
+- `phase4_41_analysis_conveyor_fault_20261029_180818.json` — 停机回归：
+  `line_ce` 停带后任务 BLOCKED、整线冻结、无 FINAL；
+- `phase4_41_analysis_agv_blocked_20261029_175227.json` — 补充阻塞场景：
+  B→A 续行滑移 1.36 cm，D→E 续行后滑移 6.15 cm 触发 `LOAD_SLIP` 冻结；
+- 失败与修正证据：
+  `phase4_41_analysis_full_flow_v001_failed_20261029_131209.json`、
+  `phase4_41_analysis_staggered_batch_v004*_failed_20261029_*.json`。
+
+
+## 12. 阶段 4.1：`L5_UFLOW` 布局与设备联动优化
+
+> 对应 [06-17 方案](../wiki/06-工业案例/06-17-柔性工业车间阶段4.1场景布局与联动优化方案.md)。
+> 本节只记录重排结果、必要取舍和验收结论；`L4_COLUMN/v008` 的
+> 阶段四基线数据仍见 §1–11，不复制为新对照材料。
+
+### 12.1 工件与布局
+
+- 当前阶段 4.1 工件：`stage4/L5_UFLOW/v004_20261029_133249`
+  - 父工件：`stage3/L2_MIRROR/v008_20261029_112305`（protected）；
+  - 契约：`extra.stage4.contract_version = stage4_contract_20261029_v2`；
+  - 保存/重载只读校验 **461 项通过、0 差异**；
+  - scene sha256：`bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c`；
+  - config digest：`45e46fa09a6d4f5557df0a23d3eb3568a208156ac56b6460df5527d2ace50a6c`；
+  - layout digest：`ed7759fddfc55eb546fd29363cea003898236cac6a85b32f2cf9717b72afddef`。
+- 重排前基线：`stage4/L4_COLUMN/v008_20261028_225634` 保留在磁盘，
+  不再是 current；在 v2 契约下会因 config/layout digest 不符而拒绝
+  启动，属预期保护。
+
+| 对象 | A | B | C | D | E |
+|---|---|---|---|---|---|
+| UR5 基座 | (−0.20, +0.55, 0.30) | (−0.20, −0.55, 0.30) | (+0.35, +1.35, 0.30) | (+2.34, −1.35, 0.30) | (+2.34, +1.35, 0.30) |
+| Island | (−0.20, +0.55) | (−0.20, −0.55) | (+0.35, +1.35) | (+2.34, −1.35) | (+2.34, +1.35) |
+| 置物台/标称输出 | (−0.20, +1.20) | (−0.20, −1.20) | C→E 入口 | S2→D 停止区 | E 缓冲 C |
+| AGV dock | (+0.40, +0.70) | (+0.40, −0.70) | — | (+2.90, −1.35) | (+2.90, +1.35) |
+
+物流线（全部为内置 `generic conveyor (belt).ttm`，设计长度 1.216 m）：
+
+| 线 | 方向 | 入口 | 停止区 |
+|---|---|---|---|
+| `line_s1a`（既有 S1→A） | +X | (−1.017, 0.000) | (−0.200, 0.000) |
+| `line_s1b`（S1→B） | +Y | (−0.750, −1.467) | (−0.750, −0.650) |
+| `line_s2d`（S2→D） | +X | (+1.013, −1.350) | (+1.830, −1.350) |
+| `line_ce`（C→E） | +X | (+1.013, +1.350) | (+1.830, +1.350) |
+
+高度 datum（`extra.stage4.layout.height_datum`）：
+
+- `Z_base = 0.30 m`：A–E 全部 UR5 安装基面（统一，无高台例外）；
+- `Z_work`：A/B 置物台 0.30、E 岛缓冲/输出 0.30、C/D 由传送带承载 0.45；
+- `Z_belt = 0.45 m`；`H_transfer = 0.65 m`（06-15）；
+- 物料中心 = 承载面 + 0.05 m；E 成品输出在岛外东侧独立台 `E_Output_Table (3.50,1.35)`，台面 0.30 m。
+
+AGV 路网（`extra.stage4.layout.agv_network`）：
+
+```text
+A (0.40,0.70) ─┐  west
+B (0.40,-0.70) ─┴────────────► J_SW (0.40,-2.10)
+                                   │ south
+                                   ▼
+D (2.90,-1.35) ◄──── east ─── J_SE (2.90,-2.10)
+E (2.90, 1.35) ◄──── east
+```
+
+- 载货 B→A（x=0.40）与 D→E（x=2.90）为单段直道，车头 −Y；
+- 空载调机走最短路径，在 `J_SW`/`J_SE` 停车原地转向 90°；
+- 每条路线持有实际经过的 `agv_lane_*` 与全部 dock；
+- 自动预览：`docs/implementation/evidence/stage4_layout_L5_UFLOW_preview.svg`；
+- 静态筛选 274 项通过；场景契约 187 项通过；五台臂 13 个
+  pick/place/dock/buffer 目标用与规划器一致的多解种子枚举，全部在
+  关节限位内求解成功。
+
+### 12.2 与 `L4_COLUMN` 的差异
+
+- A/B 基座、置物台、dock、S1 输入带与 AGV 初始位姿保持不变；
+- C/D/E 从 x=−0.20 的列式排布移到东侧，固定物流改沿 +X；
+- 四个 dock 不再共线；AGV 从单段直线改为西/南/东三段直道 + 掉头；
+- C/D 基座由 0.45 m 降为统一 0.30 m；
+- 资源表移除 `zone_ce`（C–E 距离 1.99 m，不再相邻），增加三条
+  直道资源；
+- E 两个缓冲改为基座东西两侧的径向布置。
+
+### 12.3 受影响的路径与修正
+
+- **A→C 交接**：A 放置后仍撤离到交接台西南侧 park 位姿
+  `(−0.35, 0.90, 0.70)`；C 从东侧接近，A/C 通过 `zone_ac` 串行。
+- **A→交接水平转运**：直线段仍会穿过 A 基座上方，按 06-15 回退到
+  同高度 `detour +0.30 m`，不是 4.1 新缺陷。
+- **C→E**：C 从交接台到带入口的水平段跨过 C 基座，同样使用 06-15
+  的 `detour +0.30 m`；C 放到带入口前必须停带确认。
+- **E AGV 卸货**：初版缓冲 `(2.50,1.13)` 使 dock→缓冲的水平段发生
+  横向折叠，连续 IK 偏差 23.8 mm 被 `GOAL_CONFIG_INVALID` 拒绝；
+  改为径向 `(2.58,1.35)` 后通过。该试错记录保留在此，避免把“IK
+  可行”误当作“连续路径可行”。
+- **E 成品输出**：v001 把 `E_Output` 放在 E 岛面 `(2.40,1.60)`，
+  `full_flow` 最后一条 `e_conveyor_uid2` 接近 buffer 时 link3 与已生成
+  的 FINAL `Part_0004` 发生 `robot_vs_parts` 碰撞并冻结整线。输出改为
+  岛外独立台 `E_Output_Table (3.50,1.35)`（距 E 基座 1.16 m、
+  东直道扫掠矩形 0.21 m）后，FINAL 不再进入任何机械臂包络。该失败是
+  本轮唯一导致 full_flow 冻结的几何问题；v001 及两次失败保存草稿
+  v002/v003 已删除，工作区只保留 v004。
+- **A 臂 AGV→交接台转运**：`staggered_batch` 首轮中 A 臂由不同
+  前置任务进入 AGV 取料后落入不同腕部分支，直连横向偏差 8.1 mm，
+  `+0.30` 绕行 IK 无解、`-0.30` 绕行 5.0 mm 仍被拒绝。阶段四增加
+  `horizontal_detour_park` 同高度 via-park 候选（仍为两段笛卡尔
+  水平线，全部 IK/碰撞/分支/姿态复核）；阶段二/三默认候选不变。
+- **AGV 转向**：原地 90° 转向实测产生约 4 cm 平移；阶段四直道
+  控制器加入横向纠偏（前视 0.50 m，最大航向偏置 0.20 rad），距目标
+  0.10 m 内恢复原航向，停靠/航向容差不变。
+
+### 12.4 验收结果
+
+阶段 4.1 的三组验收边界在 v004 工件上执行；命令见
+[项目使用指南](../wiki/98-ProjectUsage/USAGE.md)，原始运行 JSON 在
+`docs/implementation/runs/`（不提交），分析摘要复制到
+`docs/implementation/evidence/phase4_41_analysis_*.json`。
+
+| 场景 | 运行证据 | 仿真时间 | 任务 | FINAL | 关键判据 |
+|---|---|---|---|---|---|
+| `full_flow` | `phase4_41_analysis_full_flow_20261029_173632.json` | 343.90 s | 13/13 DONE | 1（父件 1+3） | B→A 11.90 s、D→E 23.00 s、A→D 空载 61.40 s（3 直道 + 2 转向）；停靠 ≤0.0199 m、滑移 ≤0.0090 m；1 个未配对 SEMI_CE；无锁存 |
+| `staggered_batch` | `phase4_41_analysis_staggered_batch_20261029_170923.json` | 549.05 s | 20/20 DONE | 2（父件 1+3、4+5） | 最大并发 3、`interleaved=true`；B→A 11.90 s、D→E 23.05/22.85 s、E→D 空载 23.00 s；停靠 ≤0.0199 m、滑移 ≤0.0090 m；1 个未配对 SEMI_CE（uid2）；无锁存、资源全部释放 |
+| `conveyor_fault` | `phase4_41_analysis_conveyor_fault_20261029_180818.json` | 95.40 s | 3 DONE / 1 BLOCKED / 1 冻结失败 | 0（预期） | 在 `c_handoff_uid1` 后停 `line_ce`：`e_conveyor_uid1` BLOCKED、整线冻结、无 FINAL；uid1 留在 `line_ce`、uid2 仍在吸盘；资源释放 |
+
+- **布局与可达**：静态筛选 274 项通过；场景契约 187 项通过；五台臂
+  13 个目标在限位内全部有解（`--ik` 使用与规划器一致的多解种子）；
+  AGV 载货路线为单段直道，空载调机 5 航段/2 次原地转向。
+- **流程联动**：`staggered_batch` 由 A/C/E 固定流、B→A 返工流和
+  D→E 装配流交错组成；20 个任务全部 DONE，E 岛按 UID/类型配对生成
+  两个 FINAL 并保留父 UID，未配对的 uid2 留在 `buffer_e_c`。
+- **基本停机**：`conveyor_fault` 停 `line_ce` 后，`e_conveyor_uid1` 进入
+  BLOCKED、整线冻结、无 FINAL，物料与现场保留、资源释放（验收通过）。
+  另运行 `agv_blocked` 作为补充：B→A 段阻塞 10 s 后清障续行（滑移
+  1.36 cm）；D→E 长直道阻塞续行后载荷滑移 6.15 cm > 2 cm，按
+  `LOAD_SLIP` 冻结——停机/保留/不误报 DONE 正确，但该场景要求的
+  “续行完成”未达到，作为后续控制优化项记录；第三组验收以
+  `conveyor_fault` 为准。
+
+- **失败证据**：v001 的 `full_flow` 在 E 输出位于岛面时以
+  `PATH_COLLISION` 失败（`phase4_41_analysis_full_flow_v001_failed_20261029_131209.json`）；
+  `staggered_batch` 在修复前有五次失败运行（首轮为 via-park 候选引入前
+  的 8.1 mm 分支失败），分别记录执行期预算、pre_pick 分支、AGV 放置点
+  与释放目标同源问题
+  （`phase4_41_analysis_staggered_batch_v004*_failed_20261029_*.json`）。
+
+### 12.5 交错批次暴露并修复的实现缺陷
+
+交错批次除验证布局与联动外，还暴露了三处与布局无关、但会阻断多岛流程的实现缺陷。三处修复都保留既有检查边界：没有放宽容差、没有跳过碰撞/分支/水平姿态复核，也没有改变布局、工件契约或阶段二/三的默认路径。
+
+1. **执行期继承规划墙钟预算**（`src/stage2/path_planning.py`、`src/stage2/unit_controller.py`）：`LocalPlanner.plan` 把本次 `PlanBudget` 挂到 `ConfigurationChecker` 后没有恢复，执行器每步 `check_segment` 继续消耗同一预算。三路并发把仿真推进压到约 0.16 仿真秒/墙钟秒，C 的 23 s 转运在执行中触发 `墙钟 150.33s > 150.0s`，以未捕获异常中止场景（`phase4_41_analysis_staggered_batch_v004b_failed_20261029_150621.json`）。现在 `_run_motion` 在计划通过、创建执行器前调用 `checker.set_budget(planner.budget)`；规划墙钟只约束规划与验证，执行期仍逐步做碰撞/偏差/超时复核。
+
+2. **A 臂 AGV 取料的 `pre_pick` 分支选择**（`Goal.forced_q`、`Stage4UnitController._forced_pre_pick`）：默认 `pre_pick` 取离当前构型最近的 q[0]≈−1.5 肩部解，抬升后落入肘上分支，在 `H_transfer` 上无法把物料送到交接台——直连横向偏差 7.8 mm，固定高度绕行点（28 点与加宽西侧的 36 点两轮网格）、beam 整链搜索、0.5 cm 步长与全种子搜索均无解（`phase4_41_analysis_staggered_batch_v004c_failed_20261029_151907.json`）。同一 `pre_pick` 位姿的 q[0]≈+2.0 肩部解抬升后 q[3]≈0，既有 `detour +0.30` 即可通过。现在对少量 `pre_pick` IK 解各做一次“下探→抬升→水平转运”影子规划，只通过 `Goal.forced_q` 强制完整链已整体验证的构型；每段仍用同一 IK/碰撞/分支/水平姿态复核。生效记录：`APPROACH branch selected q0=-4.258 q3=0.356`（v004d，`a_agv_uid2` DONE；`full_flow` 为 q0=1.988/q3=0.339）。
+
+3. **AGV 载台放置点/释放目标使用固定标称坐标**（`Stage4UnitController._place_pose`、`_material_pose_for_target`、`agv_place_pose`、`agv_material_position`，`Stage4Coordinator._expected_material_pose`）：AGV 停靠偏离标称时，固定标称放置点会让载荷降入托盘时蹭到 `AGV_TrayWall_Front`（v004d，t=459，停靠偏差 3.3 cm）；改为实测托盘中心后，释放校验与协调器 `PLACE_ERROR` 仍对比标称位姿，B 件报 `RELEASE_CORRECTION_EXCEEDED 0.0478 m`（`phase4_41_analysis_staggered_batch_v004e_failed_20261029_165914.json`）。现在放置 TCP、释放目标物料位姿和完成校验统一由 `agv_material_position(tray_pose)` 生成，工具姿态与竖向偏移不变；该修正只影响 `sink=agv` 任务，AGV 取料仍用实测物料位姿。

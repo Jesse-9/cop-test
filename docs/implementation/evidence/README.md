@@ -164,3 +164,64 @@
   `docs/implementation/runs/phase4_run_*.json`，不纳入版本控制；
   本目录的分析摘要由 `docs/measurement/analyze_stage4_run.py` 生成，
   含验收、任务、路线、物料与指标字段。
+
+- 阶段 4.1 `L5_UFLOW` 布局与联动优化（2026-10-29，工件
+  `stage4/L5_UFLOW/v004_20261029_133249`，父
+  `stage3/L2_MIRROR/v008_20261029_112305`，契约
+  `stage4_contract_20261029_v2`）：
+  - `stage4_layout_L5_UFLOW_preview.svg` — 从最终 `Stage4Layout` 配置
+    生成的俯视预览（设备、固定物流、AGV 直道/转向节点、dock、datum）；
+  - `stage4_layout_20261029_L5_UFLOW.json` — 静态筛选 274 项、场景契约
+    187 项、五臂 13 个目标的多解种子 IK 与当前场景只读测量；
+  - `scene_validation_stage4_L5_UFLOW_v004_20261029_133249_20261029_133359.json`
+    — v004 工件保存后重载 461 项只读校验通过、0 差异；
+  - `phase4_41_analysis_full_flow_v001_failed_20261029_131209.json`
+    — v001 的失败证据：E 输出在岛面时，最后一条 E 任务与 FINAL
+    `Part_0004` 发生 `PATH_COLLISION`，任务 FAILED、整线冻结；
+  - `phase4_41_analysis_full_flow_20261029_133611.json` — v004
+    `full_flow`（控制器修复前）：13/13 任务 DONE，1 个 FINAL（父件 1/3），
+    1 个未配对 SEMI_CE；B→A 11.90 s、D→E 23.05 s、A→D 空载 61.40 s
+    （3 直道 + 2 次原地转向）；停靠误差 ≤0.0199 m，滑移 ≤0.0087 m；
+  - `phase4_41_analysis_full_flow_20261029_173632.json` — 控制器修复后
+    （pre_pick 分支复核、AGV 放置跟随实测托盘）的 `full_flow`：
+    343.90 s、13/13 任务 DONE、1 个 FINAL（父件 1+3）、1 个未配对
+    SEMI_CE；B→A 11.90 s、D→E 23.00 s、A→D 空载 61.40 s；停靠误差
+    ≤0.0199 m，滑移 ≤0.0090 m；
+  - `phase4_41_analysis_staggered_batch_v004_failed_20261029_135712.json`
+    — v004 `staggered_batch` 首轮失败：最大并发 3（交错成立），但
+    `a_agv_uid2` 水平转运在 8.1 mm 偏差处被拒、两个 ±0.30 绕行也
+    失败，整线冻结；用于记录 via-park 候选的引入原因；
+  - `phase4_41_analysis_staggered_batch_v004b_failed_20261029_150621.json`
+    — 加入 via-park 后的第二轮：并发 3、C 的 23 s 转运执行期间触发
+    `墙钟 150.33s > 150.0s`（规划预算对象仍挂在 checker 上，执行期
+    继续计时），未捕获异常中止场景；用于记录执行期预算生命周期修正；
+  - `phase4_41_analysis_staggered_batch_v004c_failed_20261029_151907.json`
+    — v004 第三轮：并发 3、交错成立、B→A 与 D→E 路线正常，8/11 任务
+    DONE；`a_agv_uid2` 在肘上分支下直连 7.8 mm、绕行无解而失败；
+    用于记录 `pre_pick` 分支整链复核的引入原因；
+  - `phase4_41_analysis_staggered_batch_v004d_failed_20261029_163703.json`
+    — 分支复核生效后（`a_agv_uid2` 在 t=230.75 DONE）：15/17 任务
+    DONE、1 个 FINAL、最大并发 3；第二个 D 件在 t=459 下探时载荷与
+    `AGV_TrayWall_Front` 碰撞（AGV 停靠偏离标称 3.3 cm，放置点仍用
+    固定标称托盘坐标）；用于记录 AGV 放置点跟随实测托盘的修正；
+  - `phase4_41_analysis_staggered_batch_v004e_failed_20261029_165914.json`
+    — 放置点改为实测托盘后，B 件释放校验仍对比标称物料位姿，
+    `RELEASE_CORRECTION_EXCEEDED 0.0478 m`（t=91.1）；用于记录
+    释放目标/协调器验收必须与放置点同源的修正；
+  - `phase4_41_analysis_staggered_batch_20261029_170923.json` — 修复后
+    v004 `staggered_batch`：20/20 任务 DONE，2 个 FINAL（父件 1+3、
+    4+5），1 个未配对 SEMI_CE（uid2），最大并发 3、交错成立；
+    B→A 11.90 s、D→E 23.05/22.85 s、E→D 空载 23.00 s，停靠误差
+    ≤0.0199 m，滑移 ≤0.0090 m；无锁存、资源全部释放；
+  - `phase4_41_analysis_agv_blocked_20261029_175227.json` — v004
+    `agv_blocked`：B→A 阻塞 10 s 后清障续行，滑移 1.36 cm；D→E 在
+    长直道中点阻塞续行后载荷滑移 6.15 cm > 2 cm，`LOAD_SLIP` 冻结
+    整线（停机/保留/不误报 DONE 正确，但该场景要求的续行完成未达到）；
+  - `phase4_41_analysis_conveyor_fault_20261029_180818.json` — v004
+    停机回归：`c_handoff_uid1` 后停 `line_ce`，`e_conveyor_uid1`
+    BLOCKED、整线冻结、无 FINAL，uid1 留在线上、uid2 仍在吸盘，
+    资源释放；场景验收 `ok=true`；
+  - `phase4_41_analysis_*.json` — 阶段 4.1 场景（full_flow /
+    staggered_batch / agv_priority / agv_blocked / conveyor_fault）的
+    验收、任务、航段/lane、物料与指标摘要；原始
+    `phase4_run_*.json` 仍在 `runs/`，不提交。

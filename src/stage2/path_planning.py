@@ -175,6 +175,9 @@ class Goal:
     # 阶段 2.01: 段内固定关节 (值取段起始构型); None 表示自由
     lock_joint: Optional[int] = None
     lock_tol: float = cfg.Q0_LOCK_TOL
+    # 强制本段使用指定 IK 构型 (调用方须已完成该构型的下游链复核);
+    # None 表示按候选搜索. 规划仍逐段做同一碰撞/分支/姿态检查.
+    forced_q: Optional[list[float]] = None
 
 
 @dataclass
@@ -371,6 +374,15 @@ class ConfigurationChecker:
     def with_budget(self, budget: PlanBudget) -> "ConfigurationChecker":
         self.budget = budget
         return self
+
+    def set_budget(self, budget: Optional[PlanBudget]) -> None:
+        """设置/清除预算.
+
+        ``LocalPlanner.plan`` 每次调用都会把本次规划预算挂到 checker 上;
+        规划结束进入执行后必须清除 (或换回长驻预算), 否则执行期逐点复核
+        会继续消耗规划墙钟, 长轨迹会被误判为规划预算超限.
+        """
+        self.budget = budget
 
     # ── 基础 ────────────────────────────────────────────────
 
@@ -1125,17 +1137,27 @@ class LocalPlanner:
                 return search(gi + 1, chain[-1], end_pose, new_q, new_ctx,
                               new_seg)
 
-            candidates = self.solve_pose(goal.pose, q_prev, thorough=True,
-                                         lock=lock)
-            if lock is not None and not candidates:
-                state["status"] = PlanStatus.JOINT_LOCK_UNAVAILABLE
-                state["message"] = (
-                    f"{goal.name}: 固定 q[{lock[0]}]={lock[1]:.4f} rad "
-                    f"(±{lock[2]:.4f}) 无解")
-                return None
-            candidates = self._order_candidates(
-                candidates[:cfg.PLAN_MAX_WAYPOINT_CANDIDATES],
-                q_prev, goals, gi, policy)
+            if goal.forced_q is not None:
+                # 调用方已完成该构型的下游链复核; 仍走下方同一段检查/
+                # 终点位姿/碰撞复核. forced_q 只用于无锁段.
+                if lock is not None:
+                    state["status"] = PlanStatus.LOCAL_AVOIDANCE_FAILED
+                    state["message"] = (
+                        f"{goal.name}: forced_q 与 lock_joint 不能同时使用")
+                    return None
+                candidates = [[float(v) for v in goal.forced_q]]
+            else:
+                candidates = self.solve_pose(goal.pose, q_prev,
+                                             thorough=True, lock=lock)
+                if lock is not None and not candidates:
+                    state["status"] = PlanStatus.JOINT_LOCK_UNAVAILABLE
+                    state["message"] = (
+                        f"{goal.name}: 固定 q[{lock[0]}]={lock[1]:.4f} rad "
+                        f"(±{lock[2]:.4f}) 无解")
+                    return None
+                candidates = self._order_candidates(
+                    candidates[:cfg.PLAN_MAX_WAYPOINT_CANDIDATES],
+                    q_prev, goals, gi, policy)
             for candidate in candidates:
                 state["nodes"] += 1
                 if state["nodes"] > cfg.PLAN_MAX_DFS_NODES:
@@ -1626,6 +1648,9 @@ class LocalPlanner:
 
 
 def _yaw_goals(goals: Sequence[Goal], yaw: float) -> list[Goal]:
+    # forced_q 绑定原目标位姿; 旋转位姿后该构型的下游复核失效, 不得变体
+    if any(goal.forced_q is not None for goal in goals):
+        return list(goals)
     out = []
     for goal in goals:
         pose = list(goal.pose)
@@ -1634,7 +1659,7 @@ def _yaw_goals(goals: Sequence[Goal], yaw: float) -> list[Goal]:
                         goal.allow_target_contact, goal.final_contact,
                         goal.strict_orientation,
                         goal.allow_final_load_contact,
-                        goal.lock_joint, goal.lock_tol))
+                        goal.lock_joint, goal.lock_tol, goal.forced_q))
     return out
 
 
@@ -1643,7 +1668,7 @@ def _without_locks(goals: Sequence[Goal]) -> list[Goal]:
     return [Goal(goal.name, list(goal.pose), goal.cartesian,
                  goal.allow_target_contact, goal.final_contact,
                  goal.strict_orientation, goal.allow_final_load_contact,
-                 None, goal.lock_tol) for goal in goals]
+                 None, goal.lock_tol, goal.forced_q) for goal in goals]
 
 
 def _lock_fields(lock: Optional[tuple[int, float, float]]) -> dict:

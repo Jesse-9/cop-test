@@ -1,0 +1,2376 @@
+{
+  "artifact_id": "stage4/L5_UFLOW/v004_20261029_133249",
+  "checks": [
+    {
+      "detail": "expected=bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c actual=bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c",
+      "name": "scene_file_digest",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "manifest_is_object",
+      "ok": true
+    },
+    {
+      "detail": "missing=[]",
+      "name": "manifest_required_fields",
+      "ok": true
+    },
+    {
+      "detail": "schema='1.0' supported=['1.0']",
+      "name": "manifest_schema_version",
+      "ok": true
+    },
+    {
+      "detail": "stage4/L5_UFLOW/v004_20261029_133249",
+      "name": "manifest_artifact_id",
+      "ok": true
+    },
+    {
+      "detail": "stage4",
+      "name": "manifest_source_phase",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "manifest_protected_bool",
+      "ok": true
+    },
+    {
+      "detail": "digest=4c08edd4376e28216cb6e5bc7316b0ad4bc50d85b742b66f6831b84716657bc0",
+      "name": "manifest_config_digest",
+      "ok": true
+    },
+    {
+      "detail": "version=4.10.0.0",
+      "name": "manifest_simulator_version",
+      "ok": true
+    },
+    {
+      "detail": "layout=L5_UFLOW",
+      "name": "manifest_layout_id",
+      "ok": true
+    },
+    {
+      "detail": "sha256='bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c'",
+      "name": "manifest_scene_digest",
+      "ok": true
+    },
+    {
+      "detail": "scene_file=scene.partial.ttt",
+      "name": "manifest_scene_file",
+      "ok": true
+    },
+    {
+      "detail": "",
+      "name": "manifest_objects_list",
+      "ok": true
+    },
+    {
+      "detail": "bad=[]",
+      "name": "manifest_alias_format",
+      "ok": true
+    },
+    {
+      "detail": "duplicates=[]",
+      "name": "manifest_duplicate_aliases",
+      "ok": true
+    },
+    {
+      "detail": "missing=[]",
+      "name": "manifest_required_aliases",
+      "ok": true
+    },
+    {
+      "detail": "0 项配置差异",
+      "name": "config_digest_matches",
+      "ok": true
+    },
+    {
+      "detail": "saved=7355e4fa6d5dd318ba6c8340cdb0af0c4d034f15f26e7348d6699b93fd27de1c current=7355e4fa6d5dd318ba6c8340cdb0af0c4d034f15f26e7348d6699b93fd27de1c",
+      "name": "model_digest:conveyor",
+      "ok": true
+    },
+    {
+      "detail": "saved=e0e1c6a77868ecfbedc65eeb96675a7475724f554cf248f2ebe1d8bf1fef23d7 current=e0e1c6a77868ecfbedc65eeb96675a7475724f554cf248f2ebe1d8bf1fef23d7",
+      "name": "model_digest:pioneer_p3dx",
+      "ok": true
+    },
+    {
+      "detail": "saved=2aded47a13b395bad91322a864a4211faf8a2fdbeb315a134b8f569f536dce1c current=2aded47a13b395bad91322a864a4211faf8a2fdbeb315a134b8f569f536dce1c",
+      "name": "model_digest:suction_pad",
+      "ok": true
+    },
+    {
+      "detail": "saved=9485232ff53b5b216d2b1879f925c5832a1218256f61353bebfb75802e7c3ffc current=9485232ff53b5b216d2b1879f925c5832a1218256f61353bebfb75802e7c3ffc",
+      "name": "model_digest:ur5",
+      "ok": true
+    },
+    {
+      "detail": "saved=4.10 current=4.10",
+      "name": "simulator_version_matches",
+      "ok": true
+    },
+    {
+      "detail": "saved=bullet current=bullet",
+      "name": "simulator_engine_matches",
+      "ok": true
+    },
+    {
+      "detail": "state=0",
+      "name": "simulation_stopped",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:AGV_LoadTray",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:AGV_LoadTray",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile_AGV_P3DX' actual='Mobile_AGV_P3DX'",
+      "name": "object_parent:AGV_LoadTray",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, 0.7, 0.247] actual=[0.4, 0.7, 0.24703] tol=0.02",
+      "name": "world_pos:AGV_LoadTray",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:AGV_TrayWall_Back",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:AGV_TrayWall_Back",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile_AGV_P3DX' actual='Mobile_AGV_P3DX'",
+      "name": "object_parent:AGV_TrayWall_Back",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, 0.855, 0.272] actual=[0.4, 0.855, 0.27203] tol=0.02",
+      "name": "world_pos:AGV_TrayWall_Back",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:AGV_TrayWall_Front",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:AGV_TrayWall_Front",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile_AGV_P3DX' actual='Mobile_AGV_P3DX'",
+      "name": "object_parent:AGV_TrayWall_Front",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, 0.545, 0.272] actual=[0.4, 0.545, 0.27203] tol=0.02",
+      "name": "world_pos:AGV_TrayWall_Front",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:AGV_TrayWall_Left",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:AGV_TrayWall_Left",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile_AGV_P3DX' actual='Mobile_AGV_P3DX'",
+      "name": "object_parent:AGV_TrayWall_Left",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.555, 0.7, 0.272] actual=[0.555, 0.7, 0.27203] tol=0.02",
+      "name": "world_pos:AGV_TrayWall_Left",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:AGV_TrayWall_Right",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:AGV_TrayWall_Right",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile_AGV_P3DX' actual='Mobile_AGV_P3DX'",
+      "name": "object_parent:AGV_TrayWall_Right",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.245, 0.7, 0.272] actual=[0.245, 0.7, 0.27203] tol=0.02",
+      "name": "world_pos:AGV_TrayWall_Right",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Conveyor",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, 0.0] actual=[0.0, 0.0, 0.0] tol=0.002",
+      "name": "world_pos:Conveyor",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_C_to_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_C_to_E",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor' actual='Conveyor'",
+      "name": "object_parent:Conveyor_C_to_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.41, 1.35, 0.45] actual=[1.41, 1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_C_to_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_C_to_E_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_C_to_E_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_C_to_E' actual='Conveyor_C_to_E'",
+      "name": "object_parent:Conveyor_C_to_E_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.0128, 1.35, 0.45] actual=[1.01277, 1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_C_to_E_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_C_to_E' actual='Conveyor_C_to_E'",
+      "name": "object_parent:Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, 1.35, 0.45] actual=[1.83, 1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_In",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_In",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor' actual='Conveyor'",
+      "name": "object_parent:Conveyor_In",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.62, 0.0, 0.45] actual=[-0.62, 0.0, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_In",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_In_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_In_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_In' actual='Conveyor_In'",
+      "name": "object_parent:Conveyor_In_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-1.0172, 0.0, 0.45] actual=[-1.01723, 0.0, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_In_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_In_PickupStop",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_In_PickupStop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_In' actual='Conveyor_In'",
+      "name": "object_parent:Conveyor_In_PickupStop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.0, 0.45] actual=[-0.2, 0.0, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_In_PickupStop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S1_to_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S1_to_B",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor' actual='Conveyor'",
+      "name": "object_parent:Conveyor_S1_to_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.75, -1.07, 0.45] actual=[-0.75, -1.07, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S1_to_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S1_to_B_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S1_to_B_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S1_to_B' actual='Conveyor_S1_to_B'",
+      "name": "object_parent:Conveyor_S1_to_B_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.75, -1.4672, 0.45] actual=[-0.75, -1.46723, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S1_to_B_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S1_to_B' actual='Conveyor_S1_to_B'",
+      "name": "object_parent:Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.75, -0.65, 0.45] actual=[-0.75, -0.65, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S2_to_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S2_to_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor' actual='Conveyor'",
+      "name": "object_parent:Conveyor_S2_to_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.41, -1.35, 0.45] actual=[1.41, -1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S2_to_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S2_to_D_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S2_to_D_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S2_to_D' actual='Conveyor_S2_to_D'",
+      "name": "object_parent:Conveyor_S2_to_D_Entry",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.0128, -1.35, 0.45] actual=[1.01277, -1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S2_to_D_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S2_to_D' actual='Conveyor_S2_to_D'",
+      "name": "object_parent:Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, -1.35, 0.45] actual=[1.83, -1.35, 0.45] tol=0.002",
+      "name": "world_pos:Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.1, 1.35, 0.35] actual=[2.1, 1.35, 0.35] tol=0.002",
+      "name": "world_pos:E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.58, 1.35, 0.35] actual=[2.58, 1.35, 0.35] tol=0.002",
+      "name": "world_pos:E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:E_Output",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:E_Output",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:E_Output",
+      "ok": true
+    },
+    {
+      "detail": "expected=[3.5, 1.35, 0.36] actual=[3.5, 1.35, 0.36] tol=0.002",
+      "name": "world_pos:E_Output",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:E_Output_Table",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:E_Output_Table",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:E_Output_Table",
+      "ok": true
+    },
+    {
+      "detail": "expected=[3.5, 1.35, 0.15] actual=[3.5, 1.35, 0.15] tol=0.002",
+      "name": "world_pos:E_Output_Table",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Floor",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Floor",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Floor",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, -0.05] actual=[0.0, 0.0, -0.05] tol=0.002",
+      "name": "world_pos:Floor",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:IK_Target_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:IK_Target_01",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:IK_Target_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.0, 0.55] actual=[-0.2, 0.0, 0.55] tol=0.002",
+      "name": "world_pos:IK_Target_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:IK_Target_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:IK_Target_02",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:IK_Target_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.0, 0.55] actual=[-0.2, 0.0, 0.55] tol=0.002",
+      "name": "world_pos:IK_Target_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:IK_Target_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:IK_Target_03",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:IK_Target_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.0128, 1.35, 0.55] actual=[1.01277, 1.35, 0.55] tol=0.002",
+      "name": "world_pos:IK_Target_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:IK_Target_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:IK_Target_04",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:IK_Target_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, -1.35, 0.55] actual=[1.83, -1.35, 0.55] tol=0.002",
+      "name": "world_pos:IK_Target_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:IK_Target_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:IK_Target_05",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:IK_Target_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, 1.35, 0.55] actual=[1.83, 1.35, 0.55] tol=0.002",
+      "name": "world_pos:IK_Target_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Island",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Island",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, 0.0] actual=[0.0, 0.0, 0.0] tol=0.002",
+      "name": "world_pos:Island",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_A",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_A",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_A",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.55, 0.15] actual=[-0.2, 0.55, 0.15] tol=0.002",
+      "name": "world_pos:Island_A",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_A_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_A_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_A_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 1.2, 0.15] actual=[-0.2, 1.2, 0.15] tol=0.002",
+      "name": "world_pos:Island_A_Station",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_B",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, -0.55, 0.15] actual=[-0.2, -0.55, 0.15] tol=0.002",
+      "name": "world_pos:Island_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_B_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_B_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_B_Station",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, -1.2, 0.15] actual=[-0.2, -1.2, 0.15] tol=0.002",
+      "name": "world_pos:Island_B_Station",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_C",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.35, 1.35, 0.15] actual=[0.35, 1.35, 0.15] tol=0.002",
+      "name": "world_pos:Island_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.34, -1.35, 0.15] actual=[2.34, -1.35, 0.15] tol=0.002",
+      "name": "world_pos:Island_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Island_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Island_E",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Island_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.34, 1.35, 0.15] actual=[2.34, 1.35, 0.15] tol=0.002",
+      "name": "world_pos:Island_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Mobile",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Mobile",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Mobile",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, 0.0] actual=[0.0, 0.0, 0.0] tol=0.002",
+      "name": "world_pos:Mobile",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Mobile_AGV_P3DX",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Mobile_AGV_P3DX",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile' actual='Mobile'",
+      "name": "object_parent:Mobile_AGV_P3DX",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, 0.7, 0.1388] actual=[0.4, 0.7, 0.13879] tol=0.02",
+      "name": "world_pos:Mobile_AGV_P3DX",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Part",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Part",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Part",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, 0.0] actual=[0.0, 0.0, 0.0] tol=0.002",
+      "name": "world_pos:Part",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:PlaceTarget_Station_A",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:PlaceTarget_Station_A",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:PlaceTarget_Station_A",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 1.2, 0.35] actual=[-0.2, 1.2, 0.35] tol=0.002",
+      "name": "world_pos:PlaceTarget_Station_A",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:PlaceTarget_Station_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:PlaceTarget_Station_B",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:PlaceTarget_Station_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, -1.2, 0.35] actual=[-0.2, -1.2, 0.35] tol=0.002",
+      "name": "world_pos:PlaceTarget_Station_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Robot_UR5_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Robot_UR5_01",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island_A' actual='Island_A'",
+      "name": "object_parent:Robot_UR5_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.55, 0.3] actual=[-0.2, 0.55, 0.3] tol=0.002",
+      "name": "world_pos:Robot_UR5_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Robot_UR5_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Robot_UR5_02",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island_B' actual='Island_B'",
+      "name": "object_parent:Robot_UR5_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, -0.55, 0.3] actual=[-0.2, -0.55, 0.3] tol=0.002",
+      "name": "world_pos:Robot_UR5_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Robot_UR5_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Robot_UR5_03",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island_C' actual='Island_C'",
+      "name": "object_parent:Robot_UR5_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.35, 1.35, 0.3] actual=[0.35, 1.35, 0.3] tol=0.002",
+      "name": "world_pos:Robot_UR5_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Robot_UR5_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Robot_UR5_04",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island_D' actual='Island_D'",
+      "name": "object_parent:Robot_UR5_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.34, -1.35, 0.3] actual=[2.34, -1.35, 0.3] tol=0.002",
+      "name": "world_pos:Robot_UR5_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Robot_UR5_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Robot_UR5_05",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island_E' actual='Island_E'",
+      "name": "object_parent:Robot_UR5_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.34, 1.35, 0.3] actual=[2.34, 1.35, 0.3] tol=0.002",
+      "name": "world_pos:Robot_UR5_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_AGV_Dock",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_AGV_Dock",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile' actual='Mobile'",
+      "name": "object_parent:Sensor_AGV_Dock",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, 0.7, 0.3] actual=[0.4, 0.7, 0.3] tol=0.002",
+      "name": "world_pos:Sensor_AGV_Dock",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_AGV_Dock_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_AGV_Dock_B",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile' actual='Mobile'",
+      "name": "object_parent:Sensor_AGV_Dock_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.4, -0.7, 0.3] actual=[0.4, -0.7, 0.3] tol=0.002",
+      "name": "world_pos:Sensor_AGV_Dock_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_AGV_Dock_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_AGV_Dock_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile' actual='Mobile'",
+      "name": "object_parent:Sensor_AGV_Dock_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.9, -1.35, 0.3] actual=[2.9, -1.35, 0.3] tol=0.002",
+      "name": "world_pos:Sensor_AGV_Dock_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_AGV_Dock_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_AGV_Dock_E",
+      "ok": true
+    },
+    {
+      "detail": "expected='Mobile' actual='Mobile'",
+      "name": "object_parent:Sensor_AGV_Dock_E",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.9, 1.35, 0.3] actual=[2.9, 1.35, 0.3] tol=0.002",
+      "name": "world_pos:Sensor_AGV_Dock_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_ConveyorExit",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_ConveyorExit",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_In' actual='Conveyor_In'",
+      "name": "object_parent:Sensor_ConveyorExit",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.15, 0.0, 0.6] actual=[-0.15, 0.0, 0.6] tol=0.002",
+      "name": "world_pos:Sensor_ConveyorExit",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_C_to_E' actual='Conveyor_C_to_E'",
+      "name": "object_parent:Sensor_Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, 1.35, 0.6] actual=[1.83, 1.35, 0.6] tol=0.002",
+      "name": "world_pos:Sensor_Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S1_to_B' actual='Conveyor_S1_to_B'",
+      "name": "object_parent:Sensor_Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.75, -0.65, 0.6] actual=[-0.75, -0.65, 0.6] tol=0.002",
+      "name": "world_pos:Sensor_Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_S2_to_D' actual='Conveyor_S2_to_D'",
+      "name": "object_parent:Sensor_Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.83, -1.35, 0.6] actual=[1.83, -1.35, 0.6] tol=0.002",
+      "name": "world_pos:Sensor_Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Sensor_E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.1, 1.35, 0.45] actual=[2.1, 1.35, 0.45] tol=0.002",
+      "name": "world_pos:Sensor_E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Sensor_E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.58, 1.35, 0.45] actual=[2.58, 1.35, 0.45] tol=0.002",
+      "name": "world_pos:Sensor_E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_Handoff_AC",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_Handoff_AC",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Sensor_Handoff_AC",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 1.2, 0.45] actual=[-0.2, 1.2, 0.45] tol=0.002",
+      "name": "world_pos:Sensor_Handoff_AC",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_PickStation",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_PickStation",
+      "ok": true
+    },
+    {
+      "detail": "expected='Conveyor_In' actual='Conveyor_In'",
+      "name": "object_parent:Sensor_PickStation",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.0, 0.6] actual=[-0.2, 0.0, 0.6] tol=0.002",
+      "name": "world_pos:Sensor_PickStation",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_01_TCP' actual='SuctionPad_01_TCP'",
+      "name": "object_parent:Sensor_SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, 0.0631, 0.6621] actual=[-0.31, 0.0631, 0.66215] tol=0.002",
+      "name": "world_pos:Sensor_SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_02_TCP' actual='SuctionPad_02_TCP'",
+      "name": "object_parent:Sensor_SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, -1.0369, 0.6621] actual=[-0.31, -1.0369, 0.66215] tol=0.002",
+      "name": "world_pos:Sensor_SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_03_TCP' actual='SuctionPad_03_TCP'",
+      "name": "object_parent:Sensor_SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.24, 0.8631, 0.6621] actual=[0.24, 0.8631, 0.66215] tol=0.002",
+      "name": "world_pos:Sensor_SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_04_TCP' actual='SuctionPad_04_TCP'",
+      "name": "object_parent:Sensor_SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, -1.8369, 0.6621] actual=[2.23, -1.8369, 0.66215] tol=0.002",
+      "name": "world_pos:Sensor_SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Sensor_SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=proximitysensor actual=proximitysensor",
+      "name": "object_type:Sensor_SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_05_TCP' actual='SuctionPad_05_TCP'",
+      "name": "object_parent:Sensor_SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, 0.8631, 0.6621] actual=[2.23, 0.8631, 0.66215] tol=0.002",
+      "name": "world_pos:Sensor_SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Source_S1_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Source_S1_B",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Source_S1_B",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.75, -1.467, 0.51] actual=[-0.75, -1.467, 0.51] tol=0.002",
+      "name": "world_pos:Source_S1_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Source_S2_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Source_S2_D",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Source_S2_D",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.013, -1.35, 0.51] actual=[1.013, -1.35, 0.51] tol=0.002",
+      "name": "world_pos:Source_S2_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Stage3_PickZone",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Stage3_PickZone",
+      "ok": true
+    },
+    {
+      "detail": "expected='Island' actual='Island'",
+      "name": "object_parent:Stage3_PickZone",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.2, 0.0, 0.5] actual=[-0.2, 0.0, 0.5] tol=0.002",
+      "name": "world_pos:Stage3_PickZone",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected='connection' actual='connection'",
+      "name": "object_parent:SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, 0.0631, 0.6771] actual=[-0.31, 0.0631, 0.67715] tol=0.002",
+      "name": "world_pos:SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_01_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:SuctionPad_01_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_01' actual='SuctionPad_01'",
+      "name": "object_parent:SuctionPad_01_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, 0.0631, 0.6621] actual=[-0.31, 0.0631, 0.66215] tol=0.002",
+      "name": "world_pos:SuctionPad_01_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected='connection' actual='connection'",
+      "name": "object_parent:SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, -1.0369, 0.6771] actual=[-0.31, -1.0369, 0.67715] tol=0.002",
+      "name": "world_pos:SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_02_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:SuctionPad_02_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_02' actual='SuctionPad_02'",
+      "name": "object_parent:SuctionPad_02_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-0.31, -1.0369, 0.6621] actual=[-0.31, -1.0369, 0.66215] tol=0.002",
+      "name": "world_pos:SuctionPad_02_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected='connection' actual='connection'",
+      "name": "object_parent:SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.24, 0.8631, 0.6771] actual=[0.24, 0.8631, 0.67715] tol=0.002",
+      "name": "world_pos:SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_03_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:SuctionPad_03_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_03' actual='SuctionPad_03'",
+      "name": "object_parent:SuctionPad_03_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.24, 0.8631, 0.6621] actual=[0.24, 0.8631, 0.66215] tol=0.002",
+      "name": "world_pos:SuctionPad_03_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected='connection' actual='connection'",
+      "name": "object_parent:SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, -1.8369, 0.6771] actual=[2.23, -1.8369, 0.67715] tol=0.002",
+      "name": "world_pos:SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_04_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:SuctionPad_04_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_04' actual='SuctionPad_04'",
+      "name": "object_parent:SuctionPad_04_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, -1.8369, 0.6621] actual=[2.23, -1.8369, 0.66215] tol=0.002",
+      "name": "world_pos:SuctionPad_04_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected='connection' actual='connection'",
+      "name": "object_parent:SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, 0.8631, 0.6771] actual=[2.23, 0.8631, 0.67715] tol=0.002",
+      "name": "world_pos:SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:SuctionPad_05_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:SuctionPad_05_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected='SuctionPad_05' actual='SuctionPad_05'",
+      "name": "object_parent:SuctionPad_05_TCP",
+      "ok": true
+    },
+    {
+      "detail": "expected=[2.23, 0.8631, 0.6621] actual=[2.23, 0.8631, 0.66215] tol=0.002",
+      "name": "world_pos:SuctionPad_05_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Warehouse",
+      "ok": true
+    },
+    {
+      "detail": "expected=dummy actual=dummy",
+      "name": "object_type:Warehouse",
+      "ok": true
+    },
+    {
+      "detail": "expected='' actual=''",
+      "name": "object_parent:Warehouse",
+      "ok": true
+    },
+    {
+      "detail": "expected=[0.0, 0.0, 0.0] actual=[0.0, 0.0, 0.0] tol=0.002",
+      "name": "world_pos:Warehouse",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Warehouse_Raw",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Warehouse_Raw",
+      "ok": true
+    },
+    {
+      "detail": "expected='Warehouse' actual='Warehouse'",
+      "name": "object_parent:Warehouse_Raw",
+      "ok": true
+    },
+    {
+      "detail": "expected=[-1.02, 0.42, 0.125] actual=[-1.02, 0.42, 0.125] tol=0.002",
+      "name": "world_pos:Warehouse_Raw",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "alias_unique:Warehouse_S2",
+      "ok": true
+    },
+    {
+      "detail": "expected=shape actual=shape",
+      "name": "object_type:Warehouse_S2",
+      "ok": true
+    },
+    {
+      "detail": "expected='Warehouse' actual='Warehouse'",
+      "name": "object_parent:Warehouse_S2",
+      "ok": true
+    },
+    {
+      "detail": "expected=[1.0, -0.9, 0.125] actual=[1.0, -0.9, 0.125] tol=0.002",
+      "name": "world_pos:Warehouse_S2",
+      "ok": true
+    },
+    {
+      "detail": "found=0",
+      "name": "no_legacy_stopper",
+      "ok": true
+    },
+    {
+      "detail": "374/374 checks",
+      "name": "scene_contract",
+      "ok": true
+    },
+    {
+      "detail": "type=dict",
+      "name": "stage4_extra_present",
+      "ok": true
+    },
+    {
+      "detail": "source_phase='stage4'",
+      "name": "stage4_source_phase",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage4_contract_20261029_v2' current='stage4_contract_20261029_v2'",
+      "name": "stage4_contract_version",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage4.unit_controller.Stage4UnitController' current='stage4.unit_controller.Stage4UnitController'",
+      "name": "stage4_id",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage4.coordinator.Stage4Coordinator' current='stage4.coordinator.Stage4Coordinator'",
+      "name": "stage4_coordinator",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage4.run.run_loaded_scene_stage4' current='stage4.run.run_loaded_scene_stage4'",
+      "name": "stage4_runner",
+      "ok": true
+    },
+    {
+      "detail": "saved=45e46fa09a6d4f5557df0a23d3eb3568a208156ac56b6460df5527d2ace50a6c current=45e46fa09a6d4f5557df0a23d3eb3568a208156ac56b6460df5527d2ace50a6c",
+      "name": "stage4_config_digest",
+      "ok": true
+    },
+    {
+      "detail": "saved=ed7759fddfc55eb546fd29363cea003898236cac6a85b32f2cf9717b72afddef current=ed7759fddfc55eb546fd29363cea003898236cac6a85b32f2cf9717b72afddef",
+      "name": "stage4_layout_digest",
+      "ok": true
+    },
+    {
+      "detail": "parent=stage3/L2_MIRROR/v008_20261029_112305",
+      "name": "stage4_parent_recorded",
+      "ok": true
+    },
+    {
+      "detail": "manifest=stage3/L2_MIRROR/v008_20261029_112305",
+      "name": "stage4_parent_matches_manifest",
+      "ok": true
+    },
+    {
+      "detail": "parent_source_phase='stage3'",
+      "name": "stage4_parent_source_phase",
+      "ok": true
+    },
+    {
+      "detail": "scene_changed=True",
+      "name": "stage4_scene_changed",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage3_contract_20261025_v1' current='stage3_contract_20261025_v1'",
+      "name": "stage4_stage3_contract_version",
+      "ok": true
+    },
+    {
+      "detail": "saved=c88d24526464bf59fbf2c25766dd31ec977b54762369bfe9aa9e22bf2d114a98 current=c88d24526464bf59fbf2c25766dd31ec977b54762369bfe9aa9e22bf2d114a98",
+      "name": "stage4_stage3_config_digest",
+      "ok": true
+    },
+    {
+      "detail": "saved='stage2_contract_20261028_v4' current='stage2_contract_20261028_v4'",
+      "name": "stage4_stage2_contract_version",
+      "ok": true
+    },
+    {
+      "detail": "saved=187080730ff6ea93bde16de511883c7163f61c807927959dc89ab9bc8faaa681 current=187080730ff6ea93bde16de511883c7163f61c807927959dc89ab9bc8faaa681",
+      "name": "stage4_stage2_config_digest",
+      "ok": true
+    },
+    {
+      "detail": "saved=['line_s1a', 'line_s1b', 'line_s2d', 'line_ce', 'handoff_ac', 'buffer_e_c', 'buffer_e_d', 'agv_lane_west', 'agv_lane_south', 'agv_lane_east', 'dock_A', 'dock_B', 'dock_D', 'dock_E', 'zone_ab', 'zone_ac', 'arm_A', 'arm_B', 'arm_C', 'arm_D', 'arm_E']",
+      "name": "stage4_resource_order",
+      "ok": true
+    },
+    {
+      "detail": "saved=['A', 'B', 'C', 'D', 'E']",
+      "name": "stage4_topology_islands",
+      "ok": true
+    },
+    {
+      "detail": "saved=['A_to_C', 'B_to_A', 'C_to_E', 'D_to_E', 'S1_to_A', 'S1_to_B', 'S2_to_D']",
+      "name": "stage4_topology_edges",
+      "ok": true
+    },
+    {
+      "detail": "saved={'A': [0.4, 0.7], 'B': [0.4, -0.7], 'D': [2.9, -1.35], 'E': [2.9, 1.35]}",
+      "name": "stage4_route_docks",
+      "ok": true
+    },
+    {
+      "detail": "saved=['agv_lane_west', 'agv_lane_south', 'agv_lane_east']",
+      "name": "stage4_route_lanes",
+      "ok": true
+    },
+    {
+      "detail": "saved=['J_SW', 'J_SE']",
+      "name": "stage4_route_turn_nodes",
+      "ok": true
+    },
+    {
+      "detail": "saved_Z_base=0.3 saved_H_transfer=0.65",
+      "name": "stage4_height_datum",
+      "ok": true
+    },
+    {
+      "detail": "saved={'A': [0.4, 0.7], 'B': [0.4, -0.7], 'D': [2.9, -1.35], 'E': [2.9, 1.35], 'J_SE': [2.9, -2.1], 'J_SW': [0.4, -2.1]}",
+      "name": "stage4_agv_network_nodes",
+      "ok": true
+    },
+    {
+      "detail": "saved=['RAW_A', 'RAW_B', 'SEMI_AB', 'SEMI_AC', 'SEMI_CE', 'RAW_D', 'PART_DE', 'FINAL']",
+      "name": "stage4_material_types",
+      "ok": true
+    },
+    {
+      "detail": "saved=['SEMI_CE', 'PART_DE']",
+      "name": "stage4_join_inputs",
+      "ok": true
+    },
+    {
+      "detail": "saved=FINAL",
+      "name": "stage4_join_output",
+      "ok": true
+    },
+    {
+      "detail": "saved=['a_conveyor', 'a_agv', 'b_conveyor', 'c_handoff', 'd_conveyor', 'e_conveyor', 'e_agv', 'transport_ba', 'transport_de', 'reposition']",
+      "name": "stage4_task_kinds",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Floor",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Warehouse_Raw",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_In",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_In_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_In_PickupStop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_PickStation",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_A",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_A_Station",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Robot_UR5_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_01_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_SuctionPad_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:IK_Target_01",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Mobile_AGV_P3DX",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:AGV_LoadTray",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_AGV_Dock",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_B_Station",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Robot_UR5_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_02_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_SuctionPad_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:IK_Target_02",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_AGV_Dock_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Stage3_PickZone",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:PlaceTarget_Station_A",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:PlaceTarget_Station_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Island_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Robot_UR5_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Robot_UR5_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Robot_UR5_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_03_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_04_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:SuctionPad_05_TCP",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_SuctionPad_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_SuctionPad_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_SuctionPad_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:IK_Target_03",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:IK_Target_04",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:IK_Target_05",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S1_to_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S1_to_B_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_Conveyor_S1_to_B_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S2_to_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S2_to_D_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_Conveyor_S2_to_D_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_C_to_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_C_to_E_Entry",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_Conveyor_C_to_E_Stop",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_AGV_Dock_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_AGV_Dock_E",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_Handoff_AC",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:E_Output",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_E_Buffer_C",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Sensor_E_Buffer_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Warehouse_S2",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Source_S1_B",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:Source_S2_D",
+      "ok": true
+    },
+    {
+      "detail": "1 个匹配",
+      "name": "stage4_alias_unique:E_Output_Table",
+      "ok": true
+    },
+    {
+      "detail": "found=[]",
+      "name": "stage4_no_session_resources",
+      "ok": true
+    },
+    {
+      "detail": "units=['A', 'B', 'C', 'D', 'E']",
+      "name": "stage4_scene_units",
+      "ok": true
+    },
+    {
+      "detail": "joints=6",
+      "name": "stage4_unit:A",
+      "ok": true
+    },
+    {
+      "detail": "modes=[0, 0, 0, 0, 0, 0]",
+      "name": "stage4_joint_modes:A",
+      "ok": true
+    },
+    {
+      "detail": "TCP local=[0.0, 0.0, -0.015]",
+      "name": "stage4_tcp_offset:A",
+      "ok": true
+    },
+    {
+      "detail": "pos=[0.4, 0.7, 0.3]",
+      "name": "stage4_dock_sensor:A",
+      "ok": true
+    },
+    {
+      "detail": "joints=6",
+      "name": "stage4_unit:B",
+      "ok": true
+    },
+    {
+      "detail": "modes=[0, 0, 0, 0, 0, 0]",
+      "name": "stage4_joint_modes:B",
+      "ok": true
+    },
+    {
+      "detail": "TCP local=[0.0, 0.0, -0.015]",
+      "name": "stage4_tcp_offset:B",
+      "ok": true
+    },
+    {
+      "detail": "pos=[0.4, -0.7, 0.3]",
+      "name": "stage4_dock_sensor:B",
+      "ok": true
+    },
+    {
+      "detail": "joints=6",
+      "name": "stage4_unit:C",
+      "ok": true
+    },
+    {
+      "detail": "modes=[0, 0, 0, 0, 0, 0]",
+      "name": "stage4_joint_modes:C",
+      "ok": true
+    },
+    {
+      "detail": "TCP local=[0.0, 0.0, -0.015]",
+      "name": "stage4_tcp_offset:C",
+      "ok": true
+    },
+    {
+      "detail": "joints=6",
+      "name": "stage4_unit:D",
+      "ok": true
+    },
+    {
+      "detail": "modes=[0, 0, 0, 0, 0, 0]",
+      "name": "stage4_joint_modes:D",
+      "ok": true
+    },
+    {
+      "detail": "TCP local=[0.0, 0.0, -0.015]",
+      "name": "stage4_tcp_offset:D",
+      "ok": true
+    },
+    {
+      "detail": "pos=[2.9, -1.35, 0.3]",
+      "name": "stage4_dock_sensor:D",
+      "ok": true
+    },
+    {
+      "detail": "joints=6",
+      "name": "stage4_unit:E",
+      "ok": true
+    },
+    {
+      "detail": "modes=[0, 0, 0, 0, 0, 0]",
+      "name": "stage4_joint_modes:E",
+      "ok": true
+    },
+    {
+      "detail": "TCP local=[0.0, 0.0, -0.015]",
+      "name": "stage4_tcp_offset:E",
+      "ok": true
+    },
+    {
+      "detail": "pos=[2.9, 1.35, 0.3]",
+      "name": "stage4_dock_sensor:E",
+      "ok": true
+    },
+    {
+      "detail": "561/561 checks",
+      "name": "stage4_scene_contract",
+      "ok": true
+    }
+  ],
+  "differences": [],
+  "extra_aliases": [
+    "Body",
+    "DefaultCamera",
+    "DefaultLights",
+    "LightA",
+    "LightB",
+    "LightC",
+    "LightD",
+    "Link",
+    "LoopClosureDummy1",
+    "LoopClosureDummy2",
+    "NXViewCamera",
+    "NYViewCamera",
+    "NZViewCamera",
+    "PlaceTarget_AGV_Dock_D",
+    "PlaceTarget_Conveyor_C_to_E",
+    "Script",
+    "SuctionPad_01_ModelSensor",
+    "SuctionPad_02_ModelSensor",
+    "SuctionPad_03_ModelSensor",
+    "SuctionPad_04_ModelSensor",
+    "SuctionPad_05_ModelSensor",
+    "XViewCamera",
+    "XYZCameraProxy",
+    "YViewCamera",
+    "ZViewCamera",
+    "_ctrlPt",
+    "caster_freeJoint",
+    "caster_link",
+    "caster_link_visible",
+    "caster_wheel",
+    "caster_wheel_visible",
+    "connection",
+    "joint",
+    "leftMotor",
+    "leftWheel",
+    "leftWheel_visible",
+    "link",
+    "link1_visible",
+    "link2_visible",
+    "link3_visible",
+    "link4_visible",
+    "link5_visible",
+    "link6_visible",
+    "link7_visible",
+    "pad",
+    "rightMotor",
+    "rightWheel",
+    "rightWheel_visible",
+    "shape",
+    "ultrasonicSensor",
+    "visible"
+  ],
+  "manifest_digest": "e5f4d75c33c866394c60d2e444c029148a5de80051b4e15a0187f0a73fca5c3a",
+  "missing_aliases": [],
+  "ok": true,
+  "stage4_contract": {
+    "contract_version": "stage4_contract_20261029_v2",
+    "ok": true
+  },
+  "stage_contract": {
+    "contract_version": "stage4_contract_20261029_v2",
+    "ok": true
+  },
+  "validated_at": "2026-10-29T13:33:59+08:00"
+}

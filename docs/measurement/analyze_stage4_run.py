@@ -39,6 +39,11 @@ def summarize(path: Path) -> dict:
         "scenario": data.get("scenario"),
         "fault": data.get("fault"),
         "all_ok": data.get("all_ok"),
+        # 场景级结果: 中止的运行没有验收/任务字段, 失败原因只在这里.
+        "results": [
+            {"scenario": row.get("scenario"), "ok": row.get("ok"),
+             "error": row.get("error")}
+            for row in (data.get("results") or [])],
         "sim_time": result.get("sim_time"),
         "acceptance": acceptance,
         "tasks": [
@@ -51,6 +56,9 @@ def summarize(path: Path) -> dict:
         "routes": [
             {"route_id": row.get("spec", {}).get("route_id"),
              "loaded": row.get("spec", {}).get("loaded"),
+             "lanes": row.get("spec", {}).get("lanes"),
+             "turn_legs": row.get("spec", {}).get("turn_legs"),
+             "distance": row.get("spec", {}).get("distance"),
              "state": row.get("state"),
              "stop_error": row.get("metrics", {}).get("stop_error"),
              "heading_error": row.get("metrics", {}).get("heading_error"),

@@ -22,7 +22,7 @@
 | 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；H=0.80 回归通过，H=0.65 待回归 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
 | 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v008_20261029_112305（H=0.65 已派生；完整回归待执行） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
 | 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
-| 阶段四多岛生产 | 已通过五个验收场景（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；基线 stage4/L4_COLUMN/v008_20261028_225634（H=0.80；H=0.65 后需重新派生并回归） | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
+| 阶段四多岛生产 | 已通过阶段四五个验收场景（2026-10-29）；阶段 4.1 `L5_UFLOW` 布局与联动优化已通过布局/可达、交错批次与停机回归（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；重排前基线 stage4/L4_COLUMN/v008_20261028_225634；当前阶段 4.1 工件 stage4/L5_UFLOW/v004_20261029_133249（统一 0.30 m 基座、外围分三段 AGV 路网） | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
 
 生命周期校验流程（2026-10-26 已实施）：load 后可直接 start，validate 为可选诊断；start 在运行锁内执行完整校验，save 仍要求已校验场景。详见[方案与实施记录](docs/implementation/LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
 

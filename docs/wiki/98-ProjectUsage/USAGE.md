@@ -105,37 +105,41 @@ sim_version: "4.10+"
     .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v016_20261029_112229
     .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v016_20261029_112229 --note "阶段三派生"
 
-## 阶段四：多岛车间
+## 阶段四：多岛车间（阶段 4.1 `L5_UFLOW`）
 
-当前基线为 `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件，
-由 stage3 v006 派生）。06-15 将 `H_transfer` 调整到 0.65 后，stage4
-必须从新的 stage3 v008 重新派生并回归；五个场景此前通过的结果对应
-H=0.80。五种运行场景：
+当前工件为 `stage4/L5_UFLOW/v004_20261029_133249`（父
+`stage3/L2_MIRROR/v008_20261029_112305`，H=0.65，统一基座 0.30 m）。
+`stage4/L4_COLUMN/v008_20261028_225634` 作为阶段四重排前基线保留，不再
+是 current；旧布局的验收数据见阶段四报告。六种运行场景：
 
-    .venv/Scripts/python.exe src/run_stage4.py --scenario full_flow --time 1200
-    .venv/Scripts/python.exe src/run_stage4.py --scenario no_pair --time 1200
-    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_priority --time 1200
-    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_blocked --time 1200
-    .venv/Scripts/python.exe src/run_stage4.py --scenario conveyor_fault --time 1200
+    .venv/Scripts/python.exe src/run_stage4.py --scenario full_flow --time 700
+    .venv/Scripts/python.exe src/run_stage4.py --scenario no_pair --time 500
+    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_priority --time 700
+    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_blocked --time 700
+    .venv/Scripts/python.exe src/run_stage4.py --scenario conveyor_fault --time 400
+    .venv/Scripts/python.exe src/run_stage4.py --scenario staggered_batch --time 900
 
-阶段四运行会加载 current 工件、在启动点校验 452 项只读契约，然后构建
-五台独立影子臂/碰撞集合。首次加载、校验与运行时构建合计约 3–5 分钟
-（阶段四场景约 538 个对象）；之后按任务链逐岛执行。报告写入
+阶段四运行会加载 current 工件、在启动点校验 461 项只读契约，然后构建
+五台独立影子臂/碰撞集合。首次加载、校验与运行时构建合计约 3–5 分钟；
+之后按任务链逐岛执行。报告写入
 `docs/implementation/runs/phase4_run_<scenario>_<stamp>.json`。
-五个场景已于 2026-10-29 全部通过，结果见
-[阶段四报告](../../implementation/PHASE4_REPORT.md) §7。
 
 如需重建 stage4（修改 `src/stage4/config.py` 或场景构建后必须重新派生）：
 
     .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage3/L2_MIRROR/v008_20261029_112305
     .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305 --note "阶段四派生"
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305 --note "阶段4.1 L5_UFLOW"
 
-阶段四布局与五台臂 IK 只读测量：
+阶段四布局与五台臂 IK 只读测量、以及从配置生成的俯视预览：
 
     .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py
     .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py --sim --ik \
         --out docs/measurement/stage4_layout_<stamp>.json
+    .venv/Scripts/python.exe docs/measurement/preview_stage4_layout.py
+
+`probe_stage4_layout.py --layout <json>` 和
+`preview_stage4_layout.py --layout <json>` 可以读取候选布局文件
+（`Stage4Layout.as_dict()` 的 JSON），用于在冻结坐标前检查同一份配置。
 
 ## 手动操作生命周期
 

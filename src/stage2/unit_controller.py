@@ -448,6 +448,9 @@ class Stage2UnitController(Stage1UnitController):
                 f"tv={totals.get('tv_total')} "
                 f"wall={plan.wall_s:.2f}s")
             self._plan = plan
+            # 规划预算只约束本次规划/验证; 执行期由执行器的偏差/超时复核
+            # 守护, 不继承规划墙钟 (并发运行时长轨迹会被误判为规划超限).
+            self.checker.set_budget(self.planner.budget)
             self._executor = JointStreamExecutor(
                 plan, self.checker, plan.contexts,
                 pose_at=self.checker.tcp_at)
@@ -572,6 +575,15 @@ class Stage2UnitController(Stage1UnitController):
             f"{deviation:.4f} rad > {2.0 * cfg.EXEC_JOINT_TOL:.4f}")
         return actual, actual_tcp, "actual"
 
+    def _forced_pre_pick(self, current_q, current_tcp, pre_pose, pick_pose,
+                         rec) -> Optional[list[float]]:
+        """可覆盖: 指定 pre_pick 的 IK 构型 (默认返回 None, 自由搜索).
+
+        阶段四 A 臂 AGV 取料用它选择能把后续抬升/转运走通的肩部解;
+        覆盖方必须先完成该构型的下游链影子复核.
+        """
+        return None
+
     def _build_plan(self) -> Optional[MotionPlan]:
         rec = self.materials.by_uid(self.uid)
         try:
@@ -591,7 +603,9 @@ class Stage2UnitController(Stage1UnitController):
                                cfg.PRE_APPROACH_CLEARANCE)
             pick = contact_pose(self._pick_pose, self._pick_box, 0.0)
             self._pick_tcp = list(pick)
-            goals = [Goal("pre_pick", pre),
+            forced = self._forced_pre_pick(current_q, current_tcp, pre, pick,
+                                           rec)
+            goals = [Goal("pre_pick", pre, forced_q=forced),
                      Goal("pick", pick, cartesian=True,
                           allow_target_contact=True, final_contact=True)]
             context = MotionContext(
@@ -661,6 +675,11 @@ class Stage2UnitController(Stage1UnitController):
         self._fail(f"NO_PLAN_FOR_STATE: {state}")
         return None
 
+    def _transfer_goal_variants(self, place, start_pose
+                                ) -> list[tuple[str, list[Goal], dict]]:
+        """TRANSFERRING 候选; 阶段四可追加同高度局部绕行 (默认不变)."""
+        return transfer_goal_variants(place, start_pose)
+
     def _plan_transfer(self, current_q, current_tcp,
                        snapshot: str) -> MotionPlan:
         """06-15: TRANSFERRING 把 TCP 固定高度/姿态带到 pre_place.
@@ -677,7 +696,8 @@ class Stage2UnitController(Stage1UnitController):
         self._transfer_check = None
         reports: list[dict] = []
         best: Optional[MotionPlan] = None
-        for name, goals, info in transfer_goal_variants(place, current_tcp):
+        for name, goals, info in self._transfer_goal_variants(
+                place, current_tcp):
             plan = self.planner.plan(current_q, goals, context,
                                      start_pose=current_tcp,
                                      direct_only=True,

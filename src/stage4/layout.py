@@ -1,14 +1,19 @@
-"""layout.py — 阶段四五岛布局、物流线派生与静态几何校验 (06-16 §3).
+"""layout.py — 阶段四五岛布局、物流线派生与静态几何校验 (06-17 §4.1).
 
 `Stage4Layout` 是不可变布局描述: 五个工位、四条物流线 (含阶段三既有的
 S1→A 输入带)、A→C 固定交接、E 岛两个输入缓冲、四个 AGV dock 和一条
-x=0.40 的直线 AGV 通道. 场景构建/控制器只读取该对象, 不在控制循环内
-硬编码坐标.
+由西/南/东三段直道组成的外围 AGV 路网. 场景构建/控制器只读取该对象,
+不在控制循环内硬编码坐标.
+
+布局 `L5_UFLOW` (阶段 4.1):
+  - A/B 沿用阶段三 `L2_MIRROR` 实测坐标 (基座/置物台/dock);
+  - 固定物流沿 +X: A→C 短交接 → C→E 输送 → E; S2→D 在南侧独立;
+  - AGV dock 不再共线: A/B 在 x=0.40, D/E 在 x=2.90, 南横道连接两侧;
+  - 所有工位基座统一 0.30 m, 高度 datum 显式写入布局摘要.
 
 坐标来源:
-  - A/B 沿用阶段三 `L2_MIRROR` 实测坐标 (基座/置物台/dock);
-  - C/D/E 按 06-16 §3.2 的相对关系布置, 由阶段四测量探针与真实
-    simIK/碰撞检查确认后冻结;
+  - A/B 沿用阶段三 `L2_MIRROR` 实测坐标;
+  - C/D/E 由阶段四测量探针与真实 simIK/碰撞检查确认后冻结;
   - 传送带入口/停止区由模型实测上表面行程与内缩量派生, 不使用包围盒端点.
 
 本模块只做静态几何/粗可达性筛选; 真实 simIK、关节限位与碰撞查询由
@@ -17,6 +22,7 @@ x=0.40 的直线 AGV 通道. 场景构建/控制器只读取该对象, 不在控
 
 from __future__ import annotations
 
+import heapq
 import math
 from dataclasses import dataclass, field
 from typing import Optional
@@ -45,6 +51,19 @@ def rect_clearance(a: Rect, b: Rect) -> float:
     if dx < 0.0 and dy < 0.0:
         return max(dx, dy)
     return max(dx, dy)
+
+
+def point_rect_distance(point: tuple[float, float], rect: Rect) -> float:
+    """点到轴对齐矩形的最小距离; 点在矩形内返回 0."""
+    dx = max(rect[0] - point[0], 0.0, point[0] - rect[2])
+    dy = max(rect[1] - point[1], 0.0, point[1] - rect[3])
+    return math.hypot(dx, dy)
+
+
+def circle_clear_rect(center: tuple[float, float], radius: float,
+                      rect: Rect) -> float:
+    """圆心到矩形距离减去半径; >=0 表示扫掠圆不与矩形相交."""
+    return point_rect_distance(center, rect) - radius
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -144,8 +163,6 @@ class LineSpec:
         """传送带模型包围盒的 XY 投影 (按设计长度与实测宽度估算)."""
         width = base.CONVEYOR_NATIVE_WIDTH * (
             self.design_length / base.CONVEYOR_NATIVE_LENGTH)
-        half_l = self.design_length / 2.0
-        half_w = width / 2.0
         if abs(math.cos(self.yaw)) > 0.5:
             return rect_of(self.center, (self.design_length, width))
         return rect_of(self.center, (width, self.design_length))
@@ -194,6 +211,8 @@ class UnitSpec4:
 
     `station_pos` 对 A/B 是实体置物台中心; 对 C/D/E 是标称输出位
     (传送带入口/停止区/E 缓冲), 只用于派生与可达检查.
+    `arm_base` 的 Z 是 UR5 模型根安装面 (Z_base), 与岛面顶面相同;
+    物料接触面由 `Z_WORK`/传送带带面派生, 不隐含在 island_top_z 中.
     """
 
     unit_id: str
@@ -233,26 +252,32 @@ class UnitSpec4:
             return None
         return rect_of(self.dock, cfg.AGV_FOOTPRINT_AT_DOCK)
 
+    @property
+    def work_surface_z(self) -> float:
+        return cfg.Z_WORK.get(self.unit_id, self.island_top_z)
+
     # ── 目标位姿 ────────────────────────────────────────────
 
-    def targets(self) -> dict[str, tuple[float, float, float]]:
+    def targets(self, lines: Optional[dict] = None
+                ) -> dict[str, tuple[float, float, float]]:
         """本工位需要够到的物料目标 (世界坐标, 物料中心 Z)."""
+        lines = lines or _LINES
         out: dict[str, tuple[float, float, float]] = {}
         if self.unit_id == "A":
-            out["line_s1a"] = _line("line_s1a").pick_material_pose
+            out["line_s1a"] = lines["line_s1a"].pick_material_pose
             out["handoff_ac"] = _handoff_material_pose()
             out["dock_A"] = self.agv_material_pose
         elif self.unit_id == "B":
-            out["line_s1b"] = _line("line_s1b").pick_material_pose
+            out["line_s1b"] = lines["line_s1b"].pick_material_pose
             out["dock_B"] = self.agv_material_pose
         elif self.unit_id == "C":
             out["handoff_ac"] = _handoff_material_pose()
-            out["line_ce_place"] = _line("line_ce").place_material_pose
+            out["line_ce_place"] = lines["line_ce"].place_material_pose
         elif self.unit_id == "D":
-            out["line_s2d"] = _line("line_s2d").pick_material_pose
+            out["line_s2d"] = lines["line_s2d"].pick_material_pose
             out["dock_D"] = self.agv_material_pose
         elif self.unit_id == "E":
-            out["line_ce"] = _line("line_ce").pick_material_pose
+            out["line_ce"] = lines["line_ce"].pick_material_pose
             out["dock_E"] = self.agv_material_pose
             out["buffer_e_c"] = _buffer_material_pose("buffer_e_c")
             out["buffer_e_d"] = _buffer_material_pose("buffer_e_d")
@@ -272,7 +297,7 @@ class UnitSpec4:
     @property
     def station_material_pose(self) -> tuple[float, float, float]:
         return (self.station_pos[0], self.station_pos[1],
-                self.station_top_z + base.MATERIAL_HALF_HEIGHT)
+                self.work_surface_z + base.MATERIAL_HALF_HEIGHT)
 
     @property
     def station_tcp_pose(self) -> list[float]:
@@ -292,6 +317,7 @@ class UnitSpec4:
             "station_size": list(self.station_size),
             "island_top_z": self.island_top_z,
             "station_top_z": self.station_top_z,
+            "work_surface_z": self.work_surface_z,
             "aliases": self.aliases,
             "dock_sensor_alias": self.dock_sensor_alias,
             "targets": {name: [round(float(v), 6) for v in pose]
@@ -318,15 +344,15 @@ def _buffer_material_pose(key: str) -> tuple[float, float, float]:
 def handoff_park_tcp(unit_id: str) -> Optional[tuple[float, ...]]:
     """共享交接台放置后的撤离目标 (A 臂专用).
 
-    A 放置到 A→C 交接台后若只做 +0.15 m 竖直撤离, 腕部仍停在交接台上方,
-    C 臂从北侧接近同一交接点时会与 A 的 link6 相撞. A 必须把工具移到
-    交接台南侧上方 (仍在本臂可达范围内), 让出交接台包络; 该目标由布局
+    C 臂从东侧接近 A→C 交接台; A 放置后若只做 +0.15 m 竖直撤离, 腕部
+    仍在交接台上方, 会与 C 的接近路径重叠. A 必须把工具移到交接台
+    西南侧上方 (仍在本臂可达范围内), 让出交接台包络. 该目标由布局
     派生, 不写入工件 digest.
     """
     if unit_id != "A":
         return None
     x, y = cfg.HANDOFF_AC["position"]
-    return (x + 0.25, y - 0.30, base.STATION_TOP_Z + 0.40,
+    return (x - 0.15, y - 0.30, base.STATION_TOP_Z + 0.40,
             *base.TOOL_TARGET_QUATERNION)
 
 
@@ -352,6 +378,109 @@ def line_specs() -> dict[str, LineSpec]:
 
 
 # ═══════════════════════════════════════════════════════════════
+# AGV 路网
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass(frozen=True)
+class AgvEdge:
+    start: str
+    end: str
+    lane: str
+
+    def length(self, nodes: Optional[dict] = None) -> float:
+        nodes = nodes or cfg.AGV_NODES
+        a = nodes[self.start]
+        b = nodes[self.end]
+        return math.dist(a, b)
+
+    def as_dict(self, nodes: Optional[dict] = None) -> dict:
+        return {"start": self.start, "end": self.end,
+                "lane": self.lane,
+                "length": round(self.length(nodes), 6)}
+
+
+def agv_edges() -> tuple[AgvEdge, ...]:
+    return tuple(AgvEdge(start, end, lane)
+                 for start, end, lane in cfg.AGV_EDGES)
+
+
+def agv_neighbors(nodes: Optional[dict] = None,
+                  edges: Optional[tuple[AgvEdge, ...]] = None
+                  ) -> dict[str, list[tuple[str, AgvEdge]]]:
+    nodes = nodes or cfg.AGV_NODES
+    edges = agv_edges() if edges is None else edges
+    out: dict[str, list[tuple[str, AgvEdge]]] = {
+        node: [] for node in nodes}
+    for edge in edges:
+        out[edge.start].append((edge.end, edge))
+        out[edge.end].append((edge.start, edge))
+    return out
+
+
+def shortest_node_path(layout: "Stage4Layout", start: str, end: str
+                       ) -> list[str]:
+    """按边长度求两节点间最短路径 (Dijkstra); 无解抛 ValueError."""
+    nodes = layout.agv_nodes
+    if start not in nodes or end not in nodes:
+        raise ValueError(f"未知 AGV 节点: {start!r} → {end!r}")
+    neighbors = agv_neighbors(nodes, layout.agv_edges)
+    dist = {node: math.inf for node in nodes}
+    prev: dict[str, str] = {}
+    dist[start] = 0.0
+    heap = [(0.0, start)]
+    while heap:
+        cost, node = heapq.heappop(heap)
+        if cost > dist[node] + 1e-12:
+            continue
+        if node == end:
+            break
+        for other, edge in neighbors[node]:
+            candidate = cost + edge.length(nodes)
+            if candidate < dist[other] - 1e-12:
+                dist[other] = candidate
+                prev[other] = node
+                heapq.heappush(heap, (candidate, other))
+    if not math.isfinite(dist[end]):
+        raise ValueError(f"AGV 路网不连通: {start!r} → {end!r}")
+    path = [end]
+    while path[-1] != start:
+        path.append(prev[path[-1]])
+    path.reverse()
+    return path
+
+
+def lane_for(layout: "Stage4Layout", start: str, end: str) -> str:
+    for edge in layout.agv_edges:
+        if {edge.start, edge.end} == {start, end}:
+            return edge.lane
+    raise ValueError(f"没有连接 {start!r} 与 {end!r} 的直道")
+
+
+def agv_lane_rect(layout: "Stage4Layout", start: str, end: str) -> Rect:
+    """一条直道的 AGV 扫掠矩形 (不含端点 dock footprint).
+
+    端点 dock 的占地由 `dock_vs_*` 单独检查; 转向节点的旋转扫掠由
+    `turn_circle` 检查. 这里只覆盖两节点中心之间的直线通道.
+    """
+    a = layout.agv_nodes[start]
+    b = layout.agv_nodes[end]
+    half_w = cfg.AGV_ROUTE_HALF_WIDTH + cfg.AGV_ROUTE_CLEARANCE
+    if abs(a[0] - b[0]) <= 1e-9:
+        return (a[0] - half_w, min(a[1], b[1]),
+                a[0] + half_w, max(a[1], b[1]))
+    if abs(a[1] - b[1]) <= 1e-9:
+        return (min(a[0], b[0]), a[1] - half_w,
+                max(a[0], b[0]), a[1] + half_w)
+    raise ValueError(f"AGV 直道必须轴对齐: {start!r} → {end!r}")
+
+
+def agv_turn_radius() -> float:
+    """原地转向时车体+载荷的外接圆半径 (加安全余量)."""
+    half_diag = math.hypot(*cfg.AGV_FOOTPRINT_AT_DOCK) / 2.0
+    return half_diag + cfg.AGV_ROUTE_CLEARANCE
+
+
+# ═══════════════════════════════════════════════════════════════
 # 布局
 # ═══════════════════════════════════════════════════════════════
 
@@ -368,6 +497,15 @@ class Stage4Layout:
         default_factory=lambda: {key: tuple(spec["position"])
                                  for key, spec in cfg.E_BUFFERS.items()})
     e_output: tuple[float, float] = tuple(cfg.E_OUTPUT["position"])
+    e_output_table: tuple[float, float] = tuple(
+        cfg.E_OUTPUT_TABLE["position"])
+    e_output_table_size: tuple[float, float, float] = tuple(
+        cfg.E_OUTPUT_TABLE["size"])
+    agv_nodes: dict[str, tuple[float, float]] = field(
+        default_factory=lambda: {key: tuple(value)
+                                 for key, value in cfg.AGV_NODES.items()})
+    agv_edges: tuple[AgvEdge, ...] = field(default_factory=agv_edges)
+    height_datum: dict = field(default_factory=lambda: _height_datum())
 
     # ── 访问 ────────────────────────────────────────────────
 
@@ -411,13 +549,32 @@ class Stage4Layout:
         return rect_of(cfg.WAREHOUSE_S2_POS, cfg.WAREHOUSE_S2_SIZE[:2])
 
     @property
+    def e_output_table_rect(self) -> Rect:
+        return rect_of(self.e_output_table,
+                       self.e_output_table_size[:2])
+
+    @property
+    def agv_lane_rects(self) -> dict[str, Rect]:
+        return {f"{edge.start}->{edge.end}": agv_lane_rect(
+                    self, edge.start, edge.end)
+                for edge in self.agv_edges}
+
+    @property
     def agv_route_rect(self) -> Rect:
-        ys = [pos[1] for pos in self.dock_positions.values()]
-        half_x = cfg.AGV_ROUTE_HALF_WIDTH + cfg.AGV_ROUTE_CLEARANCE
-        half_y = (cfg.AGV_FOOTPRINT_AT_DOCK[1] / 2.0
-                  + cfg.AGV_ROUTE_ARRIVE_TOL + cfg.AGV_ROUTE_CLEARANCE)
-        return (cfg.AGV_ROUTE_X - half_x, min(ys) - half_y,
-                cfg.AGV_ROUTE_X + half_x, max(ys) + half_y)
+        """所有直道扫掠矩形的外包围盒 (报告/兼容接口)."""
+        rects = list(self.agv_lane_rects.values())
+        return (min(r[0] for r in rects), min(r[1] for r in rects),
+                max(r[2] for r in rects), max(r[3] for r in rects))
+
+    @property
+    def agv_turn_nodes(self) -> tuple[str, ...]:
+        # 按配置中的固定顺序输出, 不依赖 dict 插入顺序 (JSON 往返会
+        # 改变键顺序, 曾导致 layout digest 在 build/save 进程间漂移).
+        return tuple(node for node in cfg.AGV_TURN_NODE_IDS
+                     if node in self.agv_nodes)
+
+    def agv_path(self, start_dock: str, end_dock: str) -> list[str]:
+        return shortest_node_path(self, start_dock, end_dock)
 
     def agv_pose_at(self, dock: str) -> list[float]:
         pos = self.dock_positions[dock]
@@ -440,10 +597,31 @@ class Stage4Layout:
             "buffers": {key: list(value)
                         for key, value in self.buffers.items()},
             "e_output": list(self.e_output),
+            "e_output_table": {
+                "position": list(self.e_output_table),
+                "size": list(self.e_output_table_size),
+                "top_z": cfg.E_OUTPUT_TABLE["top_z"],
+            },
+            "height_datum": dict(self.height_datum),
+            "agv_network": {
+                "nodes": {key: list(value)
+                          for key, value in self.agv_nodes.items()},
+                "edges": [edge.as_dict(self.agv_nodes)
+                          for edge in self.agv_edges],
+                "lanes": list(cfg.AGV_LANES),
+                "turn_nodes": list(self.agv_turn_nodes),
+                "turn_radius": round(agv_turn_radius(), 6),
+                "dock_heading": round(self.agv_initial_yaw, 6),
+            },
         }
 
     def digest_payload(self) -> dict:
         return self.as_dict()
+
+
+def _height_datum() -> dict:
+    return {key: (dict(value) if isinstance(value, dict) else value)
+            for key, value in cfg.HEIGHT_DATUM.items()}
 
 
 class UnitView4:
@@ -484,6 +662,10 @@ class UnitView4:
     @property
     def station_top_z(self):
         return self.spec.station_top_z
+
+    @property
+    def work_surface_z(self):
+        return self.spec.work_surface_z
 
     @property
     def agv_material_pose(self):
@@ -548,7 +730,7 @@ def _unit_from_def(unit_id: str) -> UnitSpec4:
     )
 
 
-L4_COLUMN = Stage4Layout(
+L5_UFLOW = Stage4Layout(
     name=cfg.STAGE4_LAYOUT_NAME,
     units=tuple(_unit_from_def(unit_id) for unit_id in cfg.UNIT_IDS),
     docks={unit_id: tuple(cfg.UNIT_DEFS[unit_id]["dock"])
@@ -558,7 +740,7 @@ L4_COLUMN = Stage4Layout(
 
 
 def default_layout() -> Stage4Layout:
-    return L4_COLUMN
+    return L5_UFLOW
 
 
 def _unit_from_dict(data: dict) -> UnitSpec4:
@@ -614,6 +796,24 @@ def layout_from_dict(data: dict) -> Stage4Layout:
              for key, value in (data.get("docks") or {}).items()}
     buffers = {str(key): tuple(float(v) for v in value)
                for key, value in (data.get("buffers") or {}).items()}
+    datum = data.get("height_datum")
+    network = data.get("agv_network") or {}
+    nodes = {str(key): tuple(float(v) for v in value)
+             for key, value in (network.get("nodes") or {}).items()}
+    edges = tuple(AgvEdge(str(item["start"]), str(item["end"]),
+                          str(item["lane"]))
+                  for item in (network.get("edges") or ()))
+    # `layout.as_dict()` 的 e_output_table 是 {position,size,top_z};
+    # 旧 manifest 顶层 layout 由 dataclasses.asdict 生成, 两个字段分别是
+    # position tuple 和 size tuple. 两种形态都要能读回.
+    table = data.get("e_output_table")
+    if isinstance(table, dict):
+        table_pos = table.get("position", cfg.E_OUTPUT_TABLE["position"])
+        table_size = table.get("size", cfg.E_OUTPUT_TABLE["size"])
+    else:
+        table_pos = table or cfg.E_OUTPUT_TABLE["position"]
+        table_size = (data.get("e_output_table_size")
+                      or cfg.E_OUTPUT_TABLE["size"])
     return Stage4Layout(
         name=name, units=units, lines=lines, docks=docks,
         agv_initial_dock=str(data.get("agv_initial_dock",
@@ -626,6 +826,13 @@ def layout_from_dict(data: dict) -> Stage4Layout:
                             for key, spec in cfg.E_BUFFERS.items()},
         e_output=tuple(float(v) for v in data.get(
             "e_output", cfg.E_OUTPUT["position"])),
+        e_output_table=tuple(float(v) for v in table_pos),
+        e_output_table_size=tuple(float(v) for v in table_size),
+        agv_nodes=(nodes or {key: tuple(value)
+                             for key, value in cfg.AGV_NODES.items()}),
+        agv_edges=(edges or agv_edges()),
+        height_datum=(dict(datum) if isinstance(datum, dict)
+                      else _height_datum()),
     )
 
 
@@ -639,10 +846,11 @@ def validate_layout(layout: Stage4Layout) -> dict:
     检查项:
       - 5 个工位、每台臂到本岛取放/交接/dock 目标可达;
       - Island/Station/Dock/Warehouse/Conveyor 两两不压占;
-      - AGV 停车与路线扫掠不压占任何工位/设备;
+      - AGV 三段直道扫掠矩形与转向圆不压占任何工位/设备;
       - 物流线取料区位于有效行程内且只被目标工位够到;
       - 固定交接台被 A/C 两台臂够到, E 缓冲被 E 臂够到;
-      - AGV 初始朝向与 dock 连线一致.
+      - AGV 路网连通、dock 不共线、所有 dock 朝 -Y 进出;
+      - 高度 datum 覆盖全部工位且与基座安装面一致.
     """
     checks: list[dict] = []
 
@@ -659,10 +867,24 @@ def validate_layout(layout: Stage4Layout) -> dict:
         "conveyor_s1a": layout.conveyor_rect,
         "warehouse_s1": layout.warehouse_rect,
         "warehouse_s2": layout.warehouse_s2_rect,
+        "e_output_table": layout.e_output_table_rect,
     }
     for line_id, line in layout.lines.items():
         if line_id != "line_s1a":
             devices[f"line_{line_id}"] = line.rect
+
+    check("e_output_table_floor",
+          rect_inside(layout.e_output_table_rect, floor),
+          f"{tuple(round(v, 4) for v in layout.e_output_table_rect)}")
+    check("e_output_table_height",
+          abs(float(cfg.E_OUTPUT_TABLE["top_z"]) - cfg.Z_BASE) <= 1e-9,
+          f"top_z={cfg.E_OUTPUT_TABLE['top_z']}")
+    output_rect = rect_of(cfg.E_OUTPUT["position"],
+                          (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
+    check("e_output_on_table",
+          rect_inside(output_rect, layout.e_output_table_rect),
+          f"output={cfg.E_OUTPUT['position']} "
+          f"table={tuple(round(v, 4) for v in layout.e_output_table_rect)}")
 
     for spec in layout.units:
         tag = spec.unit_id
@@ -687,7 +909,7 @@ def validate_layout(layout: Stage4Layout) -> dict:
             gap = rect_clearance(spec.dock_rect, spec.island_rect)
             check(f"dock_vs_island:{tag}", gap >= 0.02,
                   f"gap={gap:.4f} m")
-        for name, target in spec.targets().items():
+        for name, target in spec.targets(layout.lines).items():
             distance = math.dist(spec.arm_base, target[:3])
             check(f"arm_reach:{tag}:{name}", distance <= base.REACH_LIMIT,
                   f"{distance:.3f} m <= {base.REACH_LIMIT:.3f} m")
@@ -757,42 +979,113 @@ def validate_layout(layout: Stage4Layout) -> dict:
         check(f"buffer_reach:{key}", distance <= base.REACH_LIMIT,
               f"{distance:.3f} m")
 
-    # AGV 通道
-    route = layout.agv_route_rect
-    check("agv_route_floor", rect_inside(route, floor),
-          f"{tuple(round(v, 4) for v in route)}")
-    for spec in specs:
-        gap = rect_clearance(route, spec.island_rect)
-        check(f"agv_route_vs_island:{spec.unit_id}", gap >= 0.02,
-              f"gap={gap:.4f} m")
-        if spec.has_station:
-            gap = rect_clearance(route, spec.station_rect)
-            check(f"agv_route_vs_station:{spec.unit_id}", gap >= 0.02,
-                  f"gap={gap:.4f} m")
-    for name, rect in devices.items():
-        gap = rect_clearance(route, rect)
-        check(f"agv_route_vs_{name}", gap >= 0.02, f"gap={gap:.4f} m")
-    # E 缓冲/输出在 E 岛台面上, 不在通道内
-    for key in cfg.E_BUFFERS:
-        rect = rect_of(cfg.E_BUFFERS[key]["position"],
-                       (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
-        gap = rect_clearance(route, rect)
-        check(f"agv_route_vs_{key}", gap >= 0.02, f"gap={gap:.4f} m")
-    output_rect = rect_of(cfg.E_OUTPUT["position"],
-                          (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
-    gap = rect_clearance(route, output_rect)
-    check("agv_route_vs_e_output", gap >= 0.02, f"gap={gap:.4f} m")
-
-    # AGV 朝向: 所有 dock 共线于 x=0.40, 车头朝 -Y
-    xs = {round(pos[0], 6) for pos in layout.dock_positions.values()}
-    check("agv_docks_collinear", xs == {round(cfg.AGV_ROUTE_X, 6)},
-          f"xs={sorted(xs)}")
+    # AGV 路网: 连通、dock 不共线、直道与转向扫掠
+    check("agv_nodes_match_docks",
+          all(tuple(layout.agv_nodes[dock]) == tuple(pos)
+              for dock, pos in layout.dock_positions.items()),
+          f"docks={layout.dock_positions}")
+    check("agv_docks_not_collinear",
+          len({round(pos[0], 6)
+               for pos in layout.dock_positions.values()}) > 1,
+          f"docks={layout.dock_positions}")
+    reachable_from = set()
+    try:
+        for dock in layout.dock_positions:
+            reachable_from.update(layout.agv_path(
+                layout.agv_initial_dock, dock))
+        check("agv_network_connected",
+              set(layout.dock_positions) <= reachable_from,
+              f"reachable={sorted(reachable_from)}")
+    except ValueError as exc:
+        check("agv_network_connected", False, str(exc))
     check("agv_initial_heading",
           abs(abs(layout.agv_initial_yaw) - math.pi / 2.0) <= 1e-6,
           f"yaw={layout.agv_initial_yaw:.6f}")
     check("agv_initial_dock",
           layout.agv_initial_dock in layout.dock_positions,
           f"dock={layout.agv_initial_dock}")
+
+    lane_rects = layout.agv_lane_rects
+    for lane_name, rect in lane_rects.items():
+        check(f"agv_lane_floor:{lane_name}", rect_inside(rect, floor),
+              f"{tuple(round(v, 4) for v in rect)}")
+        for spec in specs:
+            gap = rect_clearance(rect, spec.island_rect)
+            check(f"agv_lane_vs_island:{lane_name}:{spec.unit_id}",
+                  gap >= 0.02, f"gap={gap:.4f} m")
+            if spec.has_station:
+                gap = rect_clearance(rect, spec.station_rect)
+                check(f"agv_lane_vs_station:{lane_name}:{spec.unit_id}",
+                      gap >= 0.02, f"gap={gap:.4f} m")
+        for name, device in devices.items():
+            gap = rect_clearance(rect, device)
+            check(f"agv_lane_vs_{name}:{lane_name}", gap >= 0.02,
+                  f"gap={gap:.4f} m")
+        for key in cfg.E_BUFFERS:
+            buffer_rect = rect_of(
+                cfg.E_BUFFERS[key]["position"],
+                (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
+            gap = rect_clearance(rect, buffer_rect)
+            check(f"agv_lane_vs_{key}:{lane_name}", gap >= 0.02,
+                  f"gap={gap:.4f} m")
+        output_rect = rect_of(
+            cfg.E_OUTPUT["position"],
+            (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
+        gap = rect_clearance(rect, output_rect)
+        check(f"agv_lane_vs_e_output:{lane_name}", gap >= 0.02,
+              f"gap={gap:.4f} m")
+
+    radius = agv_turn_radius()
+    for node in layout.agv_turn_nodes:
+        center = layout.agv_nodes[node]
+        check(f"agv_turn_floor:{node}",
+              rect_inside((center[0] - radius, center[1] - radius,
+                           center[0] + radius, center[1] + radius), floor),
+              f"center={center} radius={radius:.4f}")
+        for spec in specs:
+            gap = circle_clear_rect(center, radius, spec.island_rect)
+            check(f"agv_turn_vs_island:{node}:{spec.unit_id}",
+                  gap >= 0.0, f"clearance={gap:.4f} m")
+            if spec.has_station:
+                gap = circle_clear_rect(center, radius, spec.station_rect)
+                check(f"agv_turn_vs_station:{node}:{spec.unit_id}",
+                      gap >= 0.0, f"clearance={gap:.4f} m")
+        for name, device in devices.items():
+            gap = circle_clear_rect(center, radius, device)
+            check(f"agv_turn_vs_{name}:{node}", gap >= 0.0,
+                  f"clearance={gap:.4f} m")
+        for key in cfg.E_BUFFERS:
+            buffer_rect = rect_of(
+                cfg.E_BUFFERS[key]["position"],
+                (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
+            gap = circle_clear_rect(center, radius, buffer_rect)
+            check(f"agv_turn_vs_{key}:{node}", gap >= 0.0,
+                  f"clearance={gap:.4f} m")
+        output_rect = rect_of(
+            cfg.E_OUTPUT["position"],
+            (base.MATERIAL_SIZE[0], base.MATERIAL_SIZE[1]))
+        gap = circle_clear_rect(center, radius, output_rect)
+        check(f"agv_turn_vs_e_output:{node}", gap >= 0.0,
+              f"clearance={gap:.4f} m")
+
+    # 高度 datum
+    datum = layout.height_datum or {}
+    check("height_datum_base",
+          abs(float(datum.get("Z_base", -1.0)) - cfg.Z_BASE) <= 1e-9,
+          f"Z_base={datum.get('Z_base')}")
+    check("height_datum_units",
+          set((datum.get("Z_work") or {})) == set(cfg.UNIT_IDS),
+          f"Z_work={sorted((datum.get('Z_work') or {}))}")
+    for spec in specs:
+        check(f"height_base_matches_island:{spec.unit_id}",
+              abs(spec.arm_base[2] - cfg.Z_BASE) <= 1e-9
+              and abs(spec.island_top_z - cfg.Z_BASE) <= 1e-9,
+              f"base_z={spec.arm_base[2]} island_top={spec.island_top_z}")
+    check("height_datum_transfer",
+          abs(float(datum.get("H_transfer", -1.0)) - cfg.H_TRANSFER) <= 1e-9
+          and cfg.H_TRANSFER >= cfg.Z_BELT + base.MATERIAL_SIZE[2]
+          + 0.03,
+          f"H_transfer={datum.get('H_transfer')} Z_belt={cfg.Z_BELT}")
 
     return {"ok": all(item["ok"] for item in checks),
             "checks": checks, "layout": layout.name}
@@ -821,24 +1114,3 @@ def zones_for_unit(unit_id: str) -> list[str]:
         if unit_id in pair:
             out.append(zone)
     return [zone for zone in cfg.RESOURCE_ORDER if zone in out]
-
-
-def route_specs(layout: Stage4Layout) -> dict[tuple[str, str, bool], object]:
-    """所有 dock 之间的直线路线 (按起点/终点/是否带载)."""
-    from .agv_map import RouteSpec4
-    specs = {}
-    docks = layout.dock_positions
-    for start in docks:
-        for end in docks:
-            if start == end:
-                continue
-            for loaded in (False, True):
-                specs[(start, end, loaded)] = RouteSpec4(
-                    route_id=f"{start}_to_{end}"
-                             f"{'_loaded' if loaded else '_empty'}",
-                    start_dock=start, end_dock=end,
-                    start=tuple(docks[start]), end=tuple(docks[end]),
-                    heading=layout.agv_initial_yaw,
-                    loaded=loaded,
-                )
-    return specs

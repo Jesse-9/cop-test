@@ -42,7 +42,8 @@ from .materials import (ItemType, MaterialFlowError, MaterialRegistry,
 from .resources import ResourceTable
 from .scene import Stage4Scene
 from .tasks import (Stage4Task, TaskQueue, TaskStatus, make_task)
-from .unit_controller import SinkSpec, Stage4UnitController, TaskLayout
+from .unit_controller import (SinkSpec, Stage4UnitController, TaskLayout,
+                              agv_material_position)
 
 
 class CoordinatorError(RuntimeError):
@@ -70,10 +71,10 @@ TASK_RESOURCES = {
     cfg.TASK_KIND_A_AGV: ("handoff_ac", "dock_A", "zone_ab", "zone_ac",
                            "arm_A"),
     cfg.TASK_KIND_B: ("line_s1b", "dock_B", "zone_ab", "arm_B"),
-    cfg.TASK_KIND_C: ("line_ce", "handoff_ac", "zone_ac", "zone_ce", "arm_C"),
+    cfg.TASK_KIND_C: ("line_ce", "handoff_ac", "zone_ac", "arm_C"),
     cfg.TASK_KIND_D: ("line_s2d", "dock_D", "arm_D"),
-    cfg.TASK_KIND_E_CONVEYOR: ("line_ce", "buffer_e_c", "zone_ce", "arm_E"),
-    cfg.TASK_KIND_E_AGV: ("buffer_e_d", "dock_E", "zone_ce", "arm_E"),
+    cfg.TASK_KIND_E_CONVEYOR: ("line_ce", "buffer_e_c", "arm_E"),
+    cfg.TASK_KIND_E_AGV: ("buffer_e_d", "dock_E", "arm_E"),
 }
 
 TASK_TYPES = {
@@ -648,8 +649,9 @@ class Stage4Coordinator:
             return "E"
         return None
 
-    def _route_resources(self) -> tuple[str, ...]:
-        resources = ["agv_lane"]
+    def _route_resources(self, spec) -> tuple[str, ...]:
+        """路线实际经过的直道 + 全部 dock (车辆可能穿过中间 dock)."""
+        resources = list(spec.lanes)
         if cfg.AGV_ROUTE_REQUIRES_ALL_DOCKS:
             resources.extend(f"dock_{dock}" for dock in
                              ("A", "B", "D", "E"))
@@ -683,30 +685,30 @@ class Stage4Coordinator:
 
     def _try_start_reposition(self, task: Stage4Task, dock: str,
                               sim_time: float) -> bool:
+        spec = make_route_spec(self.layout, self.agv_at_dock, dock,
+                               loaded=False)
         owner = self._owner(task)
         acquired, busy = self.resources.acquire_all(
-            self._route_resources(), owner, task.task_id, sim_time,
+            self._route_resources(spec), owner, task.task_id, sim_time,
             "empty reposition")
         if not acquired:
             self._note_wait(task, sim_time, f"资源等待: {busy}")
             return False
-        task.resources = list(self._route_resources())
-        spec = make_route_spec(self.layout, self.agv_at_dock, dock,
-                               loaded=False)
+        task.resources = list(self._route_resources(spec))
         return self._launch_route(task, spec, sim_time)
 
     def _start_transport(self, task: Stage4Task, origin: str,
                          destination: str, sim_time: float) -> bool:
+        spec = make_route_spec(self.layout, origin, destination,
+                               loaded=True)
         owner = self._owner(task)
         acquired, busy = self.resources.acquire_all(
-            self._route_resources(), owner, task.task_id, sim_time,
+            self._route_resources(spec), owner, task.task_id, sim_time,
             "loaded transport")
         if not acquired:
             self._note_wait(task, sim_time, f"资源等待: {busy}")
             return False
-        task.resources = list(self._route_resources())
-        spec = make_route_spec(self.layout, origin, destination,
-                               loaded=True)
+        task.resources = list(self._route_resources(spec))
         return self._launch_route(task, spec, sim_time)
 
     def _launch_route(self, task: Stage4Task, spec, sim_time: float) -> bool:
@@ -737,8 +739,9 @@ class Stage4Coordinator:
                     device="agv", evidence_id=spec.route_id,
                     detail={"route_id": spec.route_id,
                             "loaded": bool(spec.loaded),
-                            "distance": round(math.dist(spec.start,
-                                                        spec.end), 4),
+                            "distance": round(spec.distance, 4),
+                            "lanes": list(spec.lanes),
+                            "legs": len(spec.legs),
                             "direction": spec.direction})
         if spec.loaded:
             task.upgraded = task.effective_priority(sim_time) < task.priority
@@ -755,7 +758,7 @@ class Stage4Coordinator:
                 "upgraded": task.upgraded,
             })
             if self.fault == cfg.FAULT_AGV_BLOCKED:
-                self._inject_agv_obstacle()
+                self._inject_agv_obstacle(spec)
         return True
 
     def _advance_route(self, sim_time: float) -> None:
@@ -880,6 +883,17 @@ class Stage4Coordinator:
     def _expected_material_pose(self, task: Stage4Task,
                                 unit_id: str) -> tuple[float, float, float]:
         sink = self._sink_spec(task, unit_id)
+        if sink.kind == "agv":
+            # 放置点跟随实测托盘; 验收必须用同一来源, 否则 AGV 停靠
+            # 偏差会被误报为 PLACE_ERROR.
+            try:
+                tray = self.scene.handle(base.ALIASES["agv_tray"])
+                if int(tray) >= 0:
+                    tray_pose = self.sim.getObjectPose(
+                        tray, self.sim.handle_world)
+                    return tuple(agv_material_position(tray_pose))
+            except Exception:
+                pass
         return tuple(sink.material_pose[:3])
 
     def _commit_unit_result(self, task: Stage4Task, unit_id: str,
@@ -1037,8 +1051,9 @@ class Stage4Coordinator:
                             uid=task.uid,
                             detail={"removed": removed,
                                     "clearance_ok": clearance_ok,
-                                    "owner": self.resources.owner(
-                                        "agv_lane")})
+                                    "lanes": list(spec.lanes),
+                                    "owner": {lane: self.resources.owner(lane)
+                                              for lane in spec.lanes}})
                 if clearance_ok and route.resume(
                         sim_time, clearance_ok=True,
                         reason="obstacle_removed_and_ownership_reconfirmed"):
@@ -1079,10 +1094,16 @@ class Stage4Coordinator:
             return False
         if self._fault_handles:
             return False
-        owner = self.resources.owner("agv_lane")
-        if self.route_task is None or owner is None:
+        if self.route_task is None or self.route is None:
             return False
-        return owner == self._owner(self.route_task)
+        owner = self._owner(self.route_task)
+        for lane in self.route.spec.lanes:
+            if self.resources.owner(lane) != owner:
+                return False
+        for dock in ("A", "B", "D", "E"):
+            if self.resources.owner(f"dock_{dock}") not in (None, owner):
+                return False
+        return True
 
     # ═══════════════════════════════════════════════════════
     # E 岛配对
@@ -1190,16 +1211,21 @@ class Stage4Coordinator:
         # 冻结整线现场: 停止 AGV/所有线, 活动任务停在当前位置, 保留 UID.
         self._freeze("CONVEYOR_FAULT: line_ce 停止", sim_time)
 
-    def _inject_agv_obstacle(self) -> None:
+    def _inject_agv_obstacle(self, spec) -> None:
         if self._fault_handles:
+            return
+        point = self._agv_obstacle_point(spec)
+        if point is None:
+            self._event("FAULT_INJECT_FAILED", detail={
+                "kind": "agv_blocked",
+                "error": "没有足够长的载货直道用于放置障碍"})
             return
         try:
             handle = int(self.sim.createPrimitiveShape(
                 self.sim.primitiveshape_cuboid,
                 list(cfg.AGV_BLOCK_OBSTACLE_SIZE)))
             self.sim.setObjectAlias(handle, cfg.AGV_BLOCK_OBSTACLE_ALIAS)
-            self.sim.setObjectPosition(handle,
-                                       list(cfg.AGV_BLOCK_OBSTACLE_POS),
+            self.sim.setObjectPosition(handle, list(point),
                                        self.sim.handle_world)
             phys.apply_static_shape(self.sim, handle, respondable=True)
             self._fault_handles.append(handle)
@@ -1209,14 +1235,29 @@ class Stage4Coordinator:
                 "sim_time": round(self._sim_time(), 4),
                 "handle": handle,
                 "alias": cfg.AGV_BLOCK_OBSTACLE_ALIAS,
-                "position": list(cfg.AGV_BLOCK_OBSTACLE_POS),
+                "position": list(point),
+                "route_id": spec.route_id,
+                "lane": spec.lanes[0] if spec.lanes else "",
             })
             self._event("FAULT_INJECT", device="agv",
                         detail={"kind": "agv_blocked",
-                                "alias": cfg.AGV_BLOCK_OBSTACLE_ALIAS})
+                                "alias": cfg.AGV_BLOCK_OBSTACLE_ALIAS,
+                                "route_id": spec.route_id,
+                                "position": list(point)})
         except Exception as exc:
             self._event("FAULT_INJECT_FAILED", detail={
                 "kind": "agv_blocked", "error": str(exc)})
+
+    @staticmethod
+    def _agv_obstacle_point(spec) -> Optional[tuple[float, float, float]]:
+        """在载货路线的最长直道中点放置障碍 (避开 dock 收敛窗口)."""
+        legs = [leg for leg in spec.straight_legs if leg.distance >= 0.30]
+        if not legs:
+            return None
+        leg = max(legs, key=lambda item: item.distance)
+        mid = ((leg.start[0] + leg.end[0]) / 2.0,
+               (leg.start[1] + leg.end[1]) / 2.0)
+        return (mid[0], mid[1], cfg.AGV_BLOCK_OBSTACLE_SIZE[2] / 2.0)
 
     def _remove_agv_obstacle(self) -> bool:
         if not self._fault_handles:
@@ -1462,9 +1503,10 @@ class Stage4Coordinator:
             "batch": dict(self._batch),
             "spawned": list(self.spawned),
         }
-        expected_final = 1 if self.scenario in (
-            cfg.SCENARIO_FULL_FLOW, cfg.SCENARIO_NO_PAIR,
-            cfg.SCENARIO_AGV_PRIORITY, cfg.SCENARIO_AGV_BLOCKED) else 0
+        expected_final = 2 if self.scenario == cfg.SCENARIO_STAGGERED else (
+            1 if self.scenario in (
+                cfg.SCENARIO_FULL_FLOW, cfg.SCENARIO_NO_PAIR,
+                cfg.SCENARIO_AGV_PRIORITY, cfg.SCENARIO_AGV_BLOCKED) else 0)
         common = (not any_latch and resources_released and route_ok
                   and priority_ok)
         if self.scenario == cfg.SCENARIO_FULL_FLOW:
@@ -1473,6 +1515,17 @@ class Stage4Coordinator:
                 and len(finals) == expected_final
                 and len(semi_wip) == 1
                 and all(rec.parents for rec in finals))
+        elif self.scenario == cfg.SCENARIO_STAGGERED:
+            acceptance["max_concurrent_tasks"] = self._max_concurrent_tasks()
+            acceptance["interleaved"] = bool(
+                acceptance["max_concurrent_tasks"]
+                >= cfg.STAGGERED_MIN_CONCURRENT_TASKS)
+            acceptance["ok"] = bool(
+                self.queue.all_done() and common
+                and len(finals) == expected_final
+                and len(semi_wip) == 1
+                and all(rec.parents for rec in finals)
+                and acceptance["interleaved"])
         elif self.scenario == cfg.SCENARIO_NO_PAIR:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
@@ -1543,6 +1596,28 @@ class Stage4Coordinator:
                     row.get("state") != RouteState.DONE.value:
                 return False
         return True
+
+    def _max_concurrent_tasks(self) -> int:
+        """时间线上同时处于执行态的物料/AGV 任务数峰值."""
+        intervals: list[tuple[float, float]] = []
+        now = self._sim_time()
+        for task in self.queue.all():
+            if task.started_sim_time is None:
+                continue
+            end = (task.finished_sim_time
+                   if task.finished_sim_time is not None else now)
+            intervals.append((float(task.started_sim_time), float(end)))
+        points: list[tuple[float, int]] = []
+        for start, end in intervals:
+            points.append((start, 1))
+            points.append((end, -1))
+        points.sort(key=lambda item: (item[0], -item[1]))
+        current = 0
+        peak = 0
+        for _time, delta in points:
+            current += delta
+            peak = max(peak, current)
+        return peak
 
     # ═══════════════════════════════════════════════════════
     # 报告

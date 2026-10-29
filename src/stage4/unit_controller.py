@@ -38,13 +38,48 @@ from stage2.conveyor_safety import (ConveyorStopMonitor, StopStatus,
                                     bounded_transport_step,
                                     read_conveyor_speed)
 from stage2.path_planning import Goal, MotionContext, PlanStatus
+from stage2.trajectory import joint_distance
 from stage2.unit_controller import (Stage2TaskState, _motion_params,
-                                    lift_pose)
+                                    horizontal_transfer_check, lift_pose,
+                                    pre_place_pose)
 from stage3.unit_controller import Stage3UnitController
 
 from . import config as cfg
 from .layout import LineSpec, UnitView4
 from .materials import ItemType, MaterialRegistry
+
+# A 臂 AGV 取料的 pre_pick 分支完整链复核上限 (见 _select_pre_pick_branch)
+_APPROACH_BRANCH_MAX = 4
+
+
+def agv_material_position(tray_pose):
+    """托盘实测位姿 → 物料中心 (托盘顶面 + 物料半高)."""
+    return [float(tray_pose[0]), float(tray_pose[1]),
+            float(tray_pose[2]) + base.AGV_TRAY_THICKNESS / 2.0
+            + base.MATERIAL_HALF_HEIGHT]
+
+
+def agv_place_pose(nominal_pose, tray_pose):
+    """AGV 载台放置点: 跟随实测托盘中心, 保持标称竖向偏移与工具姿态.
+
+    AGV 停靠误差可达数厘米; 固定标称放置点会让载荷降入托盘时蹭到
+    托盘壁 (实测 `AGV_TrayWall_Front`). 托盘是 AGV 的子对象, 其世界
+    位姿就是当前载台中心; 竖向偏移按托盘厚度与物料半高计算.
+    """
+    position = agv_material_position(tray_pose)
+    return [position[0], position[1],
+            position[2] + base.MATERIAL_HALF_HEIGHT,
+            *[float(v) for v in nominal_pose[3:7]]]
+
+
+def agv_material_pose(nominal_pose, tray_pose):
+    """与 :func:`agv_place_pose` 同源的释放目标物料位姿.
+
+    释放校验比较实测物料位姿与目标; 放置点跟随托盘后, 目标也必须
+    用同一托盘中心, 否则会被判为修正超限.
+    """
+    position = agv_material_position(tray_pose)
+    return [*position, *[float(v) for v in nominal_pose[3:7]]]
 
 
 class Stage4UnitControllerError(RuntimeError):
@@ -556,12 +591,239 @@ class Stage4UnitController(Stage3UnitController):
 
     # ── 放置 ────────────────────────────────────────────────
 
+    def _place_pose(self) -> list[float]:
+        """AGV 放置点跟随实测托盘, 其余汇沿用布局标称位姿."""
+        pose = super()._place_pose()
+        if self.sink != "agv":
+            return pose
+        try:
+            tray = self.scene.handle(base.ALIASES["agv_tray"])
+            if int(tray) < 0:
+                return pose
+            tray_pose = self.sim.getObjectPose(tray, self.sim.handle_world)
+        except Exception:
+            return pose
+        return agv_place_pose(pose, tray_pose)
+
+    def _material_pose_for_target(self) -> list[float]:
+        """释放目标物料位姿必须与 AGV 放置点同源 (实测托盘)."""
+        pose = super()._material_pose_for_target()
+        if self.sink != "agv":
+            return pose
+        try:
+            tray = self.scene.handle(base.ALIASES["agv_tray"])
+            if int(tray) < 0:
+                return pose
+            tray_pose = self.sim.getObjectPose(tray, self.sim.handle_world)
+        except Exception:
+            return pose
+        return agv_material_pose(pose, tray_pose)
+
+    def _transfer_goal_variants(self, place, start_pose):
+        """A 臂从 AGV 卸货到交接台: 增加同高度 via-park 候选.
+
+        06-15 的直线/±0.30 m 绕行在 A 臂由不同前置任务进入 AGV 取料时,
+        可能落在不同的腕部分支: 实测 staggered_batch 的 a_agv 水平直连
+        横向偏差 8.1 mm (>5 mm), +0.30 绕行 IK 无解, -0.30 绕行偏差
+        5.0 mm 仍被拒绝。这里追加一个同高度、同工具姿态的 via-park
+        候选 (交接台西南侧 park 上方), 仍由 ``direct_only=True`` 的
+        两段笛卡尔水平线规划, 使用同一 IK/碰撞/分支/水平姿态复核;
+        仅对 A 臂 AGV→交接台任务生效, 不改变阶段二/三默认候选。
+        """
+        variants = list(super()._transfer_goal_variants(place, start_pose))
+        if (self.unit_id == "A" and self.source == "agv"
+                and self.park_tcp_pose is not None):
+            pre = pre_place_pose(place)
+            via = [float(self.park_tcp_pose[0]),
+                   float(self.park_tcp_pose[1]), float(pre[2]),
+                   *[float(v) for v in place[3:7]]]
+            variants.append((
+                "horizontal_detour_park",
+                [Goal("detour_park", via, cartesian=True,
+                      strict_orientation=True),
+                 Goal("pre_place", pre, cartesian=True,
+                      strict_orientation=True)],
+                {"detour_offset": None,
+                 "semantic_points": ["detour_park", "pre_place"]},
+            ))
+        return variants
+
+    # ── 抬升规划 ────────────────────────────────────────────
+
+    def _plan_lift(self, current_q, current_tcp):
+        """LIFTING: 垂直直连抬升, 失败时使用既有局部回退.
+
+        D 工位取料点在水平方向较远, 竖直笛卡尔抬升的关节插值偏差约
+        6–8 mm, 被 CARTESIAN_PATH_POS_TOL=5 mm 拒绝; 改用同一 lift 位姿
+        的关节目标 (cartesian=False), 仍检查关节限位/碰撞/分支/终点 TCP
+        和 q0 锁. AGV 卸货点的 IK 可能落在镜像肩部解, 锁 q[0] 无解时
+        解除锁定, 仍按垂直笛卡尔直线逐层做 IK/限位/碰撞/分支检查.
+        不做未检查的关节直赋.
+        """
+        pick = contact_pose(self._pick_pose, self._pick_box, 0.0)
+        lift = lift_pose(pick, self._place_pose()[3:7])
+        goals = [Goal("lift", lift, cartesian=True,
+                      lock_joint=self._lock_for("lift"))]
+        context = MotionContext(
+            phase="LIFT", target_handle=-1, carrying=True,
+            snapshot=f"LIFT@t{self.sim_time:.2f}",
+            allow_start_load_contact=True)
+        plan = self.planner.plan(current_q, goals, context,
+                                 start_pose=current_tcp,
+                                 direct_only=True)
+        if plan.ok:
+            return plan
+        if plan.status in (PlanStatus.GOAL_CONFIG_INVALID,
+                           PlanStatus.PATH_DEVIATION) and \
+                "法向插值偏差" in (plan.message or ""):
+            joint_goals = [Goal("lift", lift, cartesian=False,
+                                lock_joint=self._lock_for("lift"))]
+            fallback = self.planner.plan(
+                current_q, joint_goals, context,
+                start_pose=current_tcp, direct_only=True)
+            fallback.metrics.setdefault("lift_fallback", {
+                "reason": "cartesian_deviation",
+                "cartesian_status": plan.status.value,
+                "cartesian_message": plan.message,
+            })
+            self._event(
+                f"LIFT fallback joint goal: {plan.status.value} -> "
+                f"{fallback.status.value}")
+            return fallback
+        if plan.status is PlanStatus.JOINT_LOCK_UNAVAILABLE:
+            free_goals = [Goal("lift", lift, cartesian=True,
+                               lock_joint=None)]
+            fallback = self.planner.plan(
+                current_q, free_goals, context,
+                start_pose=current_tcp, direct_only=True)
+            fallback.metrics.setdefault("lift_fallback", {
+                "reason": "joint_lock_unavailable",
+                "cartesian_status": plan.status.value,
+                "cartesian_message": plan.message,
+            })
+            self._event(
+                f"LIFT fallback unlocked q[0]: {plan.status.value} -> "
+                f"{fallback.status.value}")
+            return fallback
+        return plan
+
+    # ── 接近分支选择 (A 臂 AGV 取料) ──────────────────────────
+
+    def _forced_pre_pick(self, current_q, current_tcp, pre_pose, pick_pose,
+                         rec):
+        """A 臂从 AGV 取料时预选能把后续抬升/转运走通的肩部解."""
+        if not (self.unit_id == "A" and self.source == "agv"):
+            return None
+        return self._select_pre_pick_branch(
+            current_q, current_tcp, pre_pose, pick_pose, rec)
+
+    def _select_pre_pick_branch(self, current_q, current_tcp, pre_pose,
+                                pick_pose, rec):
+        """对少量 pre_pick IK 解各做一次完整链影子复核, 返回可用构型.
+
+        实测 `staggered_batch`: 默认“最近构型”落在 q[0]≈-1.5 的肩部解,
+        抬升后为肘上分支, 在 H_transfer 上无法把物料送到交接台 (直连
+        横向偏差 7.8 mm; 28 个固定高度绕行点、beam 与 0.5 cm 步长均
+        无解). 同一 pre_pick 位姿的 q[0]≈+2.0 肩部解抬升后 q[3]≈0,
+        既有 `detour +0.30` 即可通过. 这里只强制完整链 (下探→抬升→
+        水平转运) 已整体验证的构型; 每段仍走原有 IK/碰撞/分支/水平
+        姿态复核, 不放宽任何容差. 先尝试另一侧肩部解, 其余候选按 IK
+        顺序回退; 全部失败时返回 None, 保持原接近规划行为.
+        """
+        if self._pick_pose is None or self._pick_box is None:
+            return None
+        try:
+            candidates = self.planner.solve_pose(pre_pose, current_q,
+                                                 thorough=True)
+        except Exception as exc:
+            self._event(f"APPROACH branch lookahead skipped: {exc}")
+            return None
+        contact_ctx = MotionContext(
+            phase="CONTACT",
+            target_handle=(rec.sim_handle if rec is not None else -1),
+            material_pose=list(self._pick_pose),
+            material_box=self._pick_box, carrying=False,
+            cup_radius=self.runtime.cup_radius,
+            snapshot=f"LOOKAHEAD@t{self.sim_time:.2f}")
+        usable: list[list[float]] = []
+        for candidate in candidates:
+            q = [float(v) for v in candidate]
+            pos_err, ang_err = self.planner._pose_error(
+                q, pre_pose, strict=True)
+            if pos_err > s2cfg.EXEC_TCP_POS_TOL or \
+                    ang_err > s2cfg.EXEC_TCP_ANG_TOL:
+                continue
+            check = self.checker.check_segment(
+                current_q, q, contact_ctx, screen=True)
+            if not check.ok:
+                continue
+            if all(joint_distance(q, seen) > 0.05 for seen in usable):
+                usable.append(q)
+        if not usable:
+            return None
+        usable.sort(key=lambda q: 0 if math.remainder(
+            q[0], 2.0 * math.pi) > 0.0 else 1)
+        usable = usable[:_APPROACH_BRANCH_MAX]
+        attach = self.suction._relative_transform(
+            list(pick_pose), list(self._pick_pose))
+        self.runtime.set_attach_transform(attach)
+        try:
+            for q in usable:
+                if self._chain_from_pre_pick(
+                        q, pick_pose, contact_ctx):
+                    self._event(
+                        f"APPROACH branch selected q0={q[0]:.3f} "
+                        f"q3={q[3]:.3f} from {len(usable)} candidates")
+                    return q
+        finally:
+            self.runtime.set_attach_transform(None)
+        self._event(
+            f"APPROACH branch lookahead found no feasible chain "
+            f"({len(usable)} candidates)")
+        return None
+
+    def _chain_from_pre_pick(self, q, pick_pose, contact_ctx) -> bool:
+        """影子复核 pre_pick → 下探 → 抬升 → 水平转运 整链."""
+        descend = self.planner.plan(
+            q, [Goal("pick", pick_pose, cartesian=True,
+                     allow_target_contact=True, final_contact=True)],
+            contact_ctx, start_pose=self.checker.tcp_at(q),
+            direct_only=True,
+            wall_s=s2cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+        if not descend.ok:
+            return False
+        pick_q = descend.waypoints[-1]
+        lift = self._plan_lift(pick_q, self.checker.tcp_at(pick_q))
+        if lift is None or not lift.ok:
+            return False
+        lift_q = lift.waypoints[-1]
+        lift_tcp = self.checker.tcp_at(lift_q)
+        place = self._place_pose()
+        transfer_ctx = MotionContext(
+            phase="TRANSFER", target_handle=-1, carrying=True,
+            snapshot=f"LOOKAHEAD-TRANSFER@t{self.sim_time:.2f}")
+        for _name, goals, _info in self._transfer_goal_variants(
+                place, lift_tcp):
+            plan = self.planner.plan(
+                lift_q, goals, transfer_ctx, start_pose=lift_tcp,
+                direct_only=True,
+                wall_s=s2cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+            if not plan.ok:
+                continue
+            check = horizontal_transfer_check(
+                plan.waypoints, self.checker, orientation=place[3:7])
+            if check.get("query_unknown") or not check.get("ok"):
+                continue
+            return True
+        return False
+
     def _build_plan(self):
-        """A 工位共享交接台放置后, 撤离到布局派生的 park 位姿.
-        阶段四 LIFTING 固定为垂直直连抬升: 吸附点仍在取料面上, 载荷与
-        conveyor pad 的正常接触会在“中转构型”起点的载荷检查中被误判为
-        碰撞; 垂直笛卡尔抬升只允许起点载荷接触, 仍逐点做 IK/碰撞/分支
-        检查 (与 06-15 的 direct_only 转运一致).
+        """阶段四覆盖: LIFTING 走 :meth:`_plan_lift`, 交接台放置后撤离到 park.
+
+        LIFTING 固定为垂直直连抬升 (吸附点仍在取料面上, 起点允许载荷
+        接触; 其余检查与 06-15 的 direct_only 转运一致). A 臂在共享
+        交接台放置后必须撤离到布局派生的 park 位姿, 给 C 臂让出交接台
+        包络; 其余状态沿用阶段二/三规划.
         """
         if self.state is UnitTaskState.LIFTING:
             try:
@@ -575,62 +837,7 @@ class Stage4UnitController(Stage3UnitController):
             self._event(
                 f"LIFT START {start_source} "
                 f"q={[round(v, 4) for v in current_q]}")
-            pick = contact_pose(self._pick_pose, self._pick_box, 0.0)
-            lift = lift_pose(pick, self._place_pose()[3:7])
-            goals = [Goal("lift", lift, cartesian=True,
-                          lock_joint=self._lock_for("lift"))]
-            context = MotionContext(
-                phase="LIFT", target_handle=-1, carrying=True,
-                snapshot=f"LIFT@t{self.sim_time:.2f}",
-                allow_start_load_contact=True)
-            plan = self.planner.plan(current_q, goals, context,
-                                     start_pose=current_tcp,
-                                     direct_only=True)
-            if plan.ok:
-                return plan
-            # D 工位取料点在水平方向较远, 竖直笛卡尔抬升的关节插值偏差
-            # 约 6–8 mm, 被 CARTESIAN_PATH_POS_TOL=5 mm 拒绝; 改用同一
-            # lift 位姿的关节目标 (cartesian=False), 仍检查关节限位/碰撞/
-            # 分支/终点 TCP 和 q0 锁, 不做未检查的关节直赋.
-            if plan.status in (PlanStatus.GOAL_CONFIG_INVALID,
-                               PlanStatus.PATH_DEVIATION) and \
-                    "法向插值偏差" in (plan.message or ""):
-                joint_goals = [Goal("lift", lift, cartesian=False,
-                                    lock_joint=self._lock_for("lift"))]
-                fallback = self.planner.plan(
-                    current_q, joint_goals, context,
-                    start_pose=current_tcp, direct_only=True)
-                fallback.metrics.setdefault("lift_fallback", {
-                    "reason": "cartesian_deviation",
-                    "cartesian_status": plan.status.value,
-                    "cartesian_message": plan.message,
-                })
-                self._event(
-                    f"LIFT fallback joint goal: {plan.status.value} -> "
-                    f"{fallback.status.value}")
-                return fallback
-            # AGV 卸货点的 IK 可能落在与上一任务末端构型最近的“镜像”
-            # 肩部解; 该构型下竖直抬升需要转动基座 q[0], 锁定后无解
-            # (实测 E dock 在 q[0]=-1.8235 处失败)。解除 q[0] 锁定后
-            # 仍按垂直笛卡尔直线逐层求解, 每层做 IK/关节限位/碰撞/
-            # 分支连续性检查, 只放弃“基座不动”这一优化约束, 不做
-            # 未检查的关节直赋.
-            if plan.status is PlanStatus.JOINT_LOCK_UNAVAILABLE:
-                free_goals = [Goal("lift", lift, cartesian=True,
-                                   lock_joint=None)]
-                fallback = self.planner.plan(
-                    current_q, free_goals, context,
-                    start_pose=current_tcp, direct_only=True)
-                fallback.metrics.setdefault("lift_fallback", {
-                    "reason": "joint_lock_unavailable",
-                    "cartesian_status": plan.status.value,
-                    "cartesian_message": plan.message,
-                })
-                self._event(
-                    f"LIFT fallback unlocked q[0]: {plan.status.value} -> "
-                    f"{fallback.status.value}")
-                return fallback
-            return plan
+            return self._plan_lift(current_q, current_tcp)
         if (self.state is Stage2TaskState.RETREATING
                 and self.park_tcp_pose is not None):
             try:

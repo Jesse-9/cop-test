@@ -5,14 +5,22 @@
 :mod:`stage1.config` / :mod:`stage2.config` / :mod:`stage3.config`; 阶段四
 不得复制或改写这些值 (CLAUDE.md §9). 阶段四在其上增加:
 
-  - 五岛 A–E 与两个来源 S1/S2 的相对布局 `L4_COLUMN`;
+  - 五岛 A–E 与两个来源 S1/S2 的相对布局 `L5_UFLOW` (阶段 4.1);
   - S1→B、S2→D、C→E 三条独立传送带与 A→C 固定交接;
   - 多类型物料、有限批次、区域容量与背压规则;
-  - AGV 直线路线图 (B→A 高优先, D→E 低优先+老化, 空载调机);
+  - AGV 分段环状路网 (西/南/东三段直道 + 节点原地转向);
   - 阶段四资源表、故障注入与验收口径.
 
 坐标约定: X = 主输送方向, Y = 横向, Z = 高度; 单位 m / rad / s / kg.
 所有位置均为**世界坐标**; 传送带局部坐标只在 layout 派生时使用.
+
+阶段 4.1 布局 (06-17):
+  - A/B 保持阶段三 `L2_MIRROR` 锚点 (基座/置物台/dock 不变);
+  - 固定物流沿 +X 展开: S1 → A → (短交接) → C → Conveyor → E,
+    S2 → D 在南侧独立供料;
+  - C→E 与 S2→D 分别位于 y=+1.35 / y=-1.35 两条固定物流边;
+  - AGV dock 不再共线: A/B 在 x=0.40, D/E 在 x=2.90, 由西/南/东三段
+    直道组成的 U 形外围路网连接, 只在节点处停车转向.
 """
 
 from __future__ import annotations
@@ -20,22 +28,23 @@ from __future__ import annotations
 import math
 
 from stage1 import config as base
+from stage2 import config as s2cfg
 from stage3 import config as s3cfg
 
 # ═══════════════════════════════════════════════════════════════
 # 契约、控制器与版本
 # ═══════════════════════════════════════════════════════════════
 
-STAGE4_CONTRACT_VERSION = "stage4_contract_20261028_v1"
+STAGE4_CONTRACT_VERSION = "stage4_contract_20261029_v2"
 STAGE4_CONTROLLER_ID = "stage4.unit_controller.Stage4UnitController"
 STAGE4_COORDINATOR_ID = "stage4.coordinator.Stage4Coordinator"
 STAGE4_RUNNER_ID = "stage4.run.run_loaded_scene_stage4"
 STAGE4_PHASE = "stage4"
-STAGE4_SCENE_BUILDER_VERSION = "stage4_scene_20261028"
-STAGE4_TASK_FLOW_VERSION = "stage4_taskflow_20261028"
-STAGE4_RESOURCE_POLICY_VERSION = "stage4_resources_20261028"
-STAGE4_AGV_ROUTE_VERSION = "stage4_agv_map_20261028"
-STAGE4_MATERIAL_MODEL_VERSION = "stage4_materials_20261028"
+STAGE4_SCENE_BUILDER_VERSION = "stage4_scene_20261029"
+STAGE4_TASK_FLOW_VERSION = "stage4_taskflow_20261029"
+STAGE4_RESOURCE_POLICY_VERSION = "stage4_resources_20261029"
+STAGE4_AGV_ROUTE_VERSION = "stage4_agv_map_20261029"
+STAGE4_MATERIAL_MODEL_VERSION = "stage4_materials_20261029"
 STAGE4_METRICS_VERSION = "stage4_metrics_20261028"
 
 # 会话资源前缀: 与阶段二/三一致, 保存后的工件不得包含这些对象.
@@ -45,77 +54,116 @@ SESSION_RESOURCE_PREFIX = "Shadow_"
 PARENT_PHASE = "stage3"
 
 # ═══════════════════════════════════════════════════════════════
-# 布局: L4_COLUMN
+# 高度 datum (06-17 §3)
 # ═══════════════════════════════════════════════════════════════
-# 拓扑 (06-16 §1):
+# 三类高度必须显式区分, 不得把 island_top_z 当作所有目标的基准:
+#   Z_BASE      UR5 模型根所在的安装基面 (本布局 A–E 统一 0.30 m);
+#   Z_WORK      工位台面/岛面/承载面 (A/B/E 台面 0.30, C/D 由传送带承载);
+#   Z_BELT      内置 conveyor 带面 (0.45 m, 阶段一实测);
+#   H_TRANSFER  带载水平段 TCP 高度 (06-15, 0.65 m).
+# 物料中心 = 承载面 + MATERIAL_HALF_HEIGHT; 吸盘接触面在物料顶面.
+
+Z_BASE = base.ISLAND_TOP_Z                     # 0.30 m, A–E 统一安装基面
+Z_WORK = {
+    "A": base.STATION_TOP_Z,                    # 0.30 置物台/交接台
+    "B": base.STATION_TOP_Z,                    # 0.30 置物台
+    "C": base.CONVEYOR_SURFACE_Z,               # 0.45 C→E 带面
+    "D": base.CONVEYOR_SURFACE_Z,               # 0.45 S2→D 带面
+    "E": base.ISLAND_TOP_Z,                     # 0.30 E 岛缓冲/输出
+}
+Z_BELT = base.CONVEYOR_SURFACE_Z                # 0.45 m
+H_TRANSFER = s2cfg.TRANSFER_HEIGHT              # 0.65 m
+MATERIAL_CENTER_OFFSET = base.MATERIAL_HALF_HEIGHT
+
+# 高度例外: 本布局没有保留局部高台; 全部工位基座为 0.30 m.
+# 若后续因碰撞/可达性需要恢复高台, 必须在此记录岛、数值、冲突和证据.
+HEIGHT_EXCEPTIONS: tuple[dict, ...] = ()
+
+HEIGHT_DATUM = {
+    "Z_base": Z_BASE,
+    "Z_work": dict(Z_WORK),
+    "Z_belt": Z_BELT,
+    "H_transfer": H_TRANSFER,
+    "material_half_height": MATERIAL_CENTER_OFFSET,
+    "suction_contact_offset": base.TCP_LOCAL_Z,
+    "agv_tray_top": base.AGV_TRAY_TOP_Z,
+    "exceptions": [dict(item) for item in HEIGHT_EXCEPTIONS],
+    "note": "Z_base 是 UR5 模型根安装面; Z_work 是物料承载面; "
+            "Z_belt 是带面; H_transfer 是带载水平段 TCP 高度.",
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 布局: L5_UFLOW
+# ═══════════════════════════════════════════════════════════════
+# 拓扑 (06-16 §1) 不变:
 #   S1 ──► A ──固定衔接──► C ──Conveyor──► E
 #    └──► B ──AGV 高优先级 B→A──► A
 #   S2 ──► D ──AGV 低优先级 D→E──► E
 #
-# 首轮沿用阶段三实测的 A/B 侧置结构, 新增 C/D/E 不改变 A/B 坐标:
-#   - A/B 基座 (-0.20, ±0.55, 0.30), 置物台 (-0.20, ±1.20),
-#     AGV dock (0.40, ±0.70);
-#   - C 位于 A 的固定交接下游 (-0.20, 1.75);
-#   - E 位于 C→E 输送末端 (-0.20, 2.45);
-#   - D 位于 AGV 通道另一侧 (-0.20, -2.45);
-#   - 所有 AGV dock 共线于 x=0.40, 车头朝 -Y, 路线为直线, 不在 dock 旋转.
+# 阶段 4.1 把固定物流与 AGV 流路在平面上分开:
+#   - A/B 保持阶段三锚点 (-0.20, ±0.55, 0.30), dock (0.40, ±0.70);
+#   - A→C 短交接仍在 A 置物台 (-0.20, 1.20); C 位于其东侧 (0.35, 1.35);
+#   - C→E 沿 +X 输送到 E (2.34, 1.35); S2→D 沿 +X 输送到 D (2.34, -1.35);
+#   - D/E dock 在 x=2.90; A/B dock 在 x=0.40, 由西/南/东三段直道连接.
 
-STAGE4_LAYOUT_NAME = "L4_COLUMN"
+STAGE4_LAYOUT_NAME = "L5_UFLOW"
 
-# 工位定义 (arms = 5). `station_pos` 对 C/D/E 是**标称输出位**, 仅用于
-# 布局派生与控制器 TaskLayout; 只有 A/B 有实体置物台.
 UNIT_DEFS = {
     "A": {
         "index": 1,
-        "arm_base": (-0.20, 0.55, base.ISLAND_TOP_Z),
+        "arm_base": (-0.20, 0.55, Z_BASE),
         "island_pos": (-0.20, 0.55),
         "station_pos": (-0.20, 1.20),
-        "dock": s3cfg.AGV_DOCK_A,
+        "dock": (0.40, 0.70),
         "has_station": True,
         "has_dock": True,
     },
     "B": {
         "index": 2,
-        "arm_base": (-0.20, -0.55, base.ISLAND_TOP_Z),
+        "arm_base": (-0.20, -0.55, Z_BASE),
         "island_pos": (-0.20, -0.55),
         "station_pos": (-0.20, -1.20),
-        "dock": s3cfg.AGV_DOCK_B,
+        "dock": (0.40, -0.70),
         "has_station": True,
         "has_dock": True,
     },
     "C": {
         "index": 3,
-        # C 与 A→C 交接台相邻; 抬高 C 岛/基座 0.15 m 让 link3 越过
-        # Station A 台面 (0.30 m), 避免接近交接点时与台体碰撞.
-        "arm_base": (-0.20, 1.75, 0.45),
-        "island_pos": (-0.20, 1.75),
-        "island_top_z": 0.45,
-        "island_size": (0.60, 0.60, 0.45),
-        "station_pos": (-0.85, 1.553),      # == C→E 传送带入口 (放置点)
+        # C 在 A 交接下游; 基座沿用统一 0.30 m, 由交接台偏置和接近
+        # 方向避免 link3 与 A 置物台干涉 (06-17 §3 原则 2).
+        "arm_base": (0.35, 1.35, Z_BASE),
+        "island_pos": (0.35, 1.35),
+        "island_top_z": Z_BASE,
+        "island_size": (0.60, 0.60, Z_BASE),
+        "station_pos": (1.013, 1.35),       # == C→E 传送带入口 (放置点)
         "dock": None,
         "has_station": False,
         "has_dock": False,
     },
     "D": {
         "index": 4,
-        # D 岛/基座抬高到 0.45 m 与带面齐平, link3 不再压到 pad;
-        # S2→D 支线东移 0.20 m, 取料点 x≈-0.77 到基座约 0.67 m
-        # (H_transfer=0.65), 仍覆盖 dock D (0.40,-2.45).
-        "arm_base": (-0.20, -2.45, 0.45),
-        "island_pos": (-0.20, -2.45),
-        "island_top_z": 0.45,
-        "island_size": (0.55, 0.55, 0.45),
-        "station_pos": (-0.69, -2.45),      # == S2→D 传送带停止区
-        "dock": (0.40, -2.45),
+        # D 在 S2→D 支线东端; 岛体 0.55 m, 与带面齐平由 conveyor 承载.
+        "arm_base": (2.34, -1.35, Z_BASE),
+        "island_pos": (2.34, -1.35),
+        "island_top_z": Z_BASE,
+        "island_size": (0.55, 0.55, Z_BASE),
+        "station_pos": (1.830, -1.35),      # == S2→D 传送带停止区
+        "dock": (2.90, -1.35),
         "has_station": False,
         "has_dock": True,
     },
     "E": {
         "index": 5,
-        "arm_base": (-0.20, 2.45, base.ISLAND_TOP_Z),
-        "island_pos": (-0.20, 2.45),
-        "station_pos": (-0.42, 2.60),       # == E 缓冲 C 位
-        "dock": (0.40, 2.45),
+        # E 在 C→E 末端; C 入口在西侧, AGV dock 在东侧, 输出在北侧.
+        # 两个缓冲放在机械臂基座东西两侧的同一径向线上: AGV 卸货
+        # (dock→buffer_e_d) 与 C 线取料→buffer_e_c 都是沿径向的短距离
+        # 水平转运, 避免横向折叠造成的连续 IK 分支跳变.
+        "arm_base": (2.34, 1.35, Z_BASE),
+        "island_pos": (2.34, 1.35),
+        "island_top_z": Z_BASE,
+        "island_size": (0.60, 0.60, Z_BASE),
+        "station_pos": (2.10, 1.35),        # == E 缓冲 C 位
+        "dock": (2.90, 1.35),
         "has_station": False,
         "has_dock": True,
     },
@@ -200,7 +248,7 @@ SHADOW_ALIASES = {
 # 物流线与固定交接
 # ═══════════════════════════════════════════════════════════════
 # `center` 是传送带模型根的世界 XY; `yaw` 是绕 Z 的朝向 (0 = +X 下游,
-# +pi/2 = +Y 下游). 长度沿用阶段一设计长度 (等比缩放后宽度随之确定).
+# +pi/2 = +Y 下游). 长度沿用阶段一设计长度 (1.216 m).
 
 LINE_DEFS = {
     "line_s1a": {
@@ -219,9 +267,8 @@ LINE_DEFS = {
         "entry": "Conveyor_S1_to_B_Entry",
         "stop": "Conveyor_S1_to_B_Stop",
         "sensor": "Sensor_Conveyor_S1_to_B_Stop",
-        # 支线靠近 B 臂: 取料点 (-0.75, -0.65) 到基座 (-0.20,-0.55)
-        # 的水平距离 0.56 m, 抬升到 H_transfer=0.65 时约 0.66 m,
-        # 留在 UR5 可达范围内; 原 (-0.85,-0.75) 在 0.80 m 时约 0.84 m.
+        # S1→B 独立短支路, 与 S1→A 不共用岔道; 取料点 (-0.75,-0.65)
+        # 到 B 基座 (-0.20,-0.55) 0.56 m.
         "center": (-0.75, -1.07),
         "yaw": math.pi / 2.0,
         "design_length": base.CONVEYOR_DESIGN_LENGTH,
@@ -233,9 +280,8 @@ LINE_DEFS = {
         "entry": "Conveyor_S2_to_D_Entry",
         "stop": "Conveyor_S2_to_D_Stop",
         "sensor": "Sensor_Conveyor_S2_to_D_Stop",
-        # S2→D 支线东移 0.20 m: 停止区 (-0.69,-2.45), 物料触发点
-        # x≈-0.77; D 基座 (-0.20,-2.45,0.45), 抬升/放置均可达.
-        "center": (-1.11, -2.45),
+        # S2→D 南侧独立支路: 停止区 (1.830,-1.35), D 基座 (2.34,-1.35).
+        "center": (1.41, -1.35),
         "yaw": 0.0,
         "design_length": base.CONVEYOR_DESIGN_LENGTH,
         "source": "S2",
@@ -246,8 +292,9 @@ LINE_DEFS = {
         "entry": "Conveyor_C_to_E_Entry",
         "stop": "Conveyor_C_to_E_Stop",
         "sensor": "Sensor_Conveyor_C_to_E_Stop",
-        "center": (-0.85, 1.95),
-        "yaw": math.pi / 2.0,
+        # C 放到入口 (1.013,1.35), E 从停止区 (1.830,1.35) 取料.
+        "center": (1.41, 1.35),
+        "yaw": 0.0,
         "design_length": base.CONVEYOR_DESIGN_LENGTH,
         "source": "C",
         "destination": "E",
@@ -268,26 +315,37 @@ HANDOFF_AC = {
 }
 
 # E 岛两个输入缓冲 (位于 E 岛台面上, 不需要额外台体).
+# C 线从西侧进入, AGV 从东侧进入; 缓冲固定分区, 输出在北侧.
 E_BUFFERS = {
     "buffer_e_c": {
         "alias": "E_Buffer_C",
         "sensor": "Sensor_E_Buffer_C",
-        "position": (-0.42, 2.60),
+        "position": (2.10, 1.35),
         "accepts": "SEMI_CE",
     },
     "buffer_e_d": {
         "alias": "E_Buffer_D",
         "sensor": "Sensor_E_Buffer_D",
-        "position": (0.02, 2.60),
+        "position": (2.58, 1.35),
         "accepts": "PART_DE",
     },
 }
 
-# 成品输出点 (E 岛台面后缘; 逻辑装配生成, 不由机械臂搬运).
+# 成品输出点: E 岛东侧独立输出台, 位于东直道 x=2.90 与地面东缘之间。
+# 输出由逻辑装配生成, 不由机械臂搬运; 放在岛外可避免 FINAL 进入 E 臂
+# 碰撞包络 (实测放在岛面 (2.40,1.60) 时, E 臂下一次接近 buffer 会与
+# FINAL 的 Part 对象发生 link3 碰撞).
 E_OUTPUT = {
     "alias": "E_Output",
-    "position": (-0.20, 2.72),
-    "material_z": base.ISLAND_TOP_Z + base.MATERIAL_HALF_HEIGHT + 0.01,
+    "position": (3.50, 1.35),
+    "material_z": Z_BASE + base.MATERIAL_HALF_HEIGHT + 0.01,
+}
+
+E_OUTPUT_TABLE = {
+    "alias": "E_Output_Table",
+    "position": (3.50, 1.35),
+    "size": (0.30, 0.20, Z_BASE),
+    "top_z": Z_BASE,
 }
 
 # 仓库/来源
@@ -307,7 +365,8 @@ SOURCE_DEFS = {
     },
 }
 
-WAREHOUSE_S2_POS = (-2.30, -2.45)
+# S2 仓库放在 S2→D 支线北侧, 避开西侧 AGV 通道 (x=0.40).
+WAREHOUSE_S2_POS = (1.00, -0.90)
 WAREHOUSE_S2_SIZE = base.WAREHOUSE_SIZE
 
 # ═══════════════════════════════════════════════════════════════
@@ -324,6 +383,7 @@ ALIASES = {
     "e_buffers": {key: {"alias": spec["alias"], "sensor": spec["sensor"]}
                   for key, spec in E_BUFFERS.items()},
     "e_output": E_OUTPUT,
+    "e_output_table": E_OUTPUT_TABLE,
     "dock_sensor": {
         "A": s3cfg.ALIASES["dock_sensor"]["A"],
         "B": s3cfg.ALIASES["dock_sensor"]["B"],
@@ -352,7 +412,7 @@ REQUIRED_ALIASES = [
     "Sensor_AGV_Dock_D", "Sensor_AGV_Dock_E",
     "Sensor_Handoff_AC", "E_Buffer_C", "E_Buffer_D", "E_Output",
     "Sensor_E_Buffer_C", "Sensor_E_Buffer_D",
-    "Warehouse_S2", "Source_S1_B", "Source_S2_D",
+    "Warehouse_S2", "Source_S1_B", "Source_S2_D", "E_Output_Table",
 ]
 
 # 构建时必须存在且唯一的阶段四 target dummy (A→C 交接, C→E 放置, AGV D 放置).
@@ -416,7 +476,7 @@ SOURCE_ITEMS = {
                          + base.MATERIAL_HALF_HEIGHT + base.MATERIAL_SPAWN_GAP),
             "item_type": ITEM_TYPE_RAW_B},
     "s2d": {"line": "line_s2d",
-            "position": (-1.507, -2.45,
+            "position": (1.013, -1.35,
                          base.CONVEYOR_SURFACE_Z
                          + base.MATERIAL_HALF_HEIGHT + base.MATERIAL_SPAWN_GAP),
             "item_type": ITEM_TYPE_RAW_D},
@@ -441,6 +501,10 @@ JOIN_DUPLICATE_POLICY = "reject_replay_same_parent_pair"
 # ═══════════════════════════════════════════════════════════════
 # 资源表 (固定顺序; 全部一次性申请, 禁止持有后等待)
 # ═══════════════════════════════════════════════════════════════
+# 阶段 4.1 把 AGV 单通道拆成三条直道; 路线按实际经过的 lane 申请资源.
+# 所有 AGV 路线仍要求全部 dock 空闲 (车辆可能穿过中间 dock).
+
+AGV_LANES = ("agv_lane_west", "agv_lane_south", "agv_lane_east")
 
 RESOURCE_ORDER = (
     "line_s1a",
@@ -450,14 +514,15 @@ RESOURCE_ORDER = (
     "handoff_ac",
     "buffer_e_c",
     "buffer_e_d",
+    "agv_lane_west",
+    "agv_lane_south",
+    "agv_lane_east",
     "dock_A",
     "dock_B",
     "dock_D",
     "dock_E",
-    "agv_lane",
     "zone_ab",
     "zone_ac",
-    "zone_ce",
     "arm_A",
     "arm_B",
     "arm_C",
@@ -473,14 +538,15 @@ RESOURCE_ROLES = {
     "handoff_ac": "A→C 固定交接台 (A 放置 + C 取料)",
     "buffer_e_c": "E 岛 C 线输入缓冲",
     "buffer_e_d": "E 岛 D 线输入缓冲",
+    "agv_lane_west": "AGV 西直道 x=0.40, y∈[-2.10,0.70]",
+    "agv_lane_south": "AGV 南横道 y=-2.10, x∈[0.40,2.90]",
+    "agv_lane_east": "AGV 东直道 x=2.90, y∈[-2.10,1.35]",
     "dock_A": "dock A 装卸窗口",
     "dock_B": "dock B 装卸窗口",
     "dock_D": "dock D 装卸窗口",
     "dock_E": "dock E 装卸窗口",
-    "agv_lane": "AGV 直线通道 x=0.40, y∈[-2.45,2.45]",
     "zone_ab": "A/B 臂包络互锁区 (基座间距 < 2×reach)",
     "zone_ac": "A/C 臂包络互锁区",
-    "zone_ce": "C/E 臂包络互锁区",
     "arm_A": "A 臂运动包络",
     "arm_B": "B 臂运动包络",
     "arm_C": "C 臂运动包络",
@@ -489,15 +555,15 @@ RESOURCE_ROLES = {
 }
 
 # 臂间互锁: 只有基座间距 < ADJACENCY_DISTANCE 的臂需要串行.
+# L5_UFLOW: A–B 1.10 m, A–C 0.97 m; C–E 1.99 m, 不再相邻.
 ARM_ADJACENCY_DISTANCE = 1.6
 ARM_ADJACENCY_ZONES = {
     "zone_ab": ("A", "B"),
     "zone_ac": ("A", "C"),
-    "zone_ce": ("C", "E"),
 }
 
-# AGV 路线要求全部 dock 空闲: 长距离直线穿过所有 dock, 任一臂在 dock 装卸
-# 时都不允许车辆通过. 这不是碰撞证明的替代, 而是调度层的空间互斥.
+# AGV 路线要求全部 dock 空闲: 车辆可能通过中间 dock, 任一臂在 dock
+# 装卸时都不允许车辆通过. 这不是碰撞证明的替代, 而是调度层的空间互斥.
 AGV_ROUTE_REQUIRES_ALL_DOCKS = True
 
 # ═══════════════════════════════════════════════════════════════
@@ -551,19 +617,41 @@ TASK_FLOW = (
     "E join: buffer_e_c + buffer_e_d → FINAL@E_Output",
 )
 
-TASK_TIMEOUT = 240.0                # 单任务仿真时间上限 (s)
-TASK_WALL_BUDGET = 1200.0           # 单任务墙钟上限 (s)
+TASK_TIMEOUT = 300.0                # 单任务仿真时间上限 (s)
+TASK_WALL_BUDGET = 1500.0           # 单任务墙钟上限 (s)
 TASK_MAX_ATTEMPTS = 1               # 阶段四不自动重试
 QUEUE_CAPACITY = 32
 DUPLICATE_REQUEST_POLICY = "reject_active_same_kind_uid"
 
 # ═══════════════════════════════════════════════════════════════
-# AGV 路线与停靠 (复用阶段三轮速驱动)
+# AGV 分段路网与停靠 (复用阶段三轮速驱动)
 # ═══════════════════════════════════════════════════════════════
+# 节点 = 四个 dock + 两个转向节点; 边是轴对齐直道. 载货路线
+# (B→A / D→E) 各占一条直道, 空载调机经南横道连接两侧.
+# 转向采用"停车 → 原地差速转向 → 停稳"的最小动作; 不在弧线上带载.
+
+AGV_NODES = {
+    "A": (0.40, 0.70),
+    "B": (0.40, -0.70),
+    "D": (2.90, -1.35),
+    "E": (2.90, 1.35),
+    "J_SW": (0.40, -2.10),
+    "J_SE": (2.90, -2.10),
+}
+
+AGV_EDGES = (
+    ("A", "B", "agv_lane_west"),
+    ("B", "J_SW", "agv_lane_west"),
+    ("J_SW", "J_SE", "agv_lane_south"),
+    ("J_SE", "D", "agv_lane_east"),
+    ("D", "E", "agv_lane_east"),
+)
+
+AGV_DOCK_IDS = ("A", "B", "D", "E")
+AGV_TURN_NODE_IDS = ("J_SW", "J_SE")
 
 AGV_INITIAL_DOCK = "A"
-AGV_ROUTE_X = s3cfg.AGV_ROUTE_X                 # 0.40
-AGV_INITIAL_YAW = s3cfg.AGV_INITIAL_YAW         # -pi/2
+AGV_INITIAL_YAW = s3cfg.AGV_INITIAL_YAW         # -pi/2, 车头朝 -Y
 AGV_ROUTE_SPEED = s3cfg.AGV_ROUTE_SPEED         # 0.12 m/s
 AGV_ROUTE_RESUME_SPEED = s3cfg.AGV_ROUTE_RESUME_SPEED
 AGV_ROUTE_ACCEL = s3cfg.AGV_ROUTE_ACCEL
@@ -579,14 +667,31 @@ AGV_ROUTE_BLOCK_TIMEOUT = s3cfg.AGV_ROUTE_BLOCK_TIMEOUT
 AGV_ROUTE_BLOCK_DISPLACEMENT = s3cfg.AGV_ROUTE_BLOCK_DISPLACEMENT
 AGV_ROUTE_SLIP_TOL = s3cfg.AGV_ROUTE_SLIP_TOL
 AGV_ROUTE_RETRY_LIMIT = 0
-# D→E 直线 4.90 m / 0.12 m/s ≈ 41 s; 计入加减速、停稳与一次
-# AGV_BLOCK_CLEAR_AFTER_S 阻塞清除, 冻结 150 s. 该值由
-# AGVRouteController4 显式传入阶段三路线控制器 (不能沿用其 45 s 默认).
-AGV_ROUTE_TIMEOUT = 150.0
+# 最长空载路线 (A→E 约 8.75 m + 两次转向) 约 95 s; 计入一次
+# AGV_BLOCK_CLEAR_AFTER_S 阻塞清除和停稳, 冻结 180 s 单路线预算.
+# 该值由 AGVRouteController4 显式传给每段直道控制器.
+AGV_ROUTE_TIMEOUT = 180.0
 AGV_BLOCK_CLEAR_AFTER_S = s3cfg.AGV_BLOCK_CLEAR_AFTER_S
 AGV_BLOCK_OBSTACLE_SIZE = s3cfg.AGV_BLOCK_OBSTACLE_SIZE
 AGV_BLOCK_OBSTACLE_ALIAS = "Fault_Stage4_AGV_Obstacle"
-AGV_BLOCK_OBSTACLE_POS = (AGV_ROUTE_X, 0.0, 0.15)
+# 障碍注入点由协调器按当前载货路线的直道中点计算; 配置只保留避让余量.
+AGV_BLOCK_OBSTACLE_CLEARANCE = 0.05
+
+# 原地转向参数 (空载调机使用; 载货路线 B→A / D→E 均为单段直道).
+AGV_TURN_GAIN = 2.5                 # 1/s, 航向误差 → 角速度
+AGV_TURN_MAX_RATE = 0.40            # rad/s, 低于阶段一 AGV_MAX_YAW_RATE
+AGV_TURN_STOP_TOL = 0.02            # rad, 停止阈值
+AGV_TURN_SETTLE_STEPS = 5
+AGV_TURN_TIMEOUT = 20.0             # s, 单次转向
+AGV_TURN_BLOCK_TIMEOUT = 3.0        # s, 已下发角速度但航向不变
+AGV_TURN_BLOCK_YAW = 0.02           # rad, 窗口内最小转角
+AGV_TURN_MIN_RATE = 0.06            # rad/s, 克服静摩擦的最小指令
+
+# 直道横向纠偏: 转向后车体可能偏离 Lane 中心 ~2–4 cm, 阶段三控制器只
+# 修正航向, 不修正横向误差. 阶段四在直道行驶中按前视距离叠加一个很小
+# 的航向偏置, 接近目标 0.10 m 内恢复原航向再做停靠/航向验收.
+AGV_LANE_LOOKAHEAD = 0.50           # m
+AGV_LANE_MAX_HEADING_OFFSET = 0.20  # rad
 
 # 通道扫掠矩形余量 (布局静态筛选).
 AGV_ROUTE_CLEARANCE = s3cfg.AGV_ROUTE_CLEARANCE
@@ -624,12 +729,15 @@ SOURCE_SPAWN_INTERVAL_S = 0.5       # 同一来源两次生成的最小间隔
 SOURCE_MAX_IN_FLIGHT = 1            # 每条入口线一次只放一件
 
 # 场景批次: 每种原料的有限数量. 阶段四不运行无限供料.
+# staggered_batch (06-17 §4.1-6) 用 2/1/2 让 A/C 固定流、B→A 返工流和
+# D→E 装配流在不同区域交错, 生成 2 个 FINAL 和 1 个未配对 SEMI_CE.
 SCENARIO_BATCH = {
     "full_flow": {"RAW_A": 1, "RAW_B": 1, "RAW_D": 1},
     "no_pair": {"RAW_A": 1, "RAW_B": 0, "RAW_D": 1},
     "agv_priority": {"RAW_A": 1, "RAW_B": 1, "RAW_D": 1},
     "agv_blocked": {"RAW_A": 1, "RAW_B": 1, "RAW_D": 1},
     "conveyor_fault": {"RAW_A": 1, "RAW_B": 0, "RAW_D": 1},
+    "staggered_batch": {"RAW_A": 2, "RAW_B": 1, "RAW_D": 2},
 }
 
 # 背压: 下游缓冲/交接/线占用时, 上游任务等待; 不丢弃 UID.
@@ -655,6 +763,7 @@ SCENARIO_NO_PAIR = "no_pair"
 SCENARIO_AGV_PRIORITY = "agv_priority"
 SCENARIO_AGV_BLOCKED = "agv_blocked"
 SCENARIO_CONVEYOR_FAULT = "conveyor_fault"
+SCENARIO_STAGGERED = "staggered_batch"
 
 STAGE4_SCENARIOS = (
     SCENARIO_FULL_FLOW,
@@ -662,6 +771,7 @@ STAGE4_SCENARIOS = (
     SCENARIO_AGV_PRIORITY,
     SCENARIO_AGV_BLOCKED,
     SCENARIO_CONVEYOR_FAULT,
+    SCENARIO_STAGGERED,
 )
 
 FAULT_NONE = "none"
@@ -675,6 +785,7 @@ SCENARIO_FAULT = {
     SCENARIO_AGV_PRIORITY: FAULT_NONE,
     SCENARIO_AGV_BLOCKED: FAULT_AGV_BLOCKED,
     SCENARIO_CONVEYOR_FAULT: FAULT_CONVEYOR_STOP,
+    SCENARIO_STAGGERED: FAULT_NONE,
 }
 
 # 传送带故障: 在 C 第一次放置完成后的第一个观测步停带并保持零速.
@@ -686,7 +797,7 @@ CONVEYOR_FAULT_SETTLE_STEPS = 20
 SAFETY_STOP_SETTLE_STEPS = s3cfg.SAFETY_STOP_SETTLE_STEPS
 
 # 运行上限
-DEFAULT_MAX_SIM_TIME = 900.0
+DEFAULT_MAX_SIM_TIME = 1200.0
 
 # ═══════════════════════════════════════════════════════════════
 # 可观测性
@@ -697,5 +808,7 @@ METRICS_WINDOW = "from_first_spawn_to_last_final"
 EVENT_FIELDS = ("sim_time", "kind", "task_id", "uid", "item_type",
                 "source", "destination", "device", "evidence_id")
 EVIDENCE_TRACE_LIMIT = 2000
+# 交错批次判据: 至少两个不同工位/AGV 任务在时间线上同时处于 RUNNING.
+STAGGERED_MIN_CONCURRENT_TASKS = 2
 
 DEFAULT_LOG_FILE = "stage4_sim.log"

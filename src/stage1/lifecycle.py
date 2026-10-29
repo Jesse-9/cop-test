@@ -1617,7 +1617,7 @@ def build_parser():
                    help="阶段三场景: closed_loop/contention/blocked/"
                         "unstable_unload/route_baseline; "
                         "阶段四场景: full_flow/no_pair/agv_priority/"
-                        "agv_blocked/conveyor_fault")
+                        "agv_blocked/conveyor_fault/staggered_batch")
     try:
         from stage2.config import STAGE2_FAULT_CHOICES
         from stage3.config import STAGE3_FAULT_CHOICES

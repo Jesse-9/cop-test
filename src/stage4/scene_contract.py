@@ -81,7 +81,7 @@ def build_stage4_extra(*, sim=None, scene=None, parent_info=None,
             "aliases": spec.aliases,
             "dock_sensor_alias": spec.dock_sensor_alias,
             "targets": {name: list(pose)
-                        for name, pose in spec.targets().items()},
+                        for name, pose in spec.targets(layout.lines).items()},
         }
         for spec in layout.units
     }
@@ -149,7 +149,8 @@ def build_stage4_extra(*, sim=None, scene=None, parent_info=None,
                            cfg.ARM_ADJACENCY_ZONES.items()},
         "rules": [
             "任务一次性申请完整资源集; 任一忙则不持有部分资源",
-            "AGV 航线持有 agv_lane 与全部 dock; 任一臂 dock 装卸时车辆不通过",
+            "AGV 航线持有实际经过的直道资源与全部 dock; "
+            "任一臂 dock 装卸时车辆不通过",
             "臂间互锁区按基座间距导出; 相邻臂不同时运动",
             "失败/停止释放普通调度锁; 安全锁存不由资源释放清除",
         ],
@@ -221,12 +222,18 @@ def build_stage4_extra(*, sim=None, scene=None, parent_info=None,
             "stage2_collision_and_safety", "stage3_b_unit_layout",
         ],
         "changed_scene_parameters": [
+            "stage 4.1 L5_UFLOW: C/E moved downstream along +X and D to the "
+            "south-east; A/B anchors unchanged",
             "added Island_C/D/E with Robot_UR5_03/04/05 and suction tools",
             "added Conveyor_S1_to_B / Conveyor_S2_to_D / Conveyor_C_to_E",
             "added S2 warehouse, source dummies and dock D/E sensors",
             "added A→C handoff sensor, E buffers and E output",
             "all conveyor __config__.targetVel set to 0 so lines start "
             "stopped until a unit task commands them",
+            "AGV network split into west/south/east straight lanes with "
+            "in-place turns at J_SW/J_SE; docks are no longer collinear",
+            "Z_base unified to 0.30 m for A–E; Z_work/Z_belt/H_transfer "
+            "recorded explicitly in height_datum",
             "A/B coordinates, AGV initial pose and floor unchanged",
         ],
     }
@@ -247,6 +254,15 @@ def build_stage4_extra(*, sim=None, scene=None, parent_info=None,
             "spec": layout.as_dict(),
             "units": units,
             "lines": lines,
+            "height_datum": dict(layout.height_datum),
+            "agv_network": {
+                "nodes": {key: list(value)
+                          for key, value in layout.agv_nodes.items()},
+                "edges": [edge.as_dict(layout.agv_nodes)
+                          for edge in layout.agv_edges],
+                "lanes": list(cfg.AGV_LANES),
+                "turn_nodes": list(layout.agv_turn_nodes),
+            },
         },
         "topology": topology,
         "material_model": material_model,
@@ -378,6 +394,28 @@ def validate_stage4_contract(sim, artifact, scene=None) -> dict:
                    for key, value in (route.get("docks") or {}).items()}
     _check(checks, "stage4_route_docks", saved_docks == expected_docks,
            f"saved={saved_docks}")
+    _check(checks, "stage4_route_lanes",
+           list(route.get("lanes") or ()) == list(cfg.AGV_LANES),
+           f"saved={route.get('lanes')}")
+    _check(checks, "stage4_route_turn_nodes",
+           list(route.get("turn_nodes") or ())
+           == list(default_layout().agv_turn_nodes),
+           f"saved={route.get('turn_nodes')}")
+    layout_extra = extra.get("layout") or {}
+    saved_datum = layout_extra.get("height_datum") or {}
+    _check(checks, "stage4_height_datum",
+           abs(float(saved_datum.get("Z_base", -1.0)) - cfg.Z_BASE) <= 1e-9
+           and abs(float(saved_datum.get("H_transfer", -1.0))
+                   - cfg.H_TRANSFER) <= 1e-9,
+           f"saved_Z_base={saved_datum.get('Z_base')} "
+           f"saved_H_transfer={saved_datum.get('H_transfer')}")
+    saved_network = layout_extra.get("agv_network") or {}
+    _check(checks, "stage4_agv_network_nodes",
+           {key: [round(float(v), 6) for v in value]
+            for key, value in (saved_network.get("nodes") or {}).items()}
+           == {key: [round(float(v), 6) for v in value]
+               for key, value in default_layout().agv_nodes.items()},
+           f"saved={saved_network.get('nodes')}")
     material_model = extra.get("material_model") or {}
     _check(checks, "stage4_material_types",
            list(material_model.get("types") or ()) == list(cfg.ITEM_TYPES),

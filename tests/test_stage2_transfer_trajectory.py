@@ -49,6 +49,7 @@ class FakePlanner:
         self.waypoints = waypoints or [[0.0] * 6, [0.1] * 6]
         self.fail_direct = fail_direct
         self.calls = []
+        self.budget = None                # 长驻预算, 与单次规划预算区分
 
     def plan(self, q, goals, context, start_pose=None, **kwargs):
         self.calls.append({
@@ -384,6 +385,32 @@ def test_station_placing_needs_no_agv_check():
     controller.agv = None
     controller._advance_placing()
     assert calls == ["motion"]
+
+
+# ── 执行阶段预算 ────────────────────────────────────────────
+
+class _PlanBudgetChecker(FixedHeightChecker):
+    """模拟 planner 挂载的单次规划预算."""
+
+    def __init__(self):
+        super().__init__()
+        self.budget = "plan-budget"
+
+    def set_budget(self, budget):
+        self.budget = budget
+
+
+def test_execution_does_not_inherit_plan_wall_budget():
+    """规划墙钟只约束规划; 执行期换回长驻预算 (通常为 None)."""
+    controller = bare_controller()
+    controller.state = UnitTaskState.TRANSFERRING
+    controller.checker = _PlanBudgetChecker()
+    controller.planner = FakePlanner()
+    controller._build_plan = lambda: MotionPlan(
+        PlanStatus.OK, waypoints=[[0.0] * 6, [0.1] * 6])
+    controller._run_motion()
+    assert controller._executor is not None
+    assert controller.checker.budget is None
 
 
 # ── 失败归因 ────────────────────────────────────────────────
