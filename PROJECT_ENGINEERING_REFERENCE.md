@@ -474,6 +474,65 @@ AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍�
 `HELD_BY_SUCTION`。A 装载总 TV 18.732 rad、`pre_place` 的 q[3] TV
 4.931 rad；实测 jerk 峰值 113.9–120.7 rad/s³ > 100，MQ-01/02/03 仍未关闭。
 
+### 阶段四多岛车间（当前实施范围）
+
+阶段四从已验收 stage3 工件只读派生 `stage4` 副本，增加 C/D/E 三个工位、
+S1→B / S2→D / C→E 三条物流线、S2 仓库、A→C 固定交接、E 岛两个输入缓冲
+和 dock D/E 传感器，实现五岛任务链、共享 AGV 调度与 E 岛配对。
+
+当前工件：`stage4/L4_COLUMN/v008_20261028_225634`，父
+`stage3/L2_MIRROR/v006_20261028_180722`；保存/加载只读校验通过，
+`extra.stage4.contract_version = stage4_contract_20261028_v1`。修改
+`src/stage4/config.py` 后旧工件会因 digest 失败，必须从 stage3 父工件
+重新派生，不得手改 manifest。
+
+| 文件 | 职责 |
+|------|------|
+| [config.py](src/stage4/config.py) | 五岛布局/物流线/物料类型/区域容量/资源/AGV/场景/验收参数 |
+| [layout.py](src/stage4/layout.py) | `L4_COLUMN`、`LineSpec`、静态几何与粗可达性筛选、序列化 |
+| [scene.py](src/stage4/scene.py) | 从 stage3 工件派生 C/D/E/三条线/E 缓冲、`Stage4Scene` 与契约 |
+| [materials.py](src/stage4/materials.py) | 多类型谱系、区域占用、工序转换、E 岛原子配对 |
+| [tasks.py](src/stage4/tasks.py) | 任务状态、优先级、D→E 老化、去重与拒绝记录 |
+| [resources.py](src/stage4/resources.py) | 阶段四固定顺序资源表与全有或全无申请 |
+| [agv_map.py](src/stage4/agv_map.py) | 直线路线图、空载调机、阶段三航线控制器包装 |
+| [runtime.py](src/stage4/runtime.py) | 五台影子臂、独立碰撞集合/规划器/锁存、按包络过滤物流线 |
+| [unit_controller.py](src/stage4/unit_controller.py) | 传送带/AGV/固定交接三种取料源与三种放置汇 |
+| [coordinator.py](src/stage4/coordinator.py) | 来源生成、任务编排、AGV 调度、配对、背压、冻结与证据 |
+| [metrics.py](src/stage4/metrics.py) | 事件级节拍/吞吐/WIP/利用率重算 |
+| [scene_contract.py](src/stage4/scene_contract.py) | `extra.stage4`、布局/配置摘要与只读校验 |
+| [run.py](src/stage4/run.py) | 五个验收场景 runner、证据与 CLI |
+| [run_stage4.py](src/run_stage4.py) | CLI 兼容入口；`uv run run-stage4` |
+
+阶段四不变量：
+
+- **五台独立臂**：A–E 各有独立 simIK environment、影子臂、碰撞集合、
+  `ConfigurationChecker`、`LocalPlanner` 和 `Stage2Safety`；其余真实臂的
+  可见连杆/吸盘 Body 与岛体加入本臂工作区，会话期查询属性销毁时恢复。
+- **一次 `sim.step()`**：协调器统一 pre_tick → AGV 航线 → 故障注入 →
+  `sim.step()` → post_tick；五台控制器不得各自推进物理。
+- **资源全有或全无**：任务按固定顺序一次性申请完整资源集；任一资源忙则
+  不持有部分资源并记录 WAIT。AGV 航线持有 `agv_lane` 与全部 dock；
+  相邻臂互锁区（AB/AC/CE）串行化可能相交的臂运动。
+- **AGV 调度**：所有 dock 共线于 x=0.40，车头朝 −Y，单段直线，不在
+  dock 旋转；B→A 优先级 0、D→E 优先级 1 并等待老化；运行中任务不抢占；
+  空载调机由最高优先级请求决定，车辆在当前 dock 有装卸任务时不得离开。
+- **物流线启动即停止**：阶段四构建把四条线的 `__config__.targetVel`
+  写为 0；只有对应单元任务启动时才由控制器下令运行，避免来源物料在
+  任务等待期间自行走完行程。
+- **物料谱系**：类型 `RAW_A/RAW_B/SEMI_AB/SEMI_AC/SEMI_CE/RAW_D/PART_DE/
+  FINAL`；A/B/C/D 的工序转换只在放置证据确认后提交；每条线/交接/缓冲/
+  载台容量 1；E 岛仅在 `buffer_e_c` 与 `buffer_e_d` 同时有正确类型时
+  原子消费两条输入并生成一个 FINAL，记录父 UID，重复/缺件/错型拒绝。
+- **背压与冻结**：下游区域占用时上游等待并记录原因，不丢 UID；AGV
+  阻塞进入 BLOCKED，清障且无安全锁存、所有权重新确认后低速续行；传送带
+  停带故障使受影响任务 BLOCKED 并冻结现场；安全锁存/航线失败/超时冻结
+  全部任务，保留物料与任务现场，不自动重试/复位。
+- **配对语义**：阶段四只做可追溯的逻辑装配（消费输入 + 生成 FINAL），
+  不宣称几何切削/真实物理装配；E 输出 FINAL 在 `E_Output` 生成，不由
+  机械臂搬运。
+
+阶段四派生和运行命令见 [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)；验收结果见 [PHASE4_REPORT.md](docs/implementation/PHASE4_REPORT.md)。
+
 ### 步骤 1.1 验证包（`src/stage1_1/`，2026-10-20）
 
 阶段一与阶段二之间的输入收敛。**其选定布局 `L1_S1` 与 B 组取料流程已于
@@ -920,3 +979,109 @@ AGV 初始位姿在构建期设为 dock A `(0.40,0.70)` 朝 −Y，运行期仍�
     不得覆盖受保护工件。保存时 `adopt_stage3_scene` 必须解析阶段一/二
     共享对象的非必需别名（AGV 载台/挡边、出口传感器），否则父子差异会
     误报对象被移除。
+
+42. **阶段四 Y 向传送带必须用方向感知推进 (2026-10-28)**: `BeltGeometry.position_at`
+    只按 X 方向累加 (`new_x = entry.x + d.x*s`, y 保持不变), 对 Y 向线会
+    出现“补偿量非零但物料不动”。阶段四新增 `BeltGeometry.advance(position, delta)`,
+    `transport_step`/`bounded_transport_step` 改用它; X 向线的结果与旧实现
+    等价, 阶段一/二/三回归不变。
+
+43. **阶段四所有物流线必须在 simulation start 时停止**: 内置 conveyor 模型
+    在 init 读取 `__config__.targetVel`; 若沿用阶段一值 0.2, B/D 工位在
+    等待 AGV 时物料会自行走完行程并掉出带尾。阶段四构建把四条线的
+    `targetVel` 写为 0，只有单元控制器在任务启动后 `set_speed(0.2)`。
+    场景契约 `stage4_line_start_stopped` 校验该字段。
+
+44. **阶段四资源申请必须全有或全无**: 固定顺序逐项 `acquire` 会在持有
+    低序号资源后等待高序号资源，形成 A 等 C、C 等 A 的循环。`ResourceTable.acquire_all`
+    先检查完整集合，任一忙只记录 WAIT 不持有任何资源；AGV 航线还要求
+    全部 dock 空闲，防止车辆穿过正在装卸的 dock。
+
+45. **阶段四 AGV 派车由最高优先级请求决定**: 不能按请求顺序逐个尝试；
+    若最高优先级请求就在当前 dock，车辆必须留在原地等待装卸，不能去服务
+    低优先级请求。A/E 卸载任务（优先级 0）待执行时，AGV 不得离开该 dock，
+    否则载台上的 UID 永远无法卸载。`_poll_agv` 的 top-request 规则和
+    “活动 dock 控制器保持车辆”检查共同保证这一点。
+
+46. **阶段四工件父摘要读取 stage3 inheritance**: stage3 父工件的
+    `extra.stage3.inheritance` 才保存 stage2 契约/配置摘要；`save --phase stage4`
+    必须从该字段提取，不能读取不存在的 `extra.stage2`，否则
+    `stage4_stage2_contract_version/config_digest` 校验恒为 None。
+
+47. **阶段四运行期间不得执行连接真实仿真的测试**: `tests/test_mcp_control_tools.py`
+    等测试在 CoppeliaSim 在线时会 `build_scene(stage1)`，直接替换当前
+    仿真场景。跑阶段四验收时必须单独运行 runner；测试套件在运行前/后
+    执行，或先停止 CoppeliaSim。
+
+48. **阶段四 E 岛缓冲位于本岛台面，靠近 UR5 基座**: 两个缓冲目标距 E 臂
+    基座约 0.27 m，TCP 高度仅高于台面 0.10 m。IK 探针可解不等于无碰撞；
+    若碰撞检查拒绝 E 缓冲放置，必须调整缓冲/台面布局并重新派生工件，
+    不得把资源锁或放宽碰撞过滤当作修复。
+
+49. **阶段四 station 源/conveyor 汇必须在构造后启用**: 阶段三
+    `Stage3UnitController.__init__` 只接受 source∈{conveyor,agv} 与
+    sink∈{station,agv}，并会用 sink 覆盖 `target`。阶段四的 C 工位需要
+    station 源、C→E 传送带汇，直接传入会在控制器构造期抛出
+    `未知 source/sink` 并冻结整线。`Stage4UnitController` 先以兼容源/汇
+    调用父类，再覆盖 `self.source`/`self.sink`/`self.target`；不能修改
+    阶段三构造器去接受新值，否则会影响阶段三契约。
+
+50. **阶段四 IK/碰撞探针必须恢复 IK target dummy 位姿**: `Ur5IkController.solve`
+    通过 `sim.setObjectPose` 移动 IK target；探针结束后不恢复会让工件
+    manifest 的 `world_pos:IK_Target_0x` 校验在 start 前失败（实测
+    IK_Target_03 被留在 z=0.70）。`probe_stage4_layout.py` 在 finally 中
+    恢复原 pose；临时脚本必须做同样处理，或直接 `load` 工件重新加载。
+
+51. **阶段四 A 臂共享交接台放置后必须 park 让位**: C 臂从北侧接近
+    A→C 交接台时, A 臂若只做默认 +0.15 m 竖直撤离, 腕部/link6 仍在
+    交接台上方, C 的接近终点会被 `robot_vs_workcell` 判为与 A 的
+    `link6_visible` 相撞 (`GOAL_CONFIG_INVALID`)。`handoff_park_tcp("A")`
+    给出交接台南侧派生 park 位姿 `(0.05, 0.90, 0.70)`, A 任务在
+    RETREATING 阶段以该目标规划并执行, 通过同一 IK/碰撞/分支检查后才
+    DONE; 不得用直接关节赋值或跳过碰撞检查“挪走”A 臂。
+
+52. **阶段四 D 工位垂直抬升需要关节目标回退**: D 取料点远离基座, 竖直
+    笛卡尔抬升 (direct_only) 的关节插值偏差实测 6.3–7.8 mm, 超过
+    `CARTESIAN_PATH_POS_TOL=5 mm`, 计划以 `GOAL_CONFIG_INVALID` 拒绝。
+    `Stage4UnitController` 在 LIFTING 先尝试同一 lift 位姿的笛卡尔直连;
+    仅当失败原因是“法向插值偏差”时, 回退到 `cartesian=False` 的关节目标,
+    仍保留 q0 锁、关节限位、逐段碰撞/分支检查和终点 TCP 复核。不得放宽
+    全局 `CARTESIAN_PATH_POS_TOL` 或跳过检查来“通过”D。
+
+53. **阶段四 B/D 支线与岛体几何是可达性前提**: S1→B 线中心
+    `(-0.75,-1.07)`、取料点 `(-0.75,-0.65)`; S2→D 线中心
+    `(-1.11,-2.45)`、取料点 `(-0.69,-2.45)`; D 岛 `0.55×0.55×0.45 m`,
+    D 基座 `(-0.20,-2.45,0.45)`. 这些值使 `H_transfer=0.80` 的垂直
+    抬升和 dock 装卸处于 UR5 可达范围。修改线/岛/基座后必须重新派生
+    工件并重跑 pick/lift/transfer 的 IK 与碰撞检查。
+
+54. **阶段四控制器只能使用 UnitSceneView 的接口**: `UnitSceneView` 暴露
+    `agv_dock_hit(agv_handle)`（内部按 `unit_id` 调场景的
+    `agv_dock_hit_at`），没有 `agv_dock_hit_at`/`unit()` 等 `Stage4Scene`
+    方法。控制器若直接 `self.scene.agv_dock_hit_at(...)` 会在 B/D 放置前
+    抛 `AttributeError` 并终止运行（实测 full_flow 在 B 转运后崩溃）。
+    新增控制器代码先检查 `UnitSceneView` 的接口，不要直接透传场景方法。
+
+55. **阶段四 E 臂 AGV 卸货的 q0 锁回退**: E 臂做完 C→E 任务后若停在
+    “镜像”肩部构型, 再对 dock E 的 AGV 载台做竖直笛卡尔抬升时, 保持
+    q[0] 不变的 IK 在抬升末段无解 (`JOINT_LOCK_UNAVAILABLE`, 实测
+    q[0]=-1.8235 rad)。`Stage4UnitController` 仅在 LIFTING 主计划以该
+    状态失败时, 用同一 lift 位姿重规划一次 `lock_joint=None` 的垂直
+    笛卡尔直连; 路径仍是直线, 逐层 IK/关节限位/碰撞/分支连续性检查
+    不变, 只是放弃“基座不动”这一 2.01 优化约束。不得改用未检查的
+    关节直赋, 也不得在 TRANSFERRING/PLACING 放宽 q0 锁。
+
+56. **阶段四 AGV 路线超时必须显式传入 150 s 预算**: 阶段三
+    `AGVRouteController` 默认使用 `stage3.config.AGV_ROUTE_TIMEOUT=45 s`,
+    而阶段四 D→E 满载单程约 41 s, 一次 10 s 阻塞后约 52 s, 沿用 45 s
+    会在清障续行前触发 `ROUTE_TIMEOUT` (实测 agv_blocked)。阶段四
+    `AGVRouteController4` 通过构造参数 `timeout_s=cfg.AGV_ROUTE_TIMEOUT`
+    (150 s) 覆盖; 阶段三调用方不传时行为不变。修改路线长度、速度、
+    阻塞清除时间或增加停靠点时, 必须重新核对该预算。
+
+57. **阶段四指标只统计 TASK_* 生命周期事件**: `JOIN_COMMIT` 为追溯
+    携带 `task_id="join_e"`, 但 `collect_task_windows` 只能从
+    `TASK_CREATED/START/WAIT/BLOCK/DONE/FAILED` 建立任务窗口; 否则
+    会生成一个 `unknown` 任务并把任务总数加一 (实测 full_flow 13 个
+    任务被统计成 14)。`analyze_stage4_run.py` 用当前实现从事件重算
+    指标, 报告数值以该重算结果为准。

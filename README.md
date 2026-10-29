@@ -1,6 +1,6 @@
 # Flexible Factory Simulation
 
-基于 CoppeliaSim 4.10+、Python 和 ZeroMQ Remote API 的分阶段柔性工业车间仿真。当前可运行主线为阶段一单元闭环、阶段二物理约束与规划、阶段三双工位搬运；统一故障恢复和阶段四多岛生产尚未实现。src/reference/ 保留旧五岛实现，供迁移与诊断使用。
+基于 CoppeliaSim 4.10+、Python 和 ZeroMQ Remote API 的分阶段柔性工业车间仿真。当前可运行主线为阶段一单元闭环、阶段二物理约束与规划、阶段三双工位搬运和阶段四多岛生产；统一故障恢复尚未实现。src/reference/ 保留旧五岛实现，供迁移与诊断使用。
 
 ## 从哪里开始
 
@@ -22,7 +22,7 @@
 | 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；回归通过 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
 | 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v006_20261028_180722（06-15 已派生并回归） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
 | 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
-| 阶段四多岛生产 | 未开始 | A–E 拓扑、仓库供料、节拍与共享 AGV 调度 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
+| 阶段四多岛生产 | 已通过五个验收场景（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；基线 stage4/L4_COLUMN/v008_20261028_225634 | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
 
 生命周期校验流程（2026-10-26 已实施）：load 后可直接 start，validate 为可选诊断；start 在运行锁内执行完整校验，save 仍要求已校验场景。详见[方案与实施记录](docs/implementation/LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
 
@@ -31,7 +31,7 @@
 ## 入口与结构
 
 - Python 依赖和可执行入口定义在 pyproject.toml，本地环境通常由 uv sync 管理。
-- 当前阶段控制器位于 src/stage1/、src/stage2/、src/stage3/；命令包装器为 src/run_stage1.py、src/run_stage2.py、src/run_stage3.py。
+- 当前阶段控制器位于 src/stage1/、src/stage2/、src/stage3/、src/stage4/；命令包装器为 src/run_stage1.py、src/run_stage2.py、src/run_stage3.py、src/run_stage4.py。
 - 场景生命周期和工件操作入口为 src/run_scene_lifecycle.py；它不会在 start 时隐式构建或清空场景。
 - src/stage1_1/ 保存布局验证与受控实验工具；src/reference/ 是历史五岛实现，包括 MCP 服务器。
 - 自动化测试位于 tests/；阶段验收报告位于 docs/implementation/。

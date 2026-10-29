@@ -16,6 +16,8 @@
 |---|---|---|
 | `stage1` | 阶段一通过基线, 只读父工件 | `protected: true`, 文件只读 |
 | `stage2` | 阶段二从阶段一基线派生的独立副本 | CLI 默认 `protected: true`；`--no-protect` 可派生可变诊断副本 |
+| `stage3` | 阶段三从阶段二工件派生的双工位副本 | CLI 默认 `protected: true` |
+| `stage4` | 阶段四从阶段三工件派生的五岛多岛副本 | CLI 默认 `protected: true` |
 | `diagnostic` | 临时诊断/试验场景 | 不保护 |
 
 `.runtime/` 保存跨进程会话状态与运行锁, 每次运行重新生成, 已 gitignore,
@@ -58,6 +60,44 @@
 影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,
 父差异只比较稳定字段。
+
+## 阶段三工件
+
+- 当前: `stage3/L2_MIRROR/v006_20261028_180722`（父
+  `stage2/L1_S1/v014_20261028_175742`）
+- 契约: `extra.stage3.contract_version = stage3_contract_20261025_v1`;
+  `extra.stage3.inheritance` 记录 stage2 父工件/契约/配置摘要。
+- 派生: `load stage2/...` → `build --phase stage3 --parent <stage2>` →
+  `save --phase stage3 --parent <stage2>`。
+- 历史: v001–v005 保留为演进记录；修改 `src/stage3/config.py` 后旧工件
+  会因 `stage3_config_digest` 拒绝，必须重新派生。
+- 报告: [`PHASE3_REPORT.md`](../implementation/PHASE3_REPORT.md)。
+
+## 当前阶段四工件
+
+- 工件 ID: `stage4/L4_COLUMN/v008_20261028_225634`
+- 父工件: `stage3/L2_MIRROR/v006_20261028_180722`
+- 契约: `extra.stage4.contract_version = stage4_contract_20261028_v1`;
+  `extra.stage4.inheritance` 记录 stage3 契约/配置/布局摘要与 stage2
+  上游摘要。
+- 场景新增 C/D/E 工位、S1→B/S2→D/C→E 三条物流线、S2 仓库、A→C 交接
+  传感器、E 两个输入缓冲与输出 dummy；A/B 坐标、AGV 初始位姿和地面不变。
+- 几何约束：C 岛/基座 0.45 m 高，A 放置后撤离到交接台南侧 park 位姿，
+  避免 C 臂 link3/link6 与 A 交接台/腕部碰撞；改变这些几何必须重新
+  派生并重跑 C 任务回归。
+- 派生: `load stage3/...` → `build --phase stage4 --parent <stage3>` →
+  `save --phase stage4 --parent <stage3>`。
+- 修改 `src/stage4/config.py` 后旧工件会因 `stage4_config_digest` 拒绝，
+  必须重新派生；不得手改 manifest。
+- 历史: v001 是父摘要读取错误的失败草稿（已删除）；v002 物流线仍以
+  `targetVel=0.2` 启动；v003 起物流线启动即停止；v004 把 C 岛/基座抬高到
+  0.45 m，避免 C 臂 link3 与 A→C 交接台碰撞；v005–v008 调整 S1→B/S2→D
+  支线、B/D 取料点与 D 岛高度，使 H_transfer=0.80 抬升可达。
+- 验收: 2026-10-29 五个场景（full_flow/no_pair/agv_priority/
+  agv_blocked/conveyor_fault）全部通过；证据见
+  [`phase4_analysis_*`](../implementation/evidence/) 与
+  [`stage4_layout_20261029_v008.json`](../implementation/evidence/stage4_layout_20261029_v008.json)。
+- 报告: [`PHASE4_REPORT.md`](../implementation/PHASE4_REPORT.md)。
 
 ## `current` 指针
 
