@@ -23,6 +23,12 @@
 `.runtime/` 保存跨进程会话状态与运行锁, 每次运行重新生成, 已 gitignore,
 不随代码提交。
 
+## 工作区保留策略
+
+工作区只保留各阶段 `current.json` 指向的工件，作为可运行基线；其余历史
+版本已从工作区清理，仍保留在 git 历史中。需要复现旧实验时从对应提交
+checkout，不要重新生成同名工件或覆盖当前工件。
+
 ## 当前阶段一基线
 
 - 工件 ID: `stage1/L1_S1/v002_20261020_234403`
@@ -34,8 +40,8 @@
 - 证据: [`step1_2_post_restart_reuse_v002_20261021_000357.json`](../implementation/evidence/step1_2_post_restart_reuse_v002_20261021_000357.json)
 
 `v001_20261020_233504` 是首次正式保存; 其 manifest 的物理引擎字段因
-`sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代, 仅保留为
-审计历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
+`sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代，仅保留在
+git 历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 
 ## 当前阶段二工件（06-15）
 
@@ -48,9 +54,8 @@
   `lift` 与 `pre_place` 由同一常量生成，恒同高。
 - 回归: 2026-10-28 在 H=0.80 工件 v014 上通过 station/agv/both 与
   runtime_obstacle；H=0.65 工件 v016 已通过保存期校验，完整回归待执行。
-- 历史: v015 是 H=0.60 中间工件，v014 是 H=0.80 工件；v013 是 2.02 工件
-  （契约 v3、动作优化 2.01、AGV 转运优化 2.02）；v009–v012 是阶段二/2.01
-  历史与过渡工件。修改
+- 历史: v015（H=0.60 中间）、v014（H=0.80）、v013（2.02，契约 v3）、
+  v009–v012（阶段二/2.01）均已从工作区清理，保留在 git 历史。修改
   `src/stage2/config.py` 后旧工件会因 `stage2_config_digest`/契约版本
   拒绝 start，必须重新派生
 - 保护: 工件均由 CLI 保存为 `protected: true`（文件只读）
@@ -72,8 +77,9 @@
   `extra.stage3.inheritance` 记录 stage2 父工件/契约/配置摘要。
 - 派生: `load stage2/...` → `build --phase stage3 --parent <stage2>` →
   `save --phase stage3 --parent <stage2>`。
-- 历史: v001–v005 保留为演进记录；修改 `src/stage3/config.py` 后旧工件
-  会因 `stage3_config_digest` 拒绝，必须重新派生。
+- 历史: v001–v007 已从工作区清理，保留在 git 历史；修改
+  `src/stage3/config.py` 后旧工件会因 `stage3_config_digest` 拒绝，必须
+  重新派生。
 - 报告: [`PHASE3_REPORT.md`](../implementation/PHASE3_REPORT.md)。
 
 ## 当前阶段四工件
@@ -93,10 +99,11 @@
   `save --phase stage4 --parent <stage3>`。
 - 修改 `src/stage4/config.py` 后旧工件会因 `stage4_config_digest` 拒绝，
   必须重新派生；不得手改 manifest。
-- 历史: v001 是父摘要读取错误的失败草稿（已删除）；v002 物流线仍以
-  `targetVel=0.2` 启动；v003 起物流线启动即停止；v004 把 C 岛/基座抬高到
-  0.45 m，避免 C 臂 link3 与 A→C 交接台碰撞；v005–v008 调整 S1→B/S2→D
-  支线、B/D 取料点与 D 岛高度，使 H_transfer=0.80 抬升可达（H=0.65 下可达性更宽裕，但带载净空需重新检查）。
+- 历史: v001–v007 已从工作区清理，保留在 git 历史（v001 是父摘要读取
+  错误的失败草稿；v002 物流线仍以 `targetVel=0.2` 启动；v003 起物流线
+  启动即停止；v004 把 C 岛/基座抬高到 0.45 m；v005–v008 调整 S1→B/S2→D
+  支线、B/D 取料点与 D 岛高度）。当前保留的 v008 是 H=0.80 基线，H=0.65
+  下可达性更宽裕，但带载净空需重新检查。
 - 验收: 2026-10-29 五个场景（full_flow/no_pair/agv_priority/
   agv_blocked/conveyor_fault）全部通过；证据见
   [`phase4_analysis_*`](../implementation/evidence/) 与
