@@ -25,9 +25,11 @@ factory_arm_*.log
 stage1*.log
 stage2*.log
 stage3*.log
+stage4*.log
 step1_1*.log
 coppelia_console*.log*
 emergency_dump_*.json
+logs/
 
 # 运行输出与测试临时目录 (证据按需归档到 docs/implementation/evidence/)
 docs/implementation/runs/

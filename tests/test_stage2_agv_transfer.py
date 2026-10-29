@@ -319,6 +319,8 @@ def test_stage2_contract_records_horizontal_transfer_trajectory():
     planning = extra["planning"]
     transfer = planning["transfer"]
     assert transfer["height"] == cfg.TRANSFER_HEIGHT
+    assert transfer["height_min"] == cfg.TRANSFER_HEIGHT_MIN
+    assert transfer["clearance_min"] == cfg.TRANSFER_CLEARANCE_MIN
     assert transfer["path"] == "fixed_height_horizontal_cartesian"
     assert transfer["lift_ends_at_transfer_height"] is True
     assert transfer["placing_descends_from_pre_place"] is True

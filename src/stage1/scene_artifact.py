@@ -32,7 +32,7 @@ from . import config as cfg
 
 SCHEMA_VERSION = "1.0"
 SUPPORTED_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
-PHASES = ("stage1", "stage2", "stage3", "diagnostic")
+PHASES = ("stage1", "stage2", "stage3", "stage4", "diagnostic")
 PROTECTED_PHASES = frozenset({"stage1"})
 ARTIFACT_FILES = ("scene.ttt", "manifest.json", "validation.json",
                   "lifecycle.jsonl")
@@ -645,6 +645,9 @@ def required_aliases_for_phase(source_phase: Optional[str]) -> list[str]:
     阶段三的必需别名包含 A/B 两个工位; 阶段一/二仍使用阶段一基线.
     延迟导入避免 stage1 模块在导入期依赖 stage3.
     """
+    if source_phase == "stage4":
+        from stage4 import config as s4cfg
+        return list(s4cfg.REQUIRED_ALIASES)
     if source_phase == "stage3":
         from stage3 import config as s3cfg
         return list(s3cfg.REQUIRED_ALIASES)

@@ -174,6 +174,8 @@ def build_stage2_extra(*, sim=None, scene=None, parent_info=None,
         },
         "transfer": {
             "height": cfg.TRANSFER_HEIGHT,
+            "height_min": cfg.TRANSFER_HEIGHT_MIN,
+            "clearance_min": cfg.TRANSFER_CLEARANCE_MIN,
             "path": "fixed_height_horizontal_cartesian",
             "lift_ends_at_transfer_height": True,
             "placing_descends_from_pre_place": True,

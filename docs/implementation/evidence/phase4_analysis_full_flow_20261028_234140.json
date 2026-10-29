@@ -1,0 +1,609 @@
+{
+  "file": "docs\\implementation\\runs\\phase4_run_full_flow_20261028_234140.json",
+  "scenario": "full_flow",
+  "fault": "none",
+  "all_ok": true,
+  "sim_time": 361.1,
+  "acceptance": {
+    "scenario": "full_flow",
+    "fault": "none",
+    "tasks_done": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "unpaired_semi_ce": 1,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "frozen": false,
+    "stop_reason": "",
+    "loaded_routes": 2,
+    "route_ok": true,
+    "priority_ok": true,
+    "priority_detail": [
+      {
+        "sim_time": 106.95,
+        "chosen": "transport_ba_uid2",
+        "chosen_priority": 0,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      },
+      {
+        "sim_time": 241.85,
+        "chosen": "transport_de_uid3",
+        "chosen_priority": 1,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      }
+    ],
+    "injected": [],
+    "batch": {
+      "RAW_A": 1,
+      "RAW_B": 1,
+      "RAW_D": 1
+    },
+    "spawned": [
+      {
+        "sim_time": 0.85,
+        "source": "s1a",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "position": [
+          -1.0172298351066111,
+          0.0,
+          0.51
+        ],
+        "handle": 704
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s1b",
+        "uid": 2,
+        "item_type": "RAW_B",
+        "position": [
+          -0.75,
+          -1.467,
+          0.51
+        ],
+        "handle": 705
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s2d",
+        "uid": 3,
+        "item_type": "RAW_D",
+        "position": [
+          -1.507,
+          -2.45,
+          0.51
+        ],
+        "handle": 706
+      }
+    ],
+    "ok": true
+  },
+  "tasks": [
+    {
+      "task_id": "a_conveyor_uid1",
+      "kind": "a_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "b_conveyor_uid2",
+      "kind": "b_conveyor",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "d_conveyor_uid3",
+      "kind": "d_conveyor",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "reposition_uid2_toB_leg1",
+      "kind": "reposition",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "c_handoff_uid1",
+      "kind": "c_handoff",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "e_conveyor_uid1",
+      "kind": "e_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "transport_ba_uid2",
+      "kind": "transport_ba",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "a_agv_uid2",
+      "kind": "a_agv",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "c_handoff_uid2",
+      "kind": "c_handoff",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "reposition_uid3_toD_leg2",
+      "kind": "reposition",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "e_conveyor_uid2",
+      "kind": "e_conveyor",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "transport_de_uid3",
+      "kind": "transport_de",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "e_agv_uid3",
+      "kind": "e_agv",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    }
+  ],
+  "routes": [
+    {
+      "route_id": "A_to_B_empty",
+      "loaded": false,
+      "state": "DONE",
+      "stop_error": 0.019687,
+      "heading_error": -0.000327,
+      "slip": null,
+      "duration_s": 12.3
+    },
+    {
+      "route_id": "B_to_A_loaded",
+      "loaded": true,
+      "state": "DONE",
+      "stop_error": 0.019636,
+      "heading_error": 0.000338,
+      "slip": 0.0,
+      "duration_s": 11.85
+    },
+    {
+      "route_id": "A_to_D_empty",
+      "loaded": false,
+      "state": "DONE",
+      "stop_error": 0.019775,
+      "heading_error": -0.000885,
+      "slip": null,
+      "duration_s": 26.85
+    },
+    {
+      "route_id": "D_to_E_loaded",
+      "loaded": true,
+      "state": "DONE",
+      "stop_error": 0.019642,
+      "heading_error": 0.000569,
+      "slip": 0.0,
+      "duration_s": 41.1
+    }
+  ],
+  "material_types": {
+    "1": {
+      "type": "SEMI_CE",
+      "state": "RELEASED",
+      "zone": "buffer_e_c"
+    },
+    "2": {
+      "type": "SEMI_CE",
+      "state": "RELEASED",
+      "zone": "buffer_e_c"
+    },
+    "3": {
+      "type": "PART_DE",
+      "state": "RELEASED",
+      "zone": "buffer_e_d"
+    },
+    "4": {
+      "type": "FINAL",
+      "state": "SPAWNED",
+      "zone": "output_e"
+    }
+  },
+  "metrics": {
+    "throughput": {
+      "finals": 1,
+      "final_times_s": [
+        321.0
+      ],
+      "output_intervals_s": [],
+      "spawned": 3,
+      "finals_per_s": 0.002776,
+      "finals_per_hour": 9.99
+    },
+    "tasks": {
+      "total": 13,
+      "by_kind": {
+        "a_agv": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            42.70000000000002
+          ],
+          "cycle_s": [
+            42.70000000000002
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "a_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            55.25
+          ],
+          "cycle_s": [
+            55.25
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "b_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            50.85
+          ],
+          "cycle_s": [
+            106.10000000000001
+          ],
+          "wait_s": 55.25,
+          "block_s": 0.0
+        },
+        "c_handoff": {
+          "count": 2,
+          "done": 2,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            32.74999999999999,
+            33.29999999999998
+          ],
+          "cycle_s": [
+            32.74999999999999,
+            33.29999999999998
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "d_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            53.400000000000006
+          ],
+          "cycle_s": [
+            241.0
+          ],
+          "wait_s": 187.6,
+          "block_s": 0.0
+        },
+        "e_agv": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            38.05000000000001
+          ],
+          "cycle_s": [
+            38.05000000000001
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "e_conveyor": {
+          "count": 2,
+          "done": 2,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            38.900000000000006,
+            40.05000000000001
+          ],
+          "cycle_s": [
+            38.900000000000006,
+            166.25000000000003
+          ],
+          "wait_s": 126.2,
+          "block_s": 0.0
+        },
+        "reposition": {
+          "count": 2,
+          "done": 2,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            12.35,
+            26.899999999999977
+          ],
+          "cycle_s": [
+            12.35,
+            26.899999999999977
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "transport_ba": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            11.899999999999991
+          ],
+          "cycle_s": [
+            11.899999999999991
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "transport_de": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            41.150000000000006
+          ],
+          "cycle_s": [
+            41.150000000000006
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        }
+      }
+    },
+    "devices": {
+      "agv": {
+        "busy_s": 92.3,
+        "utilization": 0.2562
+      },
+      "arm_A": {
+        "busy_s": 97.95,
+        "utilization": 0.2719
+      },
+      "arm_B": {
+        "busy_s": 50.85,
+        "utilization": 0.1412
+      },
+      "arm_C": {
+        "busy_s": 66.05,
+        "utilization": 0.1833
+      },
+      "arm_D": {
+        "busy_s": 53.4,
+        "utilization": 0.1482
+      },
+      "arm_E": {
+        "busy_s": 117.0,
+        "utilization": 0.3248
+      }
+    },
+    "agv": {
+      "routes": [
+        {
+          "route_id": "A_to_B_empty",
+          "loaded": false,
+          "duration_s": 12.35
+        },
+        {
+          "route_id": "B_to_A_loaded",
+          "loaded": true,
+          "duration_s": 11.9
+        },
+        {
+          "route_id": "A_to_D_empty",
+          "loaded": false,
+          "duration_s": 26.9
+        },
+        {
+          "route_id": "D_to_E_loaded",
+          "loaded": true,
+          "duration_s": 41.15
+        }
+      ],
+      "loaded_routes": 2,
+      "empty_routes": 2,
+      "loaded_time_s": 53.05,
+      "empty_time_s": 39.25
+    },
+    "window": {
+      "start_s": 0.85,
+      "end_s": 361.1,
+      "span_s": 360.25,
+      "warmup_s": 0.0,
+      "policy": "from_first_spawn_to_last_final"
+    },
+    "queues": {
+      "active_at_end": 0,
+      "peak_active": 2,
+      "wip": {
+        "total": 1,
+        "by_type": {
+          "SEMI_CE": 1
+        },
+        "zones": {
+          "2": "buffer_e_c"
+        }
+      }
+    }
+  },
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 320,
+      "failed": []
+    },
+    "leftover": []
+  }
+}

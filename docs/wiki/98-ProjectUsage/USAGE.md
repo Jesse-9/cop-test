@@ -13,7 +13,7 @@ sim_version: "4.10+"
 
 # 柔性工业车间仿真项目使用指南
 
-本指南说明如何启动 CoppeliaSim、连接项目、操作版本化场景工件，以及运行当前可用的阶段一至三。命令以 Windows PowerShell、仓库根目录为例。
+本指南说明如何启动 CoppeliaSim、连接项目、操作版本化场景工件，以及运行当前可用的阶段一至四。命令以 Windows PowerShell、仓库根目录为例。
 
 ## 启动仿真软件
 
@@ -31,6 +31,7 @@ sim_version: "4.10+"
     .venv/Scripts/python.exe src/run_stage1.py --help
     .venv/Scripts/python.exe src/run_stage2.py --help
     .venv/Scripts/python.exe src/run_stage3.py --help
+    .venv/Scripts/python.exe src/run_stage4.py --help
 
 ## 运行约定
 
@@ -72,8 +73,9 @@ sim_version: "4.10+"
 
 ## 阶段二：物理约束与运动规划
 
-当前基线为 `stage2/L1_S1/v014_20261028_175742`（06-15 契约
-`stage2_contract_20261028_v4`）。运行入口默认加载 stage2 的 current 工件：
+当前基线为 `stage2/L1_S1/v016_20261029_112229`（06-15 契约
+`stage2_contract_20261028_v4`，`H_transfer=0.65 m`；完整回归待执行）。
+运行入口默认加载 stage2 的 current 工件：
 
     .venv/Scripts/python.exe src/run_stage2.py --target station --time 150
     .venv/Scripts/python.exe src/run_stage2.py --target agv --time 150
@@ -88,7 +90,7 @@ sim_version: "4.10+"
 
 ## 阶段三：双工位柔性搬运
 
-当前基线为 `stage3/L2_MIRROR/v006_20261028_180722`（由 stage2 v014 派生）。
+当前基线为 `stage3/L2_MIRROR/v008_20261029_112305`（由 stage2 v016 派生；完整回归待执行）。
 五种运行场景：
 
     .venv/Scripts/python.exe src/run_stage3.py --scenario closed_loop --time 300
@@ -99,9 +101,41 @@ sim_version: "4.10+"
 
 如需重建 stage3，从已验收 stage2 工件派生（build 成功后状态已是已校验，可直接 save）：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v014_20261028_175742
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v014_20261028_175742
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v014_20261028_175742 --note "阶段三派生"
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v016_20261029_112229
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v016_20261029_112229
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v016_20261029_112229 --note "阶段三派生"
+
+## 阶段四：多岛车间
+
+当前基线为 `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件，
+由 stage3 v006 派生）。06-15 将 `H_transfer` 调整到 0.65 后，stage4
+必须从新的 stage3 v008 重新派生并回归；五个场景此前通过的结果对应
+H=0.80。五种运行场景：
+
+    .venv/Scripts/python.exe src/run_stage4.py --scenario full_flow --time 1200
+    .venv/Scripts/python.exe src/run_stage4.py --scenario no_pair --time 1200
+    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_priority --time 1200
+    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_blocked --time 1200
+    .venv/Scripts/python.exe src/run_stage4.py --scenario conveyor_fault --time 1200
+
+阶段四运行会加载 current 工件、在启动点校验 452 项只读契约，然后构建
+五台独立影子臂/碰撞集合。首次加载、校验与运行时构建合计约 3–5 分钟
+（阶段四场景约 538 个对象）；之后按任务链逐岛执行。报告写入
+`docs/implementation/runs/phase4_run_<scenario>_<stamp>.json`。
+五个场景已于 2026-10-29 全部通过，结果见
+[阶段四报告](../../implementation/PHASE4_REPORT.md) §7。
+
+如需重建 stage4（修改 `src/stage4/config.py` 或场景构建后必须重新派生）：
+
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage3/L2_MIRROR/v008_20261029_112305
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305 --note "阶段四派生"
+
+阶段四布局与五台臂 IK 只读测量：
+
+    .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py
+    .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py --sim --ik \
+        --out docs/measurement/stage4_layout_<stamp>.json
 
 ## 手动操作生命周期
 
@@ -130,7 +164,7 @@ save 每次创建新版本，不覆盖旧工件。stage2/stage3 保存必须提�
 - 连接失败：检查 CoppeliaSim 是否运行、ZMQ add-on 是否启动，并确认主机和端口（默认 localhost:23000）。
 - 找不到工件或阶段不匹配：运行 src/run_scene_lifecycle.py list，确认对应阶段的 current 指针。
 - 场景未通过校验：start 会拒绝并给出差异数；先加载对应阶段工件，再运行可选的 validate 查看详细报告；不要通过编辑受保护工件绕过摘要检查。
-- 日志默认在仓库根目录的 factory_sim.log、stage2_sim.log、stage3_sim.log 等文件；运行报告在 docs/implementation/runs/。
+- 日志默认在仓库根目录的 factory_sim.log、stage2_sim.log、stage3_sim.log、stage4_sim.log 等文件；运行报告在 docs/implementation/runs/。
 
 阶段验收和未实现功能见根目录 [README](../../../README.md) 及 docs/implementation/。旧五岛 src/reference/ 是历史兼容流程。
 

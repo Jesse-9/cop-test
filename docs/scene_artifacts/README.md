@@ -16,10 +16,18 @@
 |---|---|---|
 | `stage1` | 阶段一通过基线, 只读父工件 | `protected: true`, 文件只读 |
 | `stage2` | 阶段二从阶段一基线派生的独立副本 | CLI 默认 `protected: true`；`--no-protect` 可派生可变诊断副本 |
+| `stage3` | 阶段三从阶段二工件派生的双工位副本 | CLI 默认 `protected: true` |
+| `stage4` | 阶段四从阶段三工件派生的五岛多岛副本 | CLI 默认 `protected: true` |
 | `diagnostic` | 临时诊断/试验场景 | 不保护 |
 
 `.runtime/` 保存跨进程会话状态与运行锁, 每次运行重新生成, 已 gitignore,
 不随代码提交。
+
+## 工作区保留策略
+
+工作区只保留各阶段 `current.json` 指向的工件，作为可运行基线；其余历史
+版本已从工作区清理，仍保留在 git 历史中。需要复现旧实验时从对应提交
+checkout，不要重新生成同名工件或覆盖当前工件。
 
 ## 当前阶段一基线
 
@@ -32,22 +40,24 @@
 - 证据: [`step1_2_post_restart_reuse_v002_20261021_000357.json`](../implementation/evidence/step1_2_post_restart_reuse_v002_20261021_000357.json)
 
 `v001_20261020_233504` 是首次正式保存; 其 manifest 的物理引擎字段因
-`sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代, 仅保留为
-审计历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
+`sim.intparam_engine` 常量名错误记录为 `unknown`, 已由 v002 取代，仅保留在
+git 历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 
 ## 当前阶段二工件（06-15）
 
-- 工件 ID: `stage2/L1_S1/v014_20261028_175742`
+- 工件 ID: `stage2/L1_S1/v016_20261029_112229`
 - 父工件: `stage1/L1_S1/v002_20261020_234403`
 - 契约: `extra.stage2.contract_version = stage2_contract_20261028_v4`;
-  `extra.stage2.transfer` 记录 `TRANSFER_HEIGHT=0.80`、水平绕行偏移与规划预算，
-  控制器 `transfer_trajectory_version = "06-15"`
-- 回归: stage2 station/agv/both 与 runtime_obstacle 已通过；证据见
-  [`docs/implementation/runs/`](../implementation/runs/) 中
-  `phase2_run_*_20261028_*`
-- 历史: v013 是 2.02 工件（契约 v3、动作优化 2.01、AGV 转运优化 2.02）；
-  v009–v012 是阶段二/2.01 历史与过渡工件。修改 `src/stage2/config.py`
-  后旧工件会因 `stage2_config_digest`/契约版本拒绝 start，必须重新派生
+  `extra.stage2.transfer` 记录 `TRANSFER_HEIGHT=0.65`、
+  `TRANSFER_HEIGHT_MIN=0.58`、`TRANSFER_CLEARANCE_MIN=0.03`、水平绕行
+  偏移与规划预算，控制器 `transfer_trajectory_version = "06-15"`。
+  `lift` 与 `pre_place` 由同一常量生成，恒同高。
+- 回归: 2026-10-28 在 H=0.80 工件 v014 上通过 station/agv/both 与
+  runtime_obstacle；H=0.65 工件 v016 已通过保存期校验，完整回归待执行。
+- 历史: v015（H=0.60 中间）、v014（H=0.80）、v013（2.02，契约 v3）、
+  v009–v012（阶段二/2.01）均已从工作区清理，保留在 git 历史。修改
+  `src/stage2/config.py` 后旧工件会因 `stage2_config_digest`/契约版本
+  拒绝 start，必须重新派生
 - 保护: 工件均由 CLI 保存为 `protected: true`（文件只读）
 - 运行: `python src/run_stage2.py --target station|agv|both`
 - 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)、
@@ -58,6 +68,47 @@
 影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,
 父差异只比较稳定字段。
+
+## 阶段三工件
+
+- 当前: `stage3/L2_MIRROR/v008_20261029_112305`（父
+  `stage2/L1_S1/v016_20261029_112229`，H=0.65；完整回归待执行）
+- 契约: `extra.stage3.contract_version = stage3_contract_20261025_v1`;
+  `extra.stage3.inheritance` 记录 stage2 父工件/契约/配置摘要。
+- 派生: `load stage2/...` → `build --phase stage3 --parent <stage2>` →
+  `save --phase stage3 --parent <stage2>`。
+- 历史: v001–v007 已从工作区清理，保留在 git 历史；修改
+  `src/stage3/config.py` 后旧工件会因 `stage3_config_digest` 拒绝，必须
+  重新派生。
+- 报告: [`PHASE3_REPORT.md`](../implementation/PHASE3_REPORT.md)。
+
+## 当前阶段四工件
+
+- 工件 ID: `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件）
+- 父工件: `stage3/L2_MIRROR/v006_20261028_180722`；06-15 将 H 调整到
+  0.65 后，需从 stage3 v008 重新派生 stage4 并重跑回归
+- 契约: `extra.stage4.contract_version = stage4_contract_20261028_v1`;
+  `extra.stage4.inheritance` 记录 stage3 契约/配置/布局摘要与 stage2
+  上游摘要。
+- 场景新增 C/D/E 工位、S1→B/S2→D/C→E 三条物流线、S2 仓库、A→C 交接
+  传感器、E 两个输入缓冲与输出 dummy；A/B 坐标、AGV 初始位姿和地面不变。
+- 几何约束：C 岛/基座 0.45 m 高，A 放置后撤离到交接台南侧 park 位姿，
+  避免 C 臂 link3/link6 与 A 交接台/腕部碰撞；改变这些几何必须重新
+  派生并重跑 C 任务回归。
+- 派生: `load stage3/...` → `build --phase stage4 --parent <stage3>` →
+  `save --phase stage4 --parent <stage3>`。
+- 修改 `src/stage4/config.py` 后旧工件会因 `stage4_config_digest` 拒绝，
+  必须重新派生；不得手改 manifest。
+- 历史: v001–v007 已从工作区清理，保留在 git 历史（v001 是父摘要读取
+  错误的失败草稿；v002 物流线仍以 `targetVel=0.2` 启动；v003 起物流线
+  启动即停止；v004 把 C 岛/基座抬高到 0.45 m；v005–v008 调整 S1→B/S2→D
+  支线、B/D 取料点与 D 岛高度）。当前保留的 v008 是 H=0.80 基线，H=0.65
+  下可达性更宽裕，但带载净空需重新检查。
+- 验收: 2026-10-29 五个场景（full_flow/no_pair/agv_priority/
+  agv_blocked/conveyor_fault）全部通过；证据见
+  [`phase4_analysis_*`](../implementation/evidence/) 与
+  [`stage4_layout_20261029_v008.json`](../implementation/evidence/stage4_layout_20261029_v008.json)。
+- 报告: [`PHASE4_REPORT.md`](../implementation/PHASE4_REPORT.md)。
 
 ## `current` 指针
 

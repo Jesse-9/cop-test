@@ -330,7 +330,7 @@ def bounded_transport_step(position, previous_position, geometry,
         delta = min(float(shortfall), float(max_step), remaining)
     new_progress = progress + delta / geometry.length \
         if geometry.length > 1e-9 else progress
-    new_position = geometry.position_at(new_progress, current[1], current[2])
+    new_position = geometry.advance(current, delta)
     return CompensationStep(
         delta=delta, physical_delta=physical, shortfall=shortfall,
         progress=new_progress, new_position=new_position,
