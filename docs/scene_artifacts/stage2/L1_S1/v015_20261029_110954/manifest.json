@@ -1,0 +1,1931 @@
+{
+  "actor": "cli",
+  "artifact": {
+    "scene_file": "scene.ttt",
+    "sha256": "84fc0e89951f153bd0b0637d11da6f08c001938e59d11a9ad7e2cb6f0e7e757b",
+    "size": 2008341
+  },
+  "artifact_id": "stage2/L1_S1/v015_20261029_110954",
+  "builder": {
+    "clear_scene": true,
+    "module": "stage1.scene",
+    "version": "stage1_scene_20261020"
+  },
+  "code": {
+    "branch": "codex/phase4-multi-island",
+    "commit": "114049d1e2b5754dd5ba094c49ce35c11abe5e07",
+    "dirty": true,
+    "dirty_files": [
+      "M docs/implementation/PHASE4_REPORT.md",
+      " M \"docs/wiki/06-\\345\\267\\245\\344\\270\\232\\346\\241\\210\\344\\276\\213/06-16-\\346\\237\\224\\346\\200\\247\\345\\267\\245\\344\\270\\232\\350\\275\\246\\351\\227\\264\\351\\230\\266\\346\\256\\265\\345\\233\\233\\345\\244\\232\\345\\262\\233\\345\\256\\236\\346\\226\\275\\346\\255\\245\\351\\252\\244.md\"",
+      " M src/stage2/config.py",
+      " M src/stage2/scene_contract.py",
+      " M src/stage2/unit_controller.py",
+      " M tests/test_stage2_agv_transfer.py",
+      " M tests/test_stage2_transfer_trajectory.py",
+      "?? \"docs/wiki/06-\\345\\267\\245\\344\\270\\232\\346\\241\\210\\344\\276\\213/06-17-\\346\\237\\224\\346\\200\\247\\345\\267\\245\\344\\270\\232\\350\\275\\246\\351\\227\\264\\351\\230\\266\\346\\256\\2654.1\\345\\234\\272\\346\\231\\257\\345\\270\\203\\345\\261\\200\\344\\270\\216\\350\\201\\224\\345\\212\\250\\344\\274\\230\\345\\214\\226\\346\\226\\271\\346\\241\\210.md\""
+    ]
+  },
+  "config": {
+    "digest": "4c08edd4376e28216cb6e5bc7316b0ad4bc50d85b742b66f6831b84716657bc0",
+    "summary": {
+      "AGV_BLOCK_TIMEOUT": 2.5,
+      "AGV_CHASSIS_MIN_Z": -0.1387857600840104,
+      "AGV_CHASSIS_TOP_LOCAL_Z": 0.09823927488851028,
+      "AGV_DOCK_LIN_TOL": 0.02,
+      "AGV_DOCK_POS": [
+        0.42,
+        -0.62
+      ],
+      "AGV_DOCK_SENSOR_RADIUS": 0.3,
+      "AGV_DOCK_SENSOR_RANGE": 0.3,
+      "AGV_DOCK_SENSOR_Z": 0.3,
+      "AGV_DOCK_TIMEOUT": 3.0,
+      "AGV_DRIVE_DISTANCE": 0.5,
+      "AGV_DRIVE_SPEED": 0.15,
+      "AGV_FOOTPRINT_SIZE": [
+        0.519,
+        0.415
+      ],
+      "AGV_MATERIAL_POSE": [
+        0.42,
+        -0.62,
+        0.30702503497252065
+      ],
+      "AGV_MAX_ACCEL": 0.25,
+      "AGV_MAX_LINEAR_VEL": 0.35,
+      "AGV_MAX_TILT": 0.3,
+      "AGV_MAX_WHEEL_VEL": 6.0,
+      "AGV_MAX_YAW_RATE": 1.0,
+      "AGV_ROOT_Z": 0.1387857600840104,
+      "AGV_TCP_POSE": [
+        0.42,
+        -0.62,
+        0.35702503497252064,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "AGV_TRAY_CENTER_LOCAL_Z": 0.10823927488851028,
+      "AGV_TRAY_FRICTION": 1.0,
+      "AGV_TRAY_SIZE": [
+        0.3,
+        0.3,
+        0.02
+      ],
+      "AGV_TRAY_THICKNESS": 0.02,
+      "AGV_TRAY_TOP_Z": 0.25702503497252066,
+      "AGV_TRAY_XY_TOL": 0.12,
+      "AGV_TRAY_Z_TOL": 0.03,
+      "AGV_WALL_HEIGHT": 0.03,
+      "AGV_WALL_OFFSET": 0.155,
+      "AGV_WALL_THICKNESS": 0.01,
+      "AGV_WHEEL_BASE": 0.331,
+      "AGV_WHEEL_RADIUS": 0.0975,
+      "ALIASES": {
+        "agv": "Mobile_AGV_P3DX",
+        "agv_dock_sensor": "Sensor_AGV_Dock",
+        "agv_tray": "AGV_LoadTray",
+        "agv_wall_back": "AGV_TrayWall_Back",
+        "agv_wall_front": "AGV_TrayWall_Front",
+        "agv_wall_left": "AGV_TrayWall_Left",
+        "agv_wall_right": "AGV_TrayWall_Right",
+        "conveyor": "Conveyor_In",
+        "conveyor_entry": "Conveyor_In_Entry",
+        "conveyor_stop": "Conveyor_In_PickupStop",
+        "exit_sensor": "Sensor_ConveyorExit",
+        "floor": "Floor",
+        "ik_target": "IK_Target_01",
+        "island": "Island_A",
+        "pick_sensor": "Sensor_PickStation",
+        "place_target_station": "PlaceTarget_Station",
+        "robot": "Robot_UR5_01",
+        "roots": [
+          "Warehouse",
+          "Conveyor",
+          "Island",
+          "Mobile",
+          "Part"
+        ],
+        "station": "Island_A_Station",
+        "suction": "SuctionPad_01",
+        "suction_sensor": "Sensor_SuctionPad_01",
+        "tcp": "SuctionPad_01_TCP",
+        "warehouse": "Warehouse_Raw"
+      },
+      "ALLOWED_PICK_REGION": {
+        "x": [
+          -0.4,
+          -0.19
+        ],
+        "y": [
+          -0.04,
+          0.04
+        ],
+        "z_center": 0.5,
+        "z_tol": 0.02
+      },
+      "ARM_APPROACH_CLEARANCE": 0.15,
+      "ARM_BASE_POS": [
+        0.42,
+        0.0,
+        0.3
+      ],
+      "ARM_IK_MAX_ITERATIONS": 200,
+      "ARM_IK_MAX_RETRIES": 2,
+      "ARM_IK_RETRY_DELAY": 2.0,
+      "ARM_JOINT_CONVERGE_TOL": 0.02,
+      "ARM_JOINT_LIMIT": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "ARM_JOINT_STOP_SPEED": 0.1,
+      "ARM_JOINT_TARGET_ACCEL": 6.0,
+      "ARM_JOINT_TARGET_JERK": 10.0,
+      "ARM_JOINT_TARGET_VEL": 1.5,
+      "ARM_MOVE_TIMEOUT": 8.0,
+      "ARM_REACH_MARGIN": 0.05,
+      "ARM_REACH_RADIUS": 0.85,
+      "ARM_SEED_JOINTS": [
+        0.0,
+        0.0,
+        -1.5707963267948966,
+        0.0,
+        1.5707963267948966,
+        0.0
+      ],
+      "ARM_SOLVE_PRECISION": [
+        0.01,
+        0.01
+      ],
+      "ARM_TCP_ANG_TOL": 0.12,
+      "ARM_TCP_POS_TOL": 0.015,
+      "ATTACH_SETTLE_TIMEOUT": 2.0,
+      "CONVEYOR_ACCEL": 2.0,
+      "CONVEYOR_CENTER": [
+        -0.62,
+        0.0
+      ],
+      "CONVEYOR_CTRL_KEY": "customData.__ctrl__",
+      "CONVEYOR_DESIGN_LENGTH": 1.216,
+      "CONVEYOR_ENTRY_INSET": 0.1,
+      "CONVEYOR_ENTRY_LOCAL_X": -0.39722983510661114,
+      "CONVEYOR_ENTRY_WORLD": [
+        -1.0172298351066111,
+        0.0,
+        0.45
+      ],
+      "CONVEYOR_FAULT_DROP_Z": 0.15,
+      "CONVEYOR_MAX_COMPENSATION_STEP": 0.010000000000000002,
+      "CONVEYOR_MAX_LATERAL_ERROR": 0.04,
+      "CONVEYOR_MAX_STOP_TIME": 0.15000000000000002,
+      "CONVEYOR_NATIVE_LENGTH": 1.2160000030199831,
+      "CONVEYOR_NATIVE_WIDTH": 0.2000000029802324,
+      "CONVEYOR_SPEED": 0.2,
+      "CONVEYOR_STATE_KEY": "__state__",
+      "CONVEYOR_STOP_INSET": 0.08,
+      "CONVEYOR_STOP_LOCAL_X": 0.42,
+      "CONVEYOR_STOP_WORLD": [
+        -0.2,
+        0.0,
+        0.45
+      ],
+      "CONVEYOR_SURFACE_OFFSET": 0.0,
+      "CONVEYOR_SURFACE_Z": 0.45,
+      "CONVEYOR_TOP_RUN_LOCAL": [
+        -0.4972298351066111,
+        0.5
+      ],
+      "CONVEYOR_TRAVEL_LENGTH": 0.8172298351066112,
+      "DRIVE_SOURCE_SCRIPT": "SCRIPT_DRIVEN",
+      "EXIT_SENSOR_LOCAL_X": 0.47,
+      "EXIT_SENSOR_RADIUS": 0.08,
+      "EXIT_SENSOR_RANGE": 0.12,
+      "EXIT_SENSOR_WORLD": [
+        -0.15000000000000002,
+        0.0,
+        0.6
+      ],
+      "EXIT_SENSOR_Z": 0.6,
+      "FAULT_AGV_BLOCKED": "agv_blocked",
+      "FAULT_CHOICES": [
+        "none",
+        "no_target",
+        "uid_mismatch",
+        "ik_unreachable",
+        "sensor_disabled",
+        "agv_blocked",
+        "release_unstable"
+      ],
+      "FAULT_IK_OFFSET": [
+        0.0,
+        0.0,
+        1.2
+      ],
+      "FAULT_IK_UNREACHABLE": "ik_unreachable",
+      "FAULT_NONE": "none",
+      "FAULT_NO_TARGET": "no_target",
+      "FAULT_RELEASE_UNSTABLE": "release_unstable",
+      "FAULT_SENSOR_DISABLED": "sensor_disabled",
+      "FAULT_UID_MISMATCH": "uid_mismatch",
+      "FLOOR_CENTER": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "FLOOR_SIZE": [
+        8.0,
+        6.0,
+        0.1
+      ],
+      "FLOOR_TOP_Z": 0.0,
+      "ISLAND_POS": [
+        0.42,
+        0.0
+      ],
+      "ISLAND_SIZE": [
+        0.6,
+        0.6,
+        0.3
+      ],
+      "ISLAND_TOP_Z": 0.3,
+      "LEGACY_STOPPER_ALIAS": "Conveyor_In_PickupStopper",
+      "LIFT_TCP_POSE": [
+        -0.2,
+        0.0,
+        0.7,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "MATERIAL_COLORS": {
+        "Part_0001": [
+          0.3,
+          0.7,
+          1.0
+        ],
+        "Part_0002": [
+          1.0,
+          0.65,
+          0.25
+        ]
+      },
+      "MATERIAL_FRICTION": 0.6,
+      "MATERIAL_HALF_HEIGHT": 0.05,
+      "MATERIAL_MASS": 0.1,
+      "MATERIAL_MAX_TILT": 0.15,
+      "MATERIAL_PICK_POS": [
+        -0.2,
+        0.0,
+        0.5
+      ],
+      "MATERIAL_PLACE_TOL": 0.03,
+      "MATERIAL_RESPONDABLE_MASK": 65535,
+      "MATERIAL_SETTLE_TIMEOUT": 3.0,
+      "MATERIAL_SIZE": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "MATERIAL_SPAWN_GAP": 0.01,
+      "MATERIAL_SPAWN_POS": [
+        -1.0172298351066111,
+        0.0,
+        0.51
+      ],
+      "MATERIAL_STABLE_POS_TOL": 0.005,
+      "MATERIAL_STABLE_SPEED_TOL": 0.05,
+      "MATERIAL_STABLE_STEPS": 5,
+      "MISMATCH_TIMEOUT": 3.0,
+      "MODEL_PATHS": {
+        "conveyor": "equipment/conveyors/generic conveyor (belt).ttm",
+        "pioneer_p3dx": "robots/mobile/pioneer p3dx.ttm",
+        "suction_pad": "components/grippers/suction pad.ttm",
+        "ur5": "robots/non-mobile/UR5.ttm"
+      },
+      "PICK_SENSOR_ORIENTATION": [
+        3.141592653589793,
+        0.0,
+        0.0
+      ],
+      "PICK_SENSOR_RADIUS": 0.08,
+      "PICK_SENSOR_RANGE": 0.12,
+      "PICK_SENSOR_TIMEOUT": 15.0,
+      "PICK_SENSOR_WORLD": [
+        -0.2,
+        0.0,
+        0.6
+      ],
+      "PICK_SENSOR_Z": 0.6,
+      "PICK_STOP_CONFIRM_STEPS": 2,
+      "PICK_STOP_POS_TOL": 0.002,
+      "PICK_STOP_TIMEOUT": 3.0,
+      "PICK_STOP_VEL_TOL": 0.01,
+      "PICK_TCP_POSE": [
+        -0.2,
+        0.0,
+        0.55,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "REACH_LIMIT": 0.7999999999999999,
+      "REQUIRED_ALIASES": [
+        "Floor",
+        "Warehouse_Raw",
+        "Conveyor_In",
+        "Conveyor_In_Entry",
+        "Conveyor_In_PickupStop",
+        "Sensor_PickStation",
+        "Island_A",
+        "Island_A_Station",
+        "Robot_UR5_01",
+        "SuctionPad_01",
+        "SuctionPad_01_TCP",
+        "Sensor_SuctionPad_01",
+        "IK_Target_01",
+        "Mobile_AGV_P3DX",
+        "AGV_LoadTray",
+        "Sensor_AGV_Dock"
+      ],
+      "SCENE_BUILDER_VERSION": "stage1_scene_20261020",
+      "SENSOR_INTPARAMS": [
+        16,
+        16,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "SENSOR_OPTIONS": 5,
+      "SIM_STEP": 0.05,
+      "STATION_MATERIAL_POSE": [
+        0.92,
+        0.42,
+        0.35
+      ],
+      "STATION_POS": [
+        0.92,
+        0.42
+      ],
+      "STATION_SIZE": [
+        0.4,
+        0.4,
+        0.3
+      ],
+      "STATION_TCP_POSE": [
+        0.92,
+        0.42,
+        0.39999999999999997,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "STATION_TOP_Z": 0.3,
+      "SUCTION_AXIS_DOT_TOL": 0.001,
+      "SUCTION_BACK_LOCAL_Z": 0.03500004019588232,
+      "SUCTION_CONTACT_TOL": 0.03,
+      "SUCTION_FLANGE_PROTRUSION_Z": 0.007549934089183821,
+      "SUCTION_LINK_CLEARANCE": 0.005,
+      "SUCTION_MAX_ATTACH_SPEED": 0.05,
+      "SUCTION_MAX_TOOL_SPEED": 0.1,
+      "SUCTION_MOUNT_POS_TOL": 0.0005,
+      "SUCTION_MOUNT_QUATERNION": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "SUCTION_MOUNT_Z": 0.04754997428506614,
+      "SUCTION_RELEASE_MAX_SPEED": 0.1,
+      "SUCTION_SENSOR_RADIUS": 0.06,
+      "SUCTION_SENSOR_RANGE": 0.03,
+      "SUCTION_SETTLE_GRACE_STEPS": 2,
+      "SUCTION_SETTLE_STEPS": 15,
+      "SUCTION_SETTLE_Z_TOL": 0.02,
+      "SUCTION_TILT_TOL": 0.35,
+      "SUCTION_TOOL_VERSION": "suction_mount_rx180_20261020",
+      "TASK_TIMEOUT": 60.0,
+      "TCP_ALIAS": "SuctionPad_01_TCP",
+      "TCP_LOCAL_POS": [
+        0.0,
+        0.0,
+        -0.015000049956142902
+      ],
+      "TCP_LOCAL_QUATERNION": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "TCP_LOCAL_Z": -0.015000049956142902,
+      "TOOL_TARGET_QUATERNION": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "TRANSPORT_MODE": "HYBRID_DYNAMIC",
+      "WAREHOUSE_POS": [
+        -1.02,
+        0.42
+      ],
+      "WAREHOUSE_SIZE": [
+        0.35,
+        0.35,
+        0.25
+      ],
+      "__layout__": {
+        "agv_dock": [
+          0.4,
+          0.75
+        ],
+        "arm_base": [
+          -0.2,
+          0.55,
+          0.3
+        ],
+        "conveyor_center": [
+          -0.62,
+          0.0
+        ],
+        "include_stopper": false,
+        "island_pos": [
+          -0.2,
+          0.55
+        ],
+        "island_size": [
+          0.6,
+          0.6,
+          0.3
+        ],
+        "island_top_z": 0.3,
+        "name": "L1_S1",
+        "pick_sensor_local_x": 0.42,
+        "station_pos": [
+          -0.2,
+          1.2
+        ],
+        "station_size": [
+          0.4,
+          0.4,
+          0.3
+        ],
+        "station_top_z": 0.3,
+        "warehouse_pos": [
+          -1.02,
+          0.42
+        ]
+      }
+    }
+  },
+  "contract": {
+    "checks": [
+      {
+        "detail": "layout=L1_S1 (17/17 checks)",
+        "name": "layout_static_validation",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Floor",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Warehouse_Raw",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Conveyor_In",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Conveyor_In_Entry",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Conveyor_In_PickupStop",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Sensor_PickStation",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Island_A",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Island_A_Station",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Robot_UR5_01",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:SuctionPad_01",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:SuctionPad_01_TCP",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Sensor_SuctionPad_01",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:IK_Target_01",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Mobile_AGV_P3DX",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:AGV_LoadTray",
+        "ok": true
+      },
+      {
+        "detail": "1 个匹配",
+        "name": "alias_unique:Sensor_AGV_Dock",
+        "ok": true
+      },
+      {
+        "detail": "当前生产场景不构建挡停体, found=0",
+        "name": "no_stopper",
+        "ok": true
+      },
+      {
+        "detail": "6 个关节",
+        "name": "robot_joint_count",
+        "ok": true
+      },
+      {
+        "detail": "modes=[0, 0, 0, 0, 0, 0] (期望全部 0)",
+        "name": "ur5_joint_modes",
+        "ok": true
+      },
+      {
+        "detail": "handle=119",
+        "name": "tcp_exists",
+        "ok": true
+      },
+      {
+        "detail": "设计=1.2160 实测=1.2160000030199831",
+        "name": "conveyor_length",
+        "ok": true
+      },
+      {
+        "detail": "stop_local=0.4200 run=-0.4972..0.5000",
+        "name": "pick_zone_inside_top_run",
+        "ok": true
+      },
+      {
+        "detail": "sensor_local=0.4200 run=-0.4972..0.5000",
+        "name": "pick_sensor_inside_top_run",
+        "ok": true
+      },
+      {
+        "detail": "script_handle=17",
+        "name": "conveyor_script_present",
+        "ok": true
+      },
+      {
+        "detail": "accel=2.0 (期望 2.0)",
+        "name": "conveyor_accel",
+        "ok": true
+      },
+      {
+        "detail": "0.100 s <= 0.150 s",
+        "name": "conveyor_stop_time",
+        "ok": true
+      },
+      {
+        "detail": "mode=5 (期望 5)",
+        "name": "agv_drive_joint_dynamic",
+        "ok": true
+      },
+      {
+        "detail": "mass=16.0",
+        "name": "agv_mass_present",
+        "ok": true
+      },
+      {
+        "detail": "TCP local=[0.0, 0.0, -0.015] 期望=[0.0, 0.0, -0.015000049956142902]",
+        "name": "tcp_contact_offset",
+        "ok": true
+      },
+      {
+        "detail": "TCP quat in pad=[0.0, 0.0, 0.0, 1.0]",
+        "name": "tcp_local_orientation",
+        "ok": true
+      },
+      {
+        "detail": "pad in connection=[0.0, 0.0, 0.04755, 1.0, 0.0, 0.0, 0.0] 期望 z=0.047550 quat=[1.0, 0.0, 0.0, 0.0]",
+        "name": "pad_mount_pose",
+        "ok": true
+      },
+      {
+        "detail": "z_tcp·z_pad=1.000000",
+        "name": "tcp_pad_axis",
+        "ok": true
+      },
+      {
+        "detail": "handle=115",
+        "name": "suction_model_sensor_present",
+        "ok": true
+      },
+      {
+        "detail": "z_sensor·(-z_pad)=1.000000",
+        "name": "suction_sensor_axis",
+        "ok": true
+      },
+      {
+        "detail": "z_sensor·(-z_pad)=1.000000",
+        "name": "suction_model_sensor_axis",
+        "ok": true
+      },
+      {
+        "detail": "handle=116",
+        "name": "suction_link_present",
+        "ok": true
+      },
+      {
+        "detail": "Link=[0.0, 0.0, -0.015] TCP=[0.0, 0.0, -0.015]",
+        "name": "tcp_contact_marker",
+        "ok": true
+      },
+      {
+        "detail": "pad 背面 z=0.012550 末端 link max z=0.007550 gap=0.005000",
+        "name": "suction_mount_clearance",
+        "ok": true
+      },
+      {
+        "detail": "0.604 m <= 0.800 m",
+        "name": "arm_reach:pick",
+        "ok": true
+      },
+      {
+        "detail": "0.658 m <= 0.800 m",
+        "name": "arm_reach:station",
+        "ok": true
+      },
+      {
+        "detail": "0.635 m <= 0.800 m",
+        "name": "arm_reach:agv",
+        "ok": true
+      },
+      {
+        "detail": "TCP z=0.662",
+        "name": "tcp_above_island",
+        "ok": true
+      }
+    ],
+    "ok": true
+  },
+  "created_at": "2026-10-29T11:09:55+08:00",
+  "extra": {
+    "stage2": {
+      "collision": {
+        "allowed_contacts": [
+          "link1 <-> Island_A 固定安装接触 (仅此一对)",
+          "车轮/脚轮 <-> 地面 滚动接触 (AGV 不作为机械臂障碍的成员)",
+          "物料 <-> conveyor pad / 工位台面 / AGV 载台 承载接触",
+          "杯口 <-> 目标顶面: 仅在接触几何判据有效时放行"
+        ],
+        "collections": [
+          {
+            "name": "stage2_shadow",
+            "roles": "影子 UR5 可见连杆 + 吸盘 Body"
+          },
+          {
+            "name": "stage2_shadow_links",
+            "roles": "影子连杆 (不含吸盘)"
+          },
+          {
+            "name": "stage2_shadow_no_base",
+            "roles": "除 link1 外连杆 + 吸盘 Body (安装平台检查)"
+          },
+          {
+            "name": "stage2_workcell",
+            "roles": "conveyor pads/工位台面/仓库/地面/AGV 车体与载台"
+          },
+          {
+            "name": "stage2_mount",
+            "roles": "安装平台; 仅 link1 固定安装接触"
+          },
+          {
+            "name": "stage2_parts",
+            "roles": "非目标动态物料"
+          },
+          {
+            "name": "stage2_target",
+            "roles": "当前目标物料"
+          },
+          {
+            "name": "stage2_shadow_load",
+            "roles": "已吸附载荷影子副本"
+          }
+        ],
+        "excluded_from_queries": [
+          {
+            "alias": "shape",
+            "reason": "内置 conveyor 根下整条带粗包围盒; 真实承载面由 50 个 pad 提供 (实测顶面高约 10 cm)"
+          }
+        ],
+        "forbidden": [
+          "非相邻连杆自碰撞",
+          "吸盘 Body 与目标以外的所有对象",
+          "带载物料与工作区/非目标物料",
+          "目标物料与非杯口部位"
+        ],
+        "margin": 0.005,
+        "near_margin": 0.01,
+        "self_collision": {
+          "method": "explicit_non_adjacent_pairs",
+          "min_index_gap": 2,
+          "note": "4.10 实测 collection_self_collision_indicator 对 checkCollision(collection, collection) 无过滤效果"
+        }
+      },
+      "config": {
+        "digest": "abbc752ace99455251cca3e2c41ff2174ed87682389f5b812f28f0444f9cc194",
+        "summary": {
+          "CARTESIAN_BEAM_WIDTH": 8,
+          "CARTESIAN_CHAIN_MAX_NODES": 512,
+          "CARTESIAN_CHAIN_SEARCH": "greedy",
+          "CARTESIAN_CHAIN_SEARCH_CHOICES": [
+            "greedy",
+            "beam"
+          ],
+          "CARTESIAN_IK_STEP": 0.01,
+          "CARTESIAN_LAYER_CANDIDATES": 6,
+          "CARTESIAN_PATH_ANG_TOL": 0.02,
+          "CARTESIAN_PATH_POS_TOL": 0.005,
+          "CARTESIAN_SAMPLE_MAX_DELTA": 0.002,
+          "CARTESIAN_VERIFY_SAMPLES": 5,
+          "CHAIN_COST_SAMPLE_DT": 1.0,
+          "CHAIN_COST_WEIGHT_A": 0.2,
+          "CHAIN_COST_WEIGHT_B": 0.2,
+          "CHAIN_COST_WEIGHT_Q0": 0.5,
+          "CHAIN_COST_WEIGHT_Q3": 0.5,
+          "CHAIN_COST_WEIGHT_TV": 1.0,
+          "COLLISION_MARGIN": 0.005,
+          "COLLISION_NEAR_MARGIN": 0.01,
+          "COMPACTION_SAMPLES": 5,
+          "COMPACTION_TCP_ANG_TOL": 0.01,
+          "COMPACTION_TCP_POS_TOL": 0.001,
+          "COMPENSATION_LAG_TOL": 0.002,
+          "COMPENSATION_MAX_CONSECUTIVE": 20,
+          "COMPENSATION_MAX_STEP": 0.010000000000000002,
+          "CONTACT_FACE_TOLERANCE": 0.001,
+          "CONTACT_MAX_GAP": 0.005,
+          "CONTACT_MAX_LATERAL": 0.02,
+          "CONTACT_MAX_NORMAL_ANGLE": 0.12,
+          "CONTACT_MIN_SIGNED_DISTANCE": -0.0015,
+          "CONTACT_PHASES": [
+            "CONTACT",
+            "PLACE"
+          ],
+          "CONTACT_REQUIRE_CUP_COVERAGE": true,
+          "CONVEYOR_MATERIAL_SETTLE_TIMEOUT": 3.0,
+          "CONVEYOR_MATERIAL_STABLE_SPEED": 0.01,
+          "CONVEYOR_MATERIAL_STABLE_STEPS": 5,
+          "CONVEYOR_MAX_HEIGHT_DRIFT": 0.01,
+          "CONVEYOR_MAX_LATERAL_DRIFT": 0.01,
+          "CONVEYOR_STOP_CONFIRM_STEPS": 2,
+          "CONVEYOR_STOP_MAX_LATENCY": 0.2,
+          "CONVEYOR_STOP_MAX_OVERRUN": 0.03,
+          "CONVEYOR_STOP_OBSERVE_STEPS": 60,
+          "CONVEYOR_STOP_POS_TOL": 0.001,
+          "CONVEYOR_STOP_TIMEOUT": 3.0,
+          "CONVEYOR_STOP_VEL_TOL": 0.005,
+          "CUP_RADIUS_DESIGN": 0.0235795,
+          "CUP_RADIUS_TOL": 0.001,
+          "EXECUTION_PROFILE_ENABLED": true,
+          "EXECUTION_TRACE_ENABLED": true,
+          "EXECUTION_TRACE_MAX_SAMPLES": 2000,
+          "EXEC_COMMAND_SETTLE_TOL": 0.005,
+          "EXEC_JOINT_ACCEL": 6.0,
+          "EXEC_JOINT_JERK": 100.0,
+          "EXEC_JOINT_TOL": 0.01,
+          "EXEC_JOINT_VEL": 1.5,
+          "EXEC_MAX_DEVIATION": 0.3,
+          "EXEC_MAX_JOINT_STEP": 0.2,
+          "EXEC_REACH_TIMEOUT": 20.0,
+          "EXEC_TCP_ANG_TOL": 0.05,
+          "EXEC_TCP_POS_TOL": 0.01,
+          "FK_ANG_TOL": 0.001,
+          "FK_POS_TOL": 0.0001,
+          "IK_CONTINUITY_WEIGHT": 1.0,
+          "IK_DEDUPE_TOL": 0.05,
+          "IK_MAX_CANDIDATES": 6,
+          "IK_MAX_SEEDS": 12,
+          "IK_SEED_VARIANTS": [
+            [
+              0.0,
+              0.0,
+              -1.5707963267948966,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.5707963267948966,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              -0.8,
+              -1.2,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              -0.8,
+              1.2,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.8,
+              -1.2,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.8,
+              1.2,
+              0.0,
+              1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.5707963267948966,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.5707963267948966,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              -0.8,
+              -1.2,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.8,
+              1.2,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              -0.8,
+              1.2,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              0.8,
+              -1.2,
+              0.0,
+              -1.5707963267948966,
+              0.0
+            ],
+            [
+              0.0,
+              -1.5,
+              -0.5,
+              -2.0,
+              1.57,
+              -1.5
+            ],
+            [
+              0.0,
+              1.5,
+              -0.5,
+              2.0,
+              1.57,
+              1.5
+            ],
+            [
+              0.0,
+              0.0,
+              -2.5,
+              -1.57,
+              1.57,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5,
+              1.57,
+              1.57,
+              0.0
+            ]
+          ],
+          "IK_WRIST_PENALTY_WEIGHT": 0.05,
+          "JOINT_SAMPLE_MAX_DELTA": 0.03490658503988659,
+          "LATERAL_OFFSET_VARIANTS": [
+            0.0,
+            0.06,
+            -0.06,
+            0.12,
+            -0.12
+          ],
+          "LINK_MOTION_MAX_DELTA": 0.025,
+          "MOTION_METRICS_ENABLED": true,
+          "MOTION_OPT_VERSION": "2.01",
+          "PAD_ALLOWED_LINK_INDICES": [
+            6,
+            7
+          ],
+          "PLAN_LOOKAHEAD_FAIL_PENALTY": 10.0,
+          "PLAN_LOOKAHEAD_WEIGHT": 0.5,
+          "PLAN_MAX_CANDIDATES": 16,
+          "PLAN_MAX_DFS_NODES": 48,
+          "PLAN_MAX_TOTAL_SAMPLES": 6000,
+          "PLAN_MAX_WAYPOINT_CANDIDATES": 6,
+          "PLAN_TRACE_ENABLED": true,
+          "PLAN_TRACE_MAX_POINTS": 400,
+          "PLAN_WALL_BUDGET_S": 60.0,
+          "PRE_APPROACH_CLEARANCE": 0.15,
+          "PRE_APPROACH_HEIGHT_VARIANTS": [
+            0.15,
+            0.2,
+            0.25
+          ],
+          "Q0_LOCK_FALLBACK": true,
+          "Q0_LOCK_IK_TOL": 0.01,
+          "Q0_LOCK_JOINT": 0,
+          "Q0_LOCK_SEGMENTS": [
+            "lift",
+            "place",
+            "retreat"
+          ],
+          "Q0_LOCK_TOL": 0.02,
+          "RELEASE_ANGLE_CORRECTION_MAX": 0.05,
+          "RELEASE_POSE_CORRECTION_MAX": 0.01,
+          "RELEASE_SETTLE_STEPS": 15,
+          "RELEASE_SLIP_TOL": 0.01,
+          "RUNTIME_HAZARD_ALIAS": "Fault_Runtime_Obstacle",
+          "RUNTIME_HAZARD_FAULT": "runtime_obstacle",
+          "RUNTIME_HAZARD_SIZE": [
+            0.08,
+            0.08,
+            0.08
+          ],
+          "SAFETY_LATCH_CODE": "SAFETY_LATCH",
+          "SAFETY_POSE_DRIFT_TOL": 0.02,
+          "SAFETY_STOP_CONFIRM_STEPS": 3,
+          "SAFETY_STOP_VEL_TOL": 0.01,
+          "SAFETY_TCP_DRIFT_TOL": 0.02,
+          "SCREEN_SAMPLE_MAX_DELTA": 0.13962634015954636,
+          "SEGMENT_MAX_SAMPLES": 250,
+          "SEGMENT_MAX_SUBDIVISION": 6,
+          "SELF_CHECK_STRIDE": 4,
+          "SESSION_RESOURCE_PREFIX": "Shadow_",
+          "SHADOW_ARM_ALIAS": "Shadow_UR5_01",
+          "SHADOW_LOAD_ALIAS": "Shadow_Load_01",
+          "SHADOW_PAD_ALIAS": "Shadow_SuctionPad_01",
+          "SHADOW_TCP_ALIAS": "Shadow_TCP_01",
+          "STAGE2_CONTRACT_VERSION": "stage2_contract_20261028_v4",
+          "STAGE2_CONTROLLER_ID": "stage2.unit_controller.Stage2UnitController",
+          "STAGE2_FAULT_CHOICES": [
+            "none",
+            "no_target",
+            "uid_mismatch",
+            "ik_unreachable",
+            "sensor_disabled",
+            "agv_blocked",
+            "release_unstable",
+            "runtime_obstacle"
+          ],
+          "STAGE2_PHASE": "stage2",
+          "STAGE2_RUNNER_ID": "stage2.run.run_loaded_scene_stage2",
+          "TOOL_YAW_VARIANTS": [
+            0.0,
+            0.2617993877991494,
+            -0.2617993877991494,
+            0.5235987755982988,
+            -0.5235987755982988
+          ],
+          "TRAJECTORY_COMPACTION_ENABLED": true,
+          "TRAJECTORY_SMOOTHING_ENABLED": false,
+          "TRAJECTORY_SMOOTHING_PASSES": 1,
+          "TRAJECTORY_SMOOTHING_WEIGHT": 0.25,
+          "TRANSFER_CLEARANCE_MIN": 0.03,
+          "TRANSFER_HEIGHT": 0.6,
+          "TRANSFER_HEIGHT_MIN": 0.5800000000000001,
+          "TRANSFER_HORIZONTAL_DETOUR_OFFSETS": [
+            0.3,
+            -0.3
+          ],
+          "TRANSFER_PLAN_WALL_BUDGET_S": 150.0,
+          "TRANSFER_TRAJECTORY_VERSION": "06-15",
+          "UR5_LINK_COUNT": 7,
+          "UR5_SELF_PAIR_MIN_GAP": 2,
+          "WRIST_BRANCH_JOINT": 4,
+          "WRIST_BRANCH_MARGIN": 0.3
+        }
+      },
+      "contact": {
+        "bbox_policy": "measured_local_bbox_min_max",
+        "cup_radius_design": 0.0235795,
+        "cup_radius_tol": 0.001,
+        "face_tolerance": 0.001,
+        "max_gap": 0.005,
+        "max_lateral": 0.02,
+        "max_normal_angle": 0.12,
+        "min_signed_distance": -0.0015,
+        "model": "rigid_box_top_face",
+        "require_cup_coverage": true
+      },
+      "contract_version": "stage2_contract_20261028_v4",
+      "controller": {
+        "id": "stage2.unit_controller.Stage2UnitController",
+        "motion_opt_version": "2.01",
+        "phase": "stage2",
+        "runner": "stage2.run.run_loaded_scene_stage2",
+        "transfer_trajectory_version": "06-15"
+      },
+      "conveyor": {
+        "compensation_lag_tol": 0.002,
+        "compensation_max_step": 0.010000000000000002,
+        "material_stable_speed": 0.01,
+        "material_stable_steps": 5,
+        "max_latency": 0.2,
+        "max_overrun": 0.03,
+        "mode": "HYBRID_DYNAMIC",
+        "note": "补偿只补物理输送相对带速的差额; 速度回读不可用时不回退到 0",
+        "stop_confirm_steps": 2,
+        "stop_pos_tol": 0.001,
+        "stop_timeout": 3.0,
+        "stop_vel_tol": 0.005
+      },
+      "execution": {
+        "command_settle_tol": 0.005,
+        "joint_tol": 0.01,
+        "max_deviation": 0.3,
+        "max_joint_step": 0.2,
+        "reach_timeout": 20.0,
+        "release_angle_correction_max": 0.05,
+        "release_pose_correction_max": 0.01,
+        "release_slip_tol": 0.01,
+        "tcp_ang_tol": 0.05,
+        "tcp_pos_tol": 0.01
+      },
+      "inheritance": {
+        "changed_scene_parameters": [],
+        "inherited": [
+          "layout",
+          "models",
+          "tool_mount",
+          "tcp_offset",
+          "material_physics",
+          "conveyor_speed",
+          "sim_step"
+        ],
+        "parent_artifact": "stage1/L1_S1/v002_20261020_234403",
+        "parent_manifest_digest": "961c6ff426686b9a633dada0541bc60bd2e908d72d9ddd395eea6af90271dc30",
+        "scene_changed": false,
+        "shadow_policy": "session_resource_not_persisted"
+      },
+      "notes": "",
+      "planning": {
+        "cartesian_sample_max_delta": 0.002,
+        "chain_cost": {
+          "note": "首轮实验初值; q3 为 Python 0-based joint4/Wrist 1",
+          "sample_dt": 1.0,
+          "weights": {
+            "a": 0.2,
+            "b": 0.2,
+            "q0": 0.5,
+            "q3": 0.5,
+            "tv": 1.0
+          }
+        },
+        "chain_search": {
+          "beam_width": 8,
+          "choices": [
+            "greedy",
+            "beam"
+          ],
+          "layer_candidates": 6,
+          "max_nodes": 512,
+          "mode": "greedy"
+        },
+        "diagnostics": {
+          "execution_profile": true,
+          "execution_trace": true,
+          "execution_trace_max_samples": 2000,
+          "plan_trace": true,
+          "plan_trace_max_points": 400
+        },
+        "ik_max_candidates": 6,
+        "ik_max_seeds": 12,
+        "ik_seed_variants": [
+          [
+            0.0,
+            0.0,
+            -1.5707963267948966,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.5707963267948966,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            -0.8,
+            -1.2,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            -0.8,
+            1.2,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.8,
+            -1.2,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.8,
+            1.2,
+            0.0,
+            1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -1.5707963267948966,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.5707963267948966,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            -0.8,
+            -1.2,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.8,
+            1.2,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            -0.8,
+            1.2,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            0.8,
+            -1.2,
+            0.0,
+            -1.5707963267948966,
+            0.0
+          ],
+          [
+            0.0,
+            -1.5,
+            -0.5,
+            -2.0,
+            1.57,
+            -1.5
+          ],
+          [
+            0.0,
+            1.5,
+            -0.5,
+            2.0,
+            1.57,
+            1.5
+          ],
+          [
+            0.0,
+            0.0,
+            -2.5,
+            -1.57,
+            1.57,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.5,
+            1.57,
+            1.57,
+            0.0
+          ]
+        ],
+        "joint_lock": {
+          "acceptance_tolerance": 0.02,
+          "fallback_to_free": true,
+          "ik_tolerance": 0.01,
+          "joint": 0,
+          "segments": [
+            "lift",
+            "place",
+            "retreat"
+          ]
+        },
+        "joint_sample_max_delta": 0.03490658503988659,
+        "lateral_offset_variants": [
+          0.0,
+          0.06,
+          -0.06,
+          0.12,
+          -0.12
+        ],
+        "link_motion_max_delta": 0.025,
+        "lookahead": {
+          "fail_penalty": 10.0,
+          "note": "只用于候选排序; 逐段碰撞检查仍是唯一放行依据",
+          "weight": 0.5
+        },
+        "max_candidates": 16,
+        "max_total_samples": 6000,
+        "pre_approach_clearance": 0.15,
+        "pre_approach_height_variants": [
+          0.15,
+          0.2,
+          0.25
+        ],
+        "segment_max_samples": 250,
+        "segment_max_subdivision": 6,
+        "smoothing": {
+          "enabled": false,
+          "passes": 1,
+          "requires_full_reverify": true,
+          "weight": 0.25
+        },
+        "tool_yaw_variants": [
+          0.0,
+          0.2617993877991494,
+          -0.2617993877991494,
+          0.5235987755982988,
+          -0.5235987755982988
+        ],
+        "trajectory_compaction": {
+          "enabled": true,
+          "tcp_ang_tol": 0.01,
+          "tcp_pos_tol": 0.001
+        },
+        "transfer": {
+          "clearance_min": 0.03,
+          "height": 0.6,
+          "height_min": 0.5800000000000001,
+          "horizontal_detour_offsets": [
+            0.3,
+            -0.3
+          ],
+          "lift_ends_at_transfer_height": true,
+          "note": "06-15: LIFTING→TRANSFERRING→PLACING 三段; 水平段保持 H_transfer 与工具姿态, 直线失败后只允许固定高度横向绕行段, 不走关节路径",
+          "path": "fixed_height_horizontal_cartesian",
+          "placing_descends_from_pre_place": true,
+          "plan_wall_budget_s": 150.0
+        },
+        "wall_budget_s": 60.0,
+        "wrist_branch": {
+          "joint": 4,
+          "margin": 0.3,
+          "rule": "wrapped q4 sign; singular at 0/±pi"
+        }
+      },
+      "safety": {
+        "auto_recovery": false,
+        "pose_drift_tol": 0.02,
+        "retry_after_plan_failure": false,
+        "stop_confirm_steps": 3,
+        "stop_vel_tol": 0.01,
+        "tcp_drift_tol": 0.02
+      }
+    }
+  },
+  "geometry": {
+    "agv_dock": [
+      0.4,
+      0.75
+    ],
+    "arm_base": [
+      -0.2,
+      0.55,
+      0.3
+    ],
+    "conveyor": {
+      "actual_length": 1.216,
+      "actual_width": 0.2,
+      "config_accel": 2.0,
+      "config_target_vel": 0.2,
+      "drive_mode": "SCRIPT_DRIVEN",
+      "entry_local_x": -0.39723,
+      "entry_world": [
+        -1.01723,
+        0.0,
+        0.45
+      ],
+      "max_x": 0.5,
+      "min_x": -0.49723,
+      "pad_count": 50,
+      "stop_local_x": 0.42,
+      "stop_world": [
+        -0.2,
+        0.0,
+        0.45
+      ],
+      "surface_off": 0.0,
+      "surface_z": 0.45,
+      "top_pad_count": 20,
+      "top_run": {
+        "max_x": 0.5,
+        "min_x": -0.49723
+      }
+    },
+    "station_pos": [
+      -0.2,
+      1.2
+    ],
+    "suction_mount_quaternion": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "suction_mount_z": 0.04755,
+    "tcp_local_pos": [
+      0.0,
+      0.0,
+      -0.015
+    ],
+    "tcp_local_quaternion": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "layout": {
+    "agv_dock": [
+      0.4,
+      0.75
+    ],
+    "arm_base": [
+      -0.2,
+      0.55,
+      0.3
+    ],
+    "conveyor_center": [
+      -0.62,
+      0.0
+    ],
+    "include_stopper": false,
+    "island_pos": [
+      -0.2,
+      0.55
+    ],
+    "island_size": [
+      0.6,
+      0.6,
+      0.3
+    ],
+    "island_top_z": 0.3,
+    "name": "L1_S1",
+    "pick_sensor_local_x": 0.42,
+    "station_pos": [
+      -0.2,
+      1.2
+    ],
+    "station_size": [
+      0.4,
+      0.4,
+      0.3
+    ],
+    "station_top_z": 0.3,
+    "warehouse_pos": [
+      -1.02,
+      0.42
+    ]
+  },
+  "models": [
+    {
+      "exists": true,
+      "key": "conveyor",
+      "path": "C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\models\\equipment\\conveyors\\generic conveyor (belt).ttm",
+      "relative_path": "equipment/conveyors/generic conveyor (belt).ttm",
+      "sha256": "7355e4fa6d5dd318ba6c8340cdb0af0c4d034f15f26e7348d6699b93fd27de1c",
+      "size": 152267
+    },
+    {
+      "exists": true,
+      "key": "ur5",
+      "path": "C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\models\\robots\\non-mobile\\UR5.ttm",
+      "relative_path": "robots/non-mobile/UR5.ttm",
+      "sha256": "9485232ff53b5b216d2b1879f925c5832a1218256f61353bebfb75802e7c3ffc",
+      "size": 752912
+    },
+    {
+      "exists": true,
+      "key": "suction_pad",
+      "path": "C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\models\\components\\grippers\\suction pad.ttm",
+      "relative_path": "components/grippers/suction pad.ttm",
+      "sha256": "2aded47a13b395bad91322a864a4211faf8a2fdbeb315a134b8f569f536dce1c",
+      "size": 66330
+    },
+    {
+      "exists": true,
+      "key": "pioneer_p3dx",
+      "path": "C:\\Program Files\\CoppeliaRobotics\\CoppeliaSimEdu\\models\\robots\\mobile\\pioneer p3dx.ttm",
+      "relative_path": "robots/mobile/pioneer p3dx.ttm",
+      "sha256": "e0e1c6a77868ecfbedc65eeb96675a7475724f554cf248f2ebe1d8bf1fef23d7",
+      "size": 1065561
+    }
+  ],
+  "note": "06-15 H_transfer=0.60",
+  "objects": [
+    {
+      "alias": "AGV_LoadTray",
+      "parent_alias": "Mobile_AGV_P3DX",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.247
+      ]
+    },
+    {
+      "alias": "AGV_TrayWall_Back",
+      "parent_alias": "Mobile_AGV_P3DX",
+      "required": false,
+      "type": "shape",
+      "world_pos": [
+        0.245,
+        0.75,
+        0.272
+      ]
+    },
+    {
+      "alias": "AGV_TrayWall_Front",
+      "parent_alias": "Mobile_AGV_P3DX",
+      "required": false,
+      "type": "shape",
+      "world_pos": [
+        0.555,
+        0.75,
+        0.272
+      ]
+    },
+    {
+      "alias": "AGV_TrayWall_Left",
+      "parent_alias": "Mobile_AGV_P3DX",
+      "required": false,
+      "type": "shape",
+      "world_pos": [
+        0.4,
+        0.905,
+        0.272
+      ]
+    },
+    {
+      "alias": "AGV_TrayWall_Right",
+      "parent_alias": "Mobile_AGV_P3DX",
+      "required": false,
+      "type": "shape",
+      "world_pos": [
+        0.4,
+        0.595,
+        0.272
+      ]
+    },
+    {
+      "alias": "Conveyor",
+      "parent_alias": "",
+      "required": false,
+      "type": "dummy",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "alias": "Conveyor_In",
+      "parent_alias": "Conveyor",
+      "required": true,
+      "type": "dummy",
+      "world_pos": [
+        -0.62,
+        0.0,
+        0.45
+      ]
+    },
+    {
+      "alias": "Conveyor_In_Entry",
+      "parent_alias": "Conveyor_In",
+      "required": true,
+      "type": "dummy",
+      "world_pos": [
+        -1.0172,
+        0.0,
+        0.45
+      ]
+    },
+    {
+      "alias": "Conveyor_In_PickupStop",
+      "parent_alias": "Conveyor_In",
+      "required": true,
+      "type": "dummy",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.45
+      ]
+    },
+    {
+      "alias": "Floor",
+      "parent_alias": "",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        0.0,
+        0.0,
+        -0.05
+      ]
+    },
+    {
+      "alias": "IK_Target_01",
+      "parent_alias": "Island",
+      "required": true,
+      "type": "dummy",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.55
+      ]
+    },
+    {
+      "alias": "Island",
+      "parent_alias": "",
+      "required": false,
+      "type": "dummy",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "alias": "Island_A",
+      "parent_alias": "Island",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.15
+      ]
+    },
+    {
+      "alias": "Island_A_Station",
+      "parent_alias": "Island",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        -0.2,
+        1.2,
+        0.15
+      ]
+    },
+    {
+      "alias": "Mobile",
+      "parent_alias": "",
+      "required": false,
+      "type": "dummy",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "alias": "Mobile_AGV_P3DX",
+      "parent_alias": "Mobile",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.1388
+      ]
+    },
+    {
+      "alias": "Part",
+      "parent_alias": "",
+      "required": false,
+      "type": "dummy",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "alias": "Robot_UR5_01",
+      "parent_alias": "Island_A",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        -0.2,
+        0.55,
+        0.3
+      ]
+    },
+    {
+      "alias": "Sensor_AGV_Dock",
+      "parent_alias": "Mobile",
+      "required": true,
+      "type": "proximitysensor",
+      "world_pos": [
+        0.4,
+        0.75,
+        0.3
+      ]
+    },
+    {
+      "alias": "Sensor_ConveyorExit",
+      "parent_alias": "Conveyor_In",
+      "required": false,
+      "type": "proximitysensor",
+      "world_pos": [
+        -0.15,
+        0.0,
+        0.6
+      ]
+    },
+    {
+      "alias": "Sensor_PickStation",
+      "parent_alias": "Conveyor_In",
+      "required": true,
+      "type": "proximitysensor",
+      "world_pos": [
+        -0.2,
+        0.0,
+        0.6
+      ]
+    },
+    {
+      "alias": "Sensor_SuctionPad_01",
+      "parent_alias": "SuctionPad_01_TCP",
+      "required": true,
+      "type": "proximitysensor",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.6621
+      ]
+    },
+    {
+      "alias": "SuctionPad_01",
+      "parent_alias": "connection",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.6771
+      ]
+    },
+    {
+      "alias": "SuctionPad_01_TCP",
+      "parent_alias": "SuctionPad_01",
+      "required": true,
+      "type": "dummy",
+      "world_pos": [
+        -0.31,
+        0.0631,
+        0.6621
+      ]
+    },
+    {
+      "alias": "Warehouse",
+      "parent_alias": "",
+      "required": false,
+      "type": "dummy",
+      "world_pos": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "alias": "Warehouse_Raw",
+      "parent_alias": "Warehouse",
+      "required": true,
+      "type": "shape",
+      "world_pos": [
+        -1.02,
+        0.42,
+        0.125
+      ]
+    }
+  ],
+  "parent_artifact": {
+    "artifact_id": "stage1/L1_S1/v002_20261020_234403",
+    "differences": [],
+    "manifest_digest": "961c6ff426686b9a633dada0541bc60bd2e908d72d9ddd395eea6af90271dc30",
+    "source_phase": "stage1",
+    "stage2_config_digest": null,
+    "stage2_contract_version": null,
+    "stage3_config_digest": null,
+    "stage3_contract_version": null,
+    "stage3_layout_digest": null
+  },
+  "physics": {
+    "agv_left_joint_mode": 5,
+    "agv_mass": 16.0,
+    "agv_tray_friction": 1.0,
+    "agv_wheel_base": 0.331,
+    "agv_wheel_radius": 0.0975,
+    "material_friction": 0.6,
+    "material_mass": 0.1,
+    "material_respondable_mask": 65535,
+    "material_size": [
+      0.1,
+      0.1,
+      0.1
+    ],
+    "transport_mode": "HYBRID_DYNAMIC"
+  },
+  "protected": true,
+  "schema_version": "1.0",
+  "scripts": {
+    "conveyor_drive_mode": "SCRIPT_DRIVEN",
+    "conveyor_script_retained": true,
+    "stripped_models": [
+      "ur5",
+      "suction_pad",
+      "pioneer_p3dx"
+    ],
+    "suction_builtin_script_enabled": false,
+    "suction_model_sensor_renamed": "SuctionPad_01_ModelSensor"
+  },
+  "simulator": {
+    "engine": "bullet",
+    "engine_code": 0,
+    "product_version": "4.10.0.0",
+    "simulation_step": 0.05,
+    "version_major_minor": "4.10"
+  },
+  "source_phase": "stage2",
+  "tool": {
+    "end_link_max_z_in_connection": 0.00755,
+    "flange_protrusion_z": 0.00755,
+    "link_clearance": 0.005,
+    "link_clearance_design": 0.005,
+    "model_sensor_axis_world": [
+      0.0,
+      0.0,
+      -1.0
+    ],
+    "mount_quaternion": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mount_z": 0.04755,
+    "ok": true,
+    "pad_back_plane_z": 0.01255,
+    "pad_in_connection": [
+      0.0,
+      0.0,
+      0.04755,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "pad_world_pose": [
+      -0.31,
+      0.0631,
+      0.67715,
+      0.0,
+      0.0,
+      0.707107,
+      -0.707107
+    ],
+    "sensor_axis_world": [
+      -0.0,
+      0.0,
+      -1.0
+    ],
+    "suction_normal_world": [
+      -0.0,
+      -0.0,
+      -1.0
+    ],
+    "tcp_in_pad": [
+      0.0,
+      0.0,
+      -0.015,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "tcp_world_pose": [
+      -0.31,
+      0.0631,
+      0.66215,
+      0.0,
+      0.0,
+      0.707107,
+      -0.707107
+    ],
+    "version": "suction_mount_rx180_20261020"
+  }
+}

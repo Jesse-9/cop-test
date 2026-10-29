@@ -1054,10 +1054,15 @@ def lock_for(name: str):
     return cfg.Q0_LOCK_JOINT if name in cfg.Q0_LOCK_SEGMENTS else None
 
 
+def transfer_height(height=None) -> float:
+    """LIFTING 与 pre_place 的共享高度: 唯一取值入口, 防止两处漂移."""
+    return float(cfg.TRANSFER_HEIGHT if height is None else height)
+
+
 def transfer_height_pose(pose, height=None) -> list[float]:
     """把位姿平移到共享转运高度 H_transfer, 保留 XY 与工具姿态."""
     out = [float(v) for v in pose]
-    out[2] = float(cfg.TRANSFER_HEIGHT if height is None else height)
+    out[2] = transfer_height(height)
     return out
 
 
@@ -1069,7 +1074,7 @@ def lift_pose(pick_tcp, orientation, height=None) -> list[float]:
     不再改变姿态.
     """
     return [float(pick_tcp[0]), float(pick_tcp[1]),
-            float(cfg.TRANSFER_HEIGHT if height is None else height),
+            transfer_height(height),
             *[float(v) for v in orientation[:4]]]
 
 
@@ -1097,7 +1102,7 @@ def transfer_detour_pose(place_pose, start_pose, offset,
     perp_x, perp_y = -dy / norm, dx / norm
     return [(start[0] + pre[0]) / 2.0 + perp_x * float(offset),
             (start[1] + pre[1]) / 2.0 + perp_y * float(offset),
-            float(cfg.TRANSFER_HEIGHT if height is None else height),
+            transfer_height(height),
             *[float(v) for v in place_pose[3:7]]]
 
 
@@ -1139,7 +1144,7 @@ def horizontal_transfer_check(waypoints, checker, height=None,
     返回 ``ok``/``max_z``/``max_ang``/``points``; TCP 不可读时标记
     ``query_unknown=True``, 由调用方按未知查询契约处理.
     """
-    target_height = float(cfg.TRANSFER_HEIGHT if height is None else height)
+    target_height = transfer_height(height)
     reference = ([float(v) for v in orientation[:4]]
                  if orientation is not None else None)
     max_z = 0.0

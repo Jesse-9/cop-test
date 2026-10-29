@@ -73,8 +73,9 @@ sim_version: "4.10+"
 
 ## 阶段二：物理约束与运动规划
 
-当前基线为 `stage2/L1_S1/v014_20261028_175742`（06-15 契约
-`stage2_contract_20261028_v4`）。运行入口默认加载 stage2 的 current 工件：
+当前基线为 `stage2/L1_S1/v016_20261029_112229`（06-15 契约
+`stage2_contract_20261028_v4`，`H_transfer=0.65 m`；完整回归待执行）。
+运行入口默认加载 stage2 的 current 工件：
 
     .venv/Scripts/python.exe src/run_stage2.py --target station --time 150
     .venv/Scripts/python.exe src/run_stage2.py --target agv --time 150
@@ -89,7 +90,7 @@ sim_version: "4.10+"
 
 ## 阶段三：双工位柔性搬运
 
-当前基线为 `stage3/L2_MIRROR/v006_20261028_180722`（由 stage2 v014 派生）。
+当前基线为 `stage3/L2_MIRROR/v008_20261029_112305`（由 stage2 v016 派生；完整回归待执行）。
 五种运行场景：
 
     .venv/Scripts/python.exe src/run_stage3.py --scenario closed_loop --time 300
@@ -100,14 +101,16 @@ sim_version: "4.10+"
 
 如需重建 stage3，从已验收 stage2 工件派生（build 成功后状态已是已校验，可直接 save）：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v014_20261028_175742
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v014_20261028_175742
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v014_20261028_175742 --note "阶段三派生"
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v016_20261029_112229
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v016_20261029_112229
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v016_20261029_112229 --note "阶段三派生"
 
 ## 阶段四：多岛车间
 
-当前基线为 `stage4/L4_COLUMN/v008_20261028_225634`（由
-`stage3/L2_MIRROR/v006_20261028_180722` 派生）。五种运行场景：
+当前基线为 `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件，
+由 stage3 v006 派生）。06-15 将 `H_transfer` 调整到 0.65 后，stage4
+必须从新的 stage3 v008 重新派生并回归；五个场景此前通过的结果对应
+H=0.80。五种运行场景：
 
     .venv/Scripts/python.exe src/run_stage4.py --scenario full_flow --time 1200
     .venv/Scripts/python.exe src/run_stage4.py --scenario no_pair --time 1200
@@ -124,9 +127,9 @@ sim_version: "4.10+"
 
 如需重建 stage4（修改 `src/stage4/config.py` 或场景构建后必须重新派生）：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage3/L2_MIRROR/v006_20261028_180722
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage4 --parent stage3/L2_MIRROR/v006_20261028_180722
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v006_20261028_180722 --note "阶段四派生"
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage3/L2_MIRROR/v008_20261029_112305
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305
+    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305 --note "阶段四派生"
 
 阶段四布局与五台臂 IK 只读测量：
 

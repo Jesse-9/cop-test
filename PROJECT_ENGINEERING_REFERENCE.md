@@ -286,22 +286,26 @@ CLI：
 rise/transit 路径变体、偏移与绕行策略开关，这些 2.02 实验能力不再存在。
 入口与证据见 [PHASE2_02_REPORT.md](docs/implementation/PHASE2_02_REPORT.md)。
 
-06-15 方案（2026-10-28）把带载路径固定为
+06-15 方案（2026-10-28；2026-10-29 下调转运高度）把带载路径固定为
 `LIFTING(→H_transfer) → TRANSFERRING(水平) → PLACING(法向下探)` 三个运动
-状态：`pre_place` 与 `lift` 共享绝对高度 `TRANSFER_HEIGHT=0.80 m` 和放置
-工具姿态；水平段固定 Z/姿态，直线被自身运动学奇异拒绝时只允许一个同高度
-横向绕行点（`TRANSFER_HORIZONTAL_DETOUR_OFFSETS`，默认 ±0.30 m），不回到
-关节路径。阶段二工件契约升级为 `stage2_contract_20261028_v4`，配置摘要
-包含 `TRANSFER_HEIGHT` 与绕行偏移；旧 2.02 工件及由其派生的 stage3 工件
-必须重新派生。
+状态：`pre_place` 与 `lift` 由同一常量 `TRANSFER_HEIGHT=0.65 m` 生成，恒同高
+并使用放置工具姿态；水平段固定 Z/姿态，直线被自身运动学奇异拒绝时只允许
+一个同高度横向绕行点（`TRANSFER_HORIZONTAL_DETOUR_OFFSETS`，默认 ±0.30 m），
+不回到关节路径。`TRANSFER_HEIGHT_MIN=0.58 m` 由沿途最高障碍（传送带 0.45）
++ 材料高 0.10 + `TRANSFER_CLEARANCE_MIN=0.03` 推导，配置加载时校验不得低于
+该值。阶段二工件契约升级为 `stage2_contract_20261028_v4`，配置摘要包含
+`TRANSFER_HEIGHT`、`TRANSFER_HEIGHT_MIN` 与绕行偏移；旧 2.02 工件及由其
+派生的 stage3/stage4 工件必须重新派生。
 
-当前工件：`stage2/L1_S1/v014_20261028_175742`（父 stage1 v002，契约
-`stage2_contract_20261028_v4`，`transfer_trajectory_version="06-15"`）与
-`stage3/L2_MIRROR/v006_20261028_180722`（父 stage2 v014）。2026-10-28 回归：
-stage2 station（绕行）/agv/both 通过，`runtime_obstacle` 在 TRANSFERRING
-按预期锁存；stage3 `closed_loop` 通过，`unstable_unload` 在 RELEASING
-释放前锁存。v013 是 2.02 历史工件（契约 v3），v009–v012 是 2.01 过渡工件；
-修改 `src/stage2/config.py` 后旧工件会因 digest/契约版本失败，必须重新派生。
+当前工件：`stage2/L1_S1/v016_20261029_112229`（父 stage1 v002，契约
+`stage2_contract_20261028_v4`，`transfer_trajectory_version="06-15"`，
+`TRANSFER_HEIGHT=0.65`）与 `stage3/L2_MIRROR/v008_20261029_112305`
+（父 stage2 v016）。2026-10-28 在 H=0.80 工件 v014/v006 上完成
+stage2 station（绕行）/agv/both、runtime_obstacle 与 stage3
+closed_loop/unstable_unload 回归；2026-10-29 将 H 调整到 0.65 并重新派生工件、通过保存期校验，
+**完整回归待执行**。v015/v007 是 H=0.60 中间工件，v014/v006 是 H=0.80 历史工件，
+v013 是 2.02 工件（契约 v3），v009–v012 是 2.01 过渡工件；修改
+`src/stage2/config.py` 后旧工件会因 digest/契约版本失败，必须重新派生。
 
 | 文件 | 职责 |
 |------|------|
@@ -484,7 +488,9 @@ S1→B / S2→D / C→E 三条物流线、S2 仓库、A→C 固定交接、E 岛
 `stage3/L2_MIRROR/v006_20261028_180722`；保存/加载只读校验通过，
 `extra.stage4.contract_version = stage4_contract_20261028_v1`。修改
 `src/stage4/config.py` 后旧工件会因 digest 失败，必须从 stage3 父工件
-重新派生，不得手改 manifest。
+重新派生，不得手改 manifest。06-15 将 `TRANSFER_HEIGHT` 调整到 0.65 后，
+v008 的父 stage2 配置摘要失效，需从新的 stage3 v008 重新派生 stage4
+并重跑回归；v008 是 H=0.80 历史工件。
 
 | 文件 | 职责 |
 |------|------|
@@ -1051,9 +1057,10 @@ S1→B / S2→D / C→E 三条物流线、S2 仓库、A→C 固定交接、E 岛
 53. **阶段四 B/D 支线与岛体几何是可达性前提**: S1→B 线中心
     `(-0.75,-1.07)`、取料点 `(-0.75,-0.65)`; S2→D 线中心
     `(-1.11,-2.45)`、取料点 `(-0.69,-2.45)`; D 岛 `0.55×0.55×0.45 m`,
-    D 基座 `(-0.20,-2.45,0.45)`. 这些值使 `H_transfer=0.80` 的垂直
-    抬升和 dock 装卸处于 UR5 可达范围。修改线/岛/基座后必须重新派生
-    工件并重跑 pick/lift/transfer 的 IK 与碰撞检查。
+    D 基座 `(-0.20,-2.45,0.45)`. 这些值使 `H_transfer=0.65` 的垂直
+    抬升和 dock 装卸处于 UR5 可达范围（高度下调后可达性更宽裕，但带载
+    净空仍需按 0.65 重新检查）。修改线/岛/基座后必须重新派生工件并
+    重跑 pick/lift/transfer 的 IK 与碰撞检查。
 
 54. **阶段四控制器只能使用 UnitSceneView 的接口**: `UnitSceneView` 暴露
     `agv_dock_hit(agv_handle)`（内部按 `unit_id` 调场景的

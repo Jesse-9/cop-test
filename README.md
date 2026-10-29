@@ -17,12 +17,12 @@
 |---|---|---|---|
 | 阶段一 | 已验收 | 单工位取放、传送带和 pioneer p3dx AGV；只读基线 stage1/L1_S1/v002_20261020_234403 | [阶段一报告](docs/implementation/PHASE1_REPORT.md) |
 | 步骤 1.1 / 1.2 | 已完成 | L1_S1 布局与取料流程收敛；版本化场景生命周期 | [1.1 报告](docs/implementation/STEP1_1_REPORT.md) · [1.2 报告](docs/implementation/STEP1_2_REPORT.md) |
-| 阶段二 | 已验收 | 碰撞检查、局部规划、轨迹执行、接触判据与安全锁存；基线 stage2/L1_S1/v014_20261028_175742（06-15 已派生并回归） | [阶段二报告](docs/implementation/PHASE2_REPORT.md) |
+| 阶段二 | 已验收 | 碰撞检查、局部规划、轨迹执行、接触判据与安全锁存；基线 stage2/L1_S1/v016_20261029_112229（H=0.65 已派生；完整回归待执行） | [阶段二报告](docs/implementation/PHASE2_REPORT.md) |
 | 阶段 2.01 | 已验收 | 动作与轨迹优化；生产路径采用已验证配置 | [报告](docs/implementation/PHASE2_01_REPORT.md) |
-| 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；回归通过 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
-| 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v006_20261028_180722（06-15 已派生并回归） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
+| 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；H=0.80 回归通过，H=0.65 待回归 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
+| 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v008_20261029_112305（H=0.65 已派生；完整回归待执行） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
 | 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
-| 阶段四多岛生产 | 已通过五个验收场景（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；基线 stage4/L4_COLUMN/v008_20261028_225634 | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
+| 阶段四多岛生产 | 已通过五个验收场景（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；基线 stage4/L4_COLUMN/v008_20261028_225634（H=0.80；H=0.65 后需重新派生并回归） | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
 
 生命周期校验流程（2026-10-26 已实施）：load 后可直接 start，validate 为可选诊断；start 在运行锁内执行完整校验，save 仍要求已校验场景。详见[方案与实施记录](docs/implementation/LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
 

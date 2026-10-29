@@ -39,17 +39,20 @@
 
 ## 当前阶段二工件（06-15）
 
-- 工件 ID: `stage2/L1_S1/v014_20261028_175742`
+- 工件 ID: `stage2/L1_S1/v016_20261029_112229`
 - 父工件: `stage1/L1_S1/v002_20261020_234403`
 - 契约: `extra.stage2.contract_version = stage2_contract_20261028_v4`;
-  `extra.stage2.transfer` 记录 `TRANSFER_HEIGHT=0.80`、水平绕行偏移与规划预算，
-  控制器 `transfer_trajectory_version = "06-15"`
-- 回归: stage2 station/agv/both 与 runtime_obstacle 已通过；证据见
-  [`docs/implementation/runs/`](../implementation/runs/) 中
-  `phase2_run_*_20261028_*`
-- 历史: v013 是 2.02 工件（契约 v3、动作优化 2.01、AGV 转运优化 2.02）；
-  v009–v012 是阶段二/2.01 历史与过渡工件。修改 `src/stage2/config.py`
-  后旧工件会因 `stage2_config_digest`/契约版本拒绝 start，必须重新派生
+  `extra.stage2.transfer` 记录 `TRANSFER_HEIGHT=0.65`、
+  `TRANSFER_HEIGHT_MIN=0.58`、`TRANSFER_CLEARANCE_MIN=0.03`、水平绕行
+  偏移与规划预算，控制器 `transfer_trajectory_version = "06-15"`。
+  `lift` 与 `pre_place` 由同一常量生成，恒同高。
+- 回归: 2026-10-28 在 H=0.80 工件 v014 上通过 station/agv/both 与
+  runtime_obstacle；H=0.65 工件 v016 已通过保存期校验，完整回归待执行。
+- 历史: v015 是 H=0.60 中间工件，v014 是 H=0.80 工件；v013 是 2.02 工件
+  （契约 v3、动作优化 2.01、AGV 转运优化 2.02）；v009–v012 是阶段二/2.01
+  历史与过渡工件。修改
+  `src/stage2/config.py` 后旧工件会因 `stage2_config_digest`/契约版本
+  拒绝 start，必须重新派生
 - 保护: 工件均由 CLI 保存为 `protected: true`（文件只读）
 - 运行: `python src/run_stage2.py --target station|agv|both`
 - 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)、
@@ -63,8 +66,8 @@
 
 ## 阶段三工件
 
-- 当前: `stage3/L2_MIRROR/v006_20261028_180722`（父
-  `stage2/L1_S1/v014_20261028_175742`）
+- 当前: `stage3/L2_MIRROR/v008_20261029_112305`（父
+  `stage2/L1_S1/v016_20261029_112229`，H=0.65；完整回归待执行）
 - 契约: `extra.stage3.contract_version = stage3_contract_20261025_v1`;
   `extra.stage3.inheritance` 记录 stage2 父工件/契约/配置摘要。
 - 派生: `load stage2/...` → `build --phase stage3 --parent <stage2>` →
@@ -75,8 +78,9 @@
 
 ## 当前阶段四工件
 
-- 工件 ID: `stage4/L4_COLUMN/v008_20261028_225634`
-- 父工件: `stage3/L2_MIRROR/v006_20261028_180722`
+- 工件 ID: `stage4/L4_COLUMN/v008_20261028_225634`（H=0.80 历史工件）
+- 父工件: `stage3/L2_MIRROR/v006_20261028_180722`；06-15 将 H 调整到
+  0.65 后，需从 stage3 v008 重新派生 stage4 并重跑回归
 - 契约: `extra.stage4.contract_version = stage4_contract_20261028_v1`;
   `extra.stage4.inheritance` 记录 stage3 契约/配置/布局摘要与 stage2
   上游摘要。
@@ -92,7 +96,7 @@
 - 历史: v001 是父摘要读取错误的失败草稿（已删除）；v002 物流线仍以
   `targetVel=0.2` 启动；v003 起物流线启动即停止；v004 把 C 岛/基座抬高到
   0.45 m，避免 C 臂 link3 与 A→C 交接台碰撞；v005–v008 调整 S1→B/S2→D
-  支线、B/D 取料点与 D 岛高度，使 H_transfer=0.80 抬升可达。
+  支线、B/D 取料点与 D 岛高度，使 H_transfer=0.80 抬升可达（H=0.65 下可达性更宽裕，但带载净空需重新检查）。
 - 验收: 2026-10-29 五个场景（full_flow/no_pair/agv_priority/
   agv_blocked/conveyor_fault）全部通过；证据见
   [`phase4_analysis_*`](../implementation/evidence/) 与

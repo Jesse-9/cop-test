@@ -135,11 +135,24 @@ PLAN_LOOKAHEAD_WEIGHT = 0.5                 # 前瞻关节距离权重
 PLAN_LOOKAHEAD_FAIL_PENALTY = 10.0          # 前瞻无解惩罚
 
 # 带载转运共享绝对高度 H_transfer (06-15): LIFTING 的终点与 TRANSFERRING 的
-# 终点 pre_place 同高, 水平段保持该高度和工具姿态; PLACING 再从 pre_place
-# 沿放置面法向下探. 0.80 m 取自已验收的高位中转高度 (2026-10-21 station /
-# AGV 完整路径实测), 4.10 IK 探针确认在当前 dock 的放置点正上方可达.
+# 终点 pre_place 都由该常量生成, 两者恒同高; 水平段保持该高度和工具姿态;
+# PLACING 再从 pre_place 沿放置面法向下探. 0.65 m 由沿途最高障碍 + 材料
+# 高度 + 最小净空推导 (载荷底面离传送带面 0.10 m); 旧 0.80 m 是高位中转
+# 路径的继承值, 在固定高度水平段下过高且接近 UR5 外沿.
 # 旧 rise/transit 路径点、偏移和变体开关已移除, 不再保留第二套转运语义.
-TRANSFER_HEIGHT = 0.80                      # m, H_transfer
+TRANSFER_CLEARANCE_MIN = 0.03               # m, 载荷底面与设备顶面最小净空
+TRANSFER_HEIGHT_MIN = (
+    max(base.CONVEYOR_SURFACE_Z,
+        base.STATION_TOP_Z,
+        base.AGV_TRAY_TOP_Z + base.AGV_WALL_HEIGHT)
+    + base.MATERIAL_SIZE[2]
+    + TRANSFER_CLEARANCE_MIN
+)                                           # 0.58 m
+TRANSFER_HEIGHT = 0.65                      # m, H_transfer (LIFTING=pre_place)
+if TRANSFER_HEIGHT < TRANSFER_HEIGHT_MIN:
+    raise ValueError(
+        f"TRANSFER_HEIGHT={TRANSFER_HEIGHT:.3f} m < 最小净空高度 "
+        f"{TRANSFER_HEIGHT_MIN:.3f} m")
 
 # 水平直线被自身运动学奇异/腕部分支拒绝时, 允许一个固定高度的横向绕行点:
 # 仍是两段笛卡尔水平段, 保持 H_transfer 与工具姿态, 走同一 IK、碰撞/净空

@@ -100,7 +100,7 @@ UNIT_DEFS = {
         "index": 4,
         # D 岛/基座抬高到 0.45 m 与带面齐平, link3 不再压到 pad;
         # S2→D 支线东移 0.20 m, 取料点 x≈-0.77 到基座约 0.67 m
-        # (H_transfer=0.80), 仍覆盖 dock D (0.40,-2.45).
+        # (H_transfer=0.65), 仍覆盖 dock D (0.40,-2.45).
         "arm_base": (-0.20, -2.45, 0.45),
         "island_pos": (-0.20, -2.45),
         "island_top_z": 0.45,
@@ -220,8 +220,8 @@ LINE_DEFS = {
         "stop": "Conveyor_S1_to_B_Stop",
         "sensor": "Sensor_Conveyor_S1_to_B_Stop",
         # 支线靠近 B 臂: 取料点 (-0.75, -0.65) 到基座 (-0.20,-0.55)
-        # 的水平距离 0.56 m, 抬升到 H_transfer=0.80 时约 0.76 m,
-        # 留在 UR5 可达范围内; 原 (-0.85,-0.75) 抬升后约 0.84 m.
+        # 的水平距离 0.56 m, 抬升到 H_transfer=0.65 时约 0.66 m,
+        # 留在 UR5 可达范围内; 原 (-0.85,-0.75) 在 0.80 m 时约 0.84 m.
         "center": (-0.75, -1.07),
         "yaw": math.pi / 2.0,
         "design_length": base.CONVEYOR_DESIGN_LENGTH,

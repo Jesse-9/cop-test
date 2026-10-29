@@ -14,7 +14,8 @@ from stage1 import config as base
 from stage1.unit_controller import UnitTaskState
 from stage2 import config as cfg
 from stage2.path_planning import MotionPlan, PlanStatus
-from stage2.unit_controller import Stage2UnitController
+from stage2.unit_controller import (Stage2UnitController, lift_pose,
+                                    pre_place_pose)
 
 PLACE = [-0.2, 1.2, 0.4, 0.0, 0.0, 0.0, 1.0]
 START_TCP = [-0.3, 0.0, cfg.TRANSFER_HEIGHT, 0.0, 0.0, 0.0, 1.0]
@@ -157,6 +158,17 @@ def test_placing_keeps_carrying_context():
 
 
 # ── 目标几何 ────────────────────────────────────────────────
+
+def test_transfer_height_is_shared_and_meets_clearance_minimum():
+    assert abs(cfg.TRANSFER_HEIGHT - 0.65) < 1e-9
+    assert cfg.TRANSFER_HEIGHT >= cfg.TRANSFER_HEIGHT_MIN
+    lift = lift_pose([-0.3, 0.0, 0.55, 0.0, 0.0, 0.0, 1.0], PLACE[3:7])
+    pre = pre_place_pose(PLACE)
+    assert lift[2] == pre[2] == cfg.TRANSFER_HEIGHT
+    clearance = (cfg.TRANSFER_HEIGHT - base.MATERIAL_SIZE[2]
+                 - base.CONVEYOR_SURFACE_Z)
+    assert clearance >= cfg.TRANSFER_CLEARANCE_MIN - 1e-9
+
 
 def test_lifting_goal_ends_at_transfer_height():
     controller = bare_controller()
