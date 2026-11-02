@@ -11302,3 +11302,5 @@
 2026-10-29 09:09:33,140 INFO    [STAGE4 t=359.90] TASK_DONE e_conveyor_uid2 uid=2 {'reason': 'e_conveyor 交接确认 (UID/类型/位置/物理属性)'}
 2026-10-29 09:09:33,142 INFO    [STAGE4 t=359.90] MATERIAL_PLACE e_conveyor_uid2 uid=2 {'task_kind': 'e_conveyor'}
 2026-10-29 09:10:08,239 INFO    [DONE][stage4] 报告写入 docs\implementation\runs\phase4_run_full_flow_20261029_085159.json
+2026-11-01 09:31:37,965 ERROR   [LIFECYCLE] 启动前置失败 (VALIDATION_FAILED): 场景文件摘要不匹配
+2026-11-02 09:43:39,435 ERROR   [LIFECYCLE] 启动前置失败 (VALIDATION_FAILED): 场景文件摘要不匹配
