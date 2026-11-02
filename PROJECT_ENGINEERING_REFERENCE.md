@@ -520,20 +520,47 @@ S1→B / S2→D / C→E 三条物流线、S2 仓库、A→C 固定交接、E 岛
 
 | 文件 | 职责 |
 |------|------|
-| [config.py](src/stage4/config.py) | 五岛布局/物流线/高度 datum/AGV 路网/物料类型/区域容量/资源/场景/验收参数 |
+| [config.py](src/stage4/config.py) | 五岛布局/物流线/高度 datum/AGV 路网/物料类型/区域容量/资源/场景/验收参数；旧 task kind/流程常量冻结为工件兼容值 |
+| [process_model.py](src/stage4/process_model.py) | 静态工艺模型：RecipeSpec、OperationTemplate、RouteVariant、能力/设备/区域目录与完整性校验 |
+| [default_process.py](src/stage4/default_process.py) | 当前唯一默认 `RecipeSpec`（混合线三条供给路线 + E 合流）与目录构建 |
+| [operation_runtime.py](src/stage4/operation_runtime.py) | 工序实例的单一运行时状态；任务生命周期字段的唯一存储 |
 | [layout.py](src/stage4/layout.py) | `L5_UFLOW`、`LineSpec`、AGV 节点/直道/转向圆、静态几何与粗可达性筛选、序列化 |
 | [scene.py](src/stage4/scene.py) | 从 stage3 工件派生 C/D/E/三条线/E 缓冲、`Stage4Scene` 与契约 |
 | [materials.py](src/stage4/materials.py) | 多类型谱系、区域占用、工序转换、E 岛原子配对 |
-| [tasks.py](src/stage4/tasks.py) | 任务状态、优先级、D→E 老化、去重与拒绝记录 |
+| [tasks.py](src/stage4/tasks.py) | 任务状态、优先级、D→E 老化、去重；旧字段投影到 `OperationInstance`，工艺任务由模板工厂创建 |
 | [resources.py](src/stage4/resources.py) | 阶段四固定顺序资源表与全有或全无申请 |
 | [agv_map.py](src/stage4/agv_map.py) | 最短路径多航段路线、直道横向纠偏、原地转向、装/卸载与空载调机 |
 | [runtime.py](src/stage4/runtime.py) | 五台影子臂、独立碰撞集合/规划器/锁存、按包络过滤物流线 |
 | [unit_controller.py](src/stage4/unit_controller.py) | 传送带/AGV/固定交接三种取料源与三种放置汇 |
-| [coordinator.py](src/stage4/coordinator.py) | 来源生成、任务编排、AGV 调度、配对、背压、冻结与证据 |
+| [coordinator.py](src/stage4/coordinator.py) | 从默认工艺目录读取任务字段；来源生成、任务编排、AGV 调度、配对、背压、冻结与证据 |
 | [metrics.py](src/stage4/metrics.py) | 事件级节拍/吞吐/WIP/利用率重算 |
 | [scene_contract.py](src/stage4/scene_contract.py) | `extra.stage4`、布局/配置/高度 datum/路网摘要与只读校验 |
 | [run.py](src/stage4/run.py) | 六个验收场景 runner、证据与 CLI |
 | [run_stage4.py](src/run_stage4.py) | CLI 兼容入口；`uv run run-stage4` |
+
+阶段 0-1 静态工艺目录（2026-11-02）：
+
+- `default_process.default_catalog()` 是唯一运行时工艺来源；coordinator
+  不再维护 `UNIT_TASKS`/`TASK_RESOURCES`/`TASK_TYPES`/`TASK_SOURCE/SINK`/
+  `TASK_SOURCE_ZONE/TASK_DEST_ZONE`/`FOLLOWUP` 映射。
+- `config.py` 的 `TASK_KIND_*`、`TASK_FLOW`、`TASK_PRIORITY`、
+  `PROCESS_TRANSITIONS`、`JOIN_*`、`SOURCE_ITEMS` 仍保留：它们参与场景
+  工件 config digest 和旧报告 schema，不能随意改值。启动时
+  `validate_default_against_config()` 核对目录与这些冻结值一致；改工艺
+  语义应改 `default_process.py`，并跑 `test_stage4_process_model.py` 的
+  正向/负向校验。
+- `Stage4Task` 只持有 `OperationInstance`；`status/phase/时间/证据/资源`
+  是受控代理，`kind/uid/source/destination/dock/device` 为只读投影。
+  旧字段仅在 `as_dict()` 报告边界输出，不维护第二份可独立修改的状态。
+- 新增/修改工序、路线变体、候选设备或合流输入时，必须同时更新
+  `RouteVariant`/`OrderEntry`/depends_on/successors，并保证
+  `ProcessCatalog.validate()` 通过；不要只改 coordinator 的分支。
+- 2026-11-02 `full_flow` 已通过：13/13 DONE、1 个 FINAL（父 UID 1+3），
+  与阶段 0 归一化签名 0 差异（`phase0_1_comparison_full_flow_20261102_191700.json`）。
+  A 臂 `a_agv_uid2` 的吸盘释放修正曾在两次运行中超出 `0.010 m` 阈值
+  1.3 mm / 0.1 mm（物料保持 HELD、任务 FAILED、整线冻结）；这是既有
+  `pre_pick` 正肩部分支对 AGV 托盘毫米级滑移的余量问题，不属于工艺
+  目录改造，后续控制优化时应优先复核。
 
 阶段四不变量：
 

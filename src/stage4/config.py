@@ -569,6 +569,10 @@ AGV_ROUTE_REQUIRES_ALL_DOCKS = True
 # ═══════════════════════════════════════════════════════════════
 # 任务流、优先级与超时
 # ═══════════════════════════════════════════════════════════════
+# 阶段 0-1 起, 工艺语义以 `default_process.py` 的 RecipeSpec/ProcessCatalog
+# 为唯一运行时来源; coordinator 不再读取本节的流程映射. 下列常量仍参与
+# 场景工件 config digest 和旧报告 schema, 因此保留为**冻结兼容值**;
+# `default_process.validate_default_against_config()` 在启动时核对两者一致.
 
 TASK_KIND_A_CONVEYOR = "a_conveyor"
 TASK_KIND_A_AGV = "a_agv"

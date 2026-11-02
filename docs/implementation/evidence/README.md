@@ -226,3 +226,30 @@
     staggered_batch / agv_priority / agv_blocked / conveyor_fault）的
     验收、任务、航段/lane、物料与指标摘要；原始
     `phase4_run_*.json` 仍在 `runs/`，不提交。
+
+- 阶段四 0-1 静态工艺目录（2026-11-02，工件
+  `stage4/L5_UFLOW/v004_20261029_133249`，契约
+  `stage4_contract_20261029_v2`）：
+  - `phase0_1_baseline_full_flow_20261030_093231.json` — 从同工件
+    `phase4_run_full_flow_20261030_093231.json` 提取的归一化基线签名：
+    输入批次、验收字段、任务终态、物料终态、可读物料位置（run-to-run
+    0.06 m 容差）、实际路线和每 UID 关键事件序列；不包含时间/句柄/
+    停靠误差；
+  - `phase4_41_analysis_full_flow_20261029_173632.json` — 阶段 4.1
+    正式 `full_flow` 验收摘要（343.90 s、13/13 DONE、FINAL 父件 1+3），
+    作为基线结论引用；
+  - `phase4_0_1_full_flow_failed_20261102_182219.json` — 首次
+    `full_flow` 失败证据：`e_conveyor_uid1` 完成后 coordinator 把逻辑
+    合流 `kit_join` 当作可派工任务；用于记录 `_submit_followup` 跳过
+    logic executor 的修正；
+  - `phase4_0_1_full_flow_retry_release_failed_analysis_20261102_184431.json`
+    — 第二次 `full_flow` 分析：`a_agv_uid2` 的
+    `RELEASE_CORRECTION_EXCEEDED pos=0.0113 m`（阈值 0.010 m）；
+    用于记录既有吸盘释放余量问题与本阶段改动边界；
+  - `phase4_0_1_full_flow_retry2_release_failed_analysis_20261102_190305.json`
+    — 第三次 `full_flow` 分析：同一 A 臂任务
+    `RELEASE_CORRECTION_EXCEEDED pos=0.0101 m`（超限 0.1 mm）；
+  - `phase0_1_comparison_full_flow_20261102_191700.json` — 第四次
+    （通过）运行与基线的归一化对照：`ok=true`、`differences=[]`、
+    13/13 DONE、FINAL 父件 1+3、物料位置偏差 0.000386 m（uid2）；
+    运行报告为 `docs/implementation/runs/phase4_run_full_flow_20261102_191700.json`；

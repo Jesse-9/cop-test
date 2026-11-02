@@ -36,134 +36,21 @@ from stage3.unit_controller import Stage3UnitController
 
 from . import config as cfg
 from .agv_map import AGVRouteController4, make_route_spec, pose_yaw
-from .layout import UnitSpec4, handoff_park_tcp, line_specs, zones_for_unit
+from .default_process import DEFAULT_RECIPE_ID, default_catalog
+from .layout import handoff_park_tcp, line_specs
 from .materials import (ItemType, MaterialFlowError, MaterialRegistry,
                         RecordState)
+from .process_model import OperationTemplate, ProcessCatalog
 from .resources import ResourceTable
 from .scene import Stage4Scene
-from .tasks import (Stage4Task, TaskQueue, TaskStatus, make_task)
+from .tasks import (Stage4Task, TaskQueue, TaskStatus,
+                    make_task_from_operation)
 from .unit_controller import (SinkSpec, Stage4UnitController, TaskLayout,
                               agv_material_position)
 
 
 class CoordinatorError(RuntimeError):
     code = "STAGE4_COORDINATOR"
-
-
-# ═══════════════════════════════════════════════════════════════
-# 任务 → 工位/资源/目标映射
-# ═══════════════════════════════════════════════════════════════
-
-UNIT_TASKS = {
-    "A": (cfg.TASK_KIND_A_AGV, cfg.TASK_KIND_A_CONVEYOR),
-    "B": (cfg.TASK_KIND_B,),
-    "C": (cfg.TASK_KIND_C,),
-    "D": (cfg.TASK_KIND_D,),
-    "E": (cfg.TASK_KIND_E_AGV, cfg.TASK_KIND_E_CONVEYOR),
-}
-
-TASK_UNIT = {kind: unit_id for unit_id, kinds in UNIT_TASKS.items()
-             for kind in kinds}
-
-TASK_RESOURCES = {
-    cfg.TASK_KIND_A_CONVEYOR: ("line_s1a", "handoff_ac", "zone_ab",
-                                "zone_ac", "arm_A"),
-    cfg.TASK_KIND_A_AGV: ("handoff_ac", "dock_A", "zone_ab", "zone_ac",
-                           "arm_A"),
-    cfg.TASK_KIND_B: ("line_s1b", "dock_B", "zone_ab", "arm_B"),
-    cfg.TASK_KIND_C: ("line_ce", "handoff_ac", "zone_ac", "arm_C"),
-    cfg.TASK_KIND_D: ("line_s2d", "dock_D", "arm_D"),
-    cfg.TASK_KIND_E_CONVEYOR: ("line_ce", "buffer_e_c", "arm_E"),
-    cfg.TASK_KIND_E_AGV: ("buffer_e_d", "dock_E", "arm_E"),
-}
-
-TASK_TYPES = {
-    cfg.TASK_KIND_A_CONVEYOR: (ItemType.RAW_A,),
-    cfg.TASK_KIND_A_AGV: (ItemType.SEMI_AB,),
-    cfg.TASK_KIND_B: (ItemType.RAW_B,),
-    cfg.TASK_KIND_C: (ItemType.SEMI_AC,),
-    cfg.TASK_KIND_D: (ItemType.RAW_D,),
-    cfg.TASK_KIND_E_CONVEYOR: (ItemType.SEMI_CE,),
-    cfg.TASK_KIND_E_AGV: (ItemType.PART_DE,),
-}
-
-TASK_SOURCE = {
-    cfg.TASK_KIND_A_CONVEYOR: "conveyor",
-    cfg.TASK_KIND_A_AGV: "agv",
-    cfg.TASK_KIND_B: "conveyor",
-    cfg.TASK_KIND_C: "station",
-    cfg.TASK_KIND_D: "conveyor",
-    cfg.TASK_KIND_E_CONVEYOR: "conveyor",
-    cfg.TASK_KIND_E_AGV: "agv",
-}
-
-TASK_SINK = {
-    cfg.TASK_KIND_A_CONVEYOR: "station",
-    cfg.TASK_KIND_A_AGV: "station",
-    cfg.TASK_KIND_B: "agv",
-    cfg.TASK_KIND_C: "conveyor",
-    cfg.TASK_KIND_D: "agv",
-    cfg.TASK_KIND_E_CONVEYOR: "station",
-    cfg.TASK_KIND_E_AGV: "station",
-}
-
-TASK_DOCK = {
-    cfg.TASK_KIND_A_CONVEYOR: "A",
-    cfg.TASK_KIND_A_AGV: "A",
-    cfg.TASK_KIND_B: "B",
-    cfg.TASK_KIND_C: "",
-    cfg.TASK_KIND_D: "D",
-    cfg.TASK_KIND_E_CONVEYOR: "E",
-    cfg.TASK_KIND_E_AGV: "E",
-}
-
-UNIT_LINE = {
-    "A": "line_s1a",
-    "B": "line_s1b",
-    "C": "line_ce",
-    "D": "line_s2d",
-    "E": "line_ce",
-}
-
-# 完成任务后提交的下一道任务 (kind → (next_kind, uid 来源))
-FOLLOWUP = {
-    cfg.TASK_KIND_A_CONVEYOR: cfg.TASK_KIND_C,
-    cfg.TASK_KIND_A_AGV: cfg.TASK_KIND_C,
-    cfg.TASK_KIND_B: cfg.TASK_KIND_TRANSPORT_BA,
-    cfg.TASK_KIND_C: cfg.TASK_KIND_E_CONVEYOR,
-    cfg.TASK_KIND_D: cfg.TASK_KIND_TRANSPORT_DE,
-    cfg.TASK_KIND_TRANSPORT_BA: cfg.TASK_KIND_A_AGV,
-    cfg.TASK_KIND_TRANSPORT_DE: cfg.TASK_KIND_E_AGV,
-}
-
-SOURCE_KEYS = ("s1a", "s1b", "s2d")
-SOURCE_RAW = {"s1a": "RAW_A", "s1b": "RAW_B", "s2d": "RAW_D"}
-SOURCE_INITIAL_TASK = {
-    "s1a": cfg.TASK_KIND_A_CONVEYOR,
-    "s1b": cfg.TASK_KIND_B,
-    "s2d": cfg.TASK_KIND_D,
-}
-
-
-TASK_SOURCE_ZONE = {
-    cfg.TASK_KIND_A_CONVEYOR: "line_s1a",
-    cfg.TASK_KIND_A_AGV: "agv",
-    cfg.TASK_KIND_B: "line_s1b",
-    cfg.TASK_KIND_C: "handoff_ac",
-    cfg.TASK_KIND_D: "line_s2d",
-    cfg.TASK_KIND_E_CONVEYOR: "line_ce",
-    cfg.TASK_KIND_E_AGV: "agv",
-}
-
-TASK_DEST_ZONE = {
-    cfg.TASK_KIND_A_CONVEYOR: "handoff_ac",
-    cfg.TASK_KIND_A_AGV: "handoff_ac",
-    cfg.TASK_KIND_B: "agv",
-    cfg.TASK_KIND_C: "line_ce",
-    cfg.TASK_KIND_D: "agv",
-    cfg.TASK_KIND_E_CONVEYOR: "buffer_e_c",
-    cfg.TASK_KIND_E_AGV: "buffer_e_d",
-}
 
 
 @dataclass
@@ -179,9 +66,15 @@ class Stage4Coordinator:
     def __init__(self, sim, scene: Stage4Scene, comp, *,
                  scenario: str = cfg.SCENARIO_FULL_FLOW,
                  fault: str = cfg.FAULT_NONE,
-                 logger=None, on_controller=None) -> None:
+                 logger=None, on_controller=None,
+                 catalog: Optional[ProcessCatalog] = None) -> None:
         if scenario not in cfg.STAGE4_SCENARIOS:
             raise CoordinatorError(f"未知 scenario: {scenario!r}")
+        self.catalog = catalog if catalog is not None else default_catalog()
+        # 启动前完整校验: 未知设备/zone/资源、重复 ID、缺失端口、无效后继、
+        # 循环依赖均在此拒绝, 错误信息带 recipe/operation 定位.
+        self.process_report = self.catalog.validate()
+        self.recipe = self.catalog.recipe(DEFAULT_RECIPE_ID)
         self.sim = sim
         self.scene = scene
         self.comp = comp
@@ -199,7 +92,7 @@ class Stage4Coordinator:
         self.scenario = scenario
         self.fault = fault
 
-        self.queue = TaskQueue()
+        self.queue = TaskQueue(catalog=self.catalog)
         self.resources = ResourceTable()
         self.controllers: dict[str, ControllerRecord] = {}
         self.controller_history: list[dict] = []
@@ -224,8 +117,15 @@ class Stage4Coordinator:
         self._unstable_steps = 0
         self._next_uid = 1
         self._batch = dict(cfg.SCENARIO_BATCH[scenario])
-        self._source_count = {key: 0 for key in SOURCE_KEYS}
-        self._source_last_spawn = {key: None for key in SOURCE_KEYS}
+        self._source_entries = {entry.id: entry
+                                for entry in self.recipe.entries}
+        self._source_keys = tuple(self._source_entries)
+        self._unit_templates = tuple(
+            template for template in self.recipe.operations
+            if self.catalog.device(
+                template.candidate_devices[0]).kind == "arm")
+        self._source_count = {key: 0 for key in self._source_keys}
+        self._source_last_spawn = {key: None for key in self._source_keys}
         self._wait_reason: dict[str, str] = {}
         self._evidence_seq = 0
 
@@ -279,15 +179,16 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def _poll_sources(self, sim_time: float) -> None:
-        for key in SOURCE_KEYS:
-            planned = int(self._batch.get(SOURCE_RAW[key], 0))
+        for key in self._source_keys:
+            entry = self._source_entries[key]
+            planned = int(self._batch.get(entry.item_type.value, 0))
             if self._source_count[key] >= planned:
                 continue
             last = self._source_last_spawn[key]
             if last is not None and \
                     sim_time - last < cfg.SOURCE_SPAWN_INTERVAL_S:
                 continue
-            zone = self.lines[cfg.SOURCE_ITEMS[key]["line"]].line_id
+            zone = entry.line
             if not self.flow.zone_free(zone):
                 self._event("SOURCE_BACKPRESSURE", zone=zone,
                             detail={"source": key,
@@ -297,8 +198,10 @@ class Stage4Coordinator:
             self._spawn_source(key, sim_time)
 
     def _spawn_source(self, key: str, sim_time: float) -> None:
+        entry = self._source_entries[key]
         spec = cfg.SOURCE_ITEMS[key]
-        item_type = ItemType(spec["item_type"])
+        item_type = ItemType(entry.item_type.value)
+        operation = self.catalog.operation(entry.operation_id)
         uid = self._next_uid
         self._next_uid += 1
         alias = f"Part_{uid:04d}"
@@ -313,8 +216,8 @@ class Stage4Coordinator:
         self._set_material_color(handle, item_type)
         self.materials.register(uid, alias, sim_handle=handle)
         self.flow.register(
-            uid, item_type, alias, sim_handle=handle, source=spec["line"],
-            destination="", zone=spec["line"], sim_time=sim_time)
+            uid, item_type, alias, sim_handle=handle, source=entry.line,
+            destination="", zone=entry.line, sim_time=sim_time)
         self._source_count[key] += 1
         self._source_last_spawn[key] = sim_time
         self.spawned.append({
@@ -322,13 +225,11 @@ class Stage4Coordinator:
             "item_type": item_type.value, "position": list(spec["position"]),
             "handle": int(handle)})
         self._event("MATERIAL_SPAWN", uid=uid, item_type=item_type.value,
-                    zone=spec["line"], source=set_name(key),
+                    zone=entry.line, source=set_name(key),
                     detail={"alias": alias, "handle": int(handle),
                             "spawn": spec["position"]})
-        task = make_task(
-            SOURCE_INITIAL_TASK[key], uid, source=spec["line"],
-            destination="", device=TASK_UNIT[SOURCE_INITIAL_TASK[key]],
-            sim_time=sim_time)
+        task = make_task_from_operation(
+            operation, uid, source=entry.line, sim_time=sim_time)
         self._submit(task, sim_time)
 
     def _set_material_color(self, handle: int, item_type: ItemType) -> None:
@@ -351,20 +252,47 @@ class Stage4Coordinator:
             self._poll_unit(unit_id, sim_time)
         self._poll_agv(sim_time)
 
+    def _operation(self, task: Stage4Task) -> OperationTemplate:
+        """任务 → 默认工艺模板; 调机等动态任务没有模板."""
+        if task.operation.template_id:
+            return self.catalog.operation(task.operation.template_id)
+        return self.catalog.operation_for_kind(task.kind)
+
+    def _operation_or_none(
+            self, task: Stage4Task) -> Optional[OperationTemplate]:
+        try:
+            return self._operation(task)
+        except Exception:
+            return None
+
+    def _task_consumes_line(self, task: Stage4Task, line_id: str) -> bool:
+        template = self._operation_or_none(task)
+        return template is not None and any(
+            port.zone == line_id for port in template.inputs)
+
     def _poll_unit(self, unit_id: str, sim_time: float) -> None:
         if unit_id in self.controllers:
             return
-        kinds = UNIT_TASKS[unit_id]
+        kinds: list[str] = []
+        priorities: dict[str, int] = {}
+        for template in self.catalog.operations_for_device(
+                f"arm_{unit_id}"):
+            if template.kind not in kinds:
+                kinds.append(template.kind)
+            priorities[template.kind] = int(template.priority)
         candidates: list[Stage4Task] = []
         for kind in kinds:
             candidates.extend([
                 task for task in self.queue.by_kind(kind)
                 if task.status in (TaskStatus.PENDING, TaskStatus.WAITING)])
         candidates.sort(key=lambda task: (
-            cfg.TASK_PRIORITY.get(task.kind, 9),
+            priorities.get(task.kind, 9),
             task.created_sim_time, task.task_id))
         for task in candidates:
-            if task.kind == cfg.TASK_KIND_E_CONVEYOR and self._line_faulted:
+            template = self._operation(task)
+            if (self._line_faulted
+                    and self._task_consumes_line(
+                        task, cfg.CONVEYOR_FAULT_LINE)):
                 self._note_wait(task, sim_time, "line_ce 故障停带")
                 continue
             ok, reason = self._preconditions(task)
@@ -373,76 +301,69 @@ class Stage4Coordinator:
                 continue
             owner = self._owner(task)
             acquired, busy = self.resources.acquire_all(
-                TASK_RESOURCES[task.kind], owner, task.task_id, sim_time,
+                template.resources, owner, task.task_id, sim_time,
                 f"{task.kind} start")
             if not acquired:
                 self._note_wait(task, sim_time,
                                 f"资源等待: {busy}")
                 continue
-            task.resources = list(TASK_RESOURCES[task.kind])
+            task.resources = list(template.resources)
             self._start_unit_task(task, unit_id, sim_time)
             return
 
     def _preconditions(self, task: Stage4Task) -> tuple[bool, str]:
+        template = self._operation(task)
         flow = self.flow.by_uid(task.uid)
         if flow is None:
             return False, "FLOW_RECORD_MISSING"
-        if flow.item_type not in TASK_TYPES[task.kind]:
+        input_types = tuple(port.item_type for port in template.inputs)
+        if flow.item_type not in input_types:
             return False, (f"ITEM_TYPE_MISMATCH: {flow.item_type.value} "
                            f"not in "
-                           f"{[item.value for item in TASK_TYPES[task.kind]]}")
-        expected_zone = self._source_zone(task)
+                           f"{[item.value for item in input_types]}")
+        expected_zone = template.inputs[0].zone
         if flow.zone != expected_zone:
             return False, (f"ZONE_MISMATCH: uid={task.uid} 在 {flow.zone} "
                            f"而非 {expected_zone}")
-        if task.kind != cfg.TASK_KIND_E_CONVEYOR:
-            # E 传送带任务的物料可能已在线上移动; 由控制器完成停带.
-            pass
-        dest_zone = self._destination_zone(task)
+        dest_zone = template.output.zone if template.output else ""
         if dest_zone and not self.flow.zone_free(dest_zone):
             return False, cfg.BACKPRESSURE_REASONS.get(
                 dest_zone, f"{dest_zone} 占用")
-        if task.kind in (cfg.TASK_KIND_A_AGV, cfg.TASK_KIND_E_AGV):
-            dock = TASK_DOCK[task.kind]
+        if template.source_kind == "agv" or template.sink_kind == "agv":
+            dock = template.dock
             if self.agv_at_dock != dock:
                 return False, f"AGV 不在 dock {dock}"
             if not self._agv_at_dock(dock):
                 return False, f"等待 AGV 在 dock {dock} 停稳"
-        if task.kind == cfg.TASK_KIND_B:
-            if self.agv_at_dock != "B":
-                return False, "AGV 不在 dock B"
-            if not self._agv_at_dock("B"):
-                return False, "等待 AGV 在 dock B 停稳"
-        if task.kind == cfg.TASK_KIND_D:
-            if self.agv_at_dock != "D":
-                return False, "AGV 不在 dock D"
-            if not self._agv_at_dock("D"):
-                return False, "等待 AGV 在 dock D 停稳"
         rec = self.materials.by_uid(task.uid)
         if rec is None or rec.sim_handle is None:
             return False, "UID_NOT_REGISTERED"
         return True, ""
 
     def _source_zone(self, task: Stage4Task) -> str:
-        return TASK_SOURCE_ZONE[task.kind]
+        return self._operation(task).inputs[0].zone
 
     def _destination_zone(self, task: Stage4Task) -> str:
-        return TASK_DEST_ZONE[task.kind]
+        template = self._operation(task)
+        return template.output.zone if template.output else ""
 
     def _start_unit_task(self, task: Stage4Task, unit_id: str,
                          sim_time: float) -> None:
+        template = self._operation(task)
         arm = self.runtime.arm(unit_id)
         unit = self.scene.unit(unit_id)
-        source = TASK_SOURCE[task.kind]
-        sink = TASK_SINK[task.kind]
-        line_id = (self._source_line_id(task, unit_id)
-                   if source == "conveyor" else UNIT_LINE[unit_id])
+        source = template.source_kind
+        sink = template.sink_kind
+        device = self.catalog.device(template.candidate_devices[0])
+        line_id = device.default_line_id
         line = self.lines[line_id]
-        sink_spec = self._sink_spec(task, unit_id)
+        sink_spec = self._sink_spec(template, unit_id)
         task_layout = TaskLayout(
             name=f"{self.layout.name}/{unit_id}", sink=sink_spec,
             unit_view=unit.layout,
             target="agv" if sink == "agv" else "station")
+        expected_types = tuple(port.item_type
+                               for port in template.inputs)
         try:
             controller = Stage4UnitController(
                 sim=self.sim, scene=arm.view, materials=self.materials,
@@ -451,10 +372,10 @@ class Stage4Coordinator:
                 agv=self.agv, target=("agv" if sink == "agv" else "station"),
                 uid=task.uid, fault=cfg.FAULT_NONE, layout=task_layout,
                 logger=self.logger, runtime=arm, unit_id=unit_id,
-                source=source, sink=sink, dock_id=TASK_DOCK[task.kind],
+                source=source, sink=sink, dock_id=template.dock,
                 resources=self.resources, task=task, line=line,
                 sink_spec=sink_spec, flow=self.flow,
-                expected_types=TASK_TYPES[task.kind],
+                expected_types=expected_types,
                 park_tcp_pose=handoff_park_tcp(unit_id),
                 pick_timeout=cfg.TASK_TIMEOUT)
         except Exception as exc:
@@ -472,9 +393,12 @@ class Stage4Coordinator:
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     item_type=(self.flow.by_uid(task.uid).item_type.value
                                if self.flow.by_uid(task.uid) else ""),
-                    zone=self._source_zone(task), device=f"arm_{unit_id}",
-                    detail={"kind": task.kind, "source": source,
-                            "sink": sink, "line": line_id,
+                    zone=template.inputs[0].zone,
+                    device=f"arm_{unit_id}",
+                    detail={"kind": task.kind,
+                            "operation": template.id,
+                            "source": source, "sink": sink,
+                            "line": line_id,
                             "resources": list(task.resources)})
         if self.on_controller is not None:
             try:
@@ -482,57 +406,45 @@ class Stage4Coordinator:
             except Exception:
                 pass
 
-    def _source_line_id(self, task: Stage4Task, unit_id: str) -> str:
-        if task.kind in (cfg.TASK_KIND_A_CONVEYOR,):
-            return "line_s1a"
-        if task.kind == cfg.TASK_KIND_B:
-            return "line_s1b"
-        if task.kind == cfg.TASK_KIND_D:
-            return "line_s2d"
-        if task.kind == cfg.TASK_KIND_E_CONVEYOR:
-            return "line_ce"
-        return UNIT_LINE[unit_id]
-
-    def _sink_spec(self, task: Stage4Task, unit_id: str) -> SinkSpec:
-        sink = TASK_SINK[task.kind]
+    def _sink_spec(self, template: OperationTemplate,
+                   unit_id: str) -> SinkSpec:
+        sink = template.sink_kind
+        dest_zone = template.output.zone if template.output else ""
         if sink == "agv":
             unit = self.scene.unit(unit_id)
             return SinkSpec(
                 kind="agv", tcp_pose=tuple(unit.spec.agv_tcp_pose),
                 material_pose=tuple(unit.spec.agv_material_pose),
                 support_z=base.AGV_TRAY_TOP_Z,
-                zone=self._destination_zone(task))
+                zone=dest_zone)
         if sink == "conveyor":
-            line = self.lines[UNIT_LINE[unit_id]]
+            line = self.lines[dest_zone]
             pose = line.place_material_pose
             tcp = base.tcp_pose_above(pose)
             return SinkSpec(
                 kind="conveyor", tcp_pose=tuple(tcp),
                 material_pose=tuple(pose),
                 support_z=base.CONVEYOR_SURFACE_Z,
-                zone=self._destination_zone(task), line=line)
+                zone=dest_zone, line=line)
         # station: A→C 交接 / E 缓冲
-        if task.kind in (cfg.TASK_KIND_A_CONVEYOR, cfg.TASK_KIND_A_AGV):
-            zone = "handoff_ac"
+        if dest_zone == cfg.HANDOFF_AC["id"]:
             pos = cfg.HANDOFF_AC["position"]
             material = (pos[0], pos[1],
                         base.STATION_TOP_Z + base.MATERIAL_HALF_HEIGHT)
             support = base.STATION_TOP_Z
-        elif task.kind == cfg.TASK_KIND_E_CONVEYOR:
-            zone = "buffer_e_c"
-            pos = cfg.E_BUFFERS["buffer_e_c"]["position"]
+        elif dest_zone in cfg.E_BUFFERS:
+            pos = cfg.E_BUFFERS[dest_zone]["position"]
             material = (pos[0], pos[1],
                         base.ISLAND_TOP_Z + base.MATERIAL_HALF_HEIGHT)
             support = base.ISLAND_TOP_Z
         else:
-            zone = "buffer_e_d"
-            pos = cfg.E_BUFFERS["buffer_e_d"]["position"]
-            material = (pos[0], pos[1],
-                        base.ISLAND_TOP_Z + base.MATERIAL_HALF_HEIGHT)
-            support = base.ISLAND_TOP_Z
+            raise CoordinatorError(
+                f"未知 station 目标区域: {dest_zone!r} "
+                f"(operation={template.id})")
         return SinkSpec(
             kind="station", tcp_pose=tuple(base.tcp_pose_above(material)),
-            material_pose=tuple(material), support_z=support, zone=zone)
+            material_pose=tuple(material), support_z=support,
+            zone=dest_zone)
 
     def _note_wait(self, task: Stage4Task, sim_time: float,
                    reason: str) -> None:
@@ -588,12 +500,13 @@ class Stage4Coordinator:
     def _agv_move_requests(self, sim_time: float) -> list[dict]:
         requests: list[dict] = []
         for task in self.queue.pending_transports(sim_time):
-            origin = self._transport_origin(task)
-            destination = self._transport_destination(task)
-            if origin is None or destination is None:
+            template = self._operation(task)
+            origin = template.route_origin_dock
+            destination = template.route_destination_dock
+            if not origin or not destination:
                 continue
             flow = self.flow.by_uid(task.uid)
-            if flow is None or flow.zone != "agv":
+            if flow is None or flow.zone != template.inputs[0].zone:
                 continue
             requests.append({
                 "kind": "transport", "transport": task, "task": task,
@@ -602,59 +515,49 @@ class Stage4Coordinator:
                 "priority": task.effective_priority(sim_time),
             })
         # 装载型单元任务 (B/D) 需要 AGV 先空载到位.
-        for kind in (cfg.TASK_KIND_B, cfg.TASK_KIND_D):
-            for task in self.queue.by_kind(kind):
+        for template in self._unit_templates:
+            if template.sink_kind != "agv":
+                continue
+            for task in self.queue.by_kind(template.kind):
                 if task.status not in (TaskStatus.PENDING,
                                        TaskStatus.WAITING):
                     continue
                 flow = self.flow.by_uid(task.uid)
-                if flow is None or flow.zone != TASK_SOURCE_ZONE[kind]:
+                if flow is None or flow.zone != template.inputs[0].zone:
                     continue
-                dock = TASK_DOCK[kind]
+                dock = template.dock
                 requests.append({
                     "kind": "load", "task": task, "dock": dock,
                     "destination": dock, "uid": task.uid,
                     "created": task.created_sim_time,
-                    "priority": cfg.TASK_PRIORITY.get(kind, 1),
+                    "priority": int(template.priority),
                 })
         # 卸载型单元任务 (A/E) 需要 AGV 留在目标 dock.
-        for kind in (cfg.TASK_KIND_A_AGV, cfg.TASK_KIND_E_AGV):
-            for task in self.queue.by_kind(kind):
+        for template in self._unit_templates:
+            if template.source_kind != "agv":
+                continue
+            for task in self.queue.by_kind(template.kind):
                 if task.status not in (TaskStatus.PENDING,
                                        TaskStatus.WAITING):
                     continue
                 flow = self.flow.by_uid(task.uid)
-                if flow is None or flow.zone != "agv":
+                if flow is None or flow.zone != template.inputs[0].zone:
                     continue
-                dock = TASK_DOCK[kind]
+                dock = template.dock
                 requests.append({
                     "kind": "unload", "task": task, "dock": dock,
                     "destination": dock, "uid": task.uid,
                     "created": task.created_sim_time,
-                    "priority": cfg.TASK_PRIORITY.get(kind, 0),
+                    "priority": int(template.priority),
                 })
         return requests
-
-    def _transport_origin(self, task: Stage4Task) -> Optional[str]:
-        if task.kind == cfg.TASK_KIND_TRANSPORT_BA:
-            return "B"
-        if task.kind == cfg.TASK_KIND_TRANSPORT_DE:
-            return "D"
-        return None
-
-    def _transport_destination(self, task: Stage4Task) -> Optional[str]:
-        if task.kind == cfg.TASK_KIND_TRANSPORT_BA:
-            return "A"
-        if task.kind == cfg.TASK_KIND_TRANSPORT_DE:
-            return "E"
-        return None
 
     def _route_resources(self, spec) -> tuple[str, ...]:
         """路线实际经过的直道 + 全部 dock (车辆可能穿过中间 dock)."""
         resources = list(spec.lanes)
         if cfg.AGV_ROUTE_REQUIRES_ALL_DOCKS:
-            resources.extend(f"dock_{dock}" for dock in
-                             ("A", "B", "D", "E"))
+            resources.extend(f"dock_{dock}"
+                             for dock in cfg.AGV_DOCK_IDS)
         return tuple(resources)
 
     def _ensure_reposition(self, uid: int, dock: str, sim_time: float,
@@ -840,6 +743,7 @@ class Stage4Coordinator:
     def _verify_unit_task(self, task: Stage4Task,
                           controller: Stage4UnitController,
                           unit_id: str) -> tuple[bool, str, dict]:
+        template = self._operation(task)
         evidence = {
             "controller": controller.summary(),
             "material": self._material_state_dict(task.uid),
@@ -853,10 +757,10 @@ class Stage4Coordinator:
         flow = self.flow.by_uid(task.uid)
         if flow is None:
             return False, "FLOW_RECORD_MISSING", evidence
-        if flow.item_type not in TASK_TYPES[task.kind]:
+        if flow.item_type not in template.input_types:
             return False, (f"ITEM_TYPE_MISMATCH: {flow.item_type.value}"), \
                 evidence
-        sink = TASK_SINK[task.kind]
+        sink = template.sink_kind
         if sink == "agv":
             if rec.state not in (MaterialState.ON_TRAY,
                                  MaterialState.RELEASED):
@@ -867,7 +771,7 @@ class Stage4Coordinator:
             if not check["ok"]:
                 return False, f"LOAD_NOT_ON_TRAY: {check['detail']}", evidence
         else:
-            expected = self._expected_material_pose(task, unit_id)
+            expected = self._expected_material_pose(template, unit_id)
             error = math.dist(pose[:3], expected) if pose else float("inf")
             evidence["place_error"] = error
             if rec.state is not MaterialState.RELEASED:
@@ -880,9 +784,9 @@ class Stage4Coordinator:
             return False, "PLACE_PHYSICS_NOT_RESTORED", evidence
         return True, f"{task.kind} 交接确认 (UID/类型/位置/物理属性)", evidence
 
-    def _expected_material_pose(self, task: Stage4Task,
+    def _expected_material_pose(self, template: OperationTemplate,
                                 unit_id: str) -> tuple[float, float, float]:
-        sink = self._sink_spec(task, unit_id)
+        sink = self._sink_spec(template, unit_id)
         if sink.kind == "agv":
             # 放置点跟随实测托盘; 验收必须用同一来源, 否则 AGV 停靠
             # 偏差会被误报为 PLACE_ERROR.
@@ -898,28 +802,30 @@ class Stage4Coordinator:
 
     def _commit_unit_result(self, task: Stage4Task, unit_id: str,
                             sim_time: float) -> None:
+        template = self._operation(task)
         flow = self.flow.by_uid(task.uid)
         rec = self.materials.by_uid(task.uid)
         if flow is None:
             return
-        if task.kind in (cfg.TASK_KIND_A_CONVEYOR, cfg.TASK_KIND_A_AGV,
-                         cfg.TASK_KIND_B, cfg.TASK_KIND_C,
-                         cfg.TASK_KIND_D):
-            try:
-                self.flow.process(task.uid, unit_id, sim_time,
-                                  task_id=task.task_id)
-            except MaterialFlowError as exc:
-                self._freeze(f"PROCESS_FAILED: {exc}", sim_time, abort=True)
-                return
-            flow = self.flow.by_uid(task.uid)
-        dest = self._destination_zone(task)
-        if task.kind == cfg.TASK_KIND_C:
-            # C 放到 C→E 入口: 物理状态回到 ON_CONVEYOR, 由 E 任务启动带.
+        if template.output is not None:
+            input_types = set(template.input_types)
+            if template.output.item_type not in input_types:
+                try:
+                    self.flow.process(task.uid, unit_id, sim_time,
+                                      task_id=task.task_id)
+                except MaterialFlowError as exc:
+                    self._freeze(f"PROCESS_FAILED: {exc}", sim_time,
+                                 abort=True)
+                    return
+                flow = self.flow.by_uid(task.uid)
+        dest = template.output.zone if template.output else ""
+        if template.sink_kind == "conveyor":
+            # 放到线入口: 物理状态回到 ON_CONVEYOR, 由下游任务启动带.
             if rec is not None and rec.state is MaterialState.RELEASED:
                 try:
                     rec.transition_to(
                         MaterialState.ON_CONVEYOR, sim_time,
-                        "placed on C→E entry; handoff to line_ce")
+                        f"placed on {dest}; handoff to conveyor")
                 except Exception as exc:
                     self._freeze(f"CONVEYOR_STATE: {exc}", sim_time,
                                  abort=True)
@@ -928,35 +834,29 @@ class Stage4Coordinator:
             self.flow.occupy(
                 task.uid, dest, sim_time, reason=f"{task.kind} done",
                 task_id=task.task_id,
-                state=(RecordState.READY if dest not in ("line_ce",)
+                state=(RecordState.READY
+                       if template.sink_kind != "conveyor"
                        else RecordState.IN_TRANSIT))
         except MaterialFlowError as exc:
             self._freeze(f"ZONE_COMMIT_FAILED: {exc}", sim_time, abort=True)
             return
         self._event("MATERIAL_PLACE", task_id=task.task_id, uid=task.uid,
                     item_type=flow.item_type.value if flow else "",
-                    zone=dest, source=self._source_zone(task),
+                    zone=dest, source=template.inputs[0].zone,
                     destination=dest, device=f"arm_{unit_id}",
-                    detail={"task_kind": task.kind})
-        followup = FOLLOWUP.get(task.kind)
-        if followup:
-            self._submit_followup(followup, task.uid, sim_time)
+                    detail={"task_kind": task.kind,
+                            "operation": template.id})
+        for successor_id in template.successors:
+            self._submit_followup(successor_id, task.uid, sim_time)
 
-    def _submit_followup(self, kind: str, uid: int, sim_time: float) -> None:
-        if kind in (cfg.TASK_KIND_TRANSPORT_BA, cfg.TASK_KIND_TRANSPORT_DE):
-            source = "dock_B" if kind == cfg.TASK_KIND_TRANSPORT_BA else \
-                "dock_D"
-            destination = "dock_A" if kind == cfg.TASK_KIND_TRANSPORT_BA \
-                else "dock_E"
-            task = make_task(kind, uid, source=source,
-                             destination=destination, dock=destination[-1],
-                             device="agv", sim_time=sim_time)
-        else:
-            task = make_task(
-                kind, uid, source=TASK_SOURCE_ZONE[kind],
-                destination=TASK_DEST_ZONE[kind],
-                dock=TASK_DOCK[kind], device=TASK_UNIT[kind],
-                sim_time=sim_time)
+    def _submit_followup(self, operation_id: str, uid: int,
+                         sim_time: float) -> None:
+        template = self.catalog.operation(operation_id)
+        # 逻辑合流不是 Stage4Task: 由 _check_join 在两条输入就绪后
+        # 调用 MaterialRegistry.commit_join, 不进入任务队列/资源派工.
+        if template.executor_kind == "logic":
+            return
+        task = make_task_from_operation(template, uid, sim_time=sim_time)
         self._submit(task, sim_time)
 
     def _submit(self, task: Stage4Task, sim_time: float) -> bool:
@@ -1000,9 +900,10 @@ class Stage4Coordinator:
                     self._event("TASK_DONE", task_id=task.task_id,
                                 uid=task.uid, device="agv",
                                 detail={"reason": reason})
-                    followup = FOLLOWUP.get(task.kind)
-                    if followup:
-                        self._submit_followup(followup, task.uid, sim_time)
+                    template = self._operation(task)
+                    for successor_id in template.successors:
+                        self._submit_followup(
+                            successor_id, task.uid, sim_time)
                 else:
                     self._event("TASK_DONE", task_id=task.task_id,
                                 uid=task.uid, device="agv",
@@ -1100,7 +1001,7 @@ class Stage4Coordinator:
         for lane in self.route.spec.lanes:
             if self.resources.owner(lane) != owner:
                 return False
-        for dock in ("A", "B", "D", "E"):
+        for dock in cfg.AGV_DOCK_IDS:
             if self.resources.owner(f"dock_{dock}") not in (None, owner):
                 return False
         return True
@@ -1112,6 +1013,10 @@ class Stage4Coordinator:
     def _check_join(self, sim_time: float) -> None:
         if self.frozen or self.aborted:
             return
+        if not self.recipe.join_operation_id:
+            return
+        join = self.catalog.operation(
+            self.recipe.join_operation_id, self.recipe.id)
         semi, part = self.flow.pair_candidates()
         if semi is None or part is None:
             return
@@ -1127,11 +1032,13 @@ class Stage4Coordinator:
         except Exception as exc:
             self._freeze(f"FINAL_SPAWN_FAILED: {exc}", sim_time)
             return
-        self._set_material_color(handle, ItemType.FINAL)
+        out_zone = join.output.zone if join.output else "output_e"
+        out_type = join.output.item_type if join.output else ItemType.FINAL
+        self._set_material_color(handle, out_type)
         self.materials.register(uid, alias, sim_handle=handle)
         result = self.flow.commit_join(
             final_uid=uid, sim_time=sim_time, final_alias=alias,
-            final_handle=handle)
+            final_handle=handle, final_zone=out_zone)
         if not result.ok:
             self.scene.remove_material(handle)
             self.materials.remove(uid)
@@ -1156,10 +1063,11 @@ class Stage4Coordinator:
                     pass
         self.final_count += 1
         self._event("FINAL_CREATED", uid=uid,
-                    item_type=ItemType.FINAL.value, zone="output_e",
+                    item_type=out_type.value, zone=out_zone,
                     device="E", evidence_id=result.pair_key,
                     detail={"parents": [result.semi_uid, result.part_uid],
-                            "pair_key": result.pair_key})
+                            "pair_key": result.pair_key,
+                            "operation": join.id})
 
     # ═══════════════════════════════════════════════════════
     # 故障注入
@@ -1173,12 +1081,9 @@ class Stage4Coordinator:
                                      sim_time: float) -> None:
         if self.fault != cfg.FAULT_CONVEYOR_STOP:
             return
-        if task.kind not in (cfg.TASK_KIND_C, cfg.TASK_KIND_A_CONVEYOR,
-                             cfg.TASK_KIND_A_AGV):
-            return
         if self._line_faulted:
             return
-        if task.kind != cfg.TASK_KIND_C:
+        if task.kind != cfg.CONVEYOR_FAULT_AFTER_TASK:
             return
         line = self.lines[cfg.CONVEYOR_FAULT_LINE]
         try:
@@ -1199,17 +1104,20 @@ class Stage4Coordinator:
                     detail={"kind": "conveyor_stop",
                             "after_task": task.task_id})
         # 受影响支路任务立即进入 BLOCKED 并保留现场.
-        for other in self.queue.by_kind(cfg.TASK_KIND_E_CONVEYOR):
+        for other in self.queue.all():
+            if not self._task_consumes_line(
+                    other, cfg.CONVEYOR_FAULT_LINE):
+                continue
             if other.status in (TaskStatus.PENDING, TaskStatus.WAITING,
                                 TaskStatus.RUNNING):
                 if other.status is not TaskStatus.BLOCKED:
                     self.queue.block(other.task_id, sim_time,
-                                     "CONVEYOR_FAULT: line_ce 停带")
+                                     f"CONVEYOR_FAULT: {line.line_id} 停带")
                     self._event("TASK_BLOCK", task_id=other.task_id,
-                                uid=other.uid, device="line_ce",
+                                uid=other.uid, device=line.line_id,
                                 detail={"reason": "CONVEYOR_FAULT"})
         # 冻结整线现场: 停止 AGV/所有线, 活动任务停在当前位置, 保留 UID.
-        self._freeze("CONVEYOR_FAULT: line_ce 停止", sim_time)
+        self._freeze(f"CONVEYOR_FAULT: {line.line_id} 停止", sim_time)
 
     def _inject_agv_obstacle(self, spec) -> None:
         if self._fault_handles:
@@ -1277,10 +1185,13 @@ class Stage4Coordinator:
     # 资源
     # ═══════════════════════════════════════════════════════
 
-    @staticmethod
-    def _owner(task: Stage4Task) -> str:
-        if task.kind in TASK_UNIT:
-            return f"unit_{TASK_UNIT[task.kind]}/task_{task.task_id}"
+    def _owner(self, task: Stage4Task) -> str:
+        template = self._operation_or_none(task)
+        if template is not None:
+            device = self.catalog.device(template.candidate_devices[0])
+            if device.kind == "arm":
+                unit_id = device.id.removeprefix("arm_")
+                return f"unit_{unit_id}/task_{task.task_id}"
         return f"agv/task_{task.task_id}"
 
     def _release_task(self, task: Stage4Task, sim_time: float,
@@ -1378,9 +1289,10 @@ class Stage4Coordinator:
             return False
         if not self.queue.finished():
             return False
-        return all(self._source_count[key] >=
-                   int(self._batch.get(SOURCE_RAW[key], 0))
-                   for key in SOURCE_KEYS)
+        return all(
+            self._source_count[key] >=
+            int(self._batch.get(self._source_entries[key].item_type.value, 0))
+            for key in self._source_keys)
 
     # ═══════════════════════════════════════════════════════
     # 校验辅助
@@ -1564,7 +1476,9 @@ class Stage4Coordinator:
             acceptance.update({
                 "fault_observed": self._line_faulted,
                 "affected_task_blocked": any(
-                    task.kind == cfg.TASK_KIND_E_CONVEYOR for task in blocked),
+                    self._task_consumes_line(
+                        task, cfg.CONVEYOR_FAULT_LINE)
+                    for task in blocked),
                 "site_preserved": bool(preserved),
                 "no_final": len(finals) == 0,
             })
@@ -1640,6 +1554,13 @@ class Stage4Coordinator:
             "batch": dict(self._batch),
             "source_counts": dict(self._source_count),
             "agv_at_dock": self.agv_at_dock,
+            "process_model": {
+                "version": self.catalog.version,
+                "recipe_id": self.recipe.id,
+                "recipe_version": self.recipe.version,
+                "validation": self.process_report,
+                "catalog": self.catalog.as_dict(),
+            },
             "tasks": self.queue.as_dict(),
             "resources": self.resources.as_dict(),
             "resource_checks": self.resources.validate(),

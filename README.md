@@ -23,6 +23,7 @@
 | 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v008_20261029_112305（H=0.65 已派生；完整回归待执行） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
 | 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
 | 阶段四多岛生产 | 已通过阶段四五个验收场景（2026-10-29）；阶段 4.1 `L5_UFLOW` 布局与联动优化已通过布局/可达、交错批次与停机回归（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；重排前基线 stage4/L4_COLUMN/v008_20261028_225634；当前阶段 4.1 工件 stage4/L5_UFLOW/v004_20261029_133249（统一 0.30 m 基座、外围分三段 AGV 路网） | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
+| 阶段四 0-1 静态工艺目录 | 已实施（2026-11-02） | 默认 `RecipeSpec`/`ProcessCatalog` 驱动任务字段，coordinator 固定映射表移除；`full_flow` 13/13 DONE、1 个 FINAL（父件 1+3），与阶段 0 基线归一化对照 0 差异；场景工件/config/layout digest 不变 | [0-1 报告](docs/implementation/PHASE4_0_1_REPORT.md) |
 
 生命周期校验流程（2026-10-26 已实施）：load 后可直接 start，validate 为可选诊断；start 在运行锁内执行完整校验，save 仍要求已校验场景。详见[方案与实施记录](docs/implementation/LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
 

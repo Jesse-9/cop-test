@@ -1,0 +1,505 @@
+{
+  "file": "docs\\implementation\\runs\\phase4_run_full_flow_20261102_190305.json",
+  "scenario": "full_flow",
+  "fault": "none",
+  "all_ok": false,
+  "results": [
+    {
+      "scenario": "full_flow",
+      "ok": false,
+      "error": null
+    }
+  ],
+  "sim_time": 143.2,
+  "acceptance": {
+    "scenario": "full_flow",
+    "fault": "none",
+    "tasks_done": false,
+    "any_task_failed": true,
+    "any_task_blocked": true,
+    "final_count": 0,
+    "final_parents": [],
+    "unpaired_semi_ce": 1,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": true,
+    "frozen": true,
+    "stop_reason": "A 任务失败: RELEASE_FAILED: RELEASE_CORRECTION_EXCEEDED: pos=0.0101 m ang=0.0038 rad",
+    "loaded_routes": 1,
+    "route_ok": true,
+    "priority_ok": true,
+    "priority_detail": [
+      {
+        "sim_time": 94.3,
+        "chosen": "transport_ba_uid2",
+        "chosen_priority": 0,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      }
+    ],
+    "injected": [],
+    "batch": {
+      "RAW_A": 1,
+      "RAW_B": 1,
+      "RAW_D": 1
+    },
+    "spawned": [
+      {
+        "sim_time": 0.85,
+        "source": "s1a",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "position": [
+          -1.0172298351066111,
+          0.0,
+          0.51
+        ],
+        "handle": 705
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s1b",
+        "uid": 2,
+        "item_type": "RAW_B",
+        "position": [
+          -0.75,
+          -1.467,
+          0.51
+        ],
+        "handle": 706
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s2d",
+        "uid": 3,
+        "item_type": "RAW_D",
+        "position": [
+          1.013,
+          -1.35,
+          0.51
+        ],
+        "handle": 707
+      }
+    ],
+    "ok": false
+  },
+  "tasks": [
+    {
+      "task_id": "a_conveyor_uid1",
+      "kind": "a_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "b_conveyor_uid2",
+      "kind": "b_conveyor",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "d_conveyor_uid3",
+      "kind": "d_conveyor",
+      "uid": 3,
+      "status": "BLOCKED",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "reposition_uid2_toB_leg1",
+      "kind": "reposition",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "c_handoff_uid1",
+      "kind": "c_handoff",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "e_conveyor_uid1",
+      "kind": "e_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "transport_ba_uid2",
+      "kind": "transport_ba",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "task_id": "a_agv_uid2",
+      "kind": "a_agv",
+      "uid": 2,
+      "status": "FAILED",
+      "failure_reason": "RELEASE_FAILED: RELEASE_CORRECTION_EXCEEDED: pos=0.0101 m ang=0.0038 rad"
+    }
+  ],
+  "routes": [
+    {
+      "route_id": "A_to_B_empty",
+      "loaded": false,
+      "lanes": [
+        "agv_lane_west"
+      ],
+      "turn_legs": 0,
+      "distance": 1.4,
+      "state": "DONE",
+      "stop_error": 0.019692,
+      "heading_error": -0.000298,
+      "slip": null,
+      "duration_s": 12.25
+    },
+    {
+      "route_id": "B_to_A_loaded",
+      "loaded": true,
+      "lanes": [
+        "agv_lane_west"
+      ],
+      "turn_legs": 0,
+      "distance": 1.4,
+      "state": "DONE",
+      "stop_error": 0.019554,
+      "heading_error": 6.9e-05,
+      "slip": 0.001065,
+      "duration_s": 11.85
+    }
+  ],
+  "material_types": {
+    "1": {
+      "type": "SEMI_CE",
+      "state": "RELEASED",
+      "zone": "buffer_e_c"
+    },
+    "2": {
+      "type": "SEMI_AB",
+      "state": "HELD_BY_SUCTION",
+      "zone": "agv"
+    },
+    "3": {
+      "type": "RAW_D",
+      "state": "SPAWNED",
+      "zone": "line_s2d"
+    }
+  },
+  "metrics": {
+    "throughput": {
+      "finals": 0,
+      "final_times_s": [],
+      "output_intervals_s": [],
+      "spawned": 3,
+      "finals_per_s": 0.0,
+      "finals_per_hour": 0.0
+    },
+    "tasks": {
+      "total": 8,
+      "by_kind": {
+        "a_agv": {
+          "count": 1,
+          "done": 0,
+          "failed": 1,
+          "blocked": 0,
+          "processing_s": [
+            36.05
+          ],
+          "cycle_s": [
+            36.05
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "a_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            47.9
+          ],
+          "cycle_s": [
+            47.9
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "b_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            45.55
+          ],
+          "cycle_s": [
+            93.45
+          ],
+          "wait_s": 47.9,
+          "block_s": 0.0
+        },
+        "c_handoff": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            45.5
+          ],
+          "cycle_s": [
+            45.5
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "d_conveyor": {
+          "count": 1,
+          "done": 0,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [],
+          "cycle_s": [],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "e_conveyor": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            29.799999999999997
+          ],
+          "cycle_s": [
+            29.799999999999997
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "reposition": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            12.3
+          ],
+          "cycle_s": [
+            12.3
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        },
+        "transport_ba": {
+          "count": 1,
+          "done": 1,
+          "failed": 0,
+          "blocked": 0,
+          "processing_s": [
+            11.900000000000006
+          ],
+          "cycle_s": [
+            11.900000000000006
+          ],
+          "wait_s": 0.0,
+          "block_s": 0.0
+        }
+      }
+    },
+    "devices": {
+      "agv": {
+        "busy_s": 24.2,
+        "utilization": 0.1711
+      },
+      "arm_A": {
+        "busy_s": 83.95,
+        "utilization": 0.5937
+      },
+      "arm_B": {
+        "busy_s": 45.55,
+        "utilization": 0.3221
+      },
+      "arm_C": {
+        "busy_s": 45.5,
+        "utilization": 0.3218
+      },
+      "arm_E": {
+        "busy_s": 29.8,
+        "utilization": 0.2107
+      }
+    },
+    "agv": {
+      "routes": [
+        {
+          "route_id": "A_to_B_empty",
+          "loaded": false,
+          "duration_s": 12.3
+        },
+        {
+          "route_id": "B_to_A_loaded",
+          "loaded": true,
+          "duration_s": 11.9
+        }
+      ],
+      "loaded_routes": 1,
+      "empty_routes": 1,
+      "loaded_time_s": 11.9,
+      "empty_time_s": 12.3
+    },
+    "window": {
+      "start_s": 0.85,
+      "end_s": 142.25,
+      "span_s": 141.4,
+      "warmup_s": 0.0,
+      "policy": "from_first_spawn_to_last_final"
+    },
+    "queues": {
+      "active_at_end": 0,
+      "peak_active": 2,
+      "wip": {
+        "total": 3,
+        "by_type": {
+          "SEMI_CE": 1,
+          "SEMI_AB": 1,
+          "RAW_D": 1
+        },
+        "zones": {
+          "1": "buffer_e_c",
+          "2": "agv",
+          "3": "line_s2d"
+        }
+      }
+    }
+  },
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 320,
+      "failed": []
+    },
+    "leftover": []
+  }
+}
