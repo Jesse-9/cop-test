@@ -69,6 +69,13 @@ git 历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,
 父差异只比较稳定字段。
 
+> ⚠ 不要用 CoppeliaSim GUI 的 **File > Save Scene** 直接覆盖工件目录中的
+> `scene.ttt`。GUI 保存不会剥离会话对象；阶段四运行后保存会把
+> `Shadow_UR5_01..05` 等运行时对象写进场景，导致 `artifact.sha256` 与
+> manifest 不符，后续 `load`/`start` 报“场景文件摘要不匹配”。工件只能通过
+> lifecycle `save` 产生新版本。2026-10-30 曾发生一次此类误存（v004，已从
+> Git 恢复原始文件，误存副本保留在 `docs/implementation/runs/diag/`）。
+
 ## 阶段三工件
 
 - 当前: `stage3/L2_MIRROR/v008_20261029_112305`（父
