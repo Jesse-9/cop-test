@@ -14,6 +14,7 @@
 | 阶段四布局与五台臂 IK 测量 | `probe_stage4_layout.py`（`--layout` 可读候选 JSON；`--ik` 用与规划器一致的多解种子枚举目标；当前证据 `../implementation/evidence/stage4_layout_20261029_L5_UFLOW.json`） |
 | 阶段四布局俯视预览 | `preview_stage4_layout.py`（从 `Stage4Layout` 配置生成 SVG；当前图 `../implementation/evidence/stage4_layout_L5_UFLOW_preview.svg`） |
 | 阶段四运行报告提取 | `analyze_stage4_run.py`（含航段/lane/转向字段） |
+| 阶段四 full_flow 基线对照 | `compare_stage4_process_baseline.py`（`extract` 生成归一化签名，`compare` 对照任务终态/物料终态与位置/FINAL 父 UID/路线/per-UID 事件序列；不比较时间与句柄） |
 | 仓库级完整测量索引 | [wiki/06-工业案例](../wiki/06-工业案例/) 对应阶段方案与报告；当前证据副本索引见 [implementation/evidence/README.md](../implementation/evidence/README.md) |
 
 ## 原始结果与正式证据

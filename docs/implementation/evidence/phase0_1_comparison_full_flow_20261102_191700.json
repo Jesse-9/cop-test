@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "baseline_source": "docs\\implementation\\runs\\phase4_run_full_flow_20261030_093231.json",
+  "current_source": "docs\\implementation\\runs\\phase4_run_full_flow_20261102_191700.json",
+  "material_pose_tolerance_m": 0.06,
+  "material_pose_deltas": [
+    {
+      "uid": "2",
+      "distance_m": 0.000386
+    },
+    {
+      "uid": "4",
+      "distance_m": 0.0
+    }
+  ],
+  "differences": [],
+  "summary": {
+    "acceptance": {
+      "final_count": 1,
+      "final_parents": [
+        [
+          1,
+          3
+        ]
+      ],
+      "unpaired_semi_ce": 1,
+      "tasks_done": true,
+      "any_task_failed": false,
+      "any_task_blocked": false,
+      "any_safety_latch": false,
+      "resources_released": true,
+      "loaded_routes": 2,
+      "route_ok": true,
+      "ok": true
+    },
+    "task_count": 13,
+    "material_count": 4,
+    "loaded_routes": [
+      "B_to_A_loaded",
+      "D_to_E_loaded"
+    ]
+  }
+}

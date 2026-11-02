@@ -1,0 +1,1144 @@
+{
+  "source": "docs\\implementation\\runs\\phase4_run_full_flow_20261030_093231.json",
+  "artifact_id": "stage4/L5_UFLOW/v004_20261029_133249",
+  "scenario": "full_flow",
+  "fault": "none",
+  "all_ok": true,
+  "batch": {
+    "RAW_A": 1,
+    "RAW_B": 1,
+    "RAW_D": 1
+  },
+  "acceptance": {
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "unpaired_semi_ce": 1,
+    "tasks_done": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "any_safety_latch": false,
+    "resources_released": true,
+    "loaded_routes": 2,
+    "route_ok": true,
+    "ok": true
+  },
+  "tasks": [
+    {
+      "kind": "a_agv",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "a_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "b_conveyor",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "c_handoff",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "c_handoff",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "d_conveyor",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "e_agv",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "e_conveyor",
+      "uid": 1,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "e_conveyor",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "reposition",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "reposition",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "transport_ba",
+      "uid": 2,
+      "status": "DONE",
+      "failure_reason": ""
+    },
+    {
+      "kind": "transport_de",
+      "uid": 3,
+      "status": "DONE",
+      "failure_reason": ""
+    }
+  ],
+  "materials": {
+    "1": {
+      "item_type": "SEMI_CE",
+      "state": "RELEASED",
+      "zone": "buffer_e_c",
+      "parents": []
+    },
+    "2": {
+      "item_type": "SEMI_CE",
+      "state": "RELEASED",
+      "zone": "buffer_e_c",
+      "parents": []
+    },
+    "3": {
+      "item_type": "PART_DE",
+      "state": "RELEASED",
+      "zone": "buffer_e_d",
+      "parents": []
+    },
+    "4": {
+      "item_type": "FINAL",
+      "state": "SPAWNED",
+      "zone": "output_e",
+      "parents": [
+        1,
+        3
+      ]
+    }
+  },
+  "material_poses": {
+    "1": null,
+    "2": [
+      2.10006,
+      1.350283,
+      0.35,
+      0.0,
+      -0.0,
+      0.010176,
+      0.999948
+    ],
+    "3": null,
+    "4": [
+      3.5,
+      1.35,
+      0.35,
+      0.0,
+      0.0,
+      -0.0,
+      1.0
+    ]
+  },
+  "routes": [
+    {
+      "route_id": "A_to_B_empty",
+      "loaded": false,
+      "state": "DONE",
+      "lanes": [
+        "agv_lane_west"
+      ]
+    },
+    {
+      "route_id": "A_to_D_empty",
+      "loaded": false,
+      "state": "DONE",
+      "lanes": [
+        "agv_lane_west",
+        "agv_lane_south",
+        "agv_lane_east"
+      ]
+    },
+    {
+      "route_id": "B_to_A_loaded",
+      "loaded": true,
+      "state": "DONE",
+      "lanes": [
+        "agv_lane_west"
+      ]
+    },
+    {
+      "route_id": "D_to_E_loaded",
+      "loaded": true,
+      "state": "DONE",
+      "lanes": [
+        "agv_lane_east"
+      ]
+    }
+  ],
+  "events_by_uid": {
+    "1": [
+      {
+        "kind": "MATERIAL_SPAWN",
+        "task_id": "",
+        "item_type": "RAW_A",
+        "zone": "line_s1a",
+        "source": "S1:A",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "RAW_A",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "a_conveyor",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "RAW_A",
+        "zone": "line_s1a",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "a_conveyor",
+          "source": "conveyor",
+          "sink": "station",
+          "line": "line_s1a"
+        }
+      },
+      {
+        "kind": "MATERIAL_CREATED",
+        "task_id": "",
+        "item_type": "RAW_A",
+        "zone": "line_s1a",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "line_s1a",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "from": "RAW_A",
+          "to": "SEMI_AC"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "from": "line_s1a"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "RAW_A",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "a_conveyor_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "line_s1a",
+        "destination": "handoff_ac",
+        "detail": {
+          "task_kind": "a_conveyor"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "c_handoff",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "c_handoff",
+          "source": "station",
+          "sink": "conveyor",
+          "line": "line_ce"
+        }
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "handoff_ac",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "from": "SEMI_AC",
+          "to": "SEMI_CE"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "from": "handoff_ac"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_AC",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "c_handoff_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "handoff_ac",
+        "destination": "line_ce",
+        "detail": {
+          "task_kind": "c_handoff"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "e_conveyor_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_conveyor",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "e_conveyor_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_conveyor",
+          "source": "conveyor",
+          "sink": "station",
+          "line": "line_ce"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "e_conveyor_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "buffer_e_c",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "from": "line_ce"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "e_conveyor_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "e_conveyor_uid1",
+        "item_type": "SEMI_CE",
+        "zone": "buffer_e_c",
+        "source": "line_ce",
+        "destination": "buffer_e_c",
+        "detail": {
+          "task_kind": "e_conveyor"
+        }
+      },
+      {
+        "kind": "MATERIAL_CONSUMED",
+        "task_id": "join_e",
+        "item_type": "SEMI_CE",
+        "zone": "buffer_e_c",
+        "source": "line_s1a",
+        "destination": "",
+        "detail": {
+          "pair_key": "1+3",
+          "final_uid": 4
+        }
+      }
+    ],
+    "2": [
+      {
+        "kind": "MATERIAL_SPAWN",
+        "task_id": "",
+        "item_type": "RAW_B",
+        "zone": "line_s1b",
+        "source": "S1:B",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "RAW_B",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "b_conveyor",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "reposition_uid2_toB_leg1",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "reposition_uid2_toB_leg1",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "B",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "ROUTE_START",
+        "task_id": "reposition_uid2_toB_leg1",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "B",
+        "detail": {
+          "route_id": "A_to_B_empty",
+          "loaded": false,
+          "lanes": [
+            "agv_lane_west"
+          ]
+        }
+      },
+      {
+        "kind": "MATERIAL_CREATED",
+        "task_id": "",
+        "item_type": "RAW_B",
+        "zone": "line_s1b",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "ROUTE_DONE",
+        "task_id": "reposition_uid2_toB_leg1",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "B",
+        "detail": {
+          "loaded": false
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "reposition_uid2_toB_leg1",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "RAW_B",
+        "zone": "line_s1b",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "b_conveyor",
+          "source": "conveyor",
+          "sink": "agv",
+          "line": "line_s1b"
+        }
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "line_s1b",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "RAW_B",
+          "to": "SEMI_AB"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "agv",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "line_s1b"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "RAW_B",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "b_conveyor_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "agv",
+        "source": "line_s1b",
+        "destination": "agv",
+        "detail": {
+          "task_kind": "b_conveyor"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "transport_ba_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "transport_ba",
+          "priority": 0
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "transport_ba_uid2",
+        "item_type": "",
+        "zone": "",
+        "source": "B",
+        "destination": "A",
+        "detail": {
+          "kind": "transport_ba"
+        }
+      },
+      {
+        "kind": "ROUTE_START",
+        "task_id": "transport_ba_uid2",
+        "item_type": "",
+        "zone": "",
+        "source": "B",
+        "destination": "A",
+        "detail": {
+          "route_id": "B_to_A_loaded",
+          "loaded": true,
+          "lanes": [
+            "agv_lane_west"
+          ]
+        }
+      },
+      {
+        "kind": "ROUTE_DONE",
+        "task_id": "transport_ba_uid2",
+        "item_type": "",
+        "zone": "",
+        "source": "B",
+        "destination": "A",
+        "detail": {
+          "loaded": true
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "transport_ba_uid2",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "a_agv",
+          "priority": 0
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "agv",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "a_agv",
+          "source": "agv",
+          "sink": "station",
+          "line": "line_s1a"
+        }
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "agv",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "SEMI_AB",
+          "to": "SEMI_AC"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "agv"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AB",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "a_agv_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "agv",
+        "destination": "handoff_ac",
+        "detail": {
+          "task_kind": "a_agv"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "c_handoff",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "c_handoff",
+          "source": "station",
+          "sink": "conveyor",
+          "line": "line_ce"
+        }
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "handoff_ac",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "SEMI_AC",
+          "to": "SEMI_CE"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "handoff_ac"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_AC",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "c_handoff_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "handoff_ac",
+        "destination": "line_ce",
+        "detail": {
+          "task_kind": "c_handoff"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "e_conveyor_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_conveyor",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "e_conveyor_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "line_ce",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_conveyor",
+          "source": "conveyor",
+          "sink": "station",
+          "line": "line_ce"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "e_conveyor_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "buffer_e_c",
+        "source": "line_s1b",
+        "destination": "",
+        "detail": {
+          "from": "line_ce"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "e_conveyor_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "e_conveyor_uid2",
+        "item_type": "SEMI_CE",
+        "zone": "buffer_e_c",
+        "source": "line_ce",
+        "destination": "buffer_e_c",
+        "detail": {
+          "task_kind": "e_conveyor"
+        }
+      }
+    ],
+    "3": [
+      {
+        "kind": "MATERIAL_SPAWN",
+        "task_id": "",
+        "item_type": "RAW_D",
+        "zone": "line_s2d",
+        "source": "S2:D",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "RAW_D",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "d_conveyor",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "MATERIAL_CREATED",
+        "task_id": "",
+        "item_type": "RAW_D",
+        "zone": "line_s2d",
+        "source": "line_s2d",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "reposition_uid3_toD_leg2",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "reposition_uid3_toD_leg2",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "D",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "ROUTE_START",
+        "task_id": "reposition_uid3_toD_leg2",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "D",
+        "detail": {
+          "route_id": "A_to_D_empty",
+          "loaded": false,
+          "lanes": [
+            "agv_lane_west",
+            "agv_lane_south",
+            "agv_lane_east"
+          ]
+        }
+      },
+      {
+        "kind": "ROUTE_DONE",
+        "task_id": "reposition_uid3_toD_leg2",
+        "item_type": "",
+        "zone": "",
+        "source": "A",
+        "destination": "D",
+        "detail": {
+          "loaded": false
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "reposition_uid3_toD_leg2",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "reposition"
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "RAW_D",
+        "zone": "line_s2d",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "d_conveyor",
+          "source": "conveyor",
+          "sink": "agv",
+          "line": "line_s2d"
+        }
+      },
+      {
+        "kind": "MATERIAL_PROCESS",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "PART_DE",
+        "zone": "line_s2d",
+        "source": "line_s2d",
+        "destination": "",
+        "detail": {
+          "from": "RAW_D",
+          "to": "PART_DE"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "PART_DE",
+        "zone": "agv",
+        "source": "line_s2d",
+        "destination": "",
+        "detail": {
+          "from": "line_s2d"
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "RAW_D",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "d_conveyor_uid3",
+        "item_type": "PART_DE",
+        "zone": "agv",
+        "source": "line_s2d",
+        "destination": "agv",
+        "detail": {
+          "task_kind": "d_conveyor"
+        }
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "transport_de_uid3",
+        "item_type": "PART_DE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "transport_de",
+          "priority": 1
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "transport_de_uid3",
+        "item_type": "",
+        "zone": "",
+        "source": "D",
+        "destination": "E",
+        "detail": {
+          "kind": "transport_de"
+        }
+      },
+      {
+        "kind": "ROUTE_START",
+        "task_id": "transport_de_uid3",
+        "item_type": "",
+        "zone": "",
+        "source": "D",
+        "destination": "E",
+        "detail": {
+          "route_id": "D_to_E_loaded",
+          "loaded": true,
+          "lanes": [
+            "agv_lane_east"
+          ]
+        }
+      },
+      {
+        "kind": "ROUTE_DONE",
+        "task_id": "transport_de_uid3",
+        "item_type": "",
+        "zone": "",
+        "source": "D",
+        "destination": "E",
+        "detail": {
+          "loaded": true
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "transport_de_uid3",
+        "item_type": "",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "TASK_CREATED",
+        "task_id": "e_agv_uid3",
+        "item_type": "PART_DE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_agv",
+          "priority": 0
+        }
+      },
+      {
+        "kind": "TASK_START",
+        "task_id": "e_agv_uid3",
+        "item_type": "PART_DE",
+        "zone": "agv",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "kind": "e_agv",
+          "source": "agv",
+          "sink": "station",
+          "line": "line_ce"
+        }
+      },
+      {
+        "kind": "MATERIAL_MOVE",
+        "task_id": "e_agv_uid3",
+        "item_type": "PART_DE",
+        "zone": "buffer_e_d",
+        "source": "line_s2d",
+        "destination": "",
+        "detail": {
+          "from": "agv"
+        }
+      },
+      {
+        "kind": "MATERIAL_CONSUMED",
+        "task_id": "join_e",
+        "item_type": "PART_DE",
+        "zone": "buffer_e_d",
+        "source": "line_s2d",
+        "destination": "",
+        "detail": {
+          "pair_key": "1+3",
+          "final_uid": 4
+        }
+      },
+      {
+        "kind": "TASK_DONE",
+        "task_id": "e_agv_uid3",
+        "item_type": "PART_DE",
+        "zone": "",
+        "source": "",
+        "destination": "",
+        "detail": {}
+      },
+      {
+        "kind": "MATERIAL_PLACE",
+        "task_id": "e_agv_uid3",
+        "item_type": "PART_DE",
+        "zone": "buffer_e_d",
+        "source": "agv",
+        "destination": "buffer_e_d",
+        "detail": {
+          "task_kind": "e_agv"
+        }
+      }
+    ],
+    "4": [
+      {
+        "kind": "MATERIAL_CREATED",
+        "task_id": "",
+        "item_type": "FINAL",
+        "zone": "output_e",
+        "source": "E",
+        "destination": "output_e",
+        "detail": {}
+      },
+      {
+        "kind": "JOIN_COMMIT",
+        "task_id": "join_e",
+        "item_type": "FINAL",
+        "zone": "output_e",
+        "source": "E",
+        "destination": "output_e",
+        "detail": {
+          "pair_key": "1+3",
+          "semi_uid": 1,
+          "part_uid": 3,
+          "final_uid": 4
+        }
+      },
+      {
+        "kind": "FINAL_CREATED",
+        "task_id": "",
+        "item_type": "FINAL",
+        "zone": "output_e",
+        "source": "",
+        "destination": "",
+        "detail": {
+          "parents": [
+            1,
+            3
+          ],
+          "pair_key": "1+3"
+        }
+      }
+    ]
+  }
+}

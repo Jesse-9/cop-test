@@ -116,6 +116,11 @@ def test_contract_extra_is_stable_and_complete():
         cfg.JOIN_INPUTS)
     assert first["resources"]["order"] == list(cfg.RESOURCE_ORDER)
     assert first["task_flow"]["kinds"] == list(cfg.TASK_KINDS)
+    assert first["task_flow"]["process_model_version"] == \
+        "stage4_process_20261102"
+    assert first["task_flow"]["recipe_id"] == "mixed_line_v1"
+    assert any("housing_direct" in line
+               for line in first["task_flow"]["process_routes"])
     assert set(first["acceptance"]["scenarios"]) == set(cfg.STAGE4_SCENARIOS)
     assert first["agv_route"]["loaded_routes"] == ["B_to_A", "D_to_E"]
 

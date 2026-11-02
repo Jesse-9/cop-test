@@ -1,0 +1,76 @@
+{
+  "timestamp": "20261102_182219",
+  "run_id": "run_20261102_182200_8d3557",
+  "artifact_id": "stage4/L5_UFLOW/v004_20261029_133249",
+  "phase": "stage4",
+  "scenario": "full_flow",
+  "fault": "none",
+  "layout": "L5_UFLOW",
+  "results": [
+    {
+      "scenario": "full_flow",
+      "error": "逻辑合流工序 'kit_join' 不创建 Stage4Task",
+      "ok": false
+    }
+  ],
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 320,
+      "failed": []
+    },
+    "leftover": []
+  },
+  "all_ok": false
+}

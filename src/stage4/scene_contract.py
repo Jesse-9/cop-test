@@ -27,6 +27,8 @@ from stage3.scene_contract import (stage3_config_digest,
                                    sanitize_manifest_sections as s3_sanitize)
 
 from . import config as cfg
+from .default_process import (DEFAULT_RECIPE_ID, PROCESS_MODEL_VERSION,
+                              default_catalog)
 from .layout import (Stage4Layout, default_layout, layout_from_dict,
                      validate_layout)
 
@@ -161,6 +163,9 @@ def build_stage4_extra(*, sim=None, scene=None, parent_info=None,
         "flow": list(cfg.TASK_FLOW),
         "kinds": list(cfg.TASK_KINDS),
         "priority": dict(cfg.TASK_PRIORITY),
+        "process_model_version": PROCESS_MODEL_VERSION,
+        "recipe_id": DEFAULT_RECIPE_ID,
+        "process_routes": default_catalog().route_lines(),
         "starvation_upgrade_s": cfg.D_E_STARVATION_UPGRADE_S,
         "preemption": False,
         "duplicate_policy": cfg.DUPLICATE_REQUEST_POLICY,
@@ -431,6 +436,12 @@ def validate_stage4_contract(sim, artifact, scene=None) -> dict:
     _check(checks, "stage4_task_kinds",
            set(flow.get("kinds") or ()) == set(cfg.TASK_KINDS),
            f"saved={flow.get('kinds')}")
+    saved_process_version = flow.get("process_model_version")
+    if saved_process_version is not None:
+        _check(checks, "stage4_process_model_version",
+               saved_process_version == PROCESS_MODEL_VERSION,
+               f"saved={saved_process_version!r} "
+               f"current={PROCESS_MODEL_VERSION!r}")
 
     index = _resolve_aliases(sim)
     for alias in cfg.REQUIRED_ALIASES:
