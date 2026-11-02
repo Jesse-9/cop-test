@@ -22,6 +22,10 @@
 - [SUCTION_PAD_MOUNT_REVIEW.md](SUCTION_PAD_MOUNT_REVIEW.md)：吸盘安装审查、证据和修改记录。
 - 阶段级设计方案维护在 [wiki/06-工业案例](../wiki/06-工业案例/)；全局实施顺序见 [06-05 分阶段执行步骤](../wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md)。
 
+## 运行录制与视频
+
+- [RECORDINGS_REPORT.md](RECORDINGS_REPORT.md)：阶段一至四不同 target/scenario/fault 的录制清单、机位、未完成项与复现命令。视频位于 `runs/recordings/`（Git 忽略），逐条索引见该目录 `INDEX.md`。
+
 ## 证据与运行输出
 
 - [evidence/](evidence/)：仅存放被正式报告引用、需要随版本追溯的 JSON/JSONL 证据副本；文件名保留原始时间戳。清单见 [evidence/README.md](evidence/README.md)。
