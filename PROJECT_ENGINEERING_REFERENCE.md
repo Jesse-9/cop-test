@@ -1238,3 +1238,12 @@ S1→B / S2→D / C→E 三条物流线、S2 仓库、A→C 固定交接、E 岛
     托盘摩擦会同时影响全部路线的 BLOCKED 语义与既有证据, 属于
     后续控制优化; 4.1 的停机验收改用 `conveyor_fault` 停带场景,
     并保留 `agv_blocked` 的 B→A 续行与 D→E 滑移冻结证据。
+
+68. **禁止用 GUI 的 File > Save Scene 覆盖工件目录 (2026-10-30 实测)**:
+    阶段四运行后在 CoppeliaSim GUI 直接保存到
+    `docs/scene_artifacts/stage4/.../scene.ttt`, 会把会话资源
+    `Shadow_UR5_01..05` 等写进场景 (对象数 684, 文件从 2.80 MB 增至
+    3.17 MB), 与 manifest 的 `artifact.sha256` 不符; 之后 `load`/`start`
+    报“场景文件摘要不匹配”。工件只能通过 lifecycle `save` 写入
+    (会剥离会话对象并生成新版本/新摘要); 误存时先从 Git 恢复原文件,
+    并保留误存副本 (本次副本在 `docs/implementation/runs/diag/`)。

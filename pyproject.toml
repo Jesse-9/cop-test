@@ -39,4 +39,5 @@ package = true
 dev = [
     "pytest>=9.1.1",
     "pywinpty>=3.1.0",
+    "imageio-ffmpeg>=0.7.0",
 ]

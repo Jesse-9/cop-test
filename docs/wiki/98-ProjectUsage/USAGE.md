@@ -141,6 +141,52 @@ sim_version: "4.10+"
 `preview_stage4_layout.py --layout <json>` 可以读取候选布局文件
 （`Stage4Layout.as_dict()` 的 JSON），用于在冻结坐标前检查同一份配置。
 
+## 录制仿真运行过程
+
+`tools/record_stage.py` 在真实阶段运行中同步录制 MP4：工具先确认仿真处于停止态，
+再以子进程启动对应阶段的 CLI runner；等 runner 完成加载/启动点校验并开始
+stepping 后，才在场景中创建一台临时 vision sensor（`RecordingCamera`）抓帧，
+通过 `imageio-ffmpeg` 自带的 ffmpeg 编码为 H.264。录制相机不会写入场景工件，
+录制结束（runner 停止仿真）后自动移除。
+
+    .venv/Scripts/python.exe tools/record_stage.py --stage 1
+    .venv/Scripts/python.exe tools/record_stage.py --stage 2
+    .venv/Scripts/python.exe tools/record_stage.py --stage 3
+    .venv/Scripts/python.exe tools/record_stage.py --stage 4
+
+默认输出到 `docs/implementation/runs/recordings/stageN_<mode>_<stamp>.mp4`，
+同名 `.json` 记录机位、抽帧间隔、仿真时长/视频时长与帧统计，`.log` 是本次
+阶段 runner 的日志。`<mode>` 为 target 或 scenario；注入故障时追加
+`_fault_<fault>`。各阶段默认机位与抽帧间隔（20 fps 固定帧率）：
+
+| 阶段 / 条件 | 相机（位置 → 目标，视场角） | 抽帧间隔 | 播放速度 |
+|---|---|---|---|
+| 1 `station` 及无 AGV 故障 | (2.00, -1.75, 1.60) → (-0.25, 0.65, 0.45)，45° | 0.05 s | 1x |
+| 1 `agv`/`both`/`agv_blocked` | (2.55, -2.25, 1.85) → (-0.10, 0.60, 0.42)，48° | 0.05 s | 1x |
+| 2 `station` 及 `runtime_obstacle` | (2.05, 2.75, 1.95) → (-0.20, 0.45, 0.38)，50° | 0.10 s | 2x |
+| 2 `agv`/`both` | (2.55, -2.25, 1.85) → (-0.10, 0.60, 0.42)，48° | 0.10 s | 2x |
+| 3 全部场景 | (2.30, -3.10, 2.05) → (-0.30, 0.05, 0.35)，46° | 0.10 s | 2x |
+| 4 全部场景 | (2.80, -4.80, 3.30) → (1.05, -0.05, 0.35)，52° | 0.15 s | 3x |
+
+可选参数：`--out` 指定输出文件，`--target`/`--scenario`/`--fault` 切换运行
+条件，`--time` 覆盖单次运行仿真时长上限，`--sample-dt`/`--fps` 调整抽帧与
+帧率，`--fov`/`--cam-pos`/`--cam-target` 覆盖机位。录制依赖
+`imageio-ffmpeg`（已列入 dev 依赖组，`uv sync --group dev` 后可用）。
+
+批量覆盖各阶段条件（默认跳过已存在的同名视频，`--force` 重录）：
+
+    .venv/Scripts/python.exe tools/record_stage_matrix.py
+    .venv/Scripts/python.exe tools/record_stage_matrix.py --stage 3 4
+    .venv/Scripts/python.exe tools/record_stage_matrix.py --only stage4_full_flow
+
+条件矩阵：阶段一 `station`/`agv`/`both` + `ik_unreachable`/`no_target`/
+`uid_mismatch`/`sensor_disabled`/`agv_blocked`/`release_unstable` 六个故障；
+阶段二 `station`/`agv`/`both` + `runtime_obstacle`；阶段三 5 个场景；阶段四
+6 个场景。故障/异常场景的运行可能按设计以 `all_ok=false` 结束，视频仍会
+完整录制，runner 退出码记录在同名 `.json` 中。已录制视频的逐条说明见
+`docs/implementation/runs/recordings/INDEX.md`（运行产物目录，不入库）；
+汇总报告见 [录制报告](../../implementation/RECORDINGS_REPORT.md)。
+
 ## 手动操作生命周期
 
 首次显式构建和保存阶段一工件：
