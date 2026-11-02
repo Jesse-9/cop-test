@@ -169,8 +169,9 @@
   `stage4/L5_UFLOW/v004_20261029_133249`，父
   `stage3/L2_MIRROR/v008_20261029_112305`，契约
   `stage4_contract_20261029_v2`）：
-  - `stage4_layout_L5_UFLOW_preview.svg` — 从最终 `Stage4Layout` 配置
-    生成的俯视预览（设备、固定物流、AGV 直道/转向节点、dock、datum）；
+  - `stage4_layout_L5_UFLOW_preview.svg` / `stage4_layout_L5_UFLOW_preview_en.svg` —
+    从最终 `Stage4Layout` 配置生成的中文/英文俯视预览；文字置于绘图区外的图例栏，
+    并分别使用宋体与 Times New Roman；
   - `stage4_layout_20261029_L5_UFLOW.json` — 静态筛选 274 项、场景契约
     187 项、五臂 13 个目标的多解种子 IK 与当前场景只读测量；
   - `scene_validation_stage4_L5_UFLOW_v004_20261029_133249_20261029_133359.json`

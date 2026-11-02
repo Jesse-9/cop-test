@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import math
 import sys
@@ -31,9 +32,10 @@ from stage4 import config as cfg
 from stage4.layout import (agv_turn_radius, default_layout, layout_from_dict,
                            line_specs)
 
-W = 1200
-H = 900
-MARGIN = 70
+W = 1600
+H = 1100
+PLOT = (70, 125, 1100, 880)  # x, y, width, height
+SIDEBAR_X = 1210
 
 
 def _load_layout(path: str | None):
@@ -47,16 +49,19 @@ class Canvas:
     def __init__(self, layout) -> None:
         floor = layout.floor_rect
         self.floor = floor
-        self.scale = min((W - 2 * MARGIN) / (floor[2] - floor[0]),
-                         (H - 2 * MARGIN) / (floor[3] - floor[1]))
+        inset = 45
+        self.scale = min((PLOT[2] - 2 * inset) / (floor[2] - floor[0]),
+                         (PLOT[3] - 2 * inset) / (floor[3] - floor[1]))
         self.ox = floor[0]
         self.oy = floor[1]
         self.height = floor[3] - floor[1]
+        self.plot_x = PLOT[0] + inset
+        self.plot_y = PLOT[1] + inset
         self.parts: list[str] = []
 
     def px(self, x: float, y: float) -> tuple[float, float]:
-        return (MARGIN + (x - self.ox) * self.scale,
-                MARGIN + (self.height - (y - self.oy)) * self.scale)
+        return (self.plot_x + (x - self.ox) * self.scale,
+                self.plot_y + (self.height - (y - self.oy)) * self.scale)
 
     def rect(self, rect, *, fill="none", stroke="#333", width=1.0,
              dash=None, opacity=1.0, label="", label_size=11,
@@ -122,99 +127,140 @@ class Canvas:
             f'text-anchor="{anchor}" fill="{color}" '
             f'font-weight="{weight}">{text}</text>')
 
-    def render(self, title: str, notes: list[str]) -> str:
+    def render(self, layout, language: str, notes: list[str], legend: list[tuple[str, str]]) -> str:
+        zh = language == "zh"
+        title = (f"阶段 4.1｜布局 {layout.name}｜俯视图" if zh
+                 else f"Stage 4.1 | Layout {layout.name} | Top View")
+        subtitle = ("五岛工作单元、固定物流与外围 AGV 路网" if zh
+                    else "Five work cells, fixed conveyors and perimeter AGV routes")
+        font = "'SimSun', '宋体', serif" if zh else "'Times New Roman', Times, serif"
+        esc = html.escape
         head = (
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" '
-            f'height="{H}" viewBox="0 0 {W} {H}">'
+            f'height="{H}" viewBox="0 0 {W} {H}" lang="{language}">'
             '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" '
             'refY="5" markerWidth="6" markerHeight="6" orient="auto">'
-            '<path d="M 0 0 L 10 5 L 0 10 z" fill="#666"/></marker></defs>'
-            f'<rect width="{W}" height="{H}" fill="#fbfbf7"/>')
-        title_svg = (f'<text x="{MARGIN}" y="34" font-size="20" '
-                     f'font-weight="bold" fill="#111">{title}</text>')
+            '<path d="M 0 0 L 10 5 L 0 10 z" fill="#526477"/></marker></defs>'
+            f'<rect width="{W}" height="{H}" fill="#f7f8fa"/>')
+        title_svg = (
+            f'<text x="70" y="48" font-family="{font}" font-size="28" '
+            f'font-weight="bold" fill="#182433">{esc(title)}</text>'
+            f'<text x="70" y="82" font-family="{font}" font-size="17" '
+            f'fill="#526477">{esc(subtitle)}</text>')
         body = "".join(self.parts)
-        note_svg = "".join(
-            f'<text x="{W - MARGIN}" y="{H - 20 - i * 16}" font-size="11" '
-            f'text-anchor="end" fill="#333">{line}</text>'
-            for i, line in enumerate(reversed(notes)))
-        return head + title_svg + body + note_svg + "</svg>"
+        sidebar = [
+            f'<rect x="1165" y="120" width="365" height="900" rx="4" '
+            'fill="#ffffff" stroke="#d3dbe4" stroke-width="1.5"/>',
+            f'<text x="1195" y="158" font-family="{font}" font-size="21" '
+            f'font-weight="bold" fill="#182433">{("图例与布局说明" if zh else "LEGEND &amp; LAYOUT")}</text>',
+        ]
+        y = 200
+        for heading, entries in legend:
+            sidebar.append(
+                f'<text x="1195" y="{y}" font-family="{font}" font-size="16" '
+                f'font-weight="bold" fill="#26384a">{esc(heading)}</text>')
+            y += 27
+            for entry in entries:
+                sidebar.append(
+                    f'<text x="1195" y="{y}" font-family="{font}" font-size="14" '
+                    f'fill="#354556">{esc(entry)}</text>')
+                y += 24
+            y += 12
+        y += 2
+        sidebar.append(
+            f'<line x1="1195" y1="{y}" x2="1500" y2="{y}" '
+            'stroke="#d3dbe4" stroke-width="1"/>')
+        y += 28
+        sidebar.append(
+            f'<text x="1195" y="{y}" font-family="{font}" font-size="14" '
+            f'font-weight="bold" fill="#26384a">{("高度基准" if zh else "HEIGHT DATUM")}</text>')
+        y += 24
+        for note in notes:
+            sidebar.append(
+                f'<text x="1195" y="{y}" font-family="{font}" font-size="13" '
+                f'fill="#354556">{esc(note)}</text>')
+            y += 22
+        footer = ("本图用于查看空间关系；不代表 IK 或碰撞验证结果。" if zh
+                  else "Spatial overview only; not IK or collision evidence.")
+        sidebar.append(
+            f'<text x="70" y="1065" font-family="{font}" font-size="14" '
+            f'fill="#526477">{esc(footer)}</text>')
+        return head + title_svg + body + "".join(sidebar) + "</svg>"
 
 
-def build_svg(layout) -> str:
+def build_svg(layout, language: str = "en") -> str:
+    zh = language == "zh"
     canvas = Canvas(layout)
     floor = layout.floor_rect
-    canvas.rect(floor, fill="#f0efe8", stroke="#aaa", label="Floor")
+    canvas.rect(floor, fill="#f1f4f6", stroke="#aab6c2", width=1.5)
 
     # 设备
     for spec in layout.units:
-        canvas.rect(spec.island_rect, fill="#cfd8e3", stroke="#445",
-                    label=f"Island {spec.unit_id}")
-        if spec.unit_id == "A":
-            canvas.text(spec.island_pos[0], spec.island_pos[1] + 0.42,
-                        f"base ({spec.arm_base[0]:.2f}, "
-                        f"{spec.arm_base[1]:.2f}, {spec.arm_base[2]:.2f})",
-                        size=9, color="#223", anchor="middle")
+        canvas.rect(spec.island_rect, fill="#dce6ef", stroke="#536b80", width=1.5)
         if spec.has_station:
-            canvas.rect(spec.station_rect, fill="#e8dcc8", stroke="#665",
-                        label=f"Stn {spec.unit_id}")
+            canvas.rect(spec.station_rect, fill="#f4e7d3", stroke="#9b7952",
+                        width=1.3)
         if spec.dock_rect is not None:
-            canvas.rect(spec.dock_rect, fill="#ffe9b8", stroke="#b80",
-                        dash="5,3", label=f"dock {spec.unit_id}")
+            canvas.rect(spec.dock_rect, fill="#fff0cb", stroke="#bd8424",
+                        width=1.5, dash="5,3")
 
-    canvas.rect(layout.warehouse_rect, fill="#d8e8d8", stroke="#365",
-                label="WH S1")
-    canvas.rect(layout.warehouse_s2_rect, fill="#d8e8d8", stroke="#365",
-                label="WH S2")
+    canvas.rect(layout.warehouse_rect, fill="#e1eee4", stroke="#527b5b", width=1.3)
+    canvas.rect(layout.warehouse_s2_rect, fill="#e1eee4", stroke="#527b5b", width=1.3)
 
     lines = layout.lines
     for line_id, line in lines.items():
         canvas.rect(line.rect, fill="#ddeef2", stroke="#2a7", width=1.6)
-        canvas.line(line.entry, line.stop, stroke="#178", width=2.0,
-                    label=line_id, label_size=9, label_color="#145")
-        canvas.point(line.entry, color="#178", radius=2.5,
-                     label="entry", label_size=8, label_color="#145")
-        canvas.point(line.stop, color="#178", radius=2.5,
-                     label="stop", label_size=8, label_color="#145")
+        canvas.line(line.entry, line.stop, stroke="#167b89", width=2.5)
+        canvas.point(line.entry, color="#167b89", radius=3)
+        canvas.point(line.stop, color="#167b89", radius=3)
 
     # 固定交接 / E 缓冲 / 输出
     handoff = layout.handoff_ac
-    canvas.point(handoff, color="#a0a", radius=5, label="A→C handoff")
-    for key, pos in layout.buffers.items():
-        canvas.point(pos, color="#960", radius=4, label=key)
-    canvas.rect(layout.e_output_table_rect, fill="#e8e4d8", stroke="#665",
-                label="E output table")
-    canvas.point(layout.e_output, color="#690", radius=4, label="E output")
+    canvas.point(handoff, color="#9a5793", radius=5)
+    for pos in layout.buffers.values():
+        canvas.point(pos, color="#c27a28", radius=4)
+    canvas.rect(layout.e_output_table_rect, fill="#eeeae0", stroke="#786d59", width=1.3)
+    canvas.point(layout.e_output, color="#56864a", radius=4)
 
     # AGV 路网
     for edge in layout.agv_edges:
         a = layout.agv_nodes[edge.start]
         b = layout.agv_nodes[edge.end]
-        canvas.line(a, b, stroke="#995", width=3.0, dash="9,5",
-                    label=edge.lane.replace("agv_lane_", ""),
-                    label_color="#663")
+        canvas.line(a, b, stroke="#bc832c", width=3.5, dash="9,5")
     radius = agv_turn_radius()
     for node in layout.agv_turn_nodes:
         center = layout.agv_nodes[node]
         canvas.circle(center, radius, stroke="#c60", width=1.2)
-        canvas.point(center, color="#c60", radius=3.5, label=node,
-                     label_color="#840")
+        canvas.point(center, color="#c60", radius=3.5)
     canvas.point(layout.agv_nodes[layout.agv_initial_dock],
-                 color="#b00", radius=5,
-                 label=f"AGV start {layout.agv_initial_dock}")
+                 color="#b34747", radius=5)
 
     datum = layout.height_datum
-    notes = [
-        f"Z_base={datum.get('Z_base')} m;  Z_belt={datum.get('Z_belt')} m;  "
-        f"H_transfer={datum.get('H_transfer')} m",
-        "Z_work: " + ", ".join(f"{key}={value}"
-                               for key, value in
-                               (datum.get("Z_work") or {}).items()),
-        "preview 只检查空间关系, 不是 IK/碰撞证据; 数据来自 "
-        f"{layout.name} 配置",
-    ]
-    title = (f"Stage 4.1 layout {layout.name} — top view "
-             f"(AGV docks non-collinear, U-shaped fixed flow)")
-    return canvas.render(title, notes)
+    if zh:
+        legend = [
+            ("设备与工位", ["蓝灰块：工作岛 A–E", "浅棕块：工位台 A/B", "虚线黄框：AGV 停靠点 A/B/D/E", "浅绿块：原料仓 S1/S2"]),
+            ("固定物流与物料点", ["青色线：传送带 S1→A、S1→B、S2→D、C→E", "紫色点：A→C 交接点", "橙色点：E 岛缓冲区 C/D", "绿色点：成品输出；灰色块：输出台"]),
+            ("AGV 路网", ["橙色虚线：外围 U 形路网（西/南/东）", "橙色圆点：转向节点 J_SW/J_SE", "红色点：AGV 初始停靠位置 A", "箭头表示传送带方向及路段方向"]),
+        ]
+        notes = [
+            f"基座 Z_base：{datum.get('Z_base')} m",
+            f"带面 Z_belt：{datum.get('Z_belt')} m",
+            f"转运高度 H_transfer：{datum.get('H_transfer')} m",
+            "工作面 Z_work：A/B/E=0.30 m；C/D=0.45 m",
+        ]
+    else:
+        legend = [
+            ("Equipment & cells", ["Blue-gray blocks: islands A-E", "Sand blocks: stations A/B", "Dashed amber: AGV docks A/B/D/E", "Green blocks: warehouses S1/S2"]),
+            ("Conveyors & material points", ["Teal lines: S1→A, S1→B, S2→D, C→E", "Purple point: A→C handoff", "Orange points: E buffers C/D", "Green point: finished output; gray block: output table"]),
+            ("AGV network", ["Dashed amber: perimeter U-shaped lanes", "Orange nodes: turns J_SW/J_SE", "Red point: AGV initial dock A", "Arrows show conveyor and lane directions"]),
+        ]
+        notes = [
+            f"Base Z_base: {datum.get('Z_base')} m",
+            f"Belt Z_belt: {datum.get('Z_belt')} m",
+            f"Transfer height H_transfer: {datum.get('H_transfer')} m",
+            "Work surfaces Z_work: A/B/E=0.30 m; C/D=0.45 m",
+        ]
+    return canvas.render(layout, language, notes, legend)
 
 
 def main(argv=None) -> int:
@@ -222,12 +268,15 @@ def main(argv=None) -> int:
     ap.add_argument("--layout", default=None,
                     help="候选布局 JSON (layout.as_dict())")
     ap.add_argument("--out", default=None, help="输出 SVG 路径")
+    ap.add_argument("--lang", choices=("en", "zh"), default="zh",
+                    help="输出语言（英文或中文）")
     ns = ap.parse_args(argv)
     layout = _load_layout(ns.layout)
-    svg = build_svg(layout)
+    svg = build_svg(layout, ns.lang)
+    default_name = (f"stage4_layout_{layout.name}_preview.svg" if ns.lang == "zh"
+                    else f"stage4_layout_{layout.name}_preview_en.svg")
     out = Path(ns.out) if ns.out else Path(
-        "docs", "implementation", "evidence",
-        f"stage4_layout_{layout.name}_preview.svg")
+        "docs", "implementation", "evidence", default_name)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(svg, encoding="utf-8")
     print(f"[OK] 写入 {out}")
