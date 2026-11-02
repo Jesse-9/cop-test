@@ -2,7 +2,7 @@
 
 **执行日期**: 2026-10-17
 **分支**: `codex/flexible-workshop-phase1`
-**规范来源**: [06-05-柔性工业车间分阶段执行步骤](../wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) §2
+**规范来源**: [06-05-柔性工业车间分阶段执行步骤](../wiki/06-工业案例/柔性车间/历史与待评估规划/06-05-柔性工业车间分阶段执行步骤.md) §2
 **参数基线**: [PHASE0_BASELINE.md](PHASE0_BASELINE.md) / [phase0_measurements.json](../measurement/phase0_measurements.json)
 
 > **2026-10-20 工具安装修正**：suction pad 的安装方向与 TCP 局部姿态已按

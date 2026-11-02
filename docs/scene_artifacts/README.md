@@ -63,7 +63,7 @@ git 历史。`current.json` 指向 v002, 阶段二必须从 v002 派生。
 - 报告: [`PHASE2_REPORT.md`](../implementation/PHASE2_REPORT.md)、
   [`PHASE2_01_REPORT.md`](../implementation/PHASE2_01_REPORT.md)、
   [`PHASE2_02_REPORT.md`](../implementation/PHASE2_02_REPORT.md)、
-  [06-15 方案](../wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md)
+  [06-15 方案](../wiki/06-工业案例/柔性车间/历史与待评估规划/06-15-柔性工业车间水平带载转运与放置下探修改方案.md)
 
 影子臂/碰撞集合/载荷副本是会话资源, 不进入 `scene.ttt`; 保存和只读校验
 会拒绝持久化的 `Shadow_*` 对象。阶段二 `save` 在写入前剥离会话句柄,
