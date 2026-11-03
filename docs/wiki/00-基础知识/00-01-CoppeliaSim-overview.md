@@ -65,7 +65,7 @@ while (t := sim.getSimulationTime()) < 3:
 sim.stopSimulation()
 ```
 
-这正是本仓库 `factory_core.py` 的时钟主导者模式（Python 端 `sim.setStepping(True)` 后逐帧 `sim.step()` 推进 `SIM_STEP`）所遵循的官方做法。
+这正是本仓库 v1 运行器的时钟主导者模式（Python 端 `sim.setStepping(True)` 后逐帧 `sim.step()` 推进 `SIM_STEP`）所遵循的官方做法。
 
 ## 核心功能模块
 

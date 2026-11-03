@@ -42,7 +42,7 @@ list objects = sim.getObjectsInTree(int treeBaseHandle, int objectType = sim.han
 
 ## 注意事项
 
-仿真未启动或子树中含不可查询对象时，本函数可能抛 `"Operation cannot be accomplished in current state"`。本仓库 `RobotArmAnimator._collect_arm_joints()`（`src/factory_robot.py`）即用 try/except 捕获此异常，回退到全场景关节扫描按别名匹配机械臂关节。
+仿真未启动或子树中含不可查询对象时，本函数可能抛 `"Operation cannot be accomplished in current state"`。本仓库早期实现曾用 try/except 捕获此异常，回退到全场景关节扫描按别名匹配机械臂关节。
 
 ## 示例
 
@@ -83,4 +83,4 @@ top_level = sim.getObjectsInTree(sim.handle_scene, sim.handle_all, 2)
 
 - [[wiki/01-API参考/api/api-simGetObjects]] — 按类型枚举场景全部对象
 - [[wiki/01-API参考/api/api-simGetObjectChild]] — 按索引取单个子对象
-- 本仓库 `src/factory_robot.py` `_collect_arm_joints` 的回退用法
+- 本仓库早期的全场景关节扫描回退（历史实现已清理）

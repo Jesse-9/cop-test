@@ -124,7 +124,7 @@ V4.7 引入 buffer 以区分二进制数据。兼容性影响（`compatibility.h
   ```bash
   python3 -m pip install coppeliasim-zmqremoteapi-client
   ```
-- 最小 stepping 示例（本仓库 `factory_core.py` 的时钟主控模式即基于此）：
+- 最小 stepping 示例（本仓库 v1 运行器的时钟主控模式即基于此）：
   ```python
   from coppeliasim_zmqremoteapi_client import RemoteAPIClient
   client = RemoteAPIClient()
@@ -139,7 +139,7 @@ V4.7 引入 buffer 以区分二进制数据。兼容性影响（`compatibility.h
 - 支持客户端：Python、C++、Java、Matlab/Octave、Lua（仅脚本内，用于多实例互联）、Rust。
 - WebSocket Remote API（`wsRemoteApiOverview.htm`）面向 JavaScript/远程 client/server，默认端口 23050，是 ZMQ API 的薄封装。
 
-> 本仓库运行前提之一即 ZMQ remote API server add-on 已激活（菜单 `Add-ons > ZMQ remote API server`，默认端口 23000）。详见 [[wiki/00-基础知识/00-03-安装与设置]] 与 [[wiki/98-ProjectUsage/MCP_USAGE]]。
+> 本仓库运行前提之一即 ZMQ remote API server add-on 已激活（菜单 `Add-ons > ZMQ remote API server`，默认端口 23000）。详见 [[wiki/00-基础知识/00-03-安装与设置]] 与 [[wiki/98-ProjectUsage/USAGE]]。
 
 ## 兼容性与迁移要点
 

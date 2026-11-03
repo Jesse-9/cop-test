@@ -72,7 +72,7 @@ sim.moveToConfig_cleanup(dict motionObject)
 ## 说明
 
 - **适用场景**：`sim.moveToConfig` 在**关节空间**做平滑运动；`sim.moveToPose`（姊妹函数）在**笛卡尔空间**做平滑运动。两者底层都是 Ruckig，生成时间最优、加速度/急动度受限的轨迹，适合工业机械臂的点到点运动。
-- **阻塞 vs 三段式**：一体式 `sim.moveToConfig` 是阻塞调用，**只能在 thread 脚本里使用**。ZMQ Remote API 客户端（Python 外部控制，如本仓库）应使用 `_init`/`_step`/`_cleanup` 三段式，配合 `sim.setStepping(True)` 的 stepping 模式逐帧驱动，这正是本仓库 `FactoryController` 单步循环的做法。
+- **阻塞 vs 三段式**：一体式 `sim.moveToConfig` 是阻塞调用，**只能在 thread 脚本里使用**。ZMQ Remote API 客户端（Python 外部控制，如本仓库）应使用 `_init`/`_step`/`_cleanup` 三段式，配合 `sim.setStepping(True)` 的 stepping 模式逐帧驱动，这正是本仓库 v1 运行器单步循环的做法。
 - **单位**：关节位置 revolute 为 rad、prismatic 为 m；速度 rad/s 与 m/s；加速度、急动度为对应导数单位。整体遵循米、千克、秒、弧度全局约定。
 
 ## 示例（三段式 stepping 完整示例）

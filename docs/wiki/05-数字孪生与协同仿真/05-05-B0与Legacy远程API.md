@@ -163,8 +163,8 @@ with b0RemoteApi.RemoteApiClient('b0RemoteApi_pythonClient', 'b0RemoteApi') as c
 ## 迁移要点（legacy/b0 → ZMQ）
 
 1. **抛弃 `simx*` 与 clientID / operation mode / topic 心智模型**：ZMQ remote API 把 Regular API 直接暴露给外部客户端——函数名与脚本内的 Regular API 一致（`sim.getObject`、`sim.setJointPosition`、`sim.getSimulationTime`…），无需 clientID、无需 operation mode。
-2. **同步语义改用 `setStepping` + `step`**：替代 `simxSynchronous` / `simxSynchronousTrigger`，写法更直观、与脚本内 stepping 一致。详见 [[../01-API参考/01-02-Remote-API-ZMQ]] 与本仓库 `factory_core.py` 的 clock-master 实现。
-3. **返回值不再是位码**：ZMQ 调用直接返回数据或抛异常，无需位测试；错误处理走 Python 异常，配合本仓库 [[../01-API参考/01-04-插件API总览|插件API总览]] 提到的统一异常层（`factory_exceptions.py`）。
+2. **同步语义改用 `setStepping` + `step`**：替代 `simxSynchronous` / `simxSynchronousTrigger`，写法更直观、与脚本内 stepping 一致。详见 [[../01-API参考/01-02-Remote-API-ZMQ]] 与本仓库 v1 运行器的 clock-master 实现。
+3. **返回值不再是位码**：ZMQ 调用直接返回数据或抛异常，无需位测试；错误处理走 Python 异常，配合本仓库 [[../01-API参考/01-04-插件API总览|插件API总览]] 提到的统一异常处理层。
 4. **streaming / subscriber 模式消失**：需要持续取值时，在 stepping 循环里按节拍调用对应 get 函数即可（Python 端是 clock master，节拍由 `sim.step()` 主导）。
 5. **客户端依赖大幅简化**：Python 端只需 `pip install coppeliasim-zmqremoteapi-client`，不再需要 BlueZero / Boost / msgpack 单独配置。
 6. **服务端启用方式**：ZMQ 不再需要加载额外 .dll 插件——通过菜单 Add-ons > ZMQ remote API server 激活即可（默认端口 23000），见 [[../05-数字孪生与协同仿真/05-03-Python客户端集成|Python客户端集成]]。

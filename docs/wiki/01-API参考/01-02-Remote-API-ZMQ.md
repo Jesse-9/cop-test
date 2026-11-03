@@ -21,7 +21,6 @@ related:
   - "[[wiki/01-API参考/01-04-插件API总览]]"
   - "[[wiki/05-数字孪生与协同仿真/05-03-Python客户端集成]]"
   - "[[wiki/05-数字孪生与协同仿真/05-05-B0与Legacy远程API]]"
-  - "[[wiki/98-ProjectUsage/MCP_USAGE]]"
   - "[[wiki/06-工业案例/06-02-岛式车间柔性生产案例]]"
 sim_version: "4.10"
 ---
@@ -83,7 +82,7 @@ client = RemoteAPIClient()              # 默认 host='localhost', port=23000
 sim = client.require('sim')              # 取得 sim 命名空间
 ```
 
-> ⚠ 取命名空间用 `client.require('sim')`（官方手册 ZMQ 页即用此写法）。旧版 legacy remote API 示例里出现的 `client.getobject('sim')` 是 deprecated legacy 的写法，勿与 ZMQ 客户端混用。`sim.getObject(path)` 才是按路径取场景对象句柄（如 `sim.getObject('/Floor')`），二者职责不同。本仓库 `factory_core.py` 统一使用 `require`。
+> ⚠ 取命名空间用 `client.require('sim')`（官方手册 ZMQ 页即用此写法）。旧版 legacy remote API 示例里出现的 `client.getobject('sim')` 是 deprecated legacy 的写法，勿与 ZMQ 客户端混用。`sim.getObject(path)` 才是按路径取场景对象句柄（如 `sim.getObject('/Floor')`），二者职责不同。本仓库 v1 运行器统一使用 `require`。
 
 ### 连接参数
 
@@ -140,7 +139,7 @@ simOMPL = client.require('simOMPL')    # 运动规划插件
 
 ## 远程控制仿真器本身
 
-ZMQ Remote API 不仅能控制仿真内容，还能控制仿真器进程：远程 `loadScene`、`startSimulation`、`pause`、`stopSimulation` 等。本仓库 `build_scene.py` 即在启动后远程加载/构建场景，`run_simulation.py` 远程启停仿真。
+ZMQ Remote API 不仅能控制仿真内容，还能控制仿真器进程：远程 `loadScene`、`startSimulation`、`pause`、`stopSimulation` 等。本仓库 v1 由 `flexible-factory` 启动后远程加载工件并启停仿真。
 
 ## asyncio 客户端
 
@@ -220,12 +219,9 @@ var [h] = await sim.getObject('/Floor');
 
 单个 ZMQ 连接是**同步独占**的：一次请求-回复期间该连接被占用。仿真主循环持续调用 `sim.step()` 时，若诊断工具共用同一连接会被阻塞、甚至误判为断连。
 
-本仓库 MCP 服务器（`src/factory_mcp_server.py`）维护**两个 `CoppeliaConnector`**：
-
-- **主连接**：写/控制类工具 + 主仿真循环
-- **只读 `ro_connector`**：诊断工具 `get_object_pose` / `list_objects` / `read_signal` / `get_object_tree` / `inspect_scene_state` / `get_simulation_state` / `run_lua`，经 `ro_lock` 隔离
-
-这解决了旧版"仿真中 status 假断连"问题。详见 [[98-ProjectUsage/MCP_USAGE]]。
+v1 产品由单个 `flexible-factory` 进程持有 ZMQ 连接；`cli → application →
+simulation` 分层中只有运行时层直接调用 Remote API。MCP 不在 v1 范围，旧的
+双连接服务器实现已删除。运行方式见 [[wiki/98-ProjectUsage/USAGE]]。
 
 ## 常见问题
 
@@ -242,5 +238,5 @@ var [h] = await sim.getObject('/Floor');
 - [[wiki/01-API参考/01-04-插件API总览]] — 插件 API（simIK/simOMPL/simUI 等）
 - [[wiki/05-数字孪生与协同仿真/05-03-Python客户端集成]] — Python 客户端集成（待建）
 - [[wiki/05-数字孪生与协同仿真/05-05-B0与Legacy远程API]] — B0 与 Legacy 远程 API（待建）
-- [[wiki/98-ProjectUsage/MCP_USAGE]] — 本仓库 MCP 服务器与双连接设计
-- [[wiki/06-工业案例/06-02-岛式车间柔性生产案例]] — 本仓库实战（stepping + 双连接）
+- [[wiki/98-ProjectUsage/USAGE]] — v1 项目使用指南
+- [[wiki/06-工业案例/06-02-岛式车间柔性生产案例]] — 本仓库实战（stepping + 单连接）

@@ -58,7 +58,7 @@ bytes signalValue = sim.getStringSignal(string signalName)
 - 信号名**全局**于场景，无命名空间隔离。
 - 写入即广播：任一脚本或外部 API 客户端调用 `set*Signal` 后，其他脚本通过同名 `get*Signal` 立即可读。
 - **易失性**：创建/修改该信号的脚本状态被销毁时，信号自动清除。
-- 字符串/缓冲信号常用于传递结构化数据（如序列化表、JSON、配置串）——本仓库 `factory_core.py` 的 `check_alive()` 曾用 `coppeliasimVersion` 字符串信号探测版本，即典型用法（部分实例该信号未设置，返回 `None`，代码已加 `getSimulationState()` 回退探针）。
+- 字符串/缓冲信号常用于传递结构化数据（如序列化表、JSON、配置串）——本仓库早期的 `check_alive()` 实现曾用 `coppeliasimVersion` 字符串信号探测版本，即典型用法（部分实例该信号未设置，返回 `None`，代码已加 `getSimulationState()` 回退探针）。
 
 ### 现代替代：Properties 体系（4.10）
 4.10 起信号以 `signal.` 前缀的属性形式存在，字符串/缓冲信号等价写法：

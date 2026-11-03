@@ -56,7 +56,7 @@ int signalValue = sim.getIntegerSignal(string signalName)
 - 信号名**全局**于场景，无命名空间隔离。
 - 写入即广播：任一脚本或外部 API 客户端调用 `set*Signal` 后，其他脚本通过同名 `get*Signal` 立即可读。
 - **易失性**：创建/修改该信号的脚本状态被销毁时，信号自动清除（这是与 custom data 的关键区别）。
-- 信号常用于工作岛状态机、AGV 节拍同步等——见本仓库 `factory_core.py` 的 `check_alive()` 曾用 `coppeliasimVersion` 字符串信号探测，即信号机制典型用法。
+- 信号常用于工作岛状态机、AGV 节拍同步等——本仓库早期的 `check_alive()` 实现曾用 `coppeliasimVersion` 字符串信号探测，即信号机制典型用法。
 
 ### 现代替代：Properties 体系（4.10）
 4.10 起，所有内部变量/状态统一为 [[wiki/02-仿真建模/properties|Properties]]，信号也以 `signal.` 前缀的属性形式存在。整数信号等价写法：

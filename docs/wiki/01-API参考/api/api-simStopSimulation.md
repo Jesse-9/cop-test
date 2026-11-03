@@ -39,7 +39,7 @@ sim.stopSimulation(bool wait = False)
 ## 说明
 
 - 停止是异步的：调用返回后引擎会经过 `sim.simulation_advancing_abouttostop` → `sim.simulation_advancing_lastbeforestop` 等过渡态，最终落到 `sim.simulation_stopped`（码值 0）。
-- 在 stepping 模式下，`stopSimulation` 会让阻塞中的 `sim.step()` 抛出异常从而退出推进循环——本仓库 `FactoryController` 与 MCP `stop_simulation` 工具都靠这一机制让主循环退出（最多等待 5s）。
+- 在 stepping 模式下，`stopSimulation` 会让阻塞中的 `sim.step()` 抛出异常从而退出推进循环——本仓库 v1 运行器和 `flexible-factory stop` 都靠这一机制让主循环退出（最多等待 5s）。
 - 实测 4.10.x 在 `stopSimulation` 后还可能出现一个 brief 文档未列的过渡码 22（约 0.3–0.5s 内回到 0）。若轮询到该码，属正常现象。
 
 ## 示例

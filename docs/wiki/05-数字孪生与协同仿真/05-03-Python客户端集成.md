@@ -164,7 +164,7 @@ finally:
     sim.stopSimulation()
 ```
 
-> 本仓库 [[wiki/06-工业案例/06-02-岛式车间柔性生产案例]] 即采用此模式：Python `FactoryController` 按 13 步固定顺序驱动每个 `SIM_STEP`，先执行控制逻辑（异常轮询/物料产出/AGV 调度/装配等），最后 `sim.step()` 推进物理引擎。详见 `src/factory_controller.py`。
+> 本仓库 [[wiki/06-工业案例/06-02-岛式车间柔性生产案例]] 即采用此模式：v1 运行器按固定顺序驱动每个 `SIM_STEP`，先执行控制逻辑（异常轮询/物料产出/AGV 调度/装配等），最后 `sim.step()` 推进物理引擎。
 
 ## 何时选哪种
 

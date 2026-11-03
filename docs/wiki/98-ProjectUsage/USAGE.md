@@ -1,223 +1,123 @@
 ---
-title: 柔性工业车间仿真项目使用指南
+title: 柔性工业车间 v1 使用指南
 type: tutorial
 tags:
   - coppeliasim
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-10-26
+updated: 2026-11-03
 status: published
 sim_version: "4.10+"
 ---
 
-# 柔性工业车间仿真项目使用指南
+# 柔性工业车间 v1 使用指南
 
-本指南说明如何启动 CoppeliaSim、连接项目、操作版本化场景工件，以及运行当前可用的阶段一至四。命令以 Windows PowerShell、仓库根目录为例。
+本指南说明 CoppeliaSim、ZMQ 连接、v1 工件操作和 `full_flow` 运行。命令以
+Windows PowerShell、仓库根目录为例。v1 不支持历史阶段入口；历史实现、报告
+与证据已清理，结论见 [V1 实施报告](../../implementation/V1_REPORT.md)。
 
 ## 启动仿真软件
 
-1. 安装并启动 CoppeliaSim 4.10 或更新版本。项目所需内置模型包括 UR5、suction pad、generic conveyor 和 pioneer p3dx。
+1. 安装并启动 CoppeliaSim 4.10 或更新版本。项目所需内置模型包括 UR5、
+   suction pad、generic conveyor 和 pioneer p3dx。
 2. 在仓库根目录准备 Python 环境：
 
-       uv sync
+        uv sync
 
-3. 在 CoppeliaSim 中启动 ZeroMQ Remote API server add-on，确认监听 localhost:23000。菜单通常为 **Add-ons → ZMQ remote API server**。
-4. 保持 CoppeliaSim 运行，再从仓库根目录打开终端执行下面的阶段命令。远程仿真时使用入口支持的 --host 和 --port 参数。
+3. 在 CoppeliaSim 中启动 ZeroMQ Remote API server add-on，确认监听
+   `localhost:23000`。菜单通常为 **Add-ons → ZMQ remote API server**。
+4. 保持 CoppeliaSim 运行，从仓库根目录执行 v1 命令。远程仿真时使用
+   `--host` 和 `--port`。
 
-查看各命令参数：
+查看命令：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py --help
-    .venv/Scripts/python.exe src/run_stage1.py --help
-    .venv/Scripts/python.exe src/run_stage2.py --help
-    .venv/Scripts/python.exe src/run_stage3.py --help
-    .venv/Scripts/python.exe src/run_stage4.py --help
+    flexible-factory --help
+    flexible-factory run --help
 
-## 运行约定
+## v1 工件与当前基线
 
-场景作为版本化工件保存在 docs/scene_artifacts/。load 只加载已保存的 .ttt 工件，不会构建或清空场景；加载后可直接 start。start 会先取得运行锁，再执行完整只读工件校验，校验失败则拒绝启动并释放锁。validate 是可选诊断入口，用于主动检查并查看详细差异报告，不是 start 的前置条件。阶段入口会按阶段选取默认 current 工件并在启动点校验。运行期间禁止构建、加载、保存、校验或启动第二个控制任务。
+v1 工件位于独立命名空间：
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py status
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py list
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py stop
+    docs/scene_artifacts/v1/
+      current.json
+      L5_UFLOW/v001_<timestamp>/
+        scene.ttt
+        manifest.json
+        validation.json
+        lifecycle.jsonl
 
-## 用法变化（2026-10-26）
+当前 v1 工件为 `v1/L5_UFLOW/v001_20261103_004317`，由已验收 stage4
+`stage4/L5_UFLOW/v004_20261029_133249` 行为等价迁移。仅保留该 stage4 工件
+及其 stage3 上游 `L2_MIRROR/v008_20261029_112305` 作为只读迁移来源，禁止
+覆盖；其他历史工件已清理。v1 工件受摘要、生命周期和只读保护；不得手工修改
+manifest 或用 GUI 覆盖 `scene.ttt`。
 
-本次调整只改变“启动前是否必须手动 validate”，命令名和参数不变：
+## 日常运行
 
-| 场景 | 调整前 | 调整后 |
-|---|---|---|
-| 已保存工件日常运行 | load current → validate → start | **load current → start**（validate 可选） |
-| 主动检查/查看差异报告 | validate | validate（保留为可选诊断；start 仍会重新校验） |
-| 首次构建并运行 | build → save → load → validate → start | **build → save → load → start** |
-| stage2/stage3 派生保存 | load → validate → save | 不变（save 仍要求已校验场景） |
-| 阶段入口 run_stage1/2/3.py（默认路径） | 内部 load → validate → start | 内部 load → start（启动点在锁内校验；命令参数不变） |
+    flexible-factory load
+    flexible-factory validate      # 可选诊断
+    flexible-factory run --scenario full_flow --time 700
 
-- `start` 的 CLI 参数（`--target`/`--scenario`/`--fault`/`--time`/`--repeat`/`--keep-running`）没有变化。
-- `load` 的 JSON 结果字段由 `requires_validation` 改为 `validation_at_start`。
-- MCP 对应变化见 [MCP 使用说明](MCP_USAGE.md)：`load_scene` 后可直接 `start_simulation`。
+- `load` 只加载 `v1/current.json` 指向的工件，不构建、不清场，加载后可直接运行。
+- `run` 在取得运行锁后执行完整只读校验；校验失败拒绝启动并释放锁。
+- `validate` 是可选诊断，不是 `run` 的前置条件。
+- 运行期间禁止 build/load/save/validate 或启动第二个控制任务。
+- 报告写入 `docs/implementation/runs/v1_run_<scenario>_<stamp>.json`。
 
-## 阶段一：单工位闭环
+`--scenario` 的 `full_flow` 是唯一用户运行模式；`no_pair`、`agv_priority`、
+`agv_blocked`、`conveyor_fault`、`staggered_batch` 仅用于内部回归和诊断。
 
-当前基线为 stage1/L1_S1/v002_20261020_234403。日常运行：
+其他查询/控制命令：
 
-    .venv/Scripts/python.exe src/run_stage1.py --target station --time 45
-    .venv/Scripts/python.exe src/run_stage1.py --target agv --time 45
-    .venv/Scripts/python.exe src/run_stage1.py --target both --time 90
-    .venv/Scripts/python.exe src/run_stage1.py --target station --repeat 6 --time 30
-    .venv/Scripts/python.exe src/run_stage1.py --target station --fault ik_unreachable
+    flexible-factory status
+    flexible-factory status --offline
+    flexible-factory list
+    flexible-factory stop
 
-只有确实要显式重建场景时才加 --build：
+## 迁移与重建（维护操作）
 
-    .venv/Scripts/python.exe src/run_stage1.py --build --target station --time 45
+从历史 stage4 工件生成 v1 副本（幂等；源工件只读）：
 
-## 阶段二：物理约束与运动规划
+    flexible-factory migrate \
+      --source docs/scene_artifacts/stage4/L5_UFLOW/v004_20261029_133249 \
+      --note "v1 migration"
 
-当前基线为 `stage2/L1_S1/v016_20261029_112229`（06-15 契约
-`stage2_contract_20261028_v4`，`H_transfer=0.65 m`；完整回归待执行）。
-运行入口默认加载 stage2 的 current 工件：
+迁移流程：校验来源 manifest/scene 摘要 → 复制场景 → 生成 v1 manifest 与
+`extra.v1` 契约 → 重载并全量校验 → 原子更新 `v1/current.json`。任一步失败
+都不更新 current，也不修改源工件。
 
-    .venv/Scripts/python.exe src/run_stage2.py --target station --time 150
-    .venv/Scripts/python.exe src/run_stage2.py --target agv --time 150
-    .venv/Scripts/python.exe src/run_stage2.py --target both --time 180
-    .venv/Scripts/python.exe src/run_stage2.py --target station --fault runtime_obstacle --time 150
+从历史 stage3 父场景显式重建 v1 场景（高级维护）：
 
-如需重新派生，从已验收阶段一工件构建 stage2 新版本（派生保存前必须 validate，因为 save 只接受已校验场景）：
+    flexible-factory build \
+      --parent docs/scene_artifacts/stage3/L2_MIRROR/v008_20261029_112305 \
+      --save --note "v1 rebuild"
 
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage1/L1_S1/v002_20261020_234403
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py validate
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage2 --parent stage1/L1_S1/v002_20261020_234403 --note "阶段二派生"
+`build` 加载父场景并增加 C/D/E 与物流线；`--save` 保存新 v1 版本。
+每次保存创建新版本，不覆盖已验收工件。
 
-## 阶段三：双工位柔性搬运
+## 产物与日志
 
-当前基线为 `stage3/L2_MIRROR/v008_20261029_112305`（由 stage2 v016 派生；完整回归待执行）。
-五种运行场景：
-
-    .venv/Scripts/python.exe src/run_stage3.py --scenario closed_loop --time 300
-    .venv/Scripts/python.exe src/run_stage3.py --scenario contention --time 300
-    .venv/Scripts/python.exe src/run_stage3.py --scenario blocked --time 300
-    .venv/Scripts/python.exe src/run_stage3.py --scenario unstable_unload --time 300
-    .venv/Scripts/python.exe src/run_stage3.py --scenario route_baseline --time 300
-
-如需重建 stage3，从已验收 stage2 工件派生（build 成功后状态已是已校验，可直接 save）：
-
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage2/L1_S1/v016_20261029_112229
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage3 --parent stage2/L1_S1/v016_20261029_112229
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage3 --parent stage2/L1_S1/v016_20261029_112229 --note "阶段三派生"
-
-## 阶段四：多岛车间（阶段 4.1 `L5_UFLOW`）
-
-当前工件为 `stage4/L5_UFLOW/v004_20261029_133249`（父
-`stage3/L2_MIRROR/v008_20261029_112305`，H=0.65，统一基座 0.30 m）。
-`stage4/L4_COLUMN/v008_20261028_225634` 作为阶段四重排前基线保留，不再
-是 current；旧布局的验收数据见阶段四报告。六种运行场景：
-
-    .venv/Scripts/python.exe src/run_stage4.py --scenario full_flow --time 700
-    .venv/Scripts/python.exe src/run_stage4.py --scenario no_pair --time 500
-    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_priority --time 700
-    .venv/Scripts/python.exe src/run_stage4.py --scenario agv_blocked --time 700
-    .venv/Scripts/python.exe src/run_stage4.py --scenario conveyor_fault --time 400
-    .venv/Scripts/python.exe src/run_stage4.py --scenario staggered_batch --time 900
-
-阶段四运行会加载 current 工件、在启动点校验 461 项只读契约，然后构建
-五台独立影子臂/碰撞集合。首次加载、校验与运行时构建合计约 3–5 分钟；
-之后按任务链逐岛执行。报告写入
-`docs/implementation/runs/phase4_run_<scenario>_<stamp>.json`。
-
-如需重建 stage4（修改 `src/stage4/config.py` 或场景构建后必须重新派生）：
-
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load stage3/L2_MIRROR/v008_20261029_112305
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage4 --parent stage3/L2_MIRROR/v008_20261029_112305 --note "阶段4.1 L5_UFLOW"
-
-阶段四布局与五台臂 IK 只读测量、以及从配置生成的俯视预览：
-
-    .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py
-    .venv/Scripts/python.exe docs/measurement/probe_stage4_layout.py --sim --ik \
-        --out docs/measurement/stage4_layout_<stamp>.json
-    .venv/Scripts/python.exe docs/measurement/preview_stage4_layout.py
-
-`probe_stage4_layout.py --layout <json>` 和
-`preview_stage4_layout.py --layout <json>` 可以读取候选布局文件
-（`Stage4Layout.as_dict()` 的 JSON），用于在冻结坐标前检查同一份配置。
-
-## 录制仿真运行过程
-
-`tools/record_stage.py` 在真实阶段运行中同步录制 MP4：工具先确认仿真处于停止态，
-再以子进程启动对应阶段的 CLI runner；等 runner 完成加载/启动点校验并开始
-stepping 后，才在场景中创建一台临时 vision sensor（`RecordingCamera`）抓帧，
-通过 `imageio-ffmpeg` 自带的 ffmpeg 编码为 H.264。录制相机不会写入场景工件，
-录制结束（runner 停止仿真）后自动移除。
-
-    .venv/Scripts/python.exe tools/record_stage.py --stage 1
-    .venv/Scripts/python.exe tools/record_stage.py --stage 2
-    .venv/Scripts/python.exe tools/record_stage.py --stage 3
-    .venv/Scripts/python.exe tools/record_stage.py --stage 4
-
-默认输出到 `docs/implementation/runs/recordings/stageN_<mode>_<stamp>.mp4`，
-同名 `.json` 记录机位、抽帧间隔、仿真时长/视频时长与帧统计，`.log` 是本次
-阶段 runner 的日志。`<mode>` 为 target 或 scenario；注入故障时追加
-`_fault_<fault>`。各阶段默认机位与抽帧间隔（20 fps 固定帧率）：
-
-| 阶段 / 条件 | 相机（位置 → 目标，视场角） | 抽帧间隔 | 播放速度 |
-|---|---|---|---|
-| 1 `station` 及无 AGV 故障 | (2.00, -1.75, 1.60) → (-0.25, 0.65, 0.45)，45° | 0.05 s | 1x |
-| 1 `agv`/`both`/`agv_blocked` | (2.55, -2.25, 1.85) → (-0.10, 0.60, 0.42)，48° | 0.05 s | 1x |
-| 2 `station` 及 `runtime_obstacle` | (2.05, 2.75, 1.95) → (-0.20, 0.45, 0.38)，50° | 0.10 s | 2x |
-| 2 `agv`/`both` | (2.55, -2.25, 1.85) → (-0.10, 0.60, 0.42)，48° | 0.10 s | 2x |
-| 3 全部场景 | (2.30, -3.10, 2.05) → (-0.30, 0.05, 0.35)，46° | 0.10 s | 2x |
-| 4 全部场景 | (2.80, -4.80, 3.30) → (1.05, -0.05, 0.35)，52° | 0.15 s | 3x |
-
-可选参数：`--out` 指定输出文件，`--target`/`--scenario`/`--fault` 切换运行
-条件，`--time` 覆盖单次运行仿真时长上限，`--sample-dt`/`--fps` 调整抽帧与
-帧率，`--fov`/`--cam-pos`/`--cam-target` 覆盖机位。录制依赖
-`imageio-ffmpeg`（已列入 dev 依赖组，`uv sync --group dev` 后可用）。
-
-批量覆盖各阶段条件（默认跳过已存在的同名视频，`--force` 重录）：
-
-    .venv/Scripts/python.exe tools/record_stage_matrix.py
-    .venv/Scripts/python.exe tools/record_stage_matrix.py --stage 3 4
-    .venv/Scripts/python.exe tools/record_stage_matrix.py --only stage4_full_flow
-
-条件矩阵：阶段一 `station`/`agv`/`both` + `ik_unreachable`/`no_target`/
-`uid_mismatch`/`sensor_disabled`/`agv_blocked`/`release_unstable` 六个故障；
-阶段二 `station`/`agv`/`both` + `runtime_obstacle`；阶段三 5 个场景；阶段四
-6 个场景。故障/异常场景的运行可能按设计以 `all_ok=false` 结束，视频仍会
-完整录制，runner 退出码记录在同名 `.json` 中。已录制视频的逐条说明见
-`docs/implementation/runs/recordings/INDEX.md`（运行产物目录，不入库）；
-汇总报告见 [录制报告](../../implementation/RECORDINGS_REPORT.md)。
-
-## 手动操作生命周期
-
-首次显式构建和保存阶段一工件：
-
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py build
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py save --phase stage1 --note "阶段一场景"
-
-build 只执行构建契约检查，不产生工件 manifest；build → save 才会保存、回读并完成工件级完整只读校验。临时构建后不 save 的场景也可以 start，但启动点只复核构建契约，不能视为工件级全量校验。
-
-加载并启动工件（启动点自动校验）：
-
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load current --phase stage1
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py start --target station --time 45
-
-如需先主动检查并查看详细差异报告，可在 load 后单独运行可选的 validate；start 仍会重新执行完整校验：
-
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py load current --phase stage1
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py validate
-    .venv/Scripts/python.exe src/run_scene_lifecycle.py start --target station --time 45
-
-save 每次创建新版本，不覆盖旧工件。stage2/stage3 保存必须提供正确的 --parent；stage1 正式基线受保护。保存时会回读并校验，只有通过才更新 current.json。派生保存前仍需 validate（save 只允许已校验场景；validate 允许直接从加载态转入）。详细格式与保护规则见 [场景工件说明](../../scene_artifacts/README.md)。
+- 工件：`docs/scene_artifacts/v1/L5_UFLOW/vNNN_<stamp>/`
+- current 指针：`docs/scene_artifacts/v1/current.json`
+- 运行报告：`docs/implementation/runs/v1_run_<scenario>_<stamp>.json`
+- 默认日志：仓库根目录 `flexible_factory.log`（`--log` 可覆盖）
+- 校验报告：`docs/implementation/runs/scene_validation_<artifact>_<stamp>.json`
 
 ## 排查
 
-- 连接失败：检查 CoppeliaSim 是否运行、ZMQ add-on 是否启动，并确认主机和端口（默认 localhost:23000）。
-- 找不到工件或阶段不匹配：运行 src/run_scene_lifecycle.py list，确认对应阶段的 current 指针。
-- 场景未通过校验：start 会拒绝并给出差异数；先加载对应阶段工件，再运行可选的 validate 查看详细报告；不要通过编辑受保护工件绕过摘要检查。
-- 日志默认在仓库根目录的 factory_sim.log、stage2_sim.log、stage3_sim.log、stage4_sim.log 等文件；运行报告在 docs/implementation/runs/。
-
-阶段验收和未实现功能见根目录 [README](../../../README.md) 及 docs/implementation/。旧五岛 src/reference/ 是历史兼容流程。
+- 连接失败：检查 CoppeliaSim 是否运行、ZMQ add-on 是否启动、端口是否为 23000。
+- 找不到工件：运行 `flexible-factory list`，确认 `v1/current.json`。
+- 场景未通过校验：`run` 会拒绝并给出差异数；先 `load`，再运行可选
+  `validate` 查看详细报告。不要编辑受保护工件绕过摘要检查。
+- 运行中残留锁：`flexible-factory status` 显示 lock owner；确认进程已退出后
+  `stop`，生命周期会清理陈旧锁。
+- 迁移来源工件不匹配：v1 运行期不比较 stage2/stage3 当前配置摘要，只把来源
+  记录在 provenance；若保留的来源工件被修改，迁移时摘要校验会失败。
 
 ## 维护约定
 
-本文件是仿真启动、场景生命周期和阶段运行方法的操作手册。以后改动启动/连接方式、CLI 参数、阶段工作流或工件派生规则时，必须同步更新本文件，并核对 README、场景工件说明与实现保持一致。新增可运行阶段时，补充其前置工件、派生/加载步骤、运行命令和输出位置。
+本文件是 v1 启动、工件生命周期和运行方法的操作手册。改动启动/连接方式、
+CLI 参数、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
+场景工件说明与实现保持一致。新增可运行模式时，补充其前置工件、加载步骤、
+运行命令和输出位置。

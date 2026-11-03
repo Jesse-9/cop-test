@@ -38,7 +38,7 @@ sim.startSimulation()
 
 - 启动后仿真进入 `sim.simulation_advancing_firstafterstop`（首帧）再进入 `sim.simulation_advancing_running`（稳态运行）。
 - 若此前处于 `sim.simulation_paused`，调用本函数等价于「恢复运行」，不会重置仿真时间。
-- 调用时引擎不会清除暂停态——如果上次仿真停在 paused，直接 `startSimulation` 后再 `sim.step()` 可能永久挂起。本仓库 `FactoryController.run()` 的做法是先 `stopSimulation` 让引擎回到 `stopped` 态、轮询 `getSimulationState()==0` 确认后再 `startSimulation`，以规避该陷阱。
+- 调用时引擎不会清除暂停态——如果上次仿真停在 paused，直接 `startSimulation` 后再 `sim.step()` 可能永久挂起。本仓库 v1 运行器的做法是先 `stopSimulation` 让引擎回到 `stopped` 态、轮询 `getSimulationState()==0` 确认后再 `startSimulation`，以规避该陷阱。
 - 配合 stepping 模式时：先 `sim.setStepping(True)` 再 `startSimulation`，之后由外部循环用 `sim.step()` 逐帧推进，Python 端成为 clock master（见 [[wiki/01-API参考/01-02-Remote-API-ZMQ]]）。
 
 ## 示例

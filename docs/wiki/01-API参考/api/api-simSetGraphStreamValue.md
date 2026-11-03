@@ -19,7 +19,7 @@ sim_version: "4.10"
 
 # sim.setGraphStreamValue
 
-> 为图对象的某个数据流（stream）设置下一次待记录的值。需在每个仿真步先调用本函数喂入各流数值，再调用一次 [`sim.handleGraph`](api-simHandleGraph) 把当前时间点写入图中。若某个流在对应的 `sim.handleGraph` 调用前未设值，则该时间点的数据缺失（图上出现断点）。
+> 为图对象的某个数据流（stream）设置下一次待记录的值。需在每个仿真步先调用本函数喂入各流数值，再调用一次 [`sim.handleGraph`](api-simHandleGraph.md) 把当前时间点写入图中。若某个流在对应的 `sim.handleGraph` 调用前未设值，则该时间点的数据缺失（图上出现断点）。
 
 ## 签名
 

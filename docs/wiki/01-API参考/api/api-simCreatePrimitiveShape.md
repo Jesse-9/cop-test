@@ -17,7 +17,7 @@ sim_version: "4.10"
 
 # sim.createPrimitiveShape
 
-> 创建一个基本几何体形状（Primitive Shape）。基本体是场景搭建的地板、工作台、物料块等的基础原语，CoppeliaSim 据其类型自动生成可碰撞/可响应的纯形状。本仓库 `build_scene.py` 用 cuboid 构造地板与工作台。
+> 创建一个基本几何体形状（Primitive Shape）。基本体是场景搭建的地板、工作台、物料块等的基础原语，CoppeliaSim 据其类型自动生成可碰撞/可响应的纯形状。本仓库 v1 场景构建用 cuboid 构造地板与工作台。
 
 ## 签名
 
