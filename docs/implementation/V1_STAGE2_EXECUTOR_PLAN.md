@@ -1,7 +1,7 @@
 ---
 title: v1 混线阶段 2 实施方案 — 设备目录与执行适配器
 type: plan
-status: proposed
+status: implemented
 created: 2026-11-03
 updated: 2026-11-03
 scope: v1 UFLOW / 阶段 2
@@ -20,6 +20,11 @@ scope: v1 UFLOW / 阶段 2
 阶段 2 不把设备能力变成动态派工输入；待阶段 3 配方 DAG 稳定后，再单独设计
 “工序声明需求与候选设备、调度器结合可用性/资源/路线选择设备”的派工策略，
 执行 adapter 仍只负责所选设备的完整执行生命周期。
+
+实施状态（2026-11-03）：步骤 1–6 全部完成。静态绑定核对、57 个纯测试与
+两项 focused 仿真（`arm_A` 取放；AGV 空载 `A→B` + 载货 `B→A`）均已执行
+通过，实测数据、证据路径与边界见
+[V1_STAGE2_REPORT.md](V1_STAGE2_REPORT.md)；偏差记录见 §11。
 
 ## 1. 目标与验收映射
 
@@ -371,4 +376,25 @@ AGV 路线受阻是既有已验收行为（`agv_blocked` 回归：进入受阻�
 - `python -m pytest -q` 全绿（基线 340 passed，新增用例数在报告中列出）。
 - `V1_STAGE2_REPORT.md` 含：映射表核对结论、代表臂/代表 AGV 实测证据、
   未执行项、版本处置记录。
-- 以上全部满足后，06-20 的 `status` 才改为 `implemented`。
+- 以上全部满足后，06-20 的 `status` 才改为 `implemented`（已于 2026-11-03
+  完成）。
+
+## 11. 实施偏差与实测
+
+实施结果与本文档的差异只有一处计划性调整（已在 §2.1/§5.3 体现）：**E 逻辑
+配对不设 executor**，仍由 `_check_join()` 与
+`MaterialRegistry.pair_candidates()` 承担，避免复制配对规则。其余接口、
+文件落点、删除项与测试矩阵按本文执行。
+
+实测摘要（详见报告 §5）：
+
+- `arm_A` + `housing_direct_A`：`DONE`，964 步 / 48.20 s 仿真，物料
+  `SEMI_AC@handoff_ac`，执行 `arm_A#1`。
+- AGV 空载 `A→B`：`DONE`，`stop_error=0.019846 m`、
+  `heading_error=-0.001050 rad`。
+- AGV 载货 `B→A`：`DONE`，`stop_error=0.019460 m`、
+  `heading_error=0.000258 rad`、`material_slip=0.004085 m`。
+- 全量测试：无仿真 397 passed / 2 skipped；两项 focused 用例以独立进程
+  分别执行通过（臂 6 min 53 s、AGV 3 min 32 s），未做合并整轮计数。
+- `config_digest` 与 `layout_digest` 与受保护工件一致，未触发 `build`/
+  `migrate`/场景写入。

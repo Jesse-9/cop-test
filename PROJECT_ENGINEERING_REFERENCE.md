@@ -23,10 +23,12 @@ src/flexible_factory/
   domain/            rules, materials, tasks, resources, metrics,
                      process_model, default_process, operation_runtime（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
-                     ur5_ik, material_manager, agv, runtime, unit_controller
+                     ur5_ik, material_manager, agv, runtime, unit_controller,
+                     device_binding
     motion/          contact, collisions, path_planning, trajectory, safety,
                      shadow, suction, conveyor_safety, branch, diagnostics,
                      metrics
+    execution/       base（执行契约）, arm（ArmExecutor）, agv（AgvExecutor）
   artifacts/         store（manifest/仓库/校验）, migration
   application/       lifecycle, coordinator, run
   cli.py             唯一命令入口
@@ -54,6 +56,11 @@ src/flexible_factory/
   提供。
 - `simulation/unit_controller*.py` 仍保留已验收的继承链
   （Stage1→Stage2→Stage3→Stage4）；组合化重构未实施，不得声称已完成。
+- `simulation/execution/` 是阶段 2 的执行适配层：只包装
+  `Stage4UnitController` 与 `AGVRouteController4`，不导入 `application`/
+  `cli`、不调用 `sim.step()`；唯一 stepping owner 仍是
+  `Stage4Coordinator.step()`。`simulation/device_binding.py` 只存
+  device_id → alias/资源/区域的静态映射，不存句柄、不写 manifest。
 - `application/coordinator.py` 仍是多岛编排整体；业务规则已抽到 `domain`，
   但“领域决策/仿真动作端口”的进一步拆分未实施。
 
@@ -141,9 +148,17 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 ## 9. 测试与证据
 
-- 纯逻辑测试：`python -m pytest -q tests/test_v1_*.py`。
-- 全量测试：`python -m pytest -q`。
-- 实机验收：`flexible-factory run --scenario full_flow`；报告在
+- 纯逻辑测试：`python -m pytest -q`（无仿真环境：397 passed / 2 skipped）。
+- 设备级 focused 验收（阶段 2 起，需要运行中的 CoppeliaSim 4.10 +
+  ZMQ 23000）：每个文件单独一次进程，
+
+      FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage2_arm_sim.py -s
+      FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage2_agv_sim.py -s
+
+  用例由 `tests/stage2_harness.py` 加载当前工件并只调用
+  `coordinator.step()`；连接前有 TCP 探测，仿真器未启动时 3 s 内报错，
+  不会无限挂起。证据写入 `docs/implementation/runs/`。
+- 实机验收：`flexible-factory run --scenario full_flow --time 700`；报告在
   `docs/implementation/runs/`，正式证据摘要复制到
   `docs/implementation/evidence/`。
 - 无 CoppeliaSim 时集成测试必须明确标为未执行，不得报告为通过。

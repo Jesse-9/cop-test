@@ -13,12 +13,15 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 | [V1_BASELINE.md](V1_BASELINE.md) | M0 范围、决策、代码/工件/测试基线 |
 | [V1_REPORT.md](V1_REPORT.md) | v1 实施、迁移、测试和实机验收记录；未执行项与限制 |
 | [V1_STAGE0_1_REPORT.md](V1_STAGE0_1_REPORT.md) | 阶段 0-1 静态工艺目录移植到 `flexible_factory` 的代码映射与验证 |
-| [V1_STAGE2_EXECUTOR_PLAN.md](V1_STAGE2_EXECUTOR_PLAN.md) | 阶段 2 设备目录与执行适配器在 v1 代码上的实施方案（未实施） |
+| [V1_STAGE2_EXECUTOR_PLAN.md](V1_STAGE2_EXECUTOR_PLAN.md) | 阶段 2 设备目录与执行适配器在 v1 代码上的实施方案 |
+| [V1_STAGE2_REPORT.md](V1_STAGE2_REPORT.md) | 阶段 2 实施记录：静态绑定、纯测试与代表臂/代表 AGV focused 实测 |
 
 ## 证据
 
-- [evidence/](evidence/)：被 [V1_REPORT.md](V1_REPORT.md) 引用的 v1 验收摘要
-  （`v1_full_flow_acceptance_*.json`、`v1_conveyor_fault_acceptance_*.json`）。
+- [evidence/](evidence/)：被报告引用的 v1 验收摘要，包括
+  `v1_full_flow_acceptance_*.json`、`v1_conveyor_fault_acceptance_*.json`、
+  `v1_stage0_1_full_flow_acceptance_*.json` 和阶段 2 的
+  `v1_stage2_arm_*.json`、`v1_stage2_agv_*.json`。
 - `runs/`：仿真器生成的临时报告，默认由 `.gitignore` 排除；正式结论引用的
   文件应复制到 `evidence/` 并在报告中引用。
 

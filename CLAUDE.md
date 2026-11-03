@@ -22,6 +22,7 @@
 | v1 产品边界、代码结构、迁移与验收 | [V1 收敛方案](docs/implementation/V1_CONSOLIDATION_PLAN.md) · [M0 基线](docs/implementation/V1_BASELINE.md) · [v1 报告](docs/implementation/V1_REPORT.md) |
 | 工程不变量、当前模块职责、实测陷阱 | [工程参考](PROJECT_ENGINEERING_REFERENCE.md) |
 | 工件 schema、保护策略、current 指针和派生规则 | [场景工件说明](docs/scene_artifacts/README.md) |
+| 混线阶段 2：设备绑定与执行适配器 | [阶段 2 方案](docs/implementation/V1_STAGE2_EXECUTOR_PLAN.md) · [阶段 2 报告](docs/implementation/V1_STAGE2_REPORT.md) |
 | 项目状态与代码结构 | [README.md](README.md) |
 | 历史阶段结论与未来边界 | [V1 实施报告](docs/implementation/V1_REPORT.md) |
 | wiki 笔记 schema、标签、撰写流程 | [docs/CLAUDE.md](docs/CLAUDE.md) |
