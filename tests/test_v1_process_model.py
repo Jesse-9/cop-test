@@ -73,6 +73,15 @@ def test_default_catalog_validates_and_matches_frozen_config():
     assert catalog.operations_for_device("logic_E")[0].id == "kit_join"
 
 
+def test_source_specs_match_scene_config():
+    """domain 目录的来源线/来料类型必须与场景配置一致."""
+    from flexible_factory.simulation import config as scene_cfg
+    for key, spec in cfg.SOURCE_SPECS.items():
+        source = scene_cfg.SOURCE_ITEMS[key]
+        assert spec["line"] == source["line"], key
+        assert spec["item_type"] == source["item_type"], key
+
+
 def test_default_resources_and_devices_are_complete():
     catalog = default_catalog()
     expected = {
