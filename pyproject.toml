@@ -1,38 +1,24 @@
 [project]
-name = "factory-sim"
-version = "0.1.0"
-description = "CoppeliaSim 工厂仿真 — ZeroMQ Remote API 控制"
+name = "flexible-factory"
+version = "1.0.0"
+description = "柔性工业车间 v1 — CoppeliaSim 4.10 ZeroMQ Remote API 控制"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "coppeliasim-zmqremoteapi-client>=2.0.4",
-    "mcp>=1.2.0",
 ]
 
 [project.scripts]
-build-scene = "reference.build_scene:main"
-run-simulation = "reference.run_simulation:main"
-run-stage1 = "stage1.run:main"
-run-stage2 = "stage2.run:main"
-run-stage3 = "stage3.run:main"
-run-stage4 = "stage4.run:main"
-run-step1-1 = "stage1_1.run_step1_1:main"
-scene-lifecycle = "stage1.lifecycle:main"
+flexible-factory = "flexible_factory.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["stage1", "stage1_1", "stage2", "stage3", "stage4", "reference"]
-py-modules = [
-    "run_stage1",
-    "run_stage2",
-    "run_stage3",
-    "run_stage4",
-    "run_step1_1",
-    "run_scene_lifecycle",
-]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["flexible_factory*"]
 
 [tool.uv]
-# src/ 布局：stage1 / stage1_1 / reference 为包；run_* 为兼容入口薄包装。
 package = true
 
 [dependency-groups]
