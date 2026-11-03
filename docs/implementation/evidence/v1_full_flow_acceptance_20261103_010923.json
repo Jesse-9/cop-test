@@ -1,0 +1,205 @@
+{
+  "source_report": "docs/implementation/runs/v1_run_full_flow_20261103_010923.json",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "scenario": "full_flow",
+  "fault": "none",
+  "all_ok": true,
+  "sim_time": 344.25,
+  "steps": 6868,
+  "acceptance": {
+    "scenario": "full_flow",
+    "fault": "none",
+    "tasks_done": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "unpaired_semi_ce": 1,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "frozen": false,
+    "stop_reason": "",
+    "loaded_routes": 2,
+    "route_ok": true,
+    "priority_ok": true,
+    "priority_detail": [
+      {
+        "sim_time": 94.2,
+        "chosen": "transport_ba_uid2",
+        "chosen_priority": 0,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      },
+      {
+        "sim_time": 259.6,
+        "chosen": "transport_de_uid3",
+        "chosen_priority": 1,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      }
+    ],
+    "injected": [],
+    "batch": {
+      "RAW_A": 1,
+      "RAW_B": 1,
+      "RAW_D": 1
+    },
+    "spawned": [
+      {
+        "sim_time": 0.85,
+        "source": "s1a",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "position": [
+          -1.0172298351066111,
+          0.0,
+          0.51
+        ],
+        "handle": 705
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s1b",
+        "uid": 2,
+        "item_type": "RAW_B",
+        "position": [
+          -0.75,
+          -1.467,
+          0.51
+        ],
+        "handle": 706
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s2d",
+        "uid": 3,
+        "item_type": "RAW_D",
+        "position": [
+          1.013,
+          -1.35,
+          0.51
+        ],
+        "handle": 707
+      }
+    ],
+    "ok": true
+  },
+  "materials": {
+    "final_uids": [
+      "4"
+    ],
+    "final_parents": {
+      "4": [
+        1,
+        3
+      ]
+    }
+  },
+  "agv": {
+    "pose": [
+      2.898483,
+      1.344254,
+      0.138648,
+      -0.001063,
+      -0.00101,
+      -0.707533,
+      0.706679
+    ],
+    "state": "IDLE",
+    "left_wheel": 0.0,
+    "right_wheel": 0.0,
+    "is_stopped": true,
+    "is_upright": true
+  },
+  "runtime_destroy": null,
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09792,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 18,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01025,
+    "stop_ok": true
+  }
+}

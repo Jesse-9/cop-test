@@ -1,0 +1,157 @@
+{
+  "source_report": "docs/implementation/runs/v1_run_conveyor_fault_20261103_014225.json",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "scenario": "conveyor_fault",
+  "fault": "conveyor_stop",
+  "all_ok": true,
+  "sim_time": 95.45,
+  "steps": 1892,
+  "acceptance": {
+    "scenario": "conveyor_fault",
+    "fault": "conveyor_stop",
+    "tasks_done": false,
+    "any_task_failed": true,
+    "any_task_blocked": true,
+    "final_count": 0,
+    "final_parents": [],
+    "unpaired_semi_ce": 1,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "frozen": true,
+    "stop_reason": "CONVEYOR_FAULT: line_ce 停止",
+    "loaded_routes": 0,
+    "route_ok": false,
+    "priority_ok": true,
+    "priority_detail": [],
+    "injected": [
+      {
+        "kind": "conveyor_stop",
+        "sim_time": 94.4,
+        "line": "line_ce",
+        "conveyor": "Conveyor_C_to_E",
+        "after_task": "c_handoff_uid1"
+      }
+    ],
+    "batch": {
+      "RAW_A": 1,
+      "RAW_B": 0,
+      "RAW_D": 1
+    },
+    "spawned": [
+      {
+        "sim_time": 0.85,
+        "source": "s1a",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "position": [
+          -1.0172298351066111,
+          0.0,
+          0.51
+        ],
+        "handle": 705
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s2d",
+        "uid": 2,
+        "item_type": "RAW_D",
+        "position": [
+          1.013,
+          -1.35,
+          0.51
+        ],
+        "handle": 706
+      }
+    ],
+    "fault_observed": true,
+    "affected_task_blocked": true,
+    "site_preserved": true,
+    "no_final": true,
+    "ok": true
+  },
+  "agv": {
+    "pose": [
+      2.900789,
+      -1.357502,
+      0.13865,
+      -0.001046,
+      -0.000988,
+      -0.707752,
+      0.70646
+    ],
+    "state": "IDLE",
+    "left_wheel": 0.0,
+    "right_wheel": 0.0,
+    "is_stopped": true,
+    "is_upright": true
+  },
+  "runtime_destroy": null
+}
