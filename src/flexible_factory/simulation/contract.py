@@ -16,6 +16,9 @@ from __future__ import annotations
 
 from .. import spec
 from ..domain import rules as domain
+from ..domain.default_process import (DEFAULT_RECIPE_ID,
+                                      PROCESS_MODEL_VERSION,
+                                      default_catalog)
 from ..util import check as _check
 from ..util import checks_ok, jsonable, jsonable as _jsonable
 from ..util import pick_upper, stable_digest
@@ -149,6 +152,9 @@ def build_contract_extra(*, sim=None, scene=None, provenance=None,
         "flow": list(domain.TASK_FLOW),
         "kinds": list(domain.TASK_KINDS),
         "priority": dict(domain.TASK_PRIORITY),
+        "process_model_version": PROCESS_MODEL_VERSION,
+        "recipe_id": DEFAULT_RECIPE_ID,
+        "process_routes": default_catalog().route_lines(),
         "starvation_upgrade_s": domain.D_E_STARVATION_UPGRADE_S,
         "preemption": False,
         "duplicate_policy": domain.DUPLICATE_REQUEST_POLICY,
@@ -345,6 +351,12 @@ def validate_contract(sim, artifact, scene=None) -> dict:
     _check(checks, "v1_task_kinds",
            set(flow.get("kinds") or ()) == set(domain.TASK_KINDS),
            f"saved={flow.get('kinds')}")
+    saved_process_version = flow.get("process_model_version")
+    if saved_process_version is not None:
+        _check(checks, "v1_process_model_version",
+               saved_process_version == PROCESS_MODEL_VERSION,
+               f"saved={saved_process_version!r} "
+               f"current={PROCESS_MODEL_VERSION!r}")
 
     index = _resolve_aliases(sim)
     for alias in cfg.REQUIRED_ALIASES:

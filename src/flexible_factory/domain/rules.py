@@ -47,6 +47,16 @@ PROCESS_TRANSITIONS = {
     ("D", ITEM_TYPE_RAW_D): ITEM_TYPE_PART_DE,
 }
 
+# 五个工位 ID 与来源入口的稳定映射. 来源的物理生成位置属于场景配置,
+# 不放进 domain; 这里只保留工艺校验需要的线/来料类型.
+UNIT_IDS = ("A", "B", "C", "D", "E")
+
+SOURCE_SPECS = {
+    "s1a": {"line": "line_s1a", "item_type": ITEM_TYPE_RAW_A},
+    "s1b": {"line": "line_s1b", "item_type": ITEM_TYPE_RAW_B},
+    "s2d": {"line": "line_s2d", "item_type": ITEM_TYPE_RAW_D},
+}
+
 ZONE_CAPACITY = {
     "line_s1a": 1, "line_s1b": 1, "line_s2d": 1, "line_ce": 1,
     "handoff_ac": 1,
