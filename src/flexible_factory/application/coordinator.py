@@ -1538,7 +1538,7 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def summary(self) -> dict:
-        from .metrics import recompute_metrics
+        from ..domain.metrics import recompute_metrics
         material_events = [event.as_dict() for event in self.flow.events]
         all_events = sorted([*self.events, *material_events],
                             key=lambda event: event.get("sim_time") or 0.0)
