@@ -1,0 +1,718 @@
+{
+  "case": "stage2_agv_reposition_and_transport",
+  "route": {
+    "start_dock": "B",
+    "end_dock": "A"
+  },
+  "empty": {
+    "steps": 246,
+    "wall_s": 22.851,
+    "sim_time": 12.3,
+    "finished": true,
+    "frozen": false,
+    "aborted": false,
+    "stop_reason": ""
+  },
+  "loaded": {
+    "steps": 242,
+    "wall_s": 22.258,
+    "sim_time": 24.4,
+    "finished": false,
+    "frozen": false,
+    "aborted": false,
+    "stop_reason": ""
+  },
+  "empty_task": {
+    "task_id": "reposition_uid0_toB_leg1",
+    "operation_instance_id": "reposition_uid0_toB_leg1",
+    "operation_template_id": "",
+    "kind": "reposition",
+    "uid": 0,
+    "source": "A",
+    "destination": "B",
+    "dock": "B",
+    "device": "agv",
+    "status": "DONE",
+    "phase": "DONE",
+    "priority": 2,
+    "upgraded": false,
+    "attempts": 1,
+    "created_sim_time": 0.0,
+    "started_sim_time": 0.0,
+    "finished_sim_time": 12.25,
+    "failure_reason": "",
+    "resources": [
+      "agv_lane_west",
+      "dock_A",
+      "dock_B",
+      "dock_D",
+      "dock_E"
+    ],
+    "evidence": {
+      "route": {
+        "state": "DONE",
+        "failure_reason": "",
+        "spec": {
+          "route_id": "A_to_B_empty",
+          "start_dock": "A",
+          "end_dock": "B",
+          "start": [
+            0.4,
+            0.7
+          ],
+          "end": [
+            0.4,
+            -0.7
+          ],
+          "loaded": false,
+          "distance": 1.4,
+          "lanes": [
+            "agv_lane_west"
+          ],
+          "straight_legs": 1,
+          "turn_legs": 0,
+          "legs": [
+            {
+              "index": 0,
+              "kind": "straight",
+              "start": [
+                0.4,
+                0.7
+              ],
+              "end": [
+                0.4,
+                -0.7
+              ],
+              "heading": -1.570796,
+              "direction": 1,
+              "lane": "agv_lane_west",
+              "loaded": false,
+              "distance": 1.4,
+              "start_heading": null,
+              "target_heading": null
+            }
+          ]
+        },
+        "metrics": {
+          "route_id": "A_to_B_empty",
+          "loaded": false,
+          "start_pose": [
+            0.4,
+            0.7,
+            0.138786,
+            0.0,
+            0.0,
+            -0.707107,
+            0.707107
+          ],
+          "end_pose": [
+            0.399756,
+            -0.680155,
+            0.138692,
+            -0.000667,
+            -0.000616,
+            -0.706735,
+            0.707478
+          ],
+          "target_pose": null,
+          "stop_error": 0.019846,
+          "heading_error": -0.00105,
+          "duration_s": 12.25,
+          "max_speed": 0.0,
+          "mean_speed": 0.0,
+          "samples": 0,
+          "stable_samples": 0,
+          "stable_fraction": 0.0,
+          "material_slip": null,
+          "material_relative_start": null,
+          "material_relative_end": null,
+          "blocked": {},
+          "resumed": []
+        },
+        "legs": [
+          {
+            "state": "DONE",
+            "failure_reason": "",
+            "spec": {
+              "route_id": "A_to_B_empty:L0",
+              "start": [
+                0.4,
+                0.7
+              ],
+              "end": [
+                0.4,
+                -0.7
+              ],
+              "heading": -1.570796,
+              "direction": 1,
+              "speed": 0.12,
+              "loaded": false,
+              "arrive_tol": 0.02,
+              "heading_tol": 0.08
+            },
+            "metrics": {
+              "route_id": "A_to_B_empty:L0",
+              "loaded": false,
+              "start_pose": [
+                0.4,
+                0.7,
+                0.138786,
+                0.0,
+                0.0,
+                -0.707107,
+                0.707107
+              ],
+              "end_pose": [
+                0.399756,
+                -0.680155,
+                0.138692,
+                -0.000667,
+                -0.000616,
+                -0.706735,
+                0.707478
+              ],
+              "target_pose": [
+                0.4,
+                -0.7,
+                0.138786,
+                0.0,
+                0.0,
+                -0.707107,
+                0.707107
+              ],
+              "stop_error": 0.019846,
+              "heading_error": -0.00105,
+              "duration_s": 12.25,
+              "max_speed": 0.120151,
+              "mean_speed": 0.112221,
+              "samples": 246,
+              "stable_samples": 223,
+              "stable_fraction": 0.9065,
+              "material_slip": null,
+              "material_relative_start": null,
+              "material_relative_end": null,
+              "blocked": {},
+              "resumed": []
+            },
+            "version": "stage3_agv_route_20261025"
+          }
+        ],
+        "version": "v1_agv_route_20261103"
+      }
+    }
+  },
+  "loaded_task": {
+    "task_id": "transport_ba_uid2",
+    "operation_instance_id": "transport_ba_uid2",
+    "operation_template_id": "transport_BA",
+    "kind": "transport_ba",
+    "uid": 2,
+    "source": "dock_B",
+    "destination": "dock_A",
+    "dock": "A",
+    "device": "agv",
+    "status": "DONE",
+    "phase": "DONE",
+    "priority": 0,
+    "upgraded": false,
+    "attempts": 1,
+    "created_sim_time": 12.3,
+    "started_sim_time": 12.3,
+    "finished_sim_time": 24.35,
+    "failure_reason": "",
+    "resources": [
+      "agv_lane_west",
+      "dock_A",
+      "dock_B",
+      "dock_D",
+      "dock_E"
+    ],
+    "evidence": {
+      "route": {
+        "state": "DONE",
+        "failure_reason": "",
+        "spec": {
+          "route_id": "B_to_A_loaded",
+          "start_dock": "B",
+          "end_dock": "A",
+          "start": [
+            0.4,
+            -0.7
+          ],
+          "end": [
+            0.4,
+            0.7
+          ],
+          "loaded": true,
+          "distance": 1.4,
+          "lanes": [
+            "agv_lane_west"
+          ],
+          "straight_legs": 1,
+          "turn_legs": 0,
+          "legs": [
+            {
+              "index": 0,
+              "kind": "straight",
+              "start": [
+                0.4,
+                -0.7
+              ],
+              "end": [
+                0.4,
+                0.7
+              ],
+              "heading": -1.570796,
+              "direction": -1,
+              "lane": "agv_lane_west",
+              "loaded": true,
+              "distance": 1.4,
+              "start_heading": null,
+              "target_heading": null
+            }
+          ]
+        },
+        "metrics": {
+          "route_id": "B_to_A_loaded",
+          "loaded": true,
+          "start_pose": [
+            0.399751,
+            -0.680142,
+            0.138692,
+            -0.000667,
+            -0.000616,
+            -0.706728,
+            0.707484
+          ],
+          "end_pose": [
+            0.399659,
+            0.680543,
+            0.138651,
+            -0.001035,
+            -0.00098,
+            -0.707197,
+            0.707015
+          ],
+          "target_pose": null,
+          "stop_error": 0.01946,
+          "heading_error": 0.000258,
+          "duration_s": 12.05,
+          "max_speed": 0.0,
+          "mean_speed": 0.0,
+          "samples": 0,
+          "stable_samples": 0,
+          "stable_fraction": 0.0,
+          "material_slip": 0.004085,
+          "material_relative_start": [
+            -0.001821,
+            -0.000434,
+            0.168236
+          ],
+          "material_relative_end": [
+            -0.005407,
+            0.001523,
+            0.168224
+          ],
+          "blocked": {},
+          "resumed": []
+        },
+        "legs": [
+          {
+            "state": "DONE",
+            "failure_reason": "",
+            "spec": {
+              "route_id": "B_to_A_loaded:L0",
+              "start": [
+                0.4,
+                -0.7
+              ],
+              "end": [
+                0.4,
+                0.7
+              ],
+              "heading": -1.570796,
+              "direction": -1,
+              "speed": 0.12,
+              "loaded": true,
+              "arrive_tol": 0.02,
+              "heading_tol": 0.08
+            },
+            "metrics": {
+              "route_id": "B_to_A_loaded:L0",
+              "loaded": true,
+              "start_pose": [
+                0.399751,
+                -0.680142,
+                0.138692,
+                -0.000667,
+                -0.000616,
+                -0.706728,
+                0.707484
+              ],
+              "end_pose": [
+                0.399659,
+                0.680543,
+                0.138651,
+                -0.001035,
+                -0.00098,
+                -0.707197,
+                0.707015
+              ],
+              "target_pose": [
+                0.4,
+                0.7,
+                0.138692,
+                0.0,
+                0.0,
+                -0.707283,
+                0.706931
+              ],
+              "stop_error": 0.01946,
+              "heading_error": 0.000258,
+              "duration_s": 12.05,
+              "max_speed": 0.123538,
+              "mean_speed": 0.112459,
+              "samples": 242,
+              "stable_samples": 219,
+              "stable_fraction": 0.905,
+              "material_slip": 0.0,
+              "material_relative_start": [
+                -0.001821,
+                -0.000434,
+                0.168236
+              ],
+              "material_relative_end": [
+                -0.005407,
+                0.001523,
+                0.168224
+              ],
+              "blocked": {},
+              "resumed": []
+            },
+            "version": "stage3_agv_route_20261025"
+          }
+        ],
+        "version": "v1_agv_route_20261103"
+      }
+    }
+  },
+  "agv_history": [
+    {
+      "state": "DONE",
+      "failure_reason": "",
+      "spec": {
+        "route_id": "A_to_B_empty",
+        "start_dock": "A",
+        "end_dock": "B",
+        "start": [
+          0.4,
+          0.7
+        ],
+        "end": [
+          0.4,
+          -0.7
+        ],
+        "loaded": false,
+        "distance": 1.4,
+        "lanes": [
+          "agv_lane_west"
+        ],
+        "straight_legs": 1,
+        "turn_legs": 0,
+        "legs": [
+          {
+            "index": 0,
+            "kind": "straight",
+            "start": [
+              0.4,
+              0.7
+            ],
+            "end": [
+              0.4,
+              -0.7
+            ],
+            "heading": -1.570796,
+            "direction": 1,
+            "lane": "agv_lane_west",
+            "loaded": false,
+            "distance": 1.4,
+            "start_heading": null,
+            "target_heading": null
+          }
+        ]
+      },
+      "metrics": {
+        "route_id": "A_to_B_empty",
+        "loaded": false,
+        "start_pose": [
+          0.4,
+          0.7,
+          0.138786,
+          0.0,
+          0.0,
+          -0.707107,
+          0.707107
+        ],
+        "end_pose": [
+          0.399756,
+          -0.680155,
+          0.138692,
+          -0.000667,
+          -0.000616,
+          -0.706735,
+          0.707478
+        ],
+        "target_pose": null,
+        "stop_error": 0.019846,
+        "heading_error": -0.00105,
+        "duration_s": 12.25,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": null,
+        "material_relative_start": null,
+        "material_relative_end": null,
+        "blocked": {},
+        "resumed": []
+      },
+      "legs": [
+        {
+          "state": "DONE",
+          "failure_reason": "",
+          "spec": {
+            "route_id": "A_to_B_empty:L0",
+            "start": [
+              0.4,
+              0.7
+            ],
+            "end": [
+              0.4,
+              -0.7
+            ],
+            "heading": -1.570796,
+            "direction": 1,
+            "speed": 0.12,
+            "loaded": false,
+            "arrive_tol": 0.02,
+            "heading_tol": 0.08
+          },
+          "metrics": {
+            "route_id": "A_to_B_empty:L0",
+            "loaded": false,
+            "start_pose": [
+              0.4,
+              0.7,
+              0.138786,
+              0.0,
+              0.0,
+              -0.707107,
+              0.707107
+            ],
+            "end_pose": [
+              0.399756,
+              -0.680155,
+              0.138692,
+              -0.000667,
+              -0.000616,
+              -0.706735,
+              0.707478
+            ],
+            "target_pose": [
+              0.4,
+              -0.7,
+              0.138786,
+              0.0,
+              0.0,
+              -0.707107,
+              0.707107
+            ],
+            "stop_error": 0.019846,
+            "heading_error": -0.00105,
+            "duration_s": 12.25,
+            "max_speed": 0.120151,
+            "mean_speed": 0.112221,
+            "samples": 246,
+            "stable_samples": 223,
+            "stable_fraction": 0.9065,
+            "material_slip": null,
+            "material_relative_start": null,
+            "material_relative_end": null,
+            "blocked": {},
+            "resumed": []
+          },
+          "version": "stage3_agv_route_20261025"
+        }
+      ],
+      "version": "v1_agv_route_20261103"
+    },
+    {
+      "state": "DONE",
+      "failure_reason": "",
+      "spec": {
+        "route_id": "B_to_A_loaded",
+        "start_dock": "B",
+        "end_dock": "A",
+        "start": [
+          0.4,
+          -0.7
+        ],
+        "end": [
+          0.4,
+          0.7
+        ],
+        "loaded": true,
+        "distance": 1.4,
+        "lanes": [
+          "agv_lane_west"
+        ],
+        "straight_legs": 1,
+        "turn_legs": 0,
+        "legs": [
+          {
+            "index": 0,
+            "kind": "straight",
+            "start": [
+              0.4,
+              -0.7
+            ],
+            "end": [
+              0.4,
+              0.7
+            ],
+            "heading": -1.570796,
+            "direction": -1,
+            "lane": "agv_lane_west",
+            "loaded": true,
+            "distance": 1.4,
+            "start_heading": null,
+            "target_heading": null
+          }
+        ]
+      },
+      "metrics": {
+        "route_id": "B_to_A_loaded",
+        "loaded": true,
+        "start_pose": [
+          0.399751,
+          -0.680142,
+          0.138692,
+          -0.000667,
+          -0.000616,
+          -0.706728,
+          0.707484
+        ],
+        "end_pose": [
+          0.399659,
+          0.680543,
+          0.138651,
+          -0.001035,
+          -0.00098,
+          -0.707197,
+          0.707015
+        ],
+        "target_pose": null,
+        "stop_error": 0.01946,
+        "heading_error": 0.000258,
+        "duration_s": 12.05,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": 0.004085,
+        "material_relative_start": [
+          -0.001821,
+          -0.000434,
+          0.168236
+        ],
+        "material_relative_end": [
+          -0.005407,
+          0.001523,
+          0.168224
+        ],
+        "blocked": {},
+        "resumed": []
+      },
+      "legs": [
+        {
+          "state": "DONE",
+          "failure_reason": "",
+          "spec": {
+            "route_id": "B_to_A_loaded:L0",
+            "start": [
+              0.4,
+              -0.7
+            ],
+            "end": [
+              0.4,
+              0.7
+            ],
+            "heading": -1.570796,
+            "direction": -1,
+            "speed": 0.12,
+            "loaded": true,
+            "arrive_tol": 0.02,
+            "heading_tol": 0.08
+          },
+          "metrics": {
+            "route_id": "B_to_A_loaded:L0",
+            "loaded": true,
+            "start_pose": [
+              0.399751,
+              -0.680142,
+              0.138692,
+              -0.000667,
+              -0.000616,
+              -0.706728,
+              0.707484
+            ],
+            "end_pose": [
+              0.399659,
+              0.680543,
+              0.138651,
+              -0.001035,
+              -0.00098,
+              -0.707197,
+              0.707015
+            ],
+            "target_pose": [
+              0.4,
+              0.7,
+              0.138692,
+              0.0,
+              0.0,
+              -0.707283,
+              0.706931
+            ],
+            "stop_error": 0.01946,
+            "heading_error": 0.000258,
+            "duration_s": 12.05,
+            "max_speed": 0.123538,
+            "mean_speed": 0.112459,
+            "samples": 242,
+            "stable_samples": 219,
+            "stable_fraction": 0.905,
+            "material_slip": 0.0,
+            "material_relative_start": [
+              -0.001821,
+              -0.000434,
+              0.168236
+            ],
+            "material_relative_end": [
+              -0.005407,
+              0.001523,
+              0.168224
+            ],
+            "blocked": {},
+            "resumed": []
+          },
+          "version": "stage3_agv_route_20261025"
+        }
+      ],
+      "version": "v1_agv_route_20261103"
+    }
+  ],
+  "agv_at_dock": "A"
+}

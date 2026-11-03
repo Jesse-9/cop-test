@@ -1,0 +1,507 @@
+{
+  "case": "stage2_arm_a_direct_pick_place",
+  "operation": "housing_direct_A",
+  "device": "arm_A",
+  "drive": {
+    "steps": 964,
+    "wall_s": 221.869,
+    "sim_time": 48.2,
+    "finished": false,
+    "frozen": false,
+    "aborted": false,
+    "stop_reason": ""
+  },
+  "task": {
+    "task_id": "a_conveyor_uid1",
+    "operation_instance_id": "a_conveyor_uid1",
+    "operation_template_id": "housing_direct_A",
+    "kind": "a_conveyor",
+    "uid": 1,
+    "source": "line_s1a",
+    "destination": "handoff_ac",
+    "dock": "A",
+    "device": "A",
+    "status": "DONE",
+    "phase": "DONE",
+    "priority": 1,
+    "upgraded": false,
+    "attempts": 1,
+    "created_sim_time": 0.0,
+    "started_sim_time": 0.0,
+    "finished_sim_time": 48.15,
+    "failure_reason": "",
+    "resources": [
+      "line_s1a",
+      "handoff_ac",
+      "zone_ab",
+      "zone_ac",
+      "arm_A"
+    ]
+  },
+  "flow": {
+    "uid": 1,
+    "alias": "Part_0001",
+    "item_type": "SEMI_AC",
+    "state": "READY",
+    "zone": "handoff_ac",
+    "parents": [],
+    "source": "line_s1a",
+    "destination": "",
+    "sim_handle": 705,
+    "process_stage": "A",
+    "history": [
+      {
+        "sim_time": 0.0,
+        "kind": "MATERIAL_CREATED",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "zone": "line_s1a",
+        "task_id": "",
+        "source": "line_s1a",
+        "destination": "",
+        "device": "",
+        "evidence_id": "",
+        "detail": {
+          "source": "line_s1a",
+          "destination": ""
+        }
+      },
+      {
+        "sim_time": 48.15,
+        "kind": "MATERIAL_PROCESS",
+        "uid": 1,
+        "item_type": "SEMI_AC",
+        "zone": "line_s1a",
+        "task_id": "a_conveyor_uid1",
+        "source": "line_s1a",
+        "destination": "",
+        "device": "A",
+        "evidence_id": "",
+        "detail": {
+          "from": "RAW_A",
+          "to": "SEMI_AC"
+        }
+      },
+      {
+        "sim_time": 48.15,
+        "kind": "MATERIAL_MOVE",
+        "uid": 1,
+        "item_type": "SEMI_AC",
+        "zone": "handoff_ac",
+        "task_id": "a_conveyor_uid1",
+        "source": "line_s1a",
+        "destination": "",
+        "device": "",
+        "evidence_id": "",
+        "detail": {
+          "from": "line_s1a",
+          "reason": "a_conveyor done"
+        }
+      }
+    ]
+  },
+  "controller_history": [
+    {
+      "unit_id": "A",
+      "task_id": "a_conveyor_uid1",
+      "execution_id": "arm_A#1",
+      "summary": {
+        "uid": 1,
+        "target": "station",
+        "layout": "L5_UFLOW/A",
+        "state": "DONE",
+        "failure_reason": "",
+        "material_state": "RELEASED",
+        "compensation_count": 4,
+        "pick_pose": [
+          -0.30802,
+          0.00011,
+          0.5
+        ],
+        "pick_tcp": [
+          -0.30802,
+          0.00011,
+          0.55,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "agv_blocked": false,
+        "controller_id": "flexible_factory.simulation.unit_controller.Stage4UnitController",
+        "stage2": true,
+        "motion_opt_version": "2.01",
+        "transfer_trajectory_version": "06-15",
+        "transfer_height": 0.65,
+        "transfer_check": {
+          "ok": true,
+          "query_unknown": false,
+          "points": 129,
+          "max_z": 0.000137,
+          "max_ang": 0.0,
+          "height": 0.65,
+          "pos_tol": 0.01,
+          "ang_tol": 0.05
+        },
+        "safety": {
+          "engaged": false,
+          "code": "",
+          "reason": "",
+          "sim_time": null,
+          "details": {},
+          "stop_commanded": false,
+          "stop_command_ok": null,
+          "stop_confirmed": false,
+          "stop_checks": 0,
+          "stop_speed": null,
+          "stop_source": ""
+        },
+        "motion_totals": {
+          "motions": 5,
+          "executed": 5,
+          "failed": 0,
+          "tv_total": 16.718584,
+          "max_step": 0.045165,
+          "sim_duration": 42.95,
+          "steps": 866,
+          "commands": 214
+        },
+        "branch_anchor": "positive",
+        "stop": {
+          "status": "OK",
+          "command_time": 3.399999999999996,
+          "material_start": [
+            -0.32813,
+            9e-05,
+            0.5
+          ],
+          "material_end": [
+            -0.30802,
+            0.00011,
+            0.5
+          ],
+          "belt_speed_before": 0.2,
+          "latency": 0.15,
+          "overrun": 0.02011,
+          "lateral_drift": 2e-05,
+          "height_drift": 4e-05,
+          "steps": 4,
+          "speed_source": "model_state",
+          "speed_valid": true,
+          "pad_still": true,
+          "message": "零速停带且越程/漂移在容差内"
+        },
+        "stability": {
+          "stable": true,
+          "count": 5,
+          "step_moved": 0.0,
+          "speed": 0.0,
+          "drift": 0.0,
+          "elapsed": 0.2,
+          "timed_out": false
+        },
+        "compensation": {
+          "count": 4,
+          "long_compensation": false,
+          "overspeed_steps": 0
+        },
+        "contact": {
+          "valid": true,
+          "reasons": [],
+          "uid": 1,
+          "signed_distance": 0.000362,
+          "lateral_offset": 0.000204,
+          "offset_xy": [
+            1.6e-05,
+            0.000203
+          ],
+          "normal_angle": 4.3e-05,
+          "within_face": true,
+          "cup_covered": true,
+          "cup_radius": 0.023579,
+          "surface": {
+            "center_world": [
+              -0.308023,
+              0.000109,
+              0.55
+            ],
+            "normal_world": [
+              -0.0,
+              0.0,
+              1.0
+            ],
+            "half_u": 0.05,
+            "half_v": 0.05,
+            "top_z_local": 0.05
+          },
+          "tool_position": [
+            -0.308007,
+            0.000313,
+            0.550362
+          ],
+          "tool_normal": [
+            -0.0,
+            4.3e-05,
+            -1.0
+          ]
+        },
+        "fk": {
+          "ok": true,
+          "pos_tol": 0.0001,
+          "ang_tol": 0.001,
+          "joints": [
+            -2.443954,
+            0.282631,
+            -1.71346,
+            -0.13995,
+            1.570796,
+            -4.014685
+          ],
+          "links": [
+            {
+              "link": "link1_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link2_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link3_visible",
+              "pos_err": 0.0,
+              "ang_err": 3e-08
+            },
+            {
+              "link": "link4_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link5_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link6_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "link7_visible",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            },
+            {
+              "link": "tcp",
+              "pos_err": 0.0,
+              "ang_err": 0.0
+            }
+          ]
+        },
+        "attach_transform": [
+          -1.6e-05,
+          -0.000206,
+          -0.050362,
+          2.1e-05,
+          0.0,
+          -0.001087,
+          -0.999999
+        ],
+        "release": {
+          "pose": [
+            -0.200029,
+            1.200259,
+            0.350384,
+            0.000655,
+            0.000115,
+            0.001087,
+            0.999999
+          ]
+        },
+        "pick_box": {
+          "min": [
+            -0.05,
+            -0.05,
+            -0.05
+          ],
+          "max": [
+            0.05,
+            0.05,
+            0.05
+          ]
+        },
+        "unit_id": "A",
+        "source": "conveyor",
+        "sink": "station",
+        "dock_id": "A",
+        "task_id": "a_conveyor_uid1",
+        "release_attempted": true,
+        "tray_check": null,
+        "layout_view": "L5_UFLOW/A",
+        "phase": "v1",
+        "line": "line_s1a",
+        "line_fault": false,
+        "expected_types": [
+          "RAW_A"
+        ],
+        "sink_kind": "station",
+        "sink_zone": "handoff_ac",
+        "flow": {
+          "uid": 1,
+          "alias": "Part_0001",
+          "item_type": "SEMI_AC",
+          "state": "READY",
+          "zone": "handoff_ac",
+          "parents": [],
+          "source": "line_s1a",
+          "destination": "",
+          "sim_handle": 705,
+          "process_stage": "A",
+          "history": [
+            {
+              "sim_time": 0.0,
+              "kind": "MATERIAL_CREATED",
+              "uid": 1,
+              "item_type": "RAW_A",
+              "zone": "line_s1a",
+              "task_id": "",
+              "source": "line_s1a",
+              "destination": "",
+              "device": "",
+              "evidence_id": "",
+              "detail": {
+                "source": "line_s1a",
+                "destination": ""
+              }
+            },
+            {
+              "sim_time": 48.15,
+              "kind": "MATERIAL_PROCESS",
+              "uid": 1,
+              "item_type": "SEMI_AC",
+              "zone": "line_s1a",
+              "task_id": "a_conveyor_uid1",
+              "source": "line_s1a",
+              "destination": "",
+              "device": "A",
+              "evidence_id": "",
+              "detail": {
+                "from": "RAW_A",
+                "to": "SEMI_AC"
+              }
+            },
+            {
+              "sim_time": 48.15,
+              "kind": "MATERIAL_MOVE",
+              "uid": 1,
+              "item_type": "SEMI_AC",
+              "zone": "handoff_ac",
+              "task_id": "a_conveyor_uid1",
+              "source": "line_s1a",
+              "destination": "",
+              "device": "",
+              "evidence_id": "",
+              "detail": {
+                "from": "line_s1a",
+                "reason": "a_conveyor done"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "acceptance": {
+    "scenario": "full_flow",
+    "fault": "none",
+    "tasks_done": false,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "final_count": 0,
+    "final_parents": [],
+    "unpaired_semi_ce": 0,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "frozen": false,
+    "stop_reason": "",
+    "loaded_routes": 0,
+    "route_ok": false,
+    "priority_ok": true,
+    "priority_detail": [],
+    "injected": [],
+    "batch": {},
+    "spawned": [],
+    "ok": false
+  },
+  "evidence_note": "已去掉逐 tick 的 summary.motion/plan/events 与 task.evidence; 完整输出见 runs/ (不入库)"
+}
