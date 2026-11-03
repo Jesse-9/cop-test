@@ -195,11 +195,15 @@ def test_height_datum_is_explicit_and_unified():
 
 
 def test_task_resources_cover_declared_order():
-    from flexible_factory.application.coordinator import TASK_RESOURCES
+    from flexible_factory.domain.default_process import default_catalog
     order = list(cfg.RESOURCE_ORDER)
-    for kind, resources in TASK_RESOURCES.items():
-        assert list(resources) == sorted(resources, key=order.index), kind
-        assert all(item in order for item in resources), kind
+    recipe = default_catalog().recipe("mixed_line_v1")
+    for template in recipe.operations:
+        if template.resource_policy != "fixed":
+            continue
+        resources = list(template.resources)
+        assert resources == sorted(resources, key=order.index), template.id
+        assert all(item in order for item in resources), template.id
     assert "zone_ce" not in order
 
 
