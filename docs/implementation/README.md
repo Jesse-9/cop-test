@@ -11,7 +11,8 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 |---|---|
 | [V1_CONSOLIDATION_PLAN.md](V1_CONSOLIDATION_PLAN.md) | v1 产品边界、迁移映射、工件策略、测试矩阵和分批门槛 |
 | [V1_BASELINE.md](V1_BASELINE.md) | M0 范围、决策、代码/工件/测试基线 |
-| [V1_REPORT.md](V1_REPORT.md) | 实施、迁移、测试和实机验收记录；未执行项与限制 |
+| [V1_REPORT.md](V1_REPORT.md) | v1 实施、迁移、测试和实机验收记录；未执行项与限制 |
+| [V1_STAGE0_1_REPORT.md](V1_STAGE0_1_REPORT.md) | 阶段 0-1 静态工艺目录移植到 `flexible_factory` 的代码映射与验证 |
 
 ## 证据
 

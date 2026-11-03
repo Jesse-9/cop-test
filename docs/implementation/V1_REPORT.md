@@ -33,7 +33,7 @@ scope: v1 收敛与迁移
 |---|---|
 | `domain/rules.py` | stage4 config 中的物料/任务/资源/指标规则 |
 | `domain/materials.py` | `stage4/materials.py` |
-| `domain/tasks.py` | `stage4/tasks.py` |
+| `domain/tasks.py` | `stage4/tasks.py`（阶段 0-1 的 `OperationInstance` 投影） |
 | `domain/resources.py` | `stage3/resources.py` + `stage4/resources.py` 合并 |
 | `domain/metrics.py` | `stage4/metrics.py` |
 | `simulation/config_*.py` | stage1/2/3/4 配置等价迁移；v1 契约版本集中在 `spec.py` |
@@ -43,12 +43,19 @@ scope: v1 收敛与迁移
 | `simulation/runtime*.py` | stage3/4 影子臂、碰撞集合、规划器装配 |
 | `simulation/unit_controller*.py` | stage1/2/3/4 单岛状态机 |
 | `simulation/motion/*` | stage2 接触/碰撞/规划/轨迹/安全/吸附/停带 |
-| `application/coordinator.py` | `stage4/coordinator.py` |
+| `application/coordinator.py` | `stage4/coordinator.py`（阶段 0-1 改造后：从工艺目录读取任务字段） |
+| `domain/process_model.py` | `stage4/process_model.py` |
+| `domain/default_process.py` | `stage4/default_process.py` |
+| `domain/operation_runtime.py` | `stage4/operation_runtime.py` |
 | `application/lifecycle.py` | `stage1/lifecycle.py` 的 v1 收敛版本 |
 | `application/run.py` | `stage4/run.py` |
 | `artifacts/store.py` | `stage1/scene_artifact.py` 的 v1 schema 版本 |
 | `artifacts/migration.py` | 新增 stage4 → v1 迁移 |
 | `cli.py` | 新增唯一 v1 命令入口 |
+
+阶段 0-1 的静态工艺目录/`OperationInstance` 移植细节见
+[V1 阶段 0-1 移植报告](V1_STAGE0_1_REPORT.md)；它只在任务字段来源和状态投影层面
+改变代码，不改变运动、吸附或资源行为。
 
 依赖边界由 `tests/test_v1_import_boundary.py` 自动检查：
 
@@ -88,13 +95,13 @@ scope: v1 收敛与迁移
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| v1 单元/契约/边界测试 | `python -m pytest -q tests/test_v1_*.py` | 318 passed |
+| v1 单元/契约/边界测试 | `python -m pytest -q tests/test_v1_*.py` | 339 passed |
 | 干净安装 | 新建 venv + `pip install -e .` | 成功 |
 | 唯一入口 | `flexible-factory --version` / `list` | `1.0.0` / 正确列出 v1 工件 |
-| 全量测试 | `python -m pytest -q` | 318 passed |
+| 全量测试 | `python -m pytest -q` | 339 passed |
 | 导入边界 | `tests/test_v1_import_boundary.py` | 4 passed |
 
-覆盖的迁移回归包括：domain 物料/任务/资源/指标；布局与 AGV 路网；
+覆盖的迁移回归包括：domain 物料/任务/资源/指标；阶段 0-1 工艺目录/任务投影；布局与 AGV 路网；
 stage2 接触/碰撞/规划/轨迹/安全/吸附/停带；stage1 基础配置/布局/TCP/单元
 状态机/传送带/差速驱动/吸附/IK/物料生命周期；生命周期状态机与运行锁；
 v1 工件仓库 schema/current/保护。
@@ -188,6 +195,7 @@ v1 工件仓库 schema/current/保护。
   已通过（§5.3）。`agv_blocked` 未执行，发布前应补齐或明确接受该覆盖缺口；
   不得把未执行场景报告为通过。
 - 无 Windows + CoppeliaSim CI agent；集成验收由受控本地流程执行。
+- 阶段 0-1 静态工艺目录已移植到 v1；阶段 2–5（设备执行适配器、工序 DAG、能力匹配、调度优化/恢复）未实现，规划文档保留在 06-20–06-23。
 - 阶段三安全锁存仍不自动恢复；统一故障恢复未实现。
 - v1 运行期保留已验证类名 `Stage4Scene`/`Stage4UnitController`/
   `Stage4Coordinator`，以行为等价为先；重命名为 v1 中性名称属于后续清理，
@@ -210,7 +218,7 @@ v1 工件仓库 schema/current/保护。
 |---|---|---|
 | M0 冻结范围与基线 | 完成 | [V1_BASELINE.md](V1_BASELINE.md)；492 passed 基线 |
 | M1 v1 包骨架 + domain | 完成 | `src/flexible_factory/domain/`；domain 导入边界测试 |
-| M2 simulation 公共能力 | 完成 | 行为等价复制；差分对比除日志/版本标识外无代码差异；318 项 v1 测试 |
+| M2 simulation 公共能力 | 完成 | 行为等价复制；差分对比除日志/版本标识外无代码差异；339 项 v1 测试 |
 | M3 独立工件契约与迁移 | 完成 | v1 工件、452 项校验、幂等迁移、源工件摘要不变 |
 | M4 统一入口、打包与接入 | 完成 | `flexible-factory` console script、干净安装、`uv.lock`、MCP 注册与实现删除 |
 | M5 文档与验收 | 完成 | 文档已更新；`full_flow` 与 `conveyor_fault` 通过；`agv_blocked` 未执行（§6） |

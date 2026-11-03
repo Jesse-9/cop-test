@@ -20,7 +20,8 @@
 ```text
 src/flexible_factory/
   spec.py            产品/契约/schema 版本、模型路径
-  domain/            rules, materials, tasks, resources, metrics（纯 Python）
+  domain/            rules, materials, tasks, resources, metrics,
+                     process_model, default_process, operation_runtime（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
                      ur5_ik, material_manager, agv, runtime, unit_controller
     motion/          contact, collisions, path_planning, trajectory, safety,
@@ -32,6 +33,19 @@ src/flexible_factory/
 ```
 
 依赖方向：`cli → application → domain / simulation / artifacts`。
+阶段 0-1 工艺目录的边界：
+
+- `domain/process_model.py` 保存静态 `RecipeSpec`/`OperationTemplate`/
+  `RouteVariant`/`OrderEntry`/`ProcessCatalog`；不持有 UID、句柄或时间。
+- `domain/default_process.py` 是唯一默认工艺来源；修改 recipe/operation/
+  route/设备能力时递增 `PROCESS_MODEL_VERSION`。
+- `domain/operation_runtime.py` 的 `OperationInstance` 是任务生命周期字段的
+  唯一存储；`domain/tasks.py` 的 `Stage4Task` 旧字段是只读/受控投影。
+- `application/coordinator.py` 从目录读取任务字段；逻辑合流 `kit_join` 是
+  依赖 successor，但不创建 `Stage4Task`，由 `_check_join` 提交。
+- `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
+  recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
+
 
 - `domain` 只导入 `domain.rules` 和 `spec`，不导入 CoppeliaSim、文件系统
   实现或 CLI。

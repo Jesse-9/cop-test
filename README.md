@@ -32,7 +32,8 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 | v1 产品范围 | 五岛 `L5_UFLOW`、`full_flow` 唯一用户入口 |
 | v1 当前工件 | `v1/L5_UFLOW/v001_20261103_004317`（由 stage4 `L5_UFLOW/v004_20261029_133249` 迁移，源工件只读） |
 | 代码入口 | `src/flexible_factory/cli.py`（console script `flexible-factory`） |
-| 测试 | `python -m pytest -q`；CoppeliaSim 不可用时集成项明确标为未执行 |
+| 工艺目录 | 阶段 0-1 静态 `RecipeSpec`/`ProcessCatalog` 已接入 `flexible_factory`；阶段 2–5 未实现 |
+| 测试 | `python -m pytest -q`（339 passed）；CoppeliaSim 不可用时集成项明确标为未执行 |
 | MCP | 不在 v1 范围；旧 `factory-sim` 注册和实现已移除 |
 | 故障自动恢复 | 未实现；安全锁存不得自动清除 |
 | 历史阶段 | 旧阶段源码、入口、报告和证据已清理；迁移来源工件见 [场景工件说明](docs/scene_artifacts/README.md) |
@@ -40,7 +41,7 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 ## 入口与结构
 
     src/flexible_factory/
-      domain/        物料、任务、资源、指标 (纯 Python)
+      domain/        物料、任务、资源、指标、工艺目录 (纯 Python)
       simulation/    场景、布局、物理、运动、AGV、运行时
       artifacts/     v1 manifest、工件仓库、迁移
       application/   生命周期、运行用例、多岛协调
