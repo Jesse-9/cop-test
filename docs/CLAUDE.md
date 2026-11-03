@@ -25,7 +25,7 @@ docs/
 └── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
 
-仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`，v1 验收结论放在 `implementation/`，不要把两者合并成重复的大文档。运行输出不得当作正式证据；正式报告引用的证据副本归入 `implementation/evidence/`。
+仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`；混线生产阶段 0-1 已移植到 v1，阶段 2–5 的未实现规划保留在 `wiki/06-工业案例/柔性车间/当前规划/`，不得按“未实现”为由删除。v1 验收结论放在 `implementation/`，不要把两者合并成重复的大文档。运行输出不得当作正式证据；正式报告引用的证据副本归入 `implementation/evidence/`。
 
 ## 文件命名规范
 
