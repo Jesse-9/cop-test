@@ -95,10 +95,10 @@ scope: v1 收敛与迁移
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| v1 单元/契约/边界测试 | `python -m pytest -q tests/test_v1_*.py` | 339 passed |
+| v1 单元/契约/边界测试 | `python -m pytest -q tests/test_v1_*.py` | 340 passed |
 | 干净安装 | 新建 venv + `pip install -e .` | 成功 |
 | 唯一入口 | `flexible-factory --version` / `list` | `1.0.0` / 正确列出 v1 工件 |
-| 全量测试 | `python -m pytest -q` | 339 passed |
+| 全量测试 | `python -m pytest -q` | 340 passed |
 | 导入边界 | `tests/test_v1_import_boundary.py` | 4 passed |
 
 覆盖的迁移回归包括：domain 物料/任务/资源/指标；阶段 0-1 工艺目录/任务投影；布局与 AGV 路网；
@@ -164,6 +164,12 @@ v1 工件仓库 schema/current/保护。
 
 证据摘要：[`v1_full_flow_acceptance_20261103_010923.json`](evidence/v1_full_flow_acceptance_20261103_010923.json)。
 
+阶段 0-1 工艺目录移植后再次运行同一 `full_flow`：
+337.45 s、13/13 任务 DONE、1 个 FINAL（父 UID 1+3）、1 个未配对
+SEMI_CE、两条载货路线；证据
+[`v1_stage0_1_full_flow_acceptance_20261103_132919.json`](evidence/v1_stage0_1_full_flow_acceptance_20261103_132919.json)。
+任务/FINAL/物料/路线结果与上表一致。
+
 ### 5.3 代表性故障回归：`conveyor_fault`
 
 命令：
@@ -218,7 +224,7 @@ v1 工件仓库 schema/current/保护。
 |---|---|---|
 | M0 冻结范围与基线 | 完成 | [V1_BASELINE.md](V1_BASELINE.md)；492 passed 基线 |
 | M1 v1 包骨架 + domain | 完成 | `src/flexible_factory/domain/`；domain 导入边界测试 |
-| M2 simulation 公共能力 | 完成 | 行为等价复制；差分对比除日志/版本标识外无代码差异；339 项 v1 测试 |
+| M2 simulation 公共能力 | 完成 | 行为等价复制；差分对比除日志/版本标识外无代码差异；340 项 v1 测试 |
 | M3 独立工件契约与迁移 | 完成 | v1 工件、452 项校验、幂等迁移、源工件摘要不变 |
 | M4 统一入口、打包与接入 | 完成 | `flexible-factory` console script、干净安装、`uv.lock`、MCP 注册与实现删除 |
 | M5 文档与验收 | 完成 | 文档已更新；`full_flow` 与 `conveyor_fault` 通过；`agv_blocked` 未执行（§6） |

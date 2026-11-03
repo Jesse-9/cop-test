@@ -6,6 +6,11 @@
   （`all_ok=true`、FINAL UID 4 父 UID [1,3]、无安全锁存、资源释放、双 AGV
   航线通过）。完整运行报告保留在被 Git 忽略的
   `docs/implementation/runs/v1_run_full_flow_20261103_010923.json`。
+- `v1_stage0_1_full_flow_acceptance_20261103_132919.json` — 阶段 0-1
+  工艺目录移植后的 `full_flow` 实机验收摘要（337.45 s、13/13 DONE、
+  FINAL 父 UID [1,3]、无安全锁存、资源释放、双 AGV 航线通过）。
+  完整运行报告保留在
+  `docs/implementation/runs/v1_run_full_flow_20261103_132919.json`。
 - `v1_conveyor_fault_acceptance_20261103_014225.json` — v1 `conveyor_fault`
   代表性故障回归摘要（冻结、`CONVEYOR_FAULT: line_ce 停止`、无 FINAL、
   资源释放、验收 `ok=true`）。

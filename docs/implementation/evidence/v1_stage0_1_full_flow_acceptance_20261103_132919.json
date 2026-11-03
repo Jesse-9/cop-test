@@ -1,0 +1,1634 @@
+{
+  "source_report": "docs/implementation/runs/v1_run_full_flow_20261103_132919.json",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "scenario": "full_flow",
+  "fault": "none",
+  "all_ok": true,
+  "sim_time": 337.45,
+  "steps": 6732,
+  "acceptance": {
+    "scenario": "full_flow",
+    "fault": "none",
+    "tasks_done": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "unpaired_semi_ce": 1,
+    "any_safety_latch": false,
+    "safety": {
+      "A": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "B": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "C": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "D": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      },
+      "E": {
+        "engaged": false,
+        "code": "",
+        "reason": "",
+        "sim_time": null,
+        "details": {},
+        "stop_commanded": false,
+        "stop_command_ok": null,
+        "stop_confirmed": false,
+        "stop_checks": 0,
+        "stop_speed": null,
+        "stop_source": ""
+      }
+    },
+    "resources_released": true,
+    "aborted": false,
+    "frozen": false,
+    "stop_reason": "",
+    "loaded_routes": 2,
+    "route_ok": true,
+    "priority_ok": true,
+    "priority_detail": [
+      {
+        "sim_time": 94.55,
+        "chosen": "transport_ba_uid2",
+        "chosen_priority": 0,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      },
+      {
+        "sim_time": 252.8,
+        "chosen": "transport_de_uid3",
+        "chosen_priority": 1,
+        "pending": [],
+        "upgraded": false,
+        "ok": true
+      }
+    ],
+    "injected": [],
+    "batch": {
+      "RAW_A": 1,
+      "RAW_B": 1,
+      "RAW_D": 1
+    },
+    "spawned": [
+      {
+        "sim_time": 0.85,
+        "source": "s1a",
+        "uid": 1,
+        "item_type": "RAW_A",
+        "position": [
+          -1.0172298351066111,
+          0.0,
+          0.51
+        ],
+        "handle": 705
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s1b",
+        "uid": 2,
+        "item_type": "RAW_B",
+        "position": [
+          -0.75,
+          -1.467,
+          0.51
+        ],
+        "handle": 706
+      },
+      {
+        "sim_time": 0.85,
+        "source": "s2d",
+        "uid": 3,
+        "item_type": "RAW_D",
+        "position": [
+          1.013,
+          -1.35,
+          0.51
+        ],
+        "handle": 707
+      }
+    ],
+    "ok": true
+  },
+  "materials": {
+    "1": {
+      "uid": 1,
+      "alias": "Part_0001",
+      "handle": null,
+      "state": "RELEASED",
+      "flow": {
+        "uid": 1,
+        "alias": "Part_0001",
+        "item_type": "SEMI_CE",
+        "state": "CONSUMED",
+        "zone": "buffer_e_c",
+        "parents": [],
+        "source": "line_s1a",
+        "destination": "",
+        "sim_handle": null,
+        "process_stage": "C",
+        "history": [
+          {
+            "sim_time": 0.85,
+            "kind": "MATERIAL_CREATED",
+            "uid": 1,
+            "item_type": "RAW_A",
+            "zone": "line_s1a",
+            "task_id": "",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "source": "line_s1a",
+              "destination": ""
+            }
+          },
+          {
+            "sim_time": 48.9,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 1,
+            "item_type": "SEMI_AC",
+            "zone": "line_s1a",
+            "task_id": "a_conveyor_uid1",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "A",
+            "evidence_id": "",
+            "detail": {
+              "from": "RAW_A",
+              "to": "SEMI_AC"
+            }
+          },
+          {
+            "sim_time": 48.9,
+            "kind": "MATERIAL_MOVE",
+            "uid": 1,
+            "item_type": "SEMI_AC",
+            "zone": "handoff_ac",
+            "task_id": "a_conveyor_uid1",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "line_s1a",
+              "reason": "a_conveyor done"
+            }
+          },
+          {
+            "sim_time": 94.4,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 1,
+            "item_type": "SEMI_CE",
+            "zone": "handoff_ac",
+            "task_id": "c_handoff_uid1",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "C",
+            "evidence_id": "",
+            "detail": {
+              "from": "SEMI_AC",
+              "to": "SEMI_CE"
+            }
+          },
+          {
+            "sim_time": 94.4,
+            "kind": "MATERIAL_MOVE",
+            "uid": 1,
+            "item_type": "SEMI_CE",
+            "zone": "line_ce",
+            "task_id": "c_handoff_uid1",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "handoff_ac",
+              "reason": "c_handoff done"
+            }
+          },
+          {
+            "sim_time": 124.4,
+            "kind": "MATERIAL_MOVE",
+            "uid": 1,
+            "item_type": "SEMI_CE",
+            "zone": "buffer_e_c",
+            "task_id": "e_conveyor_uid1",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "line_ce",
+              "reason": "e_conveyor done"
+            }
+          },
+          {
+            "sim_time": 305.95,
+            "kind": "MATERIAL_CONSUMED",
+            "uid": 1,
+            "item_type": "SEMI_CE",
+            "zone": "buffer_e_c",
+            "task_id": "join_e",
+            "source": "line_s1a",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "pair_key": "1+3",
+              "final_uid": 4
+            }
+          }
+        ]
+      }
+    },
+    "2": {
+      "uid": 2,
+      "alias": "Part_0002",
+      "handle": 706,
+      "state": "RELEASED",
+      "pose": [
+        2.099264,
+        1.349974,
+        0.35,
+        0.0,
+        0.0,
+        0.005786,
+        0.999983
+      ],
+      "parent": 537,
+      "parent_alias": "Part",
+      "physics": {
+        "static": 0,
+        "kinematic": 0,
+        "respondable": 1,
+        "mask": 65535,
+        "mass": 0.1,
+        "friction": 0.6
+      },
+      "dynamic_ok": true,
+      "respondable_ok": true,
+      "history": [
+        {
+          "sim_time": 48.95,
+          "from": "SPAWNED",
+          "to": "ON_CONVEYOR",
+          "reason": "entered line_s1b effective zone"
+        },
+        {
+          "sim_time": 52.75,
+          "from": "ON_CONVEYOR",
+          "to": "READY_FOR_PICK",
+          "reason": "stopped and stable, measured pose"
+        },
+        {
+          "sim_time": 60.85,
+          "from": "READY_FOR_PICK",
+          "to": "HELD_BY_SUCTION",
+          "reason": "suction attach (TCP + sensor UID confirmed)"
+        },
+        {
+          "sim_time": 91.4,
+          "from": "HELD_BY_SUCTION",
+          "to": "ON_TRAY",
+          "reason": "placed at target pose"
+        },
+        {
+          "sim_time": 91.4,
+          "from": "ON_TRAY",
+          "to": "RELEASED",
+          "reason": "released speed=0.000 stable=True penetration=False"
+        },
+        {
+          "sim_time": 106.5,
+          "from": "RELEASED",
+          "to": "ON_TRAY",
+          "reason": "stage4 confirmed on AGV tray at dock A"
+        },
+        {
+          "sim_time": 106.7,
+          "from": "ON_TRAY",
+          "to": "READY_FOR_PICK",
+          "reason": "AGV tray material docked, stable and measured"
+        },
+        {
+          "sim_time": 113.9,
+          "from": "READY_FOR_PICK",
+          "to": "HELD_BY_SUCTION",
+          "reason": "suction attach (TCP + sensor UID confirmed)"
+        },
+        {
+          "sim_time": 135.35,
+          "from": "HELD_BY_SUCTION",
+          "to": "ON_TRAY",
+          "reason": "placed at target pose"
+        },
+        {
+          "sim_time": 135.35,
+          "from": "ON_TRAY",
+          "to": "RELEASED",
+          "reason": "released speed=0.017 stable=True penetration=False"
+        },
+        {
+          "sim_time": 143.6,
+          "from": "RELEASED",
+          "to": "READY_FOR_PICK",
+          "reason": "handoff material present, stable and measured"
+        },
+        {
+          "sim_time": 154.95,
+          "from": "READY_FOR_PICK",
+          "to": "HELD_BY_SUCTION",
+          "reason": "suction attach (TCP + sensor UID confirmed)"
+        },
+        {
+          "sim_time": 188.6,
+          "from": "HELD_BY_SUCTION",
+          "to": "ON_TRAY",
+          "reason": "placed at target pose"
+        },
+        {
+          "sim_time": 188.6,
+          "from": "ON_TRAY",
+          "to": "RELEASED",
+          "reason": "released speed=0.000 stable=True penetration=False"
+        },
+        {
+          "sim_time": 191.75,
+          "from": "RELEASED",
+          "to": "ON_CONVEYOR",
+          "reason": "placed on line_ce; handoff to conveyor"
+        },
+        {
+          "sim_time": 309.8,
+          "from": "ON_CONVEYOR",
+          "to": "READY_FOR_PICK",
+          "reason": "stopped and stable, measured pose"
+        },
+        {
+          "sim_time": 320.6,
+          "from": "READY_FOR_PICK",
+          "to": "HELD_BY_SUCTION",
+          "reason": "suction attach (TCP + sensor UID confirmed)"
+        },
+        {
+          "sim_time": 333.65,
+          "from": "HELD_BY_SUCTION",
+          "to": "ON_TRAY",
+          "reason": "placed at target pose"
+        },
+        {
+          "sim_time": 333.65,
+          "from": "ON_TRAY",
+          "to": "RELEASED",
+          "reason": "released speed=0.009 stable=True penetration=False"
+        }
+      ],
+      "flow": {
+        "uid": 2,
+        "alias": "Part_0002",
+        "item_type": "SEMI_CE",
+        "state": "READY",
+        "zone": "buffer_e_c",
+        "parents": [],
+        "source": "line_s1b",
+        "destination": "",
+        "sim_handle": 706,
+        "process_stage": "C",
+        "history": [
+          {
+            "sim_time": 0.85,
+            "kind": "MATERIAL_CREATED",
+            "uid": 2,
+            "item_type": "RAW_B",
+            "zone": "line_s1b",
+            "task_id": "",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "source": "line_s1b",
+              "destination": ""
+            }
+          },
+          {
+            "sim_time": 94.5,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 2,
+            "item_type": "SEMI_AB",
+            "zone": "line_s1b",
+            "task_id": "b_conveyor_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "B",
+            "evidence_id": "",
+            "detail": {
+              "from": "RAW_B",
+              "to": "SEMI_AB"
+            }
+          },
+          {
+            "sim_time": 94.5,
+            "kind": "MATERIAL_MOVE",
+            "uid": 2,
+            "item_type": "SEMI_AB",
+            "zone": "agv",
+            "task_id": "b_conveyor_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "line_s1b",
+              "reason": "b_conveyor done"
+            }
+          },
+          {
+            "sim_time": 143.3,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 2,
+            "item_type": "SEMI_AC",
+            "zone": "agv",
+            "task_id": "a_agv_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "A",
+            "evidence_id": "",
+            "detail": {
+              "from": "SEMI_AB",
+              "to": "SEMI_AC"
+            }
+          },
+          {
+            "sim_time": 143.3,
+            "kind": "MATERIAL_MOVE",
+            "uid": 2,
+            "item_type": "SEMI_AC",
+            "zone": "handoff_ac",
+            "task_id": "a_agv_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "agv",
+              "reason": "a_agv done"
+            }
+          },
+          {
+            "sim_time": 191.75,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 2,
+            "item_type": "SEMI_CE",
+            "zone": "handoff_ac",
+            "task_id": "c_handoff_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "C",
+            "evidence_id": "",
+            "detail": {
+              "from": "SEMI_AC",
+              "to": "SEMI_CE"
+            }
+          },
+          {
+            "sim_time": 191.75,
+            "kind": "MATERIAL_MOVE",
+            "uid": 2,
+            "item_type": "SEMI_CE",
+            "zone": "line_ce",
+            "task_id": "c_handoff_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "handoff_ac",
+              "reason": "c_handoff done"
+            }
+          },
+          {
+            "sim_time": 337.4,
+            "kind": "MATERIAL_MOVE",
+            "uid": 2,
+            "item_type": "SEMI_CE",
+            "zone": "buffer_e_c",
+            "task_id": "e_conveyor_uid2",
+            "source": "line_s1b",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "line_ce",
+              "reason": "e_conveyor done"
+            }
+          }
+        ]
+      }
+    },
+    "3": {
+      "uid": 3,
+      "alias": "Part_0003",
+      "handle": null,
+      "state": "RELEASED",
+      "flow": {
+        "uid": 3,
+        "alias": "Part_0003",
+        "item_type": "PART_DE",
+        "state": "CONSUMED",
+        "zone": "buffer_e_d",
+        "parents": [],
+        "source": "line_s2d",
+        "destination": "",
+        "sim_handle": null,
+        "process_stage": "D",
+        "history": [
+          {
+            "sim_time": 0.85,
+            "kind": "MATERIAL_CREATED",
+            "uid": 3,
+            "item_type": "RAW_D",
+            "zone": "line_s2d",
+            "task_id": "",
+            "source": "line_s2d",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "source": "line_s2d",
+              "destination": ""
+            }
+          },
+          {
+            "sim_time": 252.75,
+            "kind": "MATERIAL_PROCESS",
+            "uid": 3,
+            "item_type": "PART_DE",
+            "zone": "line_s2d",
+            "task_id": "d_conveyor_uid3",
+            "source": "line_s2d",
+            "destination": "",
+            "device": "D",
+            "evidence_id": "",
+            "detail": {
+              "from": "RAW_D",
+              "to": "PART_DE"
+            }
+          },
+          {
+            "sim_time": 252.75,
+            "kind": "MATERIAL_MOVE",
+            "uid": 3,
+            "item_type": "PART_DE",
+            "zone": "agv",
+            "task_id": "d_conveyor_uid3",
+            "source": "line_s2d",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "line_s2d",
+              "reason": "d_conveyor done"
+            }
+          },
+          {
+            "sim_time": 305.95,
+            "kind": "MATERIAL_MOVE",
+            "uid": 3,
+            "item_type": "PART_DE",
+            "zone": "buffer_e_d",
+            "task_id": "e_agv_uid3",
+            "source": "line_s2d",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "from": "agv",
+              "reason": "e_agv done"
+            }
+          },
+          {
+            "sim_time": 305.95,
+            "kind": "MATERIAL_CONSUMED",
+            "uid": 3,
+            "item_type": "PART_DE",
+            "zone": "buffer_e_d",
+            "task_id": "join_e",
+            "source": "line_s2d",
+            "destination": "",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "pair_key": "1+3",
+              "final_uid": 4
+            }
+          }
+        ]
+      }
+    },
+    "4": {
+      "uid": 4,
+      "alias": "Part_0004",
+      "handle": 708,
+      "state": "SPAWNED",
+      "pose": [
+        3.5,
+        1.35,
+        0.35,
+        -0.0,
+        -0.0,
+        0.0,
+        1.0
+      ],
+      "parent": 537,
+      "parent_alias": "Part",
+      "physics": {
+        "static": 0,
+        "kinematic": 0,
+        "respondable": 1,
+        "mask": 65535,
+        "mass": 0.1,
+        "friction": 0.6
+      },
+      "dynamic_ok": true,
+      "respondable_ok": true,
+      "history": [],
+      "flow": {
+        "uid": 4,
+        "alias": "Part_0004",
+        "item_type": "FINAL",
+        "state": "DELIVERED",
+        "zone": "output_e",
+        "parents": [
+          1,
+          3
+        ],
+        "source": "E",
+        "destination": "output_e",
+        "sim_handle": 708,
+        "process_stage": "",
+        "history": [
+          {
+            "sim_time": 305.95,
+            "kind": "MATERIAL_CREATED",
+            "uid": 4,
+            "item_type": "FINAL",
+            "zone": "output_e",
+            "task_id": "",
+            "source": "E",
+            "destination": "output_e",
+            "device": "",
+            "evidence_id": "",
+            "detail": {
+              "source": "E",
+              "destination": "output_e"
+            }
+          },
+          {
+            "sim_time": 305.95,
+            "kind": "JOIN_COMMIT",
+            "uid": 4,
+            "item_type": "FINAL",
+            "zone": "output_e",
+            "task_id": "join_e",
+            "source": "E",
+            "destination": "output_e",
+            "device": "",
+            "evidence_id": "1+3",
+            "detail": {
+              "sim_time": 305.95,
+              "pair_key": "1+3",
+              "semi_uid": 1,
+              "part_uid": 3,
+              "final_uid": 4
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agv": {
+    "pose": [
+      2.897616,
+      1.342874,
+      0.138683,
+      -0.00071,
+      -0.000648,
+      -0.712701,
+      0.701467
+    ],
+    "state": "IDLE",
+    "left_wheel": 0.0,
+    "right_wheel": 0.0,
+    "is_stopped": true,
+    "is_upright": true
+  },
+  "runtime_destroy": null,
+  "conveyor_drive_probe": {
+    "pad_count": 50,
+    "pad_moved": 0.09792,
+    "steps": 10,
+    "drive_mode": "SCRIPT_DRIVEN",
+    "script_handle": 18,
+    "commanded_velocity": 0.2,
+    "actual_velocity": 0.2,
+    "script_drives_pads": true,
+    "model_accel": 2.0,
+    "stop_time_s": 0.1,
+    "stop_steps": 2,
+    "stop_pad_moved_m": 0.01025,
+    "stop_ok": true
+  },
+  "process_model": {
+    "version": "v1_process_20261103",
+    "recipe_id": "mixed_line_v1",
+    "recipe_version": "v1_process_20261103",
+    "validation": {
+      "ok": true,
+      "errors": [],
+      "checks": [
+        {
+          "name": "unique_recipe_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "unique_capability_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "unique_device_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "unique_zone_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "unique_operation_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "unique_task_kinds",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:identity",
+          "ok": true,
+          "detail": "version='v1_process_20261103' product_type='assembled_module'"
+        },
+        {
+          "name": "recipe:mixed_line_v1:unique_operation_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:unique_kinds",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "operation:housing_direct_A:identity",
+          "ok": true,
+          "detail": "kind='a_conveyor' semantics='S1→A: conveyor raw → A → handoff_ac'"
+        },
+        {
+          "name": "operation:housing_alt_B:identity",
+          "ok": true,
+          "detail": "kind='b_conveyor' semantics='S1→B: conveyor raw → B → AGV@dock_B'"
+        },
+        {
+          "name": "operation:transport_BA:identity",
+          "ok": true,
+          "detail": "kind='transport_ba' semantics='B→A: AGV loaded dock_B → dock_A → A → handoff_ac'"
+        },
+        {
+          "name": "operation:housing_alt_A:identity",
+          "ok": true,
+          "detail": "kind='a_agv' semantics='AGV@dock_A → A → handoff_ac (绕行壳体汇入 A)'"
+        },
+        {
+          "name": "operation:housing_finish:identity",
+          "ok": true,
+          "detail": "kind='c_handoff' semantics='A→C: handoff_ac → C → line_ce'"
+        },
+        {
+          "name": "operation:housing_to_E_buffer:identity",
+          "ok": true,
+          "detail": "kind='e_conveyor' semantics='C→E: line_ce → E → buffer_e_c'"
+        },
+        {
+          "name": "operation:bracket_process:identity",
+          "ok": true,
+          "detail": "kind='d_conveyor' semantics='S2→D: conveyor raw → D → AGV@dock_D'"
+        },
+        {
+          "name": "operation:transport_DE:identity",
+          "ok": true,
+          "detail": "kind='transport_de' semantics='D→E: AGV loaded dock_D → dock_E → E → buffer_e_d'"
+        },
+        {
+          "name": "operation:bracket_to_E:identity",
+          "ok": true,
+          "detail": "kind='e_agv' semantics='AGV@dock_E → E → buffer_e_d (支架独立分支)'"
+        },
+        {
+          "name": "operation:kit_join:identity",
+          "ok": true,
+          "detail": "kind='logical_join' semantics='E join: buffer_e_c + buffer_e_d → FINAL@output_e'"
+        },
+        {
+          "name": "recipe:mixed_line_v1:dependency_inverse",
+          "ok": true,
+          "detail": "inconsistent=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:acyclic",
+          "ok": true,
+          "detail": "cycles=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:material_continuity",
+          "ok": true,
+          "detail": "mismatched=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:unique_route_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:operations_covered",
+          "ok": true,
+          "detail": "orphan=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:unique_entry_ids",
+          "ok": true,
+          "detail": "duplicated=[]"
+        },
+        {
+          "name": "recipe:mixed_line_v1:join",
+          "ok": true,
+          "detail": "inputs=2 verifier='join_pair_committed' successors=[]"
+        }
+      ],
+      "version": "v1_process_20261103"
+    },
+    "catalog": {
+      "version": "v1_process_20261103",
+      "known_resources": [
+        "line_s1a",
+        "line_s1b",
+        "line_s2d",
+        "line_ce",
+        "handoff_ac",
+        "buffer_e_c",
+        "buffer_e_d",
+        "agv_lane_west",
+        "agv_lane_south",
+        "agv_lane_east",
+        "dock_A",
+        "dock_B",
+        "dock_D",
+        "dock_E",
+        "zone_ab",
+        "zone_ac",
+        "arm_A",
+        "arm_B",
+        "arm_C",
+        "arm_D",
+        "arm_E"
+      ],
+      "capabilities": [
+        {
+          "id": "robotic_pick_place",
+          "description": "机械臂取放/转运"
+        },
+        {
+          "id": "agv_transport",
+          "description": "AGV 按路线运输"
+        },
+        {
+          "id": "logical_join",
+          "description": "无运动逻辑配对工序"
+        }
+      ],
+      "devices": [
+        {
+          "id": "arm_A",
+          "kind": "arm",
+          "capabilities": [
+            "robotic_pick_place"
+          ],
+          "resources": [
+            "arm_A"
+          ],
+          "default_line_id": "line_s1a",
+          "physical": true
+        },
+        {
+          "id": "arm_B",
+          "kind": "arm",
+          "capabilities": [
+            "robotic_pick_place"
+          ],
+          "resources": [
+            "arm_B"
+          ],
+          "default_line_id": "line_s1b",
+          "physical": true
+        },
+        {
+          "id": "arm_C",
+          "kind": "arm",
+          "capabilities": [
+            "robotic_pick_place"
+          ],
+          "resources": [
+            "arm_C"
+          ],
+          "default_line_id": "line_ce",
+          "physical": true
+        },
+        {
+          "id": "arm_D",
+          "kind": "arm",
+          "capabilities": [
+            "robotic_pick_place"
+          ],
+          "resources": [
+            "arm_D"
+          ],
+          "default_line_id": "line_s2d",
+          "physical": true
+        },
+        {
+          "id": "arm_E",
+          "kind": "arm",
+          "capabilities": [
+            "robotic_pick_place"
+          ],
+          "resources": [
+            "arm_E"
+          ],
+          "default_line_id": "line_ce",
+          "physical": true
+        },
+        {
+          "id": "agv_1",
+          "kind": "agv",
+          "capabilities": [
+            "agv_transport"
+          ],
+          "resources": [],
+          "default_line_id": "",
+          "physical": true
+        },
+        {
+          "id": "logic_E",
+          "kind": "logic",
+          "capabilities": [
+            "logical_join"
+          ],
+          "resources": [],
+          "default_line_id": "",
+          "physical": false
+        }
+      ],
+      "zones": [
+        {
+          "id": "line_s1a",
+          "capacity": 1,
+          "description": "S1→A 输入带/取料区"
+        },
+        {
+          "id": "line_s1b",
+          "capacity": 1,
+          "description": "S1→B 输入带/取料区"
+        },
+        {
+          "id": "line_s2d",
+          "capacity": 1,
+          "description": "S2→D 输入带/取料区"
+        },
+        {
+          "id": "line_ce",
+          "capacity": 1,
+          "description": "C→E 传送带 (C 放置 + E 取料)"
+        },
+        {
+          "id": "handoff_ac",
+          "capacity": 1,
+          "description": "A→C 固定交接台"
+        },
+        {
+          "id": "buffer_e_c",
+          "capacity": 1,
+          "description": "E 岛壳体输入缓冲"
+        },
+        {
+          "id": "buffer_e_d",
+          "capacity": 1,
+          "description": "E 岛支架输入缓冲"
+        },
+        {
+          "id": "agv",
+          "capacity": 1,
+          "description": "AGV 载台"
+        },
+        {
+          "id": "output_e",
+          "capacity": 4,
+          "description": "E 岛成品输出"
+        }
+      ],
+      "recipes": [
+        {
+          "id": "mixed_line_v1",
+          "version": "v1_process_20261103",
+          "product_type": "assembled_module",
+          "operations": [
+            {
+              "id": "housing_direct_A",
+              "kind": "a_conveyor",
+              "semantics": "S1→A: conveyor raw → A → handoff_ac",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_A"
+              ],
+              "inputs": [
+                {
+                  "zone": "line_s1a",
+                  "item_type": "RAW_A"
+                }
+              ],
+              "output": {
+                "zone": "handoff_ac",
+                "item_type": "SEMI_AC"
+              },
+              "source_kind": "conveyor",
+              "sink_kind": "station",
+              "resources": [
+                "line_s1a",
+                "handoff_ac",
+                "zone_ab",
+                "zone_ac",
+                "arm_A"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "conveyor_pickup"
+                },
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 1,
+              "depends_on": [],
+              "predecessor_policy": "all",
+              "successors": [
+                "housing_finish"
+              ],
+              "dock": "A",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "housing_alt_B",
+              "kind": "b_conveyor",
+              "semantics": "S1→B: conveyor raw → B → AGV@dock_B",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_B"
+              ],
+              "inputs": [
+                {
+                  "zone": "line_s1b",
+                  "item_type": "RAW_B"
+                }
+              ],
+              "output": {
+                "zone": "agv",
+                "item_type": "SEMI_AB"
+              },
+              "source_kind": "conveyor",
+              "sink_kind": "agv",
+              "resources": [
+                "line_s1b",
+                "dock_B",
+                "zone_ab",
+                "arm_B"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "conveyor_pickup"
+                },
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 1,
+              "depends_on": [],
+              "predecessor_policy": "all",
+              "successors": [
+                "transport_BA"
+              ],
+              "dock": "B",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "transport_BA",
+              "kind": "transport_ba",
+              "semantics": "B→A: AGV loaded dock_B → dock_A → A → handoff_ac",
+              "executor_kind": "agv",
+              "capability": "agv_transport",
+              "candidate_devices": [
+                "agv_1"
+              ],
+              "inputs": [
+                {
+                  "zone": "agv",
+                  "item_type": "SEMI_AB"
+                }
+              ],
+              "output": {
+                "zone": "agv",
+                "item_type": "SEMI_AB"
+              },
+              "source_kind": "agv",
+              "sink_kind": "agv",
+              "resources": [],
+              "resource_policy": "agv_route",
+              "work_steps": [
+                {
+                  "template_id": "agv_route"
+                }
+              ],
+              "completion_verifier": "agv_route_verified",
+              "priority": 0,
+              "depends_on": [
+                "housing_alt_B"
+              ],
+              "predecessor_policy": "all",
+              "successors": [
+                "housing_alt_A"
+              ],
+              "dock": "A",
+              "route_origin_dock": "B",
+              "route_destination_dock": "A"
+            },
+            {
+              "id": "housing_alt_A",
+              "kind": "a_agv",
+              "semantics": "AGV@dock_A → A → handoff_ac (绕行壳体汇入 A)",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_A"
+              ],
+              "inputs": [
+                {
+                  "zone": "agv",
+                  "item_type": "SEMI_AB"
+                }
+              ],
+              "output": {
+                "zone": "handoff_ac",
+                "item_type": "SEMI_AC"
+              },
+              "source_kind": "agv",
+              "sink_kind": "station",
+              "resources": [
+                "handoff_ac",
+                "dock_A",
+                "zone_ab",
+                "zone_ac",
+                "arm_A"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 0,
+              "depends_on": [
+                "transport_BA"
+              ],
+              "predecessor_policy": "all",
+              "successors": [
+                "housing_finish"
+              ],
+              "dock": "A",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "housing_finish",
+              "kind": "c_handoff",
+              "semantics": "A→C: handoff_ac → C → line_ce",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_C"
+              ],
+              "inputs": [
+                {
+                  "zone": "handoff_ac",
+                  "item_type": "SEMI_AC"
+                }
+              ],
+              "output": {
+                "zone": "line_ce",
+                "item_type": "SEMI_CE"
+              },
+              "source_kind": "station",
+              "sink_kind": "conveyor",
+              "resources": [
+                "line_ce",
+                "handoff_ac",
+                "zone_ac",
+                "arm_C"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 1,
+              "depends_on": [
+                "housing_direct_A",
+                "housing_alt_A"
+              ],
+              "predecessor_policy": "any",
+              "successors": [
+                "housing_to_E_buffer"
+              ],
+              "dock": "",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "housing_to_E_buffer",
+              "kind": "e_conveyor",
+              "semantics": "C→E: line_ce → E → buffer_e_c",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_E"
+              ],
+              "inputs": [
+                {
+                  "zone": "line_ce",
+                  "item_type": "SEMI_CE"
+                }
+              ],
+              "output": {
+                "zone": "buffer_e_c",
+                "item_type": "SEMI_CE"
+              },
+              "source_kind": "conveyor",
+              "sink_kind": "station",
+              "resources": [
+                "line_ce",
+                "buffer_e_c",
+                "arm_E"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "conveyor_pickup"
+                },
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 1,
+              "depends_on": [
+                "housing_finish"
+              ],
+              "predecessor_policy": "all",
+              "successors": [
+                "kit_join"
+              ],
+              "dock": "E",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "bracket_process",
+              "kind": "d_conveyor",
+              "semantics": "S2→D: conveyor raw → D → AGV@dock_D",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_D"
+              ],
+              "inputs": [
+                {
+                  "zone": "line_s2d",
+                  "item_type": "RAW_D"
+                }
+              ],
+              "output": {
+                "zone": "agv",
+                "item_type": "PART_DE"
+              },
+              "source_kind": "conveyor",
+              "sink_kind": "agv",
+              "resources": [
+                "line_s2d",
+                "dock_D",
+                "arm_D"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "conveyor_pickup"
+                },
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 1,
+              "depends_on": [],
+              "predecessor_policy": "all",
+              "successors": [
+                "transport_DE"
+              ],
+              "dock": "D",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "transport_DE",
+              "kind": "transport_de",
+              "semantics": "D→E: AGV loaded dock_D → dock_E → E → buffer_e_d",
+              "executor_kind": "agv",
+              "capability": "agv_transport",
+              "candidate_devices": [
+                "agv_1"
+              ],
+              "inputs": [
+                {
+                  "zone": "agv",
+                  "item_type": "PART_DE"
+                }
+              ],
+              "output": {
+                "zone": "agv",
+                "item_type": "PART_DE"
+              },
+              "source_kind": "agv",
+              "sink_kind": "agv",
+              "resources": [],
+              "resource_policy": "agv_route",
+              "work_steps": [
+                {
+                  "template_id": "agv_route"
+                }
+              ],
+              "completion_verifier": "agv_route_verified",
+              "priority": 1,
+              "depends_on": [
+                "bracket_process"
+              ],
+              "predecessor_policy": "all",
+              "successors": [
+                "bracket_to_E"
+              ],
+              "dock": "E",
+              "route_origin_dock": "D",
+              "route_destination_dock": "E"
+            },
+            {
+              "id": "bracket_to_E",
+              "kind": "e_agv",
+              "semantics": "AGV@dock_E → E → buffer_e_d (支架独立分支)",
+              "executor_kind": "arm",
+              "capability": "robotic_pick_place",
+              "candidate_devices": [
+                "arm_E"
+              ],
+              "inputs": [
+                {
+                  "zone": "agv",
+                  "item_type": "PART_DE"
+                }
+              ],
+              "output": {
+                "zone": "buffer_e_d",
+                "item_type": "PART_DE"
+              },
+              "source_kind": "agv",
+              "sink_kind": "station",
+              "resources": [
+                "buffer_e_d",
+                "dock_E",
+                "arm_E"
+              ],
+              "resource_policy": "fixed",
+              "work_steps": [
+                {
+                  "template_id": "arm_pick_place"
+                }
+              ],
+              "completion_verifier": "unit_handoff_verified",
+              "priority": 0,
+              "depends_on": [
+                "transport_DE"
+              ],
+              "predecessor_policy": "all",
+              "successors": [
+                "kit_join"
+              ],
+              "dock": "E",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            },
+            {
+              "id": "kit_join",
+              "kind": "logical_join",
+              "semantics": "E join: buffer_e_c + buffer_e_d → FINAL@output_e",
+              "executor_kind": "logic",
+              "capability": "logical_join",
+              "candidate_devices": [
+                "logic_E"
+              ],
+              "inputs": [
+                {
+                  "zone": "buffer_e_c",
+                  "item_type": "SEMI_CE"
+                },
+                {
+                  "zone": "buffer_e_d",
+                  "item_type": "PART_DE"
+                }
+              ],
+              "output": {
+                "zone": "output_e",
+                "item_type": "FINAL"
+              },
+              "source_kind": "none",
+              "sink_kind": "none",
+              "resources": [],
+              "resource_policy": "logical_join",
+              "work_steps": [
+                {
+                  "template_id": "logical_join"
+                }
+              ],
+              "completion_verifier": "join_pair_committed",
+              "priority": 0,
+              "depends_on": [
+                "housing_to_E_buffer",
+                "bracket_to_E"
+              ],
+              "predecessor_policy": "all",
+              "successors": [],
+              "dock": "",
+              "route_origin_dock": "",
+              "route_destination_dock": ""
+            }
+          ],
+          "route_variants": [
+            {
+              "id": "housing_direct",
+              "group": "housing_supply",
+              "semantics": "壳体直达 A→C 路线",
+              "operation_ids": [
+                "housing_direct_A",
+                "housing_finish",
+                "housing_to_E_buffer"
+              ],
+              "entry_zone": "line_s1a",
+              "exit_zone": "buffer_e_c",
+              "terminal_operation_id": "housing_to_E_buffer"
+            },
+            {
+              "id": "housing_alt",
+              "group": "housing_supply",
+              "semantics": "壳体 B→AGV→A 绕行路线; 与 housing_direct 互斥",
+              "operation_ids": [
+                "housing_alt_B",
+                "transport_BA",
+                "housing_alt_A",
+                "housing_finish",
+                "housing_to_E_buffer"
+              ],
+              "entry_zone": "line_s1b",
+              "exit_zone": "buffer_e_c",
+              "terminal_operation_id": "housing_to_E_buffer"
+            },
+            {
+              "id": "bracket_route",
+              "group": "bracket_supply",
+              "semantics": "支架 S2→D→AGV→E 独立供料路线",
+              "operation_ids": [
+                "bracket_process",
+                "transport_DE",
+                "bracket_to_E"
+              ],
+              "entry_zone": "line_s2d",
+              "exit_zone": "buffer_e_d",
+              "terminal_operation_id": "bracket_to_E"
+            }
+          ],
+          "entries": [
+            {
+              "id": "s1a",
+              "operation_id": "housing_direct_A",
+              "line": "line_s1a",
+              "item_type": "RAW_A",
+              "route_group": "housing_supply"
+            },
+            {
+              "id": "s1b",
+              "operation_id": "housing_alt_B",
+              "line": "line_s1b",
+              "item_type": "RAW_B",
+              "route_group": "housing_supply"
+            },
+            {
+              "id": "s2d",
+              "operation_id": "bracket_process",
+              "line": "line_s2d",
+              "item_type": "RAW_D",
+              "route_group": "bracket_supply"
+            }
+          ],
+          "join_operation_id": "kit_join"
+        }
+      ]
+    }
+  }
+}
