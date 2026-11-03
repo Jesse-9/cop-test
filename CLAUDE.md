@@ -10,6 +10,7 @@
 - 控制器使用 CoppeliaSim 4.10+ ZeroMQ Remote API；正式模型和控制约束、物理/UID/停止联锁要求见 [工程参考](PROJECT_ENGINEERING_REFERENCE.md)。
 - 场景 start 不隐式构建或清空；必须加载已校验的 v1 工件。迁移与派生不得覆盖保留的迁移来源工件或 v1 已验收工件。
 - 代码、场景、运行命令和文档需保持一致；运行方式或入口变化时同步更新 [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)。
+- 需要从命令行启动 CoppeliaSim 并留存控制台日志时，优先使用 `tools/conpty_relay.py`；该脚本会把控制台输出实时写入 `--log` 指定文件。它不是 pytest 钩子，测试运行不会自动调用；依赖缺失时先执行 `uv sync --group dev`。
 - 阶段三安全锁存不得自动恢复；统一故障恢复和阶段四之后的混线规划未实现。不得将计划描述成已具备能力。
 - MCP 不在 v1 范围；`.mcp.json` 与旧 `factory-sim` 实现已移除。
 
