@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- 新增执行适配层 `simulation/execution/`：`ArmExecutor` 包装
+  `Stage4UnitController`，`AgvExecutor` 包装 `AGVRouteController4`；
+  协调器改为经 `start/pre_tick/post_tick/poll` 启动与轮询，唯一
+  `sim.step()` 调用点仍在 `Stage4Coordinator.step()`。
+- 新增 `simulation/device_binding.py`：device_id → alias/资源/区域 的静态
+  绑定表，覆盖五台臂、AGV、逻辑配对处理器与线/交接/缓冲承载。
+- 产品入口、`full_flow` 行为、场景工件、契约与工艺目录版本均未改变。
+- 阶段 2 focused 仿真实测通过：`arm_A` 完成一次取放，AGV 空载 `A→B`
+  与载货 `B→A` 均到站（证据见 `docs/implementation/evidence/`）。
+
 ## 1.0.0 (2026-11-03)
 
 v1 收敛：把阶段一至四的实现收敛为独立产品包，只交付五岛 `L5_UFLOW`
