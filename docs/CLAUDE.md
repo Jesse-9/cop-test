@@ -15,30 +15,28 @@ docs/
 ├── wiki/                      # 通用 CoppeliaSim 知识 + 本项目案例与操作指南
 │   ├── index.md               # wiki 导航
 │   ├── 00–07/                 # 基础、API、建模、运动、视觉、协同、案例、脚本
-│   ├── 98-ProjectUsage/       # 项目仿真与 MCP 使用指南
+│   ├── 98-ProjectUsage/       # v1 项目操作指南
 │   └── 99-附录/               # 术语、快捷键和界面参考
-├── implementation/            # 项目阶段报告、实施方案和审查记录
+├── implementation/            # v1 方案、基线、实施报告与验收证据
 │   ├── README.md              # 实施资料索引
 │   ├── evidence/              # 报告引用的长期证据副本
 │   └── runs/                  # 被 Git 忽略的临时运行输出
-├── measurement/               # 可复现测量脚本和原始测量数据
-│   └── README.md              # 按测量用途索引
-├── scene_artifacts/           # 版本化场景、manifest、校验与生命周期数据
+├── scene_artifacts/           # v1 场景工件、manifest、校验与生命周期数据
 └── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
 
-仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。阶段详细设计放在 `wiki/06-工业案例/`，验收结论放在 `implementation/`，不要把两者合并成重复的大文档。运行输出与测量原始数据不得当作正式证据；正式报告引用的证据副本归入 `implementation/evidence/`。
+仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`，v1 验收结论放在 `implementation/`，不要把两者合并成重复的大文档。运行输出不得当作正式证据；正式报告引用的证据副本归入 `implementation/evidence/`。
 
 ## 文件命名规范
 
 | 类型 | 格式 | 示例 |
 |------|------|------|
-| 知识条目 | `{编号}-{英文短名}.md` | `00-01-CoppeliaSim-overview.md` |
+| 知识条目 | `{编号}-{短名}.md` | `00-01-CoppeliaSim-overview.md` |
 | API条目 | `api-{功能名}.md` | `api-simSetJointPosition.md` |
-| 案例 | `case-{案例描述}.md` | `case-6DOF-pick-and-place.md` |
-| 报告 | `report-{日期}-{主题}.md` | `report-20240713-coppeliasim410-research.md` |
-| QA记录 | `qa-{日期}-{序号}.md` | `qa-20240713-001.md` |
-| 原始材料 | `src-{类型}-{来源描述}.{ext}` | `src-doc-CoppeliaSim-user-manual.pdf` |
+| 工业案例 | `{编号}-{案例名}.md` | `06-02-岛式车间柔性生产案例.md` |
+| 实施报告 | `V1_{主题}.md` | `V1_REPORT.md` |
+| 实施证据 | `v1_{场景}_{日期}_{时间}.json` | `v1_full_flow_acceptance_20261103_010923.json` |
+| 原始材料 | 存于 `raw/`，不纳入版本控制 | `regularApi/simStartSimulation.htm` |
 
 ## 元数据规范 (YAML Frontmatter)
 
@@ -127,8 +125,7 @@ sim_version: "4.10"     # 适用仿真版本
 
 ### 更新频率
 - wiki/ 中的内容随学习进度持续更新
-- 阶段报告、实施方案和审查记录归入 `implementation/`，入口维护在 `implementation/README.md`
-- 可复现探针和原始测量结果归入 `measurement/`，入口维护在 `measurement/README.md`
+- v1 方案、报告和验收证据归入 `implementation/`，入口维护在 `implementation/README.md`
 - 对 raw/ 中的资料定期回顾，过时的标注 `状态/归档`
 
 ## 许可证与约定

@@ -10,23 +10,15 @@ wheels/
 # Virtual environments
 .venv
 
-# CoppeliaSim 场景文件 (体积大, 仅显式跟踪 factory-sim.ttt 与场景工件)
+# CoppeliaSim 场景文件 (体积大, 仅显式跟踪场景工件)
 *.ttt
-!factory-sim.ttt
 !docs/scene_artifacts/**/scene.ttt
 
 # 场景生命周期运行时状态/锁 (每次运行重新生成)
-docs/scene_artifacts/.runtime/
+docs/scene_artifacts/v1/.runtime/
 
 # 运行日志与紧急转储 (每次运行重新生成, 不纳入版本控制)
-factory_sim.log
-factory_verify_*.log
-factory_arm_*.log
-stage1*.log
-stage2*.log
-stage3*.log
-stage4*.log
-step1_1*.log
+flexible_factory*.log
 coppelia_console*.log*
 emergency_dump_*.json
 logs/

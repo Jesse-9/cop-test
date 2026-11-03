@@ -1,39 +1,56 @@
-# Flexible Factory Simulation
+# Flexible Factory v1
 
-基于 CoppeliaSim 4.10+、Python 和 ZeroMQ Remote API 的分阶段柔性工业车间仿真。当前可运行主线为阶段一单元闭环、阶段二物理约束与规划、阶段三双工位搬运和阶段四多岛生产；统一故障恢复尚未实现。src/reference/ 保留旧五岛实现，供迁移与诊断使用。
+基于 CoppeliaSim 4.10+、Python 和 ZeroMQ Remote API 的柔性工业车间 v1。
+v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入口为
+`flexible-factory`。阶段一至阶段四代码已按职责迁移到
+`src/flexible_factory/`，旧 `stage1`–`stage4`、`stage1_1` 和 `reference`
+包已删除，仅保留迁移来源工件与 v1 报告中的历史记录。
 
 ## 从哪里开始
 
-- 仿真软件启动、ZMQ 连接、场景工件操作、阶段运行命令与故障排查：[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)
-- MCP 工具与 Claude Code 接入：[MCP 使用说明](docs/wiki/98-ProjectUsage/MCP_USAGE.md)
-- 阶段设计和未来工作边界：[分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md)
-- 工件版本、保护、校验和派生：[场景工件说明](docs/scene_artifacts/README.md)
-- 工程不变量、模块实现细节和实测陷阱：[工程参考](PROJECT_ENGINEERING_REFERENCE.md)
+- 安装、ZMQ 连接、工件操作与 v1 运行命令：[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)
+- v1 收敛方案、基线与验收记录：[V1 方案](docs/implementation/V1_CONSOLIDATION_PLAN.md) · [M0 基线](docs/implementation/V1_BASELINE.md) · [v1 报告](docs/implementation/V1_REPORT.md)
+- 工件 schema、保护策略、current 指针和迁移规则：[场景工件说明](docs/scene_artifacts/README.md)
+- 工程不变量、模块职责和实测陷阱：[工程参考](PROJECT_ENGINEERING_REFERENCE.md)
 - 知识库结构与写作规范：[docs/README.md](docs/README.md) · [docs/CLAUDE.md](docs/CLAUDE.md)
+
+## 快速开始
+
+    uv sync
+    flexible-factory load
+    flexible-factory validate      # 可选诊断; run 仍会在启动点全量校验
+    flexible-factory run --scenario full_flow --time 700
+
+`load` 只加载 `docs/scene_artifacts/v1/current.json` 指向的 v1 工件，
+不会隐式构建或清场。`run` 先取得运行锁并执行只读校验；校验失败拒绝启动。
+`--scenario` 的其他取值仅用于内部回归/诊断。
 
 ## 当前状态
 
-| 阶段 | 状态 | 主要结果 | 详细记录 |
-|---|---|---|---|
-| 阶段一 | 已验收 | 单工位取放、传送带和 pioneer p3dx AGV；只读基线 stage1/L1_S1/v002_20261020_234403 | [阶段一报告](docs/implementation/PHASE1_REPORT.md) |
-| 步骤 1.1 / 1.2 | 已完成 | L1_S1 布局与取料流程收敛；版本化场景生命周期 | [1.1 报告](docs/implementation/STEP1_1_REPORT.md) · [1.2 报告](docs/implementation/STEP1_2_REPORT.md) |
-| 阶段二 | 已验收 | 碰撞检查、局部规划、轨迹执行、接触判据与安全锁存；基线 stage2/L1_S1/v016_20261029_112229（H=0.65 已派生；完整回归待执行） | [阶段二报告](docs/implementation/PHASE2_REPORT.md) |
-| 阶段 2.01 | 已验收 | 动作与轨迹优化；生产路径采用已验证配置 | [报告](docs/implementation/PHASE2_01_REPORT.md) |
-| 阶段 2.02 | 已由 06-15 取代 | 带载转运改为 LIFTING→TRANSFERRING→PLACING，移除 rise/transit 与路径变体；H=0.80 回归通过，H=0.65 待回归 | [06-15 方案](docs/wiki/06-工业案例/06-15-柔性工业车间水平带载转运与放置下探修改方案.md) · [2.02 报告](docs/implementation/PHASE2_02_REPORT.md) |
-| 阶段三 | 已通过五个验收场景 | 双工位、资源锁和 AGV 两站转运；基线 stage3/L2_MIRROR/v008_20261029_112305（H=0.65 已派生；完整回归待执行） | [阶段三报告](docs/implementation/PHASE3_REPORT.md) |
-| 阶段 2.1 统一故障恢复 | 未开始 | 自动复位与任务恢复契约尚不存在 | [分阶段执行计划](docs/wiki/06-工业案例/06-05-柔性工业车间分阶段执行步骤.md) |
-| 阶段四多岛生产 | 已通过阶段四五个验收场景（2026-10-29）；阶段 4.1 `L5_UFLOW` 布局与联动优化已通过布局/可达、交错批次与停机回归（2026-10-29） | A–E 五岛、四条物流线、共享 AGV B→A/D→E、E 岛配对；重排前基线 stage4/L4_COLUMN/v008_20261028_225634；当前阶段 4.1 工件 stage4/L5_UFLOW/v004_20261029_133249（统一 0.30 m 基座、外围分三段 AGV 路网） | [阶段四报告](docs/implementation/PHASE4_REPORT.md) |
-
-生命周期校验流程（2026-10-26 已实施）：load 后可直接 start，validate 为可选诊断；start 在运行锁内执行完整校验，save 仍要求已校验场景。详见[方案与实施记录](docs/implementation/LIFECYCLE_VALIDATION_WORKFLOW_PLAN.md)。
-
-阶段三遇到阶段二安全锁存时会冻结原任务，不自动恢复。阶段 2.1 尚未实现前，不得加入自动清除安全锁存或重启失败任务的行为。
+| 项目 | 状态 |
+|---|---|
+| v1 产品范围 | 五岛 `L5_UFLOW`、`full_flow` 唯一用户入口 |
+| v1 当前工件 | `v1/L5_UFLOW/v001_20261103_004317`（由 stage4 `L5_UFLOW/v004_20261029_133249` 迁移，源工件只读） |
+| 代码入口 | `src/flexible_factory/cli.py`（console script `flexible-factory`） |
+| 测试 | `python -m pytest -q`；CoppeliaSim 不可用时集成项明确标为未执行 |
+| MCP | 不在 v1 范围；旧 `factory-sim` 注册和实现已移除 |
+| 故障自动恢复 | 未实现；安全锁存不得自动清除 |
+| 历史阶段 | 旧阶段源码、入口、报告和证据已清理；迁移来源工件见 [场景工件说明](docs/scene_artifacts/README.md) |
 
 ## 入口与结构
 
-- Python 依赖和可执行入口定义在 pyproject.toml，本地环境通常由 uv sync 管理。
-- 当前阶段控制器位于 src/stage1/、src/stage2/、src/stage3/、src/stage4/；命令包装器为 src/run_stage1.py、src/run_stage2.py、src/run_stage3.py、src/run_stage4.py。
-- 场景生命周期和工件操作入口为 src/run_scene_lifecycle.py；它不会在 start 时隐式构建或清空场景。
-- src/stage1_1/ 保存布局验证与受控实验工具；src/reference/ 是历史五岛实现，包括 MCP 服务器。
-- 自动化测试位于 tests/；阶段验收报告位于 docs/implementation/。
+    src/flexible_factory/
+      domain/        物料、任务、资源、指标 (纯 Python)
+      simulation/    场景、布局、物理、运动、AGV、运行时
+      artifacts/     v1 manifest、工件仓库、迁移
+      application/   生命周期、运行用例、多岛协调
+      cli.py         唯一 v1 命令入口
+      spec.py        产品/契约/schema 版本
 
-当前各入口的准确参数和可复制命令以 [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md) 与运行 --help 的结果为准。修改入口、阶段状态或配置约束时，同步维护对应的唯一说明文档，避免在 README 中复制整套操作步骤。
+旧阶段包（`src/stage1/` … `src/stage4/`、`src/stage1_1/`、
+`src/reference/`）、`run_stage*.py` 入口、旧报告与旧证据均已删除，不得被
+v1 运行路径导入。v1 行为与验收结论以
+[V1 实施报告](docs/implementation/V1_REPORT.md) 为准；运行方式以
+[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md) 与实际 `--help` 为准。
+
+安全锁存在失败/停止后冻结原任务，不自动恢复；统一故障恢复仍未实现。
