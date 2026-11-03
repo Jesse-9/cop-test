@@ -4,11 +4,16 @@
   1. 来源生成 (有限批次, 区域未满才生成);
   2. 任务轮询: 单元任务一次性申请资源; AGV 调度按优先级选下一段路线;
   3. 故障注入 (AGV 阻塞 / 传送带停带);
-  4. 所有活动单元控制器 `pre_tick()`;
-  5. AGV 航线 `step()` (轮速);
-  6. `sim.step()` — 每步只推进一次;
-  7. 单元 `post_tick()` (步后联锁);
-  8. 任务完成校验、物料区域/类型提交、E 岛配对、资源释放、指标事件.
+  4. 所有活动执行适配器 `pre_tick()` (转发单元控制器);
+  5. AGV 航线 `pre_tick()` (轮速);
+  6. `sim.step()` — 每步只推进一次, 协调器是唯一步进点;
+  7. 各适配器 `post_tick()` (步后联锁);
+  8. `poll()` 读取执行状态, 再做任务完成校验、物料区域/类型提交、
+     E 岛配对、资源释放、指标事件.
+
+阶段 2 起, 控制器与航线的装配/步进/状态映射由
+`simulation.execution` 的 `ArmExecutor` / `AgvExecutor` 承担; 本模块保留
+资源申请、队列状态、应用层验证、提交与冻结. 适配器不调用 `sim.step()`.
 
 任务链 (06-16 §1):
     S1→A ─► A ─固定交接─► C ─C→E─► E ┐
@@ -29,15 +34,17 @@ from ..simulation import config_base as base
 from ..simulation import physics as phys
 from ..simulation.material_manager import MaterialState
 from ..simulation.scene_base import alias_of
-from ..simulation.unit_controller_base import UnitTaskState
 
 from ..simulation.agv_route import RouteState
 from ..simulation.unit_controller_dual import Stage3UnitController
 
 from ..simulation import config as cfg
 from ..simulation.agv import AGVRouteController4, make_route_spec, pose_yaw
+from ..simulation.execution import (AgvExecutor, ArmExecutor,
+                                    ExecutionRequest, ExecutionState,
+                                    ExecutorError, sink_spec_for)
 from ..domain.default_process import DEFAULT_RECIPE_ID, default_catalog
-from ..simulation.layout import handoff_park_tcp, line_specs
+from ..simulation.layout import line_specs
 from ..domain.materials import (ItemType, MaterialFlowError, MaterialRegistry,
                                 RecordState)
 from ..domain.process_model import OperationTemplate, ProcessCatalog
@@ -46,7 +53,7 @@ from ..simulation.scene import Stage4Scene
 from ..domain.tasks import (Stage4Task, TaskQueue, TaskStatus,
                             make_task_from_operation)
 from ..simulation.unit_controller import (SinkSpec, Stage4UnitController,
-                                      TaskLayout, agv_material_position)
+                                      agv_material_position)
 
 
 class CoordinatorError(RuntimeError):
@@ -55,9 +62,20 @@ class CoordinatorError(RuntimeError):
 
 @dataclass
 class ControllerRecord:
+    """一个在跑的臂执行: 适配器 + 执行 ID, 控制器通过适配器访问."""
+
     unit_id: str
     task_id: str
-    controller: Stage4UnitController
+    executor: ArmExecutor
+    execution_id: str
+
+    @property
+    def controller(self) -> Stage4UnitController:
+        controller = self.executor.controller
+        if controller is None:
+            raise CoordinatorError(
+                f"{self.unit_id}: 执行 {self.execution_id} 已释放")
+        return controller
 
 
 class Stage4Coordinator:
@@ -94,10 +112,19 @@ class Stage4Coordinator:
 
         self.queue = TaskQueue(catalog=self.catalog)
         self.resources = ResourceTable()
+        # 设备执行适配器: 每台臂一个, AGV 一个; 只包装, 不改调度策略.
+        self.arm_executors = {
+            device.id: ArmExecutor(self.sim, scene, comp, device=device,
+                                   catalog=self.catalog,
+                                   resources=self.resources, logger=logger)
+            for device in self.catalog.devices if device.kind == "arm"}
+        self.agv_executor = AgvExecutor(self.sim, self.agv, self.layout,
+                                        materials=self.materials,
+                                        logger=logger)
         self.controllers: dict[str, ControllerRecord] = {}
         self.controller_history: list[dict] = []
-        self.route: Optional[AGVRouteController4] = None
         self.route_task: Optional[Stage4Task] = None
+        self.route_execution_id = ""
         self.agv_at_dock = cfg.AGV_INITIAL_DOCK
         self.agv_history: list[dict] = []
         self.dispatch_decisions: list[dict] = []
@@ -133,6 +160,11 @@ class Stage4Coordinator:
     # 初始化
     # ═══════════════════════════════════════════════════════
 
+    @property
+    def route(self) -> Optional[AGVRouteController4]:
+        """当前活动航线控制器的只读视图; 生命周期由 AgvExecutor 管理."""
+        return self.agv_executor.route
+
     def start(self, sim_time: float = 0.0) -> None:
         self.started_at = float(sim_time)
         self._event("COORDINATOR_START", detail={
@@ -155,22 +187,22 @@ class Stage4Coordinator:
         self._maybe_inject_fault(sim_time)
 
         for record in list(self.controllers.values()):
-            if not record.controller.finished:
-                record.controller.pre_tick()
+            record.executor.pre_tick(sim_time)
 
         self._advance_route(sim_time)
 
         self.sim.step()
 
         for record in list(self.controllers.values()):
-            record.controller.post_tick()
+            record.executor.post_tick(sim_time)
 
         self._after_step(sim_time)
         self._timeout_check(sim_time)
 
     def _settle_step(self) -> None:
+        sim_time = self._sim_time()
         for record in list(self.controllers.values()):
-            record.controller.post_tick()
+            record.executor.post_tick(sim_time)
         self.sim.step()
         self._abort_settle_steps += 1
 
@@ -349,35 +381,25 @@ class Stage4Coordinator:
 
     def _start_unit_task(self, task: Stage4Task, unit_id: str,
                          sim_time: float) -> None:
+        """组装执行请求并交给 ArmExecutor; 协调器只记账与派发."""
         template = self._operation(task)
-        arm = self.runtime.arm(unit_id)
-        unit = self.scene.unit(unit_id)
         source = template.source_kind
         sink = template.sink_kind
         device = self.catalog.device(template.candidate_devices[0])
         line_id = device.default_line_id
-        line = self.lines[line_id]
-        sink_spec = self._sink_spec(template, unit_id)
-        task_layout = TaskLayout(
-            name=f"{self.layout.name}/{unit_id}", sink=sink_spec,
-            unit_view=unit.layout,
-            target="agv" if sink == "agv" else "station")
-        expected_types = tuple(port.item_type
-                               for port in template.inputs)
+        executor = self.arm_executors.get(device.id)
+        if executor is None:
+            self._release_task(task, sim_time, "controller build failed")
+            self.queue.fail(task.task_id, sim_time,
+                            f"CONTROLLER_BUILD_FAILED: "
+                            f"未登记设备 {device.id!r}")
+            self._freeze(f"{unit_id} 控制器构建失败: 未登记设备 "
+                         f"{device.id!r}", sim_time, abort=True)
+            return
         try:
-            controller = Stage4UnitController(
-                sim=self.sim, scene=arm.view, materials=self.materials,
-                conveyor=self.conveyor, belt_geometry=line.geometry,
-                ik=self.ik[unit_id], suction=self.suction[unit_id],
-                agv=self.agv, target=("agv" if sink == "agv" else "station"),
-                uid=task.uid, fault=cfg.FAULT_NONE, layout=task_layout,
-                logger=self.logger, runtime=arm, unit_id=unit_id,
-                source=source, sink=sink, dock_id=template.dock,
-                resources=self.resources, task=task, line=line,
-                sink_spec=sink_spec, flow=self.flow,
-                expected_types=expected_types,
-                park_tcp_pose=handoff_park_tcp(unit_id),
-                pick_timeout=cfg.TASK_TIMEOUT)
+            execution_id = executor.start(ExecutionRequest(
+                operation=template, task=task, device_id=device.id,
+                uid=task.uid, task_id=task.task_id, sim_time=sim_time))
         except Exception as exc:
             self._release_task(task, sim_time, "controller build failed")
             self.queue.fail(task.task_id, sim_time,
@@ -387,9 +409,11 @@ class Stage4Coordinator:
                          abort=True)
             return
         self.queue.start(task.task_id, sim_time)
-        self.controllers[unit_id] = ControllerRecord(
-            unit_id=unit_id, task_id=task.task_id, controller=controller)
-        task.phase = controller.state.name
+        record = ControllerRecord(
+            unit_id=unit_id, task_id=task.task_id, executor=executor,
+            execution_id=execution_id)
+        self.controllers[unit_id] = record
+        task.phase = record.controller.state.name
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     item_type=(self.flow.by_uid(task.uid).item_type.value
                                if self.flow.by_uid(task.uid) else ""),
@@ -399,52 +423,21 @@ class Stage4Coordinator:
                             "operation": template.id,
                             "source": source, "sink": sink,
                             "line": line_id,
+                            "execution_id": execution_id,
                             "resources": list(task.resources)})
         if self.on_controller is not None:
             try:
-                self.on_controller(unit_id, controller)
+                self.on_controller(unit_id, record.controller)
             except Exception:
                 pass
 
     def _sink_spec(self, template: OperationTemplate,
                    unit_id: str) -> SinkSpec:
-        sink = template.sink_kind
-        dest_zone = template.output.zone if template.output else ""
-        if sink == "agv":
-            unit = self.scene.unit(unit_id)
-            return SinkSpec(
-                kind="agv", tcp_pose=tuple(unit.spec.agv_tcp_pose),
-                material_pose=tuple(unit.spec.agv_material_pose),
-                support_z=base.AGV_TRAY_TOP_Z,
-                zone=dest_zone)
-        if sink == "conveyor":
-            line = self.lines[dest_zone]
-            pose = line.place_material_pose
-            tcp = base.tcp_pose_above(pose)
-            return SinkSpec(
-                kind="conveyor", tcp_pose=tuple(tcp),
-                material_pose=tuple(pose),
-                support_z=base.CONVEYOR_SURFACE_Z,
-                zone=dest_zone, line=line)
-        # station: A→C 交接 / E 缓冲
-        if dest_zone == cfg.HANDOFF_AC["id"]:
-            pos = cfg.HANDOFF_AC["position"]
-            material = (pos[0], pos[1],
-                        base.STATION_TOP_Z + base.MATERIAL_HALF_HEIGHT)
-            support = base.STATION_TOP_Z
-        elif dest_zone in cfg.E_BUFFERS:
-            pos = cfg.E_BUFFERS[dest_zone]["position"]
-            material = (pos[0], pos[1],
-                        base.ISLAND_TOP_Z + base.MATERIAL_HALF_HEIGHT)
-            support = base.ISLAND_TOP_Z
-        else:
-            raise CoordinatorError(
-                f"未知 station 目标区域: {dest_zone!r} "
-                f"(operation={template.id})")
-        return SinkSpec(
-            kind="station", tcp_pose=tuple(base.tcp_pose_above(material)),
-            material_pose=tuple(material), support_z=support,
-            zone=dest_zone)
+        """放置汇几何委托给执行适配层, 保留方法供既有调用方/测试使用."""
+        try:
+            return sink_spec_for(template, unit_id, self.scene, self.lines)
+        except ExecutorError as exc:
+            raise CoordinatorError(str(exc)) from exc
 
     def _note_wait(self, task: Stage4Task, sim_time: float,
                    reason: str) -> None:
@@ -467,7 +460,7 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def _poll_agv(self, sim_time: float) -> None:
-        if self.route is not None:
+        if self.agv_executor.active:
             return
         # 任一单元正在本 dock 装卸时, 车辆必须保持停靠.
         for record in self.controllers.values():
@@ -616,18 +609,17 @@ class Stage4Coordinator:
 
     def _launch_route(self, task: Stage4Task, spec, sim_time: float) -> bool:
         try:
-            route = AGVRouteController4(
-                self.sim, self.agv, spec,
-                material_manager=self.materials,
-                uid=task.uid if spec.loaded else None,
-                logger=self.logger)
+            execution_id = self.agv_executor.start(ExecutionRequest(
+                operation=self._operation_or_none(task), task=task,
+                device_id=self.agv_executor.device_id, uid=task.uid,
+                task_id=task.task_id, sim_time=sim_time, route_spec=spec))
         except Exception as exc:
             self._release_task(task, sim_time, "route build failed")
             self.queue.fail(task.task_id, sim_time,
                             f"ROUTE_BUILD_FAILED: {type(exc).__name__}: {exc}")
             self._freeze(f"AGV 路线构建失败: {exc}", sim_time)
             return False
-        self.route = route
+        self.route_execution_id = execution_id
         self.route_task = task
         self.queue.start(task.task_id, sim_time)
         task.phase = f"ROUTE {spec.route_id}"
@@ -636,6 +628,7 @@ class Stage4Coordinator:
                     device="agv",
                     detail={"kind": task.kind,
                             "route_id": spec.route_id,
+                            "execution_id": execution_id,
                             "loaded": bool(spec.loaded)})
         self._event("ROUTE_START", task_id=task.task_id, uid=task.uid,
                     source=spec.start_dock, destination=spec.end_dock,
@@ -665,11 +658,11 @@ class Stage4Coordinator:
         return True
 
     def _advance_route(self, sim_time: float) -> None:
-        if self.route is None:
+        if not self.agv_executor.active:
             return
         if self.route_task is not None:
-            self.route_task.phase = self.route.state.value
-        self.route.step(sim_time)
+            self.route_task.phase = self.agv_executor.state.value
+        self.agv_executor.pre_tick(sim_time)
 
     # ═══════════════════════════════════════════════════════
     # 步后处理
@@ -679,37 +672,36 @@ class Stage4Coordinator:
         if self.aborted or self.frozen:
             return
         for unit_id, record in list(self.controllers.items()):
-            controller = record.controller
             task = self.queue.get(record.task_id)
             if task is None:
                 continue
-            task.phase = controller.state.name
-            if controller.safety.engaged:
-                self.queue.fail(
-                    task.task_id, sim_time,
-                    f"SAFETY_LATCH: {controller.safety.latch.reason}",
-                    {"safety": controller.safety.latch.as_dict(),
-                     "controller": controller.summary()})
-                self._event("TASK_FAILED", task_id=task.task_id,
-                            uid=task.uid, device=f"arm_{unit_id}",
-                            detail={"reason": "SAFETY_LATCH",
-                                    "latch": controller.safety.latch.reason})
-                self._freeze(f"{unit_id} 安全锁存: "
-                             f"{controller.safety.latch.reason}", sim_time,
-                             abort=True)
-                return
-            if controller.state is UnitTaskState.FAILED:
+            report = record.executor.poll(record.execution_id)
+            task.phase = str(report.detail.get("phase", task.phase))
+            if report.state is ExecutionState.FAILED:
+                if report.detail.get("safety_engaged"):
+                    latch_reason = str(
+                        report.detail.get("safety_latch_reason", ""))
+                    self.queue.fail(task.task_id, sim_time,
+                                    report.failure_reason,
+                                    dict(report.evidence))
+                    self._event("TASK_FAILED", task_id=task.task_id,
+                                uid=task.uid, device=f"arm_{unit_id}",
+                                detail={"reason": "SAFETY_LATCH",
+                                        "latch": latch_reason})
+                    self._freeze(f"{unit_id} 安全锁存: {latch_reason}",
+                                 sim_time, abort=True)
+                    return
+                failure = str(report.detail.get("controller_failure", ""))
                 self.queue.fail(task.task_id, sim_time,
-                                controller.failure_reason or "UNIT_FAILED",
-                                {"controller": controller.summary()})
+                                report.failure_reason, dict(report.evidence))
                 self._event("TASK_FAILED", task_id=task.task_id,
                             uid=task.uid, device=f"arm_{unit_id}",
-                            detail={"reason": controller.failure_reason})
-                self._freeze(f"{unit_id} 任务失败: "
-                             f"{controller.failure_reason}", sim_time,
+                            detail={"reason": failure})
+                self._freeze(f"{unit_id} 任务失败: {failure}", sim_time,
                              abort=True)
                 return
-            if controller.finished:
+            if report.state is ExecutionState.SUCCEEDED:
+                controller = record.controller
                 ok, reason, evidence = self._verify_unit_task(task, controller,
                                                               unit_id)
                 if ok:
@@ -725,8 +717,10 @@ class Stage4Coordinator:
                     self._release_task(task, sim_time, "unit task complete")
                     self.controller_history.append({
                         "unit_id": unit_id, "task_id": task.task_id,
+                        "execution_id": record.execution_id,
                         "summary": controller.summary()})
                     self.controllers.pop(unit_id, None)
+                    record.executor.release("unit task complete")
                     self._maybe_inject_conveyor_fault(task, sim_time)
                     if self.frozen or self.aborted:
                         return
@@ -879,17 +873,20 @@ class Stage4Coordinator:
     def _after_route(self, sim_time: float) -> None:
         if self.aborted or self.frozen:
             return
-        route = self.route
+        executor = self.agv_executor
         task = self.route_task
-        if route is None or task is None:
+        if task is None or not executor.active:
             return
-        spec = route.spec
-        if route.state is RouteState.DONE:
-            ok, reason = self._verify_route(task, route)
+        report = executor.poll(self.route_execution_id)
+        spec = executor.spec
+        route_state = str(report.detail.get("route_state", ""))
+        route_summary = dict(report.evidence.get("route") or {})
+        if route_state == RouteState.DONE.value:
+            ok, reason = self._verify_route(task, executor.controller)
             if ok:
                 self.agv_at_dock = spec.end_dock
                 self.queue.done(task.task_id, sim_time,
-                                {"route": route.summary()})
+                                {"route": route_summary})
                 self._event("ROUTE_DONE", task_id=task.task_id,
                             uid=task.uid, source=spec.start_dock,
                             destination=spec.end_dock, device="agv",
@@ -911,31 +908,33 @@ class Stage4Coordinator:
                                         "kind": cfg.TASK_KIND_REPOSITION})
             else:
                 self.queue.fail(task.task_id, sim_time, reason,
-                                {"route": route.summary()})
+                                {"route": route_summary})
                 self._event("TASK_FAILED", task_id=task.task_id,
                             uid=task.uid, device="agv",
                             detail={"reason": reason})
                 self._freeze(reason, sim_time, abort=True)
-            self.agv_history.append(route.summary())
+            self.agv_history.append(route_summary)
             self._release_task(task, sim_time, "route complete")
-            self.route = None
+            executor.release("route complete")
             self.route_task = None
+            self.route_execution_id = ""
             return
-        if route.state is RouteState.FAILED:
+        if route_state == RouteState.FAILED.value:
             self.queue.fail(task.task_id, sim_time,
-                            f"AGV_ROUTE_FAILED: {route.failure_reason}",
-                            {"route": route.summary()})
-            self.agv_history.append(route.summary())
+                            f"AGV_ROUTE_FAILED: {report.failure_reason}",
+                            {"route": route_summary})
+            self.agv_history.append(route_summary)
             self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
                         device="agv",
-                        detail={"reason": route.failure_reason})
+                        detail={"reason": report.failure_reason})
             self._release_task(task, sim_time, "route failed")
-            self.route = None
+            executor.release("route failed")
             self.route_task = None
-            self._freeze(f"AGV_ROUTE_FAILED: {route.failure_reason}",
+            self.route_execution_id = ""
+            self._freeze(f"AGV_ROUTE_FAILED: {report.failure_reason}",
                          sim_time, abort=True)
             return
-        if route.state is RouteState.BLOCKED:
+        if route_state == RouteState.BLOCKED.value:
             if task.status is not TaskStatus.BLOCKED:
                 self.queue.block(task.task_id, sim_time,
                                  "AGV 路线受阻, 轮速已停止")
@@ -955,7 +954,7 @@ class Stage4Coordinator:
                                     "lanes": list(spec.lanes),
                                     "owner": {lane: self.resources.owner(lane)
                                               for lane in spec.lanes}})
-                if clearance_ok and route.resume(
+                if clearance_ok and executor.resume(
                         sim_time, clearance_ok=True,
                         reason="obstacle_removed_and_ownership_reconfirmed"):
                     self.queue.unblock(task.task_id, sim_time,
@@ -967,7 +966,7 @@ class Stage4Coordinator:
             if sim_time - self._block_since > cfg.AGV_ROUTE_TIMEOUT:
                 self.queue.fail(task.task_id, sim_time,
                                 "AGV_BLOCKED_TIMEOUT: 清障后仍未续行",
-                                {"route": route.summary()})
+                                {"route": route_summary})
                 self._freeze("AGV_BLOCKED_TIMEOUT", sim_time, abort=True)
 
     def _verify_route(self, task: Stage4Task,
