@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from flexible_factory.application.coordinator import Stage4Coordinator
 from flexible_factory.domain.default_process import default_catalog
+from flexible_factory.domain.operation_runtime import OperationInstance
 from flexible_factory.simulation.layout import default_layout
 from flexible_factory.domain.tasks import make_task, make_task_from_operation
 
@@ -19,10 +20,21 @@ class _Scene:
             agv_material_pose=(0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 1.0)))
 
 
+class _Flow:
+    """空谱系: 只让 by_uid / pair_candidates 可调用."""
+
+    def by_uid(self, uid):
+        return None
+
+    def pair_candidates(self):
+        return None, None
+
+
 def _coordinator() -> Stage4Coordinator:
     comp = {key: None for key in (
         "materials", "flow", "agv", "runtime", "ik", "suction",
         "conveyor")}
+    comp["flow"] = _Flow()
     return Stage4Coordinator(None, _Scene(), comp)
 
 
@@ -66,9 +78,40 @@ def test_sink_spec_is_derived_from_operation_output_zone():
     assert buffer_d.kind == "station" and buffer_d.zone == "buffer_e_d"
 
 
-def test_logic_join_successor_does_not_create_stage4_task():
-    """E join 由 _check_join 触发; 不能把 kit_join 当成可派工任务."""
+def test_ready_dispatch_submits_only_the_entry_operation():
+    """阶段 3: ready 集合只派发已解锁实例; 逻辑合流不进入队列."""
     coordinator = _coordinator()
-    assert not coordinator.queue.all()
-    coordinator._submit_followup("kit_join", 1, 0.0)
+    instances = coordinator.op_runtime.instantiate_entry("s1a", 1, sim_time=0.0)
+
+    coordinator._dispatch_ready(0.0)
+
+    assert [task.operation_template_id for task in coordinator.queue.all()] == [
+        "housing_direct_A"]
+    assert coordinator.queue.all()[0].task_id == instances[0].task_id
+    assert coordinator.queue.all()[0].operation is instances[0]
+
+
+def test_dispatch_ready_is_idempotent_while_instance_is_active():
+    """同一实例只提交一次; 依赖未满足的后继不提前入队."""
+    coordinator = _coordinator()
+    coordinator.op_runtime.instantiate_entry("s1a", 1, sim_time=0.0)
+    coordinator._dispatch_ready(0.0)
+    coordinator._dispatch_ready(0.05)
+    coordinator._dispatch_ready(0.10)
+    assert len(coordinator.queue.all()) == 1
+    assert not coordinator.queue.rejections
+
+
+def test_dispatch_ready_skips_logic_join_instances():
+    """合流节点即使 ready 也不生成 Stage4Task (由 _check_join 提交账本)."""
+    coordinator = _coordinator()
+    join_operation = coordinator.catalog.operation("kit_join")
+    coordinator.op_runtime.graph.add(OperationInstance(
+        instance_id="run0001:9:kit_join", task_id="logical_join_uid9",
+        template_id=join_operation.id, kind=join_operation.kind, uid=9,
+        source="", destination="output_e", run_id="run0001",
+        priority=0))
+
+    coordinator._dispatch_ready(0.0)
+
     assert not coordinator.queue.all()

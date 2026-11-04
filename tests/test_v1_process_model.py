@@ -24,7 +24,7 @@ def test_default_catalog_validates_and_matches_frozen_config():
     catalog = default_catalog()
     report = catalog.validate()
     assert report["ok"] and not report["errors"]
-    assert catalog.version == "v1_process_20261103"
+    assert catalog.version == "v1_process_20261103b"
     assert validate_default_against_config(catalog)["ok"]
 
     recipe = catalog.recipe(DEFAULT_RECIPE_ID)
@@ -65,6 +65,11 @@ def test_default_catalog_validates_and_matches_frozen_config():
         assert entry.item_type.value == source["item_type"]
         assert catalog.operation(entry.operation_id).inputs[0].zone == \
             entry.line
+
+    # 阶段 3: 每个入口固定选择一条互斥路线, 供实例图直接使用.
+    assert {entry.id: entry.route_variant_id for entry in recipe.entries} == {
+        "s1a": "housing_direct", "s1b": "housing_alt",
+        "s2d": "bracket_route"}
 
     assert [op.kind for op in catalog.operations_for_device("arm_A")] == [
         cfg.TASK_KIND_A_CONVEYOR, cfg.TASK_KIND_A_AGV]
@@ -263,7 +268,7 @@ def test_logical_join_does_not_create_stage4_task():
 def test_queue_report_exposes_catalog_routes_and_legacy_flow():
     queue = TaskQueue(catalog=default_catalog())
     report = queue.as_dict()
-    assert report["process_model_version"] == "v1_process_20261103"
+    assert report["process_model_version"] == "v1_process_20261103b"
     assert any("housing_direct" in line
                and "housing_finish" in line
                for line in report["process_routes"])
@@ -299,6 +304,49 @@ def _error_text(catalog: ProcessCatalog) -> str:
     report = catalog.validate_report()
     assert not report["ok"]
     return "\n".join(report["errors"])
+
+
+def _catalog_with_entry(entry_id: str, **changes) -> ProcessCatalog:
+    catalog = default_catalog()
+    recipe = catalog.recipe(DEFAULT_RECIPE_ID)
+    entries = tuple(
+        replace(entry, **changes) if entry.id == entry_id else entry
+        for entry in recipe.entries)
+    return ProcessCatalog(
+        recipes=(replace(recipe, entries=entries),),
+        capabilities=catalog.capabilities, devices=catalog.devices,
+        zones=catalog.zones, known_resources=catalog.known_resources,
+        version=catalog.version)
+
+
+def test_negative_entry_route_variant_reference():
+    """阶段 3: 入口的固定路线必须存在且与首工序/分组自洽."""
+    text = _error_text(_catalog_with_entry(
+        "s1a", route_variant_id="no_such_route"))
+    assert "引用未知 route variant" in text
+
+    text = _error_text(_catalog_with_entry(
+        "s1a", route_variant_id="housing_alt"))
+    assert "首工序是" in text
+    assert "entry_zone" in text
+
+    text = _error_text(_catalog_with_entry(
+        "s2d", route_variant_id="housing_direct"))
+    assert "group" in text
+
+
+def test_default_entry_routes_resolve_uniquely_when_not_declared():
+    """留空 route_variant_id 时, 同组内必须只有一条候选路线."""
+    catalog = default_catalog()
+    recipe = catalog.recipe(DEFAULT_RECIPE_ID)
+    entries = tuple(replace(entry, route_variant_id="")
+                    for entry in recipe.entries)
+    cleared = ProcessCatalog(
+        recipes=(replace(recipe, entries=entries),),
+        capabilities=catalog.capabilities, devices=catalog.devices,
+        zones=catalog.zones, known_resources=catalog.known_resources,
+        version=catalog.version)
+    assert cleared.validate()["ok"]
 
 
 def test_negative_duplicate_operation_id():
