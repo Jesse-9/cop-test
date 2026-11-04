@@ -27,7 +27,8 @@ from .process_model import (CapabilitySpec, DeviceSpec, MaterialPort,
 
 # 修改 recipe/operation/route/设备能力时递增此版本; 它不参与场景工件
 # config digest, 由报告与未来 manifest 记录.
-PROCESS_MODEL_VERSION = "v1_process_20261103"
+# 20261103b: 订单入口增加 route_variant_id, 供阶段 3 实例图固定选路.
+PROCESS_MODEL_VERSION = "v1_process_20261103b"
 DEFAULT_RECIPE_ID = "mixed_line_v1"
 DEFAULT_PRODUCT_ID = "assembled_module"
 
@@ -220,16 +221,24 @@ def _build_route_variants() -> tuple[RouteVariant, ...]:
 
 
 def _build_entries() -> tuple[OrderEntry, ...]:
+    """有限批次的入口 → 路线固定对应.
+
+    同一 ``route_group`` 内的路线互斥; ``RAW_A`` 走直达, ``RAW_B`` 走绕行,
+    ``RAW_D`` 走支架路线. 这是按入口条目的静态选择, 不是动态选路.
+    """
     return (
         OrderEntry(id="s1a", operation_id="housing_direct_A",
                    line="line_s1a", item_type=ItemType.RAW_A,
-                   route_group="housing_supply"),
+                   route_group="housing_supply",
+                   route_variant_id="housing_direct"),
         OrderEntry(id="s1b", operation_id="housing_alt_B",
                    line="line_s1b", item_type=ItemType.RAW_B,
-                   route_group="housing_supply"),
+                   route_group="housing_supply",
+                   route_variant_id="housing_alt"),
         OrderEntry(id="s2d", operation_id="bracket_process",
                    line="line_s2d", item_type=ItemType.RAW_D,
-                   route_group="bracket_supply"),
+                   route_group="bracket_supply",
+                   route_variant_id="bracket_route"),
     )
 
 

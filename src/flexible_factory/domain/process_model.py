@@ -180,13 +180,19 @@ class RouteVariant:
 
 @dataclass(frozen=True)
 class OrderEntry:
-    """配方订单入口: 来源线、来料类型与该入口的初始工序."""
+    """配方订单入口: 来源线、来料类型、初始工序与固定路线选择.
+
+    ``route_variant_id`` 是有限批次按入口固定选择的路线的唯一标识; 留空表示
+    由运行时在唯一同组路线中推断 (v1 默认配方显式填写). 它不是动态选路,
+    只把"这个入口走哪条互斥路线"固化到静态目录, 供实例图校验使用.
+    """
 
     id: str
     operation_id: str
     line: str
     item_type: ItemType
     route_group: str
+    route_variant_id: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -195,6 +201,7 @@ class OrderEntry:
             "line": self.line,
             "item_type": self.item_type.value,
             "route_group": self.route_group,
+            "route_variant_id": self.route_variant_id,
         }
 
 
@@ -761,6 +768,7 @@ class ProcessCatalog:
         if not recipe.entries:
             err("recipe 缺少订单入口", rid)
         route_groups = {route.group for route in recipe.route_variants}
+        routes_by_id = {route.id: route for route in recipe.route_variants}
         first_ops = {route.operation_ids[0] for route in recipe.route_variants
                      if route.operation_ids}
         for entry in recipe.entries:
@@ -785,6 +793,54 @@ class ProcessCatalog:
             if entry.operation_id not in first_ops:
                 err(f"订单入口 {entry.id!r} 的工序 {op.id} 不是任何路线的"
                     f"首工序", rid, op.id)
+            self._check_entry_route(recipe, entry, op, routes_by_id,
+                                    err, check)
+
+    def _check_entry_route(self, recipe: RecipeSpec, entry: OrderEntry,
+                           op: OperationTemplate, routes_by_id: dict,
+                           err, check) -> None:
+        """入口到 route variant 的固定对应必须唯一且自洽."""
+        rid = recipe.id
+        if not entry.route_variant_id:
+            candidates = [
+                route for route in recipe.route_variants
+                if route.operation_ids
+                and route.operation_ids[0] == entry.operation_id
+                and (not entry.route_group
+                     or route.group == entry.route_group)]
+            ok = len(candidates) == 1
+            check(f"entry:{entry.id}:route", ok,
+                  f"candidates={[route.id for route in candidates]}")
+            if not ok:
+                err(f"订单入口 {entry.id!r} 无法唯一确定 route variant: "
+                    f"{[route.id for route in candidates]}", rid,
+                    entry.operation_id)
+            return
+        route = routes_by_id.get(entry.route_variant_id)
+        ok = (route is not None
+              and bool(route.operation_ids)
+              and route.operation_ids[0] == entry.operation_id
+              and (not entry.route_group or route.group == entry.route_group)
+              and route.entry_zone == entry.line)
+        check(f"entry:{entry.id}:route", ok,
+              f"route={entry.route_variant_id!r}")
+        if route is None:
+            err(f"订单入口 {entry.id!r} 引用未知 route variant "
+                f"{entry.route_variant_id!r}", rid, entry.operation_id)
+            return
+        first = route.operation_ids[0] if route.operation_ids else ""
+        if first != entry.operation_id:
+            err(f"订单入口 {entry.id!r} 的 route variant "
+                f"{route.id!r} 首工序是 {first!r}, 不是 "
+                f"{entry.operation_id!r}", rid, entry.operation_id)
+        if entry.route_group and route.group != entry.route_group:
+            err(f"订单入口 {entry.id!r} 的 route variant {route.id!r} 属于 "
+                f"group {route.group!r}, 与声明的 {entry.route_group!r} "
+                f"不一致", rid, entry.operation_id)
+        if route.entry_zone != entry.line:
+            err(f"订单入口 {entry.id!r} 的 route variant {route.id!r} "
+                f"entry_zone={route.entry_zone!r} 与来源线 "
+                f"{entry.line!r} 不一致", rid, entry.operation_id)
 
     def _check_join(self, recipe: RecipeSpec, operation_index: dict,
                     err, check) -> None:
