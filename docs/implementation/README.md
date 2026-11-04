@@ -16,6 +16,7 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 | [V1_STAGE2_EXECUTOR_PLAN.md](V1_STAGE2_EXECUTOR_PLAN.md) | 阶段 2 设备目录与执行适配器在 v1 代码上的实施方案 |
 | [V1_STAGE2_REPORT.md](V1_STAGE2_REPORT.md) | 阶段 2 实施记录：静态绑定、纯测试与代表臂/代表 AGV focused 实测 |
 | [V1_STAGE3_OPERATION_DAG_REPORT.md](V1_STAGE3_OPERATION_DAG_REPORT.md) | 阶段 3 实施记录：配方实例化、工序 DAG、ready 解锁与 E 合流，含 `full_flow` 基线对照 |
+| [V1_STAGE4_SCHEDULER_PLAN.md](V1_STAGE4_SCHEDULER_PLAN.md) | 阶段 4 实施方案：runtime 写入口修复、纯调度策略、能力/资源筛选、coordinator 接入与分层验收 |
 
 ## 证据
 
