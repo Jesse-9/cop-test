@@ -21,7 +21,8 @@
 src/flexible_factory/
   spec.py            产品/契约/schema 版本、模型路径
   domain/            rules, materials, tasks, resources, metrics,
-                     process_model, default_process, operation_runtime（纯 Python）
+                     process_model, default_process, operation_runtime,
+                     scheduling（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
                      ur5_ik, material_manager, agv, runtime, unit_controller,
                      device_binding
@@ -48,10 +49,21 @@ src/flexible_factory/
   索引、给出 ready 集合，并在物料账本提交成功后 `commit_success`。任务队列
   只承接已 ready 的实例，依赖未满足的实例留在图中。
 - `application/coordinator.py` 从目录读取任务字段；`_spawn_source()` 建图、
-  `_dispatch_ready()` 逐 tick 派工、`_commit_operation()` 是唯一成功边界，
-  模板 `successors` 不再驱动后继。逻辑合流 `kit_join` 不创建 `Stage4Task`，
-  由 `_check_join` 在两条输入工序都提交后建节点并调用
-  `MaterialRegistry.commit_join()`。
+  `_dispatch_ready()` 调用 `domain/scheduling.py` 的纯策略为 ready 实例
+  选择候选设备（记录候选、拒绝/等待原因与策略版本），再由
+  `_poll_unit()` / `_start_transport()` 全量申请资源并启动执行；
+  `_commit_operation()` 是唯一成功边界，模板 `successors` 不再驱动后继。
+  逻辑合流 `kit_join` 不创建 `Stage4Task`，由 `_check_join` 在两条输入工序
+  都提交后建节点并调用 `MaterialRegistry.commit_join()`。
+- `domain/scheduling.py` 只消费 `SchedulingSnapshot` 并输出可序列化
+  `DispatchDecision`；不导入 simulation/application、不申请资源、不改工序
+  状态。`SCHEDULER_POLICY_VERSION` 在 `spec.py`，不进入
+  `simulation/config.py` 的冻结配置摘要。
+- recipe-backed `Stage4Task` 的生命周期字段只能经 `OperationRuntime` 窄接口
+  （`claim_instance`/`select_device`/`mark_waiting`/`mark_blocked`/
+  `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
+  `TaskQueue` 只服务非配方任务（空载调机/兼容路径），直接赋值会抛
+  `TaskError`。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -155,16 +167,17 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 ## 9. 测试与证据
 
-- 纯逻辑测试：`python -m pytest -q`（无仿真环境：426 passed / 2 skipped）。
-- 设备级 focused 验收（阶段 2 起，需要运行中的 CoppeliaSim 4.10 +
+- 纯逻辑测试：`python -m pytest -q`（无仿真环境：448 passed / 3 skipped）。
+- 设备级 focused 验收与阶段 4 `full_flow`（需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，
 
       FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage2_arm_sim.py -s
       FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage2_agv_sim.py -s
+      FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage4_scheduler_sim.py -s
 
   用例由 `tests/stage2_harness.py` 加载当前工件并只调用
-  `coordinator.step()`；连接前有 TCP 探测，仿真器未启动时 3 s 内报错，
-  不会无限挂起。证据写入 `docs/implementation/runs/`。
+  `coordinator.step()`；阶段 4 用例运行完整 `full_flow` 批次，证据写入
+  `docs/implementation/runs/`。
 - 实机验收：`flexible-factory run --scenario full_flow --time 700`；报告在
   `docs/implementation/runs/`，正式证据摘要复制到
   `docs/implementation/evidence/`。

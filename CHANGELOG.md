@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- 阶段 4 纯调度策略：新增 `domain/scheduling.py`（`SchedulingSnapshot` →
+  `DispatchDecision`），按 recipe allowlist、静态能力/绑定、物料/区域前提、
+  设备占用与动态几何验收状态筛选候选；排序为业务优先级 → 等待时间 →
+  ready 时间 → 稳定实例 ID。策略不导入 simulation/application、不申请资源。
+- runtime-backed 任务写入口收紧：`Stage4Task` 生命周期 setter 与 `TaskQueue`
+  状态方法对配方任务抛 `TaskError`；`OperationRuntime` 新增
+  `claim_instance`/`select_device`/`record_phase`/`record_resources`/
+  `record_upgraded`/`mark_waiting`/`mark_blocked`/`mark_resumed` 窄接口。
+- 协调器按调度决策派工：`_dispatch_ready()` 记录 `SCHEDULE_DECISION`/
+  `SCHEDULE_WAIT`；`_poll_unit()`/`_start_transport()` 仍用
+  `ResourceTable.acquire_all()` 全有或全无申请资源，并把 `ACQUIRED`/`BUSY`、
+  冲突资源与 owner 回填到决策；选定设备写入
+  `OperationInstance.selected_device_id`，execution ID 在启动后回填。
+  每条 decision 显式列出 `not_modeled` 维度（设备健康/工具载荷/姿态包络）。
+- `spec.py` 新增 `SCHEDULER_POLICY_VERSION = v1_scheduler_20261104`；
+  不修改 `simulation/config.py` 冻结常量，`config_digest` 与受保护工件不变。
+- 新增测试 `tests/test_v1_scheduling.py`、`tests/test_v1_coordinator_scheduler.py`
+  与 `tests/test_v1_stage4_scheduler_sim.py`；纯逻辑测试 450 passed / 3 skipped。
+- 阶段 4 `full_flow` 实机验收通过：FINAL 1 件（父 UID `[1,3]`）、13 个任务
+  全部完成、12 个工序实例、11 条调度决策全部可解释、资源清零；证据见
+  `docs/implementation/evidence/v1_stage4_full_flow_20261104_210605.json`。
+  WP5（等价候选扩展）未实施，WP6（运动余量复核）未执行。
 - 新增配方运行图：`domain/operation_runtime.py` 增加 `RecipeRunContext`、
   `OperationGraph` 与 `OperationRuntime`；`OperationInstance` 扩展
   run/recipe/route/前驱/输入输出/工步字段，仍是任务状态唯一存储。
