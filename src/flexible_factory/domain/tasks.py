@@ -2,9 +2,14 @@
 
 任务只按物料 UID、工位和物流边追踪; 不使用对象 alias 或屏幕位置推断完成.
 每个 :class:`Stage4Task` 持有一个
-:class:`~stage4.operation_runtime.OperationInstance`, 状态/时间/证据/资源
-只存储在实例中; 任务上的同名字段是兼容代理, 不再维护第二份可独立修改的
-状态.
+:class:`~flexible_factory.domain.operation_runtime.OperationInstance`, 状态/
+时间/证据/资源只存储在实例中; 任务上的同名字段是兼容代理, 不再维护第二份可
+独立修改的状态.
+
+阶段 3 起, 配方工序任务由 :class:`~flexible_factory.domain.operation_runtime.
+OperationRuntime` 的实例图生成: ``make_task_from_operation(..., instance=...)``
+把已有实例投影为执行任务, 不再新建第二个实例; 旧的无实例入口只用于空载调机
+与兼容测试.
 
 去重: 同一 ``(kind, uid)`` 的活动任务必须拒绝; 空载调机与 E 配对使用
 独立序号, 不与物料任务冲突. FAILED/BLOCKED 不得改写成 DONE; v1 不
@@ -16,7 +21,8 @@ from __future__ import annotations
 from typing import Optional
 
 from . import rules as cfg
-from .operation_runtime import OperationInstance, TaskStatus
+from .operation_runtime import (OperationInstance, TaskStatus,
+                                legacy_task_fields)
 from .process_model import OperationTemplate
 
 __all__ = ["OperationInstance", "Stage4Task", "TaskError", "TaskQueue",
@@ -25,15 +31,6 @@ __all__ = ["OperationInstance", "Stage4Task", "TaskError", "TaskQueue",
 
 class TaskError(RuntimeError):
     code = "STAGE4_TASK"
-
-
-def _legacy_device_id(template: OperationTemplate) -> str:
-    device_id = template.candidate_devices[0]
-    if device_id.startswith("arm_"):
-        return device_id.removeprefix("arm_")
-    if template.executor_kind == "agv":
-        return "agv"
-    return device_id
 
 
 class Stage4Task:
@@ -69,6 +66,14 @@ class Stage4Task:
             failure_reason=str(failure_reason),
             evidence=dict(evidence or {}),
             resources=list(resources or []), upgraded=bool(upgraded))
+
+    @classmethod
+    def from_operation(cls, instance: OperationInstance) -> "Stage4Task":
+        """代理已有运行时实例; 不复制字段, 也不新建第二个实例."""
+        task = cls.__new__(cls)
+        task.task_id = instance.task_id or instance.instance_id
+        task.operation = instance
+        return task
 
     # ── 稳定字段 (创建后只读) ──────────────────────────────
 
@@ -208,6 +213,15 @@ class Stage4Task:
 
     # ── 派生 ────────────────────────────────────────────────
 
+    @property
+    def instance_id(self) -> str:
+        return self.operation.instance_id
+
+    @property
+    def runtime_backed(self) -> bool:
+        """是否由配方运行图实例化 (阶段 3 起的工艺任务)."""
+        return bool(self.operation.run_id)
+
     def is_transport(self) -> bool:
         return bool(self.operation.transport)
 
@@ -276,30 +290,32 @@ def make_task(kind: str, uid: int, *, source: str, destination: str,
 def make_task_from_operation(template: OperationTemplate, uid: int,
                              *, sim_time: float = 0.0,
                              source: Optional[str] = None,
-                             destination: Optional[str] = None) -> Stage4Task:
-    """按默认工艺模板创建任务; 稳定字段全部来自模板."""
+                             destination: Optional[str] = None,
+                             instance: Optional[OperationInstance] = None
+                             ) -> Stage4Task:
+    """按工艺模板创建执行任务.
+
+    给定 ``instance`` 时只做投影 (阶段 3 的配方工序), 不新建实例; 未给定时
+    按模板派生稳定字段, 服务空载调机与兼容测试.
+    """
     if template.executor_kind == "logic":
         raise TaskError(
             f"逻辑合流工序 {template.id!r} 不创建 Stage4Task")
-    transport = template.executor_kind == "agv"
-    if transport:
-        origin = template.route_origin_dock
-        target = template.route_destination_dock
-        src = source if source is not None else f"dock_{origin}"
-        dst = destination if destination is not None else f"dock_{target}"
-        dock = target
-    else:
-        src = (source if source is not None
-               else template.inputs[0].zone)
-        dst = (destination if destination is not None
-               else (template.output.zone if template.output else ""))
-        dock = template.dock
+    if instance is not None:
+        if instance.template_id != template.id:
+            raise TaskError(
+                f"实例 {instance.instance_id!r} 属于模板 "
+                f"{instance.template_id!r}, 不是 {template.id!r}")
+        return Stage4Task.from_operation(instance)
+    fields = legacy_task_fields(template)
+    src = source if source is not None else fields["source"]
+    dst = destination if destination is not None else fields["destination"]
     return Stage4Task(
         task_id=f"{template.kind}_uid{int(uid)}",
         kind=template.kind, uid=int(uid), source=src, destination=dst,
-        dock=dock, device=_legacy_device_id(template),
+        dock=fields["dock"], device=fields["device"],
         priority=int(template.priority), created_sim_time=float(sim_time),
-        operation_template_id=template.id, transport=transport)
+        operation_template_id=template.id, transport=fields["transport"])
 
 
 class TaskQueue:
