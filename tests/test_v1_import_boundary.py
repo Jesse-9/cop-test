@@ -52,5 +52,15 @@ def test_simulation_does_not_import_application_or_cli():
     assert out == "", f"simulation imported application: {out}"
 
 
+def test_scheduler_policy_does_not_import_simulation_or_application():
+    out = _run(
+        "import flexible_factory.domain.scheduling; import sys; "
+        "banned=sorted(m for m in sys.modules "
+        "if m.startswith('flexible_factory.simulation') "
+        "or m.startswith('flexible_factory.application')); "
+        "print(','.join(banned))")
+    assert out == "", f"scheduler imported runtime layer: {out}"
+
+
 def test_mcp_registration_is_removed_for_v1():
     assert not (ROOT / ".mcp.json").exists(), "v1 已移除旧 factory-sim MCP 注册"
