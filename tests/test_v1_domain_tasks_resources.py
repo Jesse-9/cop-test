@@ -5,8 +5,12 @@ from __future__ import annotations
 import pytest
 
 from flexible_factory.domain import rules as cfg
+from flexible_factory.domain.default_process import (DEFAULT_RECIPE_ID,
+                                                     default_catalog)
+from flexible_factory.domain.operation_runtime import OperationRuntime
 from flexible_factory.domain.resources import ResourceTable
-from flexible_factory.domain.tasks import (TaskError, TaskQueue, TaskStatus, make_task)
+from flexible_factory.domain.tasks import (TaskError, TaskQueue, TaskStatus,
+                                           make_task, make_task_from_operation)
 
 
 def test_dedupe_active_same_kind_uid():
@@ -123,3 +127,100 @@ def test_queue_capacity_and_rejection_record():
     assert not ok
     assert "队列已满" in reason
     assert len(queue.rejections) == 1
+
+
+# ═══════════════════════════════════════════════════════════════
+# 阶段 4 WP0: runtime-backed 任务写入口边界
+# ═══════════════════════════════════════════════════════════════
+
+def _runtime_task(entry_id: str = "s1a", uid: int = 1):
+    catalog = default_catalog()
+    recipe = catalog.recipe(DEFAULT_RECIPE_ID)
+    runtime = OperationRuntime(catalog, recipe)
+    instance = runtime.instantiate_entry(entry_id, uid, sim_time=0.0)[0]
+    template = catalog.operation(instance.template_id, recipe.id)
+    task = make_task_from_operation(template, uid, instance=instance)
+    return runtime, instance, task
+
+
+def test_runtime_backed_task_rejects_direct_legacy_writes():
+    runtime, instance, task = _runtime_task()
+    assert task.runtime_backed
+    for field, value in (
+            ("status", TaskStatus.RUNNING),
+            ("phase", "RUNNING"),
+            ("priority", 0),
+            ("attempts", 1),
+            ("created_sim_time", 1.0),
+            ("started_sim_time", 1.0),
+            ("finished_sim_time", 2.0),
+            ("waiting_since", 1.0),
+            ("blocked_since", 1.0),
+            ("failure_reason", "X"),
+            ("evidence", {"x": 1}),
+            ("resources", ["arm_A"]),
+            ("upgraded", True)):
+        with pytest.raises(TaskError, match="runtime-backed"):
+            setattr(task, field, value)
+
+    queue = TaskQueue()
+    assert queue.submit(task)[0]
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.start(task.task_id, 1.0)
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.wait(task.task_id, 1.0, "busy")
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.set_phase(task.task_id, "PICKING")
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.block(task.task_id, 1.0, "blocked")
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.unblock(task.task_id, 1.0, "resume")
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.done(task.task_id, 1.0)
+    with pytest.raises(TaskError, match="runtime-backed"):
+        queue.fail(task.task_id, 1.0, "boom")
+    # 拒绝写入后实例未被改写.
+    assert instance.state is TaskStatus.PENDING
+    assert instance.phase == ""
+    assert instance.resources == []
+
+
+def test_runtime_lifecycle_updates_single_instance_and_projection():
+    runtime, instance, task = _runtime_task()
+    runtime.claim_instance(instance.instance_id, 1.0)
+    runtime.select_device(instance.instance_id, "arm_A")
+    runtime.mark_started(instance.instance_id, 1.5, execution_id="arm_A#1")
+    runtime.record_phase(instance.instance_id, "PICKING")
+    runtime.record_resources(instance.instance_id, ["line_s1a", "arm_A"])
+
+    assert task.status is TaskStatus.RUNNING
+    assert task.phase == "PICKING"
+    assert task.resources == ["line_s1a", "arm_A"]
+    assert task.selected_device_id == "arm_A"
+    payload = task.as_dict()
+    assert payload["status"] == "RUNNING"
+    assert payload["selected_device_id"] == "arm_A"
+    assert payload["operation_instance_id"] == instance.instance_id
+
+    runtime.commit_success(instance.instance_id, output_uids=[1],
+                           sim_time=2.0)
+    assert task.status is TaskStatus.DONE
+    assert task.as_dict()["status"] == "DONE"
+    assert task.operation is instance
+
+
+def test_runtime_wait_block_resume_keep_evidence_on_instance():
+    runtime, instance, task = _runtime_task("s2d", 2)
+    runtime.claim_instance(instance.instance_id, 1.0)
+    runtime.select_device(instance.instance_id, "arm_D")
+    runtime.mark_waiting(instance.instance_id, 1.2, "AGV 不在 dock D")
+    assert task.status is TaskStatus.WAITING
+    assert task.waiting_since == 1.2
+    assert instance.evidence["waits"][-1]["reason"] == "AGV 不在 dock D"
+
+    runtime.mark_started(instance.instance_id, 2.0)
+    runtime.mark_blocked(instance.instance_id, 3.0, "停带")
+    assert task.status is TaskStatus.BLOCKED
+    runtime.mark_resumed(instance.instance_id, 4.0, "恢复")
+    assert task.status is TaskStatus.RUNNING
+    assert instance.evidence["resumes"][-1]["sim_time"] == 4.0

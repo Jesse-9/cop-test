@@ -20,6 +20,9 @@
   - 依赖未满足的实例留在图中, 不提前进入任务队列;
   - 重复提交、提交未解锁实例、提交已 FAILED 实例都抛
     :class:`OperationRuntimeError`; 失败前驱不解锁后继, 不重试也不改线.
+  - 阶段 4 起, 调度器选定的设备记录在 ``selected_device_id``; 执行启动后
+    不得改派. 等待/阻塞/恢复/阶段/资源/升级都经本模块的窄方法写入,
+    recipe-backed 任务不能再通过旧 setter 直接改状态.
 """
 
 from __future__ import annotations
@@ -123,6 +126,8 @@ class OperationInstance:
     output_uids: list[int] = field(default_factory=list)
     capability: str = ""
     candidate_device_ids: list[str] = field(default_factory=list)
+    # 阶段 4: 调度器选定的设备; 必须属于 candidate_device_ids, 启动后不可更换.
+    selected_device_id: str = ""
     current_work_step: str = ""
     sequence: int = 0
     dispatched: bool = False
@@ -182,6 +187,7 @@ class OperationInstance:
             "output_uids": [int(uid) for uid in self.output_uids],
             "capability": self.capability,
             "candidate_device_ids": list(self.candidate_device_ids),
+            "selected_device_id": self.selected_device_id,
             "current_work_step": self.current_work_step,
             "sequence": int(self.sequence),
             "dispatched": bool(self.dispatched),
@@ -822,6 +828,127 @@ class OperationRuntime:
     def claim_ready(self, sim_time: Optional[float] = None
                     ) -> list[OperationInstance]:
         return self.graph.claim_ready(sim_time)
+
+    def claim_instance(self, instance_id: str,
+                       sim_time: Optional[float] = None
+                       ) -> OperationInstance:
+        """只认领一个仍 ready 的实例; 用于阶段 4 逐决策入队.
+
+        与 ``claim_ready()`` 相同: ``created_sim_time`` 刷新为进入可派工
+        队列的时间. 已派发、非 PENDING 或依赖未满足都拒绝.
+        """
+        instance = self.graph.require(instance_id)
+        if instance.state is not TaskStatus.PENDING:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 状态 {instance.state.value} "
+                f"不能认领派工")
+        if instance.dispatched:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 已派发, 不能重复认领")
+        if not self.graph.unlocked(instance):
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 前驱未全部提交, 不能派工")
+        instance.dispatched = True
+        if sim_time is not None:
+            instance.created_sim_time = float(sim_time)
+        return instance
+
+    def select_device(self, instance_id: str,
+                      device_id: str) -> OperationInstance:
+        """登记调度器选定设备; 必须是 recipe 候选, 启动后不得更换."""
+        instance = self.graph.require(instance_id)
+        allowed = list(instance.candidate_device_ids)
+        if not allowed:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 没有 recipe 候选设备")
+        if str(device_id) not in allowed:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 设备 {device_id!r} 不在候选 "
+                f"{allowed}")
+        if instance.selected_device_id:
+            if instance.selected_device_id != str(device_id):
+                raise OperationRuntimeError(
+                    f"instance={instance_id}: 已选择设备 "
+                    f"{instance.selected_device_id!r}, 不能改派 "
+                    f"{device_id!r}")
+            return instance
+        if instance.state is TaskStatus.RUNNING:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 执行已启动, 不能再登记首台设备")
+        instance.selected_device_id = str(device_id)
+        return instance
+
+    def record_phase(self, instance_id: str,
+                     phase: str) -> OperationInstance:
+        """记录执行阶段文本; 生命周期状态只能经窄迁移方法写入."""
+        instance = self.graph.require(instance_id)
+        instance.phase = str(phase)
+        return instance
+
+    def record_resources(self, instance_id: str,
+                         resources: Iterable[str]) -> OperationInstance:
+        """记录本次派工实际申请的资源集 (资源表仍是唯一所有权来源)."""
+        instance = self.graph.require(instance_id)
+        instance.resources = [str(name) for name in resources]
+        return instance
+
+    def record_upgraded(self, instance_id: str,
+                        upgraded: bool) -> OperationInstance:
+        instance = self.graph.require(instance_id)
+        instance.upgraded = bool(upgraded)
+        return instance
+
+    def mark_waiting(self, instance_id: str, sim_time: float,
+                     reason: str) -> OperationInstance:
+        """PENDING/WAITING → WAITING; 同一原因的重复等待不重复记证据."""
+        instance = self.graph.require(instance_id)
+        if instance.state not in (TaskStatus.PENDING, TaskStatus.WAITING):
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 状态 {instance.state.value} "
+                f"不能等待")
+        phase = f"WAITING: {reason}"
+        changed = instance.state is TaskStatus.PENDING \
+            or instance.phase != phase
+        if instance.state is TaskStatus.PENDING:
+            instance.waiting_since = float(sim_time)
+        instance.state = TaskStatus.WAITING
+        instance.phase = phase
+        if changed:
+            instance.evidence.setdefault("waits", []).append({
+                "sim_time": round(float(sim_time), 4), "reason": reason})
+        return instance
+
+    def mark_blocked(self, instance_id: str, sim_time: float,
+                     reason: str) -> OperationInstance:
+        """非终态 → BLOCKED; 保留失败语义与已有证据."""
+        instance = self.graph.require(instance_id)
+        if instance.state.terminal:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 已结束, 不能阻塞")
+        phase = f"BLOCKED: {reason}"
+        changed = instance.state is not TaskStatus.BLOCKED \
+            or instance.phase != phase
+        instance.state = TaskStatus.BLOCKED
+        instance.blocked_since = float(sim_time)
+        instance.phase = phase
+        if changed:
+            instance.evidence.setdefault("blocks", []).append({
+                "sim_time": round(float(sim_time), 4), "reason": reason})
+        return instance
+
+    def mark_resumed(self, instance_id: str, sim_time: float,
+                     reason: str) -> OperationInstance:
+        """BLOCKED → RUNNING; 只恢复同一执行, 不重试也不改线."""
+        instance = self.graph.require(instance_id)
+        if instance.state is not TaskStatus.BLOCKED:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 不在 BLOCKED 状态")
+        instance.state = TaskStatus.RUNNING
+        instance.blocked_since = None
+        instance.phase = f"RESUMED: {reason}"
+        instance.evidence.setdefault("resumes", []).append({
+            "sim_time": round(float(sim_time), 4), "reason": reason})
+        return instance
 
     def completed_output(self, uid: int,
                          port: MaterialPort) -> Optional[OperationInstance]:

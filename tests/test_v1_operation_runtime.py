@@ -400,3 +400,40 @@ def test_completed_output_resolves_join_inputs_by_port():
     assert runtime.completed_output(3, JOIN.inputs[1]) is part
     assert runtime.completed_output(1, JOIN.inputs[1]) is None
     assert runtime.completed_output(999, JOIN.inputs[0]) is None
+
+
+# ═══════════════════════════════════════════════════════════════
+# 阶段 4: 逐决策认领/选设备与窄写入接口
+# ═══════════════════════════════════════════════════════════════
+
+def test_claim_instance_requires_ready_and_is_single_use():
+    runtime = _runtime()
+    chain = runtime.instantiate_entry("s1a", 1, sim_time=0.0)
+    with pytest.raises(OperationRuntimeError, match="前驱未全部提交"):
+        runtime.claim_instance(chain[1].instance_id, 0.0)
+
+    claimed = runtime.claim_instance(chain[0].instance_id, 1.0)
+    assert claimed.dispatched
+    assert claimed.created_sim_time == 1.0
+    assert runtime.ready() == []
+    with pytest.raises(OperationRuntimeError, match="已派发"):
+        runtime.claim_instance(chain[0].instance_id, 1.1)
+
+
+def test_select_device_rejects_non_candidate_and_post_start_changes():
+    runtime = _runtime()
+    instance = runtime.instantiate_entry("s1a", 1)[0]
+    runtime.claim_instance(instance.instance_id, 1.0)
+    runtime.select_device(instance.instance_id, "arm_A")
+    assert instance.selected_device_id == "arm_A"
+    assert instance.as_dict()["selected_device_id"] == "arm_A"
+    with pytest.raises(OperationRuntimeError, match="不在候选"):
+        runtime.select_device(instance.instance_id, "arm_B")
+    instance.candidate_device_ids.append("arm_B")
+    with pytest.raises(OperationRuntimeError, match="不能改派"):
+        runtime.select_device(instance.instance_id, "arm_B")
+    runtime.mark_started(instance.instance_id, 1.5)
+    runtime.record_phase(instance.instance_id, "PICKING")
+    runtime.record_resources(instance.instance_id, ["line_s1a", "arm_A"])
+    assert instance.phase == "PICKING"
+    assert instance.resources == ["line_s1a", "arm_A"]

@@ -4,7 +4,10 @@
 每个 :class:`Stage4Task` 持有一个
 :class:`~flexible_factory.domain.operation_runtime.OperationInstance`, 状态/
 时间/证据/资源只存储在实例中; 任务上的同名字段是兼容代理, 不再维护第二份可
-独立修改的状态.
+独立修改的状态. 阶段 4 起, recipe-backed 任务的生命周期 setter 与
+``TaskQueue`` 状态方法都会拒绝写入, 必须经
+:class:`~flexible_factory.domain.operation_runtime.OperationRuntime` 的窄接口
+更新; 只有空载调机/兼容任务仍走旧字段.
 
 阶段 3 起, 配方工序任务由 :class:`~flexible_factory.domain.operation_runtime.
 OperationRuntime` 的实例图生成: ``make_task_from_operation(..., instance=...)``
@@ -105,7 +108,22 @@ class Stage4Task:
     def operation_template_id(self) -> str:
         return self.operation.template_id
 
+    @property
+    def selected_device_id(self) -> str:
+        return self.operation.selected_device_id
+
     # ── 生命周期字段 (队列/协调器受控写入) ─────────────────
+
+    def _guard_runtime_write(self, field: str) -> None:
+        """recipe-backed 任务不得绕过 OperationRuntime 改写生命周期字段.
+
+        旧属性仍保留给空载调机/兼容任务; 一旦实例属于配方运行图
+        (``run_id`` 非空), 所有迁移必须走 ``OperationRuntime`` 的窄接口.
+        """
+        if self.runtime_backed:
+            raise TaskError(
+                f"{self.task_id}: runtime-backed 任务的 {field} 不能直接"
+                f"赋值; 必须经 OperationRuntime 更新")
 
     @property
     def status(self) -> TaskStatus:
@@ -113,6 +131,7 @@ class Stage4Task:
 
     @status.setter
     def status(self, value: TaskStatus) -> None:
+        self._guard_runtime_write("status")
         self.operation.state = TaskStatus(value)
 
     @property
@@ -121,6 +140,7 @@ class Stage4Task:
 
     @phase.setter
     def phase(self, value: str) -> None:
+        self._guard_runtime_write("phase")
         self.operation.phase = str(value)
 
     @property
@@ -129,6 +149,7 @@ class Stage4Task:
 
     @priority.setter
     def priority(self, value: int) -> None:
+        self._guard_runtime_write("priority")
         self.operation.priority = int(value)
 
     @property
@@ -137,6 +158,7 @@ class Stage4Task:
 
     @attempts.setter
     def attempts(self, value: int) -> None:
+        self._guard_runtime_write("attempts")
         self.operation.attempts = int(value)
 
     @property
@@ -145,6 +167,7 @@ class Stage4Task:
 
     @created_sim_time.setter
     def created_sim_time(self, value: float) -> None:
+        self._guard_runtime_write("created_sim_time")
         self.operation.created_sim_time = float(value)
 
     @property
@@ -153,6 +176,7 @@ class Stage4Task:
 
     @started_sim_time.setter
     def started_sim_time(self, value: Optional[float]) -> None:
+        self._guard_runtime_write("started_sim_time")
         self.operation.started_sim_time = value
 
     @property
@@ -161,6 +185,7 @@ class Stage4Task:
 
     @finished_sim_time.setter
     def finished_sim_time(self, value: Optional[float]) -> None:
+        self._guard_runtime_write("finished_sim_time")
         self.operation.finished_sim_time = value
 
     @property
@@ -169,6 +194,7 @@ class Stage4Task:
 
     @waiting_since.setter
     def waiting_since(self, value: Optional[float]) -> None:
+        self._guard_runtime_write("waiting_since")
         self.operation.waiting_since = value
 
     @property
@@ -177,6 +203,7 @@ class Stage4Task:
 
     @blocked_since.setter
     def blocked_since(self, value: Optional[float]) -> None:
+        self._guard_runtime_write("blocked_since")
         self.operation.blocked_since = value
 
     @property
@@ -185,6 +212,7 @@ class Stage4Task:
 
     @failure_reason.setter
     def failure_reason(self, value: str) -> None:
+        self._guard_runtime_write("failure_reason")
         self.operation.failure_reason = str(value)
 
     @property
@@ -193,6 +221,7 @@ class Stage4Task:
 
     @evidence.setter
     def evidence(self, value: dict) -> None:
+        self._guard_runtime_write("evidence")
         self.operation.evidence = dict(value or {})
 
     @property
@@ -201,6 +230,7 @@ class Stage4Task:
 
     @resources.setter
     def resources(self, value: list[str]) -> None:
+        self._guard_runtime_write("resources")
         self.operation.resources = list(value)
 
     @property
@@ -209,6 +239,7 @@ class Stage4Task:
 
     @upgraded.setter
     def upgraded(self, value: bool) -> None:
+        self._guard_runtime_write("upgraded")
         self.operation.upgraded = bool(value)
 
     # ── 派生 ────────────────────────────────────────────────
@@ -249,6 +280,7 @@ class Stage4Task:
             "task_id": self.task_id,
             "operation_instance_id": self.operation.instance_id,
             "operation_template_id": self.operation.template_id,
+            "selected_device_id": self.operation.selected_device_id,
             "kind": self.kind,
             "uid": int(self.uid),
             "source": self.source,
@@ -407,8 +439,17 @@ class TaskQueue:
 
     # ── 状态转换 ────────────────────────────────────────────
 
+    @staticmethod
+    def _require_legacy(task: Stage4Task) -> None:
+        """队列迁移只服务非配方任务; runtime-backed 必须走 OperationRuntime."""
+        if task.runtime_backed:
+            raise TaskError(
+                f"{task.task_id}: runtime-backed 任务不能经 TaskQueue 改写; "
+                f"必须经 OperationRuntime 更新")
+
     def start(self, task_id: str, sim_time: float) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status not in (TaskStatus.PENDING, TaskStatus.WAITING):
             raise TaskError(f"{task_id} 状态 {task.status.value} 不能启动")
         task.status = TaskStatus.RUNNING
@@ -420,6 +461,7 @@ class TaskQueue:
 
     def wait(self, task_id: str, sim_time: float, reason: str) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status not in (TaskStatus.PENDING, TaskStatus.WAITING):
             raise TaskError(f"{task_id} 状态 {task.status.value} 不能等待")
         if task.status is TaskStatus.PENDING:
@@ -432,12 +474,14 @@ class TaskQueue:
 
     def set_phase(self, task_id: str, phase: str) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         task.phase = str(phase)
         return task
 
     def block(self, task_id: str, sim_time: float,
               reason: str) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status.terminal:
             raise TaskError(f"{task_id} 已结束, 不能阻塞")
         task.status = TaskStatus.BLOCKED
@@ -450,6 +494,7 @@ class TaskQueue:
     def unblock(self, task_id: str, sim_time: float,
                 reason: str) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status is not TaskStatus.BLOCKED:
             raise TaskError(f"{task_id} 不在 BLOCKED")
         task.status = TaskStatus.RUNNING
@@ -462,6 +507,7 @@ class TaskQueue:
     def done(self, task_id: str, sim_time: float,
              evidence: Optional[dict] = None) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status is TaskStatus.FAILED:
             raise TaskError(f"{task_id} 已 FAILED, 不能改写成 DONE")
         task.status = TaskStatus.DONE
@@ -474,6 +520,7 @@ class TaskQueue:
     def fail(self, task_id: str, sim_time: float, reason: str,
              evidence: Optional[dict] = None) -> Stage4Task:
         task = self._require(task_id)
+        self._require_legacy(task)
         if task.status is TaskStatus.DONE:
             raise TaskError(f"{task_id} 已 DONE, 不能改写成 FAILED")
         task.status = TaskStatus.FAILED
