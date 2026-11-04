@@ -164,7 +164,8 @@ def open_context(*, host: str = "localhost", port: int = 23000,
                          client=client)
 
 
-def write_evidence(name: str, payload: dict) -> str:
+def write_evidence(name: str, payload: dict,
+                   prefix: str = "v1_stage2_") -> str:
     """把 focused 证据写到临时运行目录 (正式结论再复制到 evidence/)."""
     import json
     from datetime import datetime
@@ -174,7 +175,7 @@ def write_evidence(name: str, payload: dict) -> str:
     out_dir = spec.REPORT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = out_dir / f"v1_stage2_{name}_{stamp}.json"
+    path = out_dir / f"{prefix}{name}_{stamp}.json"
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2,
                                default=str), encoding="utf-8")
     return str(path)

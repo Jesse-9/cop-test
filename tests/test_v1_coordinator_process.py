@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 from flexible_factory.application.coordinator import Stage4Coordinator
 from flexible_factory.domain.default_process import default_catalog
+from flexible_factory.domain.materials import ItemType, MaterialRegistry
 from flexible_factory.domain.operation_runtime import OperationInstance
 from flexible_factory.simulation.layout import default_layout
 from flexible_factory.domain.tasks import make_task, make_task_from_operation
@@ -20,21 +21,17 @@ class _Scene:
             agv_material_pose=(0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 1.0)))
 
 
-class _Flow:
-    """空谱系: 只让 by_uid / pair_candidates 可调用."""
-
-    def by_uid(self, uid):
-        return None
-
-    def pair_candidates(self):
-        return None, None
+def _register_source(coordinator: Stage4Coordinator, uid: int) -> None:
+    coordinator.flow.register(
+        uid, ItemType.RAW_A, f"Part_{uid:04d}", source="line_s1a",
+        zone="line_s1a", sim_time=0.0)
 
 
 def _coordinator() -> Stage4Coordinator:
     comp = {key: None for key in (
         "materials", "flow", "agv", "runtime", "ik", "suction",
         "conveyor")}
-    comp["flow"] = _Flow()
+    comp["flow"] = MaterialRegistry()
     return Stage4Coordinator(None, _Scene(), comp)
 
 
@@ -79,8 +76,9 @@ def test_sink_spec_is_derived_from_operation_output_zone():
 
 
 def test_ready_dispatch_submits_only_the_entry_operation():
-    """阶段 3: ready 集合只派发已解锁实例; 逻辑合流不进入队列."""
+    """阶段 3/4: ready 集合只派发已解锁实例; 逻辑合流不进入队列."""
     coordinator = _coordinator()
+    _register_source(coordinator, 1)
     instances = coordinator.op_runtime.instantiate_entry("s1a", 1, sim_time=0.0)
 
     coordinator._dispatch_ready(0.0)
@@ -89,16 +87,20 @@ def test_ready_dispatch_submits_only_the_entry_operation():
         "housing_direct_A"]
     assert coordinator.queue.all()[0].task_id == instances[0].task_id
     assert coordinator.queue.all()[0].operation is instances[0]
+    assert instances[0].selected_device_id == "arm_A"
+    assert coordinator.schedule_decisions[0]["selected_device_id"] == "arm_A"
 
 
 def test_dispatch_ready_is_idempotent_while_instance_is_active():
     """同一实例只提交一次; 依赖未满足的后继不提前入队."""
     coordinator = _coordinator()
+    _register_source(coordinator, 1)
     coordinator.op_runtime.instantiate_entry("s1a", 1, sim_time=0.0)
     coordinator._dispatch_ready(0.0)
     coordinator._dispatch_ready(0.05)
     coordinator._dispatch_ready(0.10)
     assert len(coordinator.queue.all()) == 1
+    assert len(coordinator.schedule_decisions) == 1
     assert not coordinator.queue.rejections
 
 

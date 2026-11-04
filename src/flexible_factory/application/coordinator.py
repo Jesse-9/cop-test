@@ -51,9 +51,13 @@ from ..domain.operation_runtime import (OperationRuntime,
                                         OperationRuntimeError)
 from ..domain.process_model import OperationTemplate, ProcessCatalog
 from ..domain.resources import ResourceTable
+from ..domain.scheduling import (SCHEDULER_POLICY_VERSION, DeviceView,
+                                 MaterialView, OperationView,
+                                 SchedulingSnapshot, plan_ready)
 from ..simulation.scene import Stage4Scene
 from ..domain.tasks import (Stage4Task, TaskQueue, TaskStatus,
                             make_task_from_operation)
+from ..simulation.device_binding import DeviceBindingError, binding_for
 from ..simulation.unit_controller import (SinkSpec, Stage4UnitController,
                                       agv_material_position)
 
@@ -133,6 +137,12 @@ class Stage4Coordinator:
         self.agv_at_dock = cfg.AGV_INITIAL_DOCK
         self.agv_history: list[dict] = []
         self.dispatch_decisions: list[dict] = []
+        # 阶段 4: 调度决策与拒绝/等待原因; 决策记录在设备选定时生成,
+        # 执行 ID 在 executor.start 后回填.
+        self.schedule_decisions: list[dict] = []
+        self.schedule_waits: list[dict] = []
+        self._schedule_wait_reason: dict[str, str] = {}
+        self._device_view_cache: Optional[list[DeviceView]] = None
         self.events: list[dict] = []
         self.injected: list[dict] = []
         self.spawned: list[dict] = []
@@ -305,19 +315,213 @@ class Stage4Coordinator:
         self._poll_agv(sim_time)
 
     def _dispatch_ready(self, sim_time: float) -> None:
-        """把运行图中 ready 且未入队的物理实例投影为任务并提交.
+        """用阶段 4 纯策略为 ready 实例选设备并投影为任务.
 
         依赖未满足的实例留在图中, 不提前进入队列标成 WAITING; 逻辑合流
-        由 :meth:`_check_join` 提交账本, 不参与臂/AGV 派工.
+        由 :meth:`_check_join` 提交账本, 不参与臂/AGV 派工. 策略只做静态/
+        物料筛选与选择记录; 资源申请仍由 :meth:`_poll_unit` /
+        :meth:`_start_transport` 全量完成.
         """
-        for instance in self.op_runtime.claim_ready(sim_time):
+        ready = [instance for instance in self.op_runtime.ready()
+                 if self.catalog.operation(
+                     instance.template_id,
+                     self.recipe.id).executor_kind != "logic"]
+        if not ready:
+            return
+        snapshot = self._scheduling_snapshot(sim_time, ready)
+        result = plan_ready(snapshot)
+        for decision in result.decisions:
+            instance = self.op_runtime.instance(
+                decision.operation_instance_id)
+            if instance is None:
+                continue
             template = self.catalog.operation(instance.template_id,
                                               self.recipe.id)
-            if template.executor_kind == "logic":
+            record = self._decision_record(decision, instance)
+            if not decision.selected_device_id:
+                previous = self._schedule_wait_reason.get(
+                    instance.instance_id)
+                self._schedule_wait_reason[instance.instance_id] = \
+                    decision.defer_reason
+                if previous != decision.defer_reason:
+                    self.schedule_waits.append(record)
+                    self._event("SCHEDULE_WAIT", task_id=instance.task_id,
+                                uid=instance.uid,
+                                detail={"reason": decision.defer_reason,
+                                        "decision": record})
                 continue
+            self._schedule_wait_reason.pop(instance.instance_id, None)
+            try:
+                self.op_runtime.claim_instance(instance.instance_id,
+                                               sim_time)
+                self.op_runtime.select_device(
+                    instance.instance_id, decision.selected_device_id)
+            except OperationRuntimeError as exc:
+                self._event("SCHEDULE_REJECTED", task_id=instance.task_id,
+                            uid=instance.uid,
+                            detail={"reason": str(exc),
+                                    "decision": record})
+                self._freeze(f"SCHEDULE_REJECTED: {exc}", sim_time)
+                return
             task = make_task_from_operation(
                 template, instance.uid, instance=instance, sim_time=sim_time)
-            self._submit(task, sim_time)
+            if not self._submit(task, sim_time):
+                continue
+            self.schedule_decisions.append(record)
+            self._event("SCHEDULE_DECISION", task_id=task.task_id,
+                        uid=task.uid, device=decision.selected_device_id,
+                        detail=record)
+
+    # ── 调度快照 ────────────────────────────────────────────
+
+    def _scheduling_snapshot(self, sim_time: float,
+                             ready: list) -> SchedulingSnapshot:
+        operations = tuple(self._operation_view(instance)
+                           for instance in ready)
+        devices = tuple(self._device_views())
+        materials = []
+        free_zones: dict[str, bool] = {}
+        seen_uids: set[int] = set()
+        for operation in operations:
+            if operation.uid not in seen_uids:
+                seen_uids.add(operation.uid)
+                record = self.flow.by_uid(operation.uid)
+                if record is not None:
+                    materials.append(MaterialView(
+                        uid=int(operation.uid),
+                        item_type=record.item_type.value,
+                        zone=record.zone))
+            if operation.destination_zone:
+                free_zones[operation.destination_zone] = bool(
+                    self.flow.zone_free(operation.destination_zone))
+        return SchedulingSnapshot(
+            sim_time=float(sim_time), operations=operations,
+            devices=devices, materials=tuple(materials),
+            free_zones=free_zones,
+            resource_owners={name: owner for name, owner
+                             in self.resources.owners.items() if owner},
+            busy_devices=self._busy_devices(),
+            agv_at_dock=self.agv_at_dock,
+            agv_dock_settled=self._agv_dock_settled())
+
+    def _operation_view(self, instance) -> OperationView:
+        template = self.catalog.operation(instance.template_id,
+                                          self.recipe.id)
+        return OperationView(
+            instance_id=instance.instance_id,
+            task_id=instance.task_id,
+            template_id=template.id,
+            kind=template.kind,
+            uid=int(instance.uid),
+            executor_kind=template.executor_kind,
+            capability=template.capability,
+            candidate_device_ids=tuple(
+                instance.candidate_device_ids
+                or template.candidate_devices),
+            run_id=instance.run_id,
+            entry_id=instance.entry_id,
+            priority=int(instance.priority),
+            ready_sim_time=self._ready_sim_time(instance),
+            input_zones=tuple(port.zone for port in template.inputs),
+            input_item_types=tuple(port.item_type.value
+                                   for port in template.inputs),
+            destination_zone=(template.output.zone
+                              if template.output else ""),
+            source_kind=template.source_kind,
+            sink_kind=template.sink_kind,
+            dock=template.dock,
+            route_origin_dock=template.route_origin_dock,
+            route_destination_dock=template.route_destination_dock,
+            required_resources=tuple(template.resources),
+            selected_route=instance.selected_route)
+
+    def _ready_sim_time(self, instance) -> float:
+        """实例变为 ready 的时间: 前驱全部提交时刻, 入口用创建时间."""
+        times = []
+        for predecessor_id in self.op_runtime.graph.predecessors(
+                instance.instance_id):
+            predecessor = self.op_runtime.graph.get(predecessor_id)
+            if predecessor is None:
+                continue
+            if predecessor.finished_sim_time is not None:
+                times.append(float(predecessor.finished_sim_time))
+            elif predecessor.committed_sim_time is not None:
+                times.append(float(predecessor.committed_sim_time))
+        if times:
+            return max(times)
+        return float(instance.created_sim_time)
+
+    def _device_views(self) -> list[DeviceView]:
+        if self._device_view_cache is not None:
+            return list(self._device_view_cache)
+        views: list[DeviceView] = []
+        for device in self.catalog.devices:
+            try:
+                binding = binding_for(device.id)
+            except DeviceBindingError:
+                views.append(DeviceView(
+                    device_id=device.id, kind=device.kind,
+                    capabilities=tuple(device.capabilities),
+                    default_line_id=device.default_line_id, bound=False))
+                continue
+            views.append(DeviceView(
+                device_id=device.id, kind=device.kind,
+                capabilities=tuple(device.capabilities),
+                resources=tuple(binding.resources),
+                zones=tuple(binding.zones),
+                default_line_id=device.default_line_id, bound=True))
+        self._device_view_cache = list(views)
+        return views
+
+    def _busy_devices(self) -> dict[str, str]:
+        busy: dict[str, str] = {}
+        for record in self.controllers.values():
+            busy[record.executor.device_id] = \
+                f"execution/{record.execution_id}"
+        try:
+            if self.agv_executor.active:
+                busy[self.agv_executor.device_id] = (
+                    f"execution/{self.agv_executor.execution_id or 'route'}")
+        except Exception:
+            pass
+        return busy
+
+    def _agv_dock_settled(self) -> bool:
+        try:
+            return bool(self._agv_at_dock(self.agv_at_dock))
+        except Exception:
+            return False
+
+    def _decision_record(self, decision, instance) -> dict:
+        record = decision.as_dict()
+        record["execution_id"] = ""
+        record["instance_id"] = instance.instance_id
+        return record
+
+    def _attach_execution(self, instance_id: str,
+                          execution_id: str) -> None:
+        for row in reversed(self.schedule_decisions):
+            if row.get("operation_instance_id") == instance_id:
+                row["execution_id"] = str(execution_id)
+                return
+
+    def _note_resource_result(self, task: Stage4Task, *,
+                              acquired: bool, resources=(),
+                              busy: str = "", owner: str = "") -> None:
+        """把 ``acquire_all()`` 的结果回填到派工决策 (同一 dict 也是事件 detail)."""
+        if not task.runtime_backed:
+            return
+        for row in reversed(self.schedule_decisions):
+            if row.get("operation_instance_id") != task.instance_id:
+                continue
+            row["resource_result"] = ("ACQUIRED" if acquired else "BUSY")
+            if resources:
+                row["acquired_resources"] = [str(name) for name in resources]
+            if busy:
+                row["resource_busy"] = str(busy)
+            if owner:
+                row["resource_owner"] = str(owner)
+            return
 
     # ═══════════════════════════════════════════════════════
     # 运行图状态迁移 (实例是唯一状态所有者)
@@ -371,10 +575,10 @@ class Stage4Coordinator:
     def _poll_unit(self, unit_id: str, sim_time: float) -> None:
         if unit_id in self.controllers:
             return
+        device_id = f"arm_{unit_id}"
         kinds: list[str] = []
         priorities: dict[str, int] = {}
-        for template in self.catalog.operations_for_device(
-                f"arm_{unit_id}"):
+        for template in self.catalog.operations_for_device(device_id):
             if template.kind not in kinds:
                 kinds.append(template.kind)
             priorities[template.kind] = int(template.priority)
@@ -387,6 +591,11 @@ class Stage4Coordinator:
             priorities.get(task.kind, 9),
             task.created_sim_time, task.task_id))
         for task in candidates:
+            # 阶段 4: 只由调度器选定本单元的任务在此启动; 未选定的实例
+            # 留在运行图 ready 集合, 不提前占资源.
+            if task.runtime_backed and \
+                    task.selected_device_id != device_id:
+                continue
             template = self._operation(task)
             if (self._line_faulted
                     and self._task_consumes_line(
@@ -402,10 +611,15 @@ class Stage4Coordinator:
                 template.resources, owner, task.task_id, sim_time,
                 f"{task.kind} start")
             if not acquired:
+                self._note_resource_result(
+                    task, acquired=False, busy=busy,
+                    owner=self.resources.owner(busy) or "")
                 self._note_wait(task, sim_time,
                                 f"资源等待: {busy}")
                 continue
-            task.resources = list(template.resources)
+            self._note_resource_result(
+                task, acquired=True, resources=template.resources)
+            self._record_resources(task, template.resources)
             self._start_unit_task(task, unit_id, sim_time)
             return
 
@@ -451,7 +665,17 @@ class Stage4Coordinator:
         template = self._operation(task)
         source = template.source_kind
         sink = template.sink_kind
-        device = self.catalog.device(template.candidate_devices[0])
+        selected = task.operation.selected_device_id
+        device = self.catalog.device(
+            selected or template.candidate_devices[0])
+        if device.id != f"arm_{unit_id}":
+            self._release_task(task, sim_time, "device mismatch")
+            self._fail_operation(task, sim_time,
+                                 f"DEVICE_MISMATCH: 任务选定 {device.id!r}, "
+                                 f"单元 {unit_id!r}")
+            self._freeze(f"{unit_id} 派工设备不一致: {device.id!r}",
+                         sim_time, abort=True)
+            return
         line_id = device.default_line_id
         executor = self.arm_executors.get(device.id)
         if executor is None:
@@ -475,11 +699,12 @@ class Stage4Coordinator:
                          abort=True)
             return
         self._mark_started(task, sim_time, execution_id)
+        self._attach_execution(task.instance_id, execution_id)
         record = ControllerRecord(
             unit_id=unit_id, task_id=task.task_id, executor=executor,
             execution_id=execution_id)
         self.controllers[unit_id] = record
-        task.phase = record.controller.state.name
+        self._set_phase(task, record.controller.state.name)
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     item_type=(self.flow.by_uid(task.uid).item_type.value
                                if self.flow.by_uid(task.uid) else ""),
@@ -507,6 +732,15 @@ class Stage4Coordinator:
 
     def _note_wait(self, task: Stage4Task, sim_time: float,
                    reason: str) -> None:
+        if task.runtime_backed:
+            previous = task.phase
+            self.op_runtime.mark_waiting(
+                task.instance_id, sim_time, reason)
+            if previous != task.phase:
+                self._event("TASK_WAIT", task_id=task.task_id,
+                            uid=task.uid, detail={"reason": reason})
+            self._wait_reason[task.task_id] = reason
+            return
         if task.status is TaskStatus.PENDING:
             self.queue.wait(task.task_id, sim_time, reason)
             self._event("TASK_WAIT", task_id=task.task_id, uid=task.uid,
@@ -520,6 +754,52 @@ class Stage4Coordinator:
                             detail={"reason": reason})
                 self._wait_reason[task.task_id] = reason
             task.phase = f"WAITING: {reason}"
+
+    def _set_phase(self, task: Stage4Task, phase: str) -> None:
+        if task.runtime_backed:
+            self.op_runtime.record_phase(task.instance_id, phase)
+        else:
+            task.phase = str(phase)
+
+    def _record_resources(self, task: Stage4Task,
+                          resources) -> None:
+        if task.runtime_backed:
+            self.op_runtime.record_resources(task.instance_id, resources)
+        else:
+            task.resources = list(resources)
+
+    def _record_upgraded(self, task: Stage4Task, upgraded: bool) -> None:
+        if task.runtime_backed:
+            self.op_runtime.record_upgraded(task.instance_id, upgraded)
+        else:
+            task.upgraded = bool(upgraded)
+
+    def _block_task(self, task: Stage4Task, sim_time: float,
+                    reason: str) -> bool:
+        """阻塞任务; runtime-backed 走 OperationRuntime 窄接口."""
+        if task.runtime_backed:
+            if task.status is TaskStatus.BLOCKED:
+                return False
+            self.op_runtime.mark_blocked(task.instance_id, sim_time, reason)
+            return True
+        if task.status is TaskStatus.BLOCKED:
+            return False
+        self.queue.block(task.task_id, sim_time, reason)
+        return True
+
+    def _unblock_task(self, task: Stage4Task, sim_time: float,
+                      reason: str) -> None:
+        if task.runtime_backed:
+            self.op_runtime.mark_resumed(task.instance_id, sim_time, reason)
+        else:
+            self.queue.unblock(task.task_id, sim_time, reason)
+
+    def _fail_task(self, task: Stage4Task, sim_time: float,
+                   reason: str) -> None:
+        if task.runtime_backed:
+            self.op_runtime.mark_failed(task.instance_id, reason, sim_time)
+        else:
+            self.queue.fail(task.task_id, sim_time, reason)
 
     # ═══════════════════════════════════════════════════════
     # AGV 调度
@@ -654,9 +934,14 @@ class Stage4Coordinator:
             self._route_resources(spec), owner, task.task_id, sim_time,
             "empty reposition")
         if not acquired:
+            self._note_resource_result(
+                task, acquired=False, busy=busy,
+                owner=self.resources.owner(busy) or "")
             self._note_wait(task, sim_time, f"资源等待: {busy}")
             return False
-        task.resources = list(self._route_resources(spec))
+        self._note_resource_result(
+            task, acquired=True, resources=self._route_resources(spec))
+        self._record_resources(task, self._route_resources(spec))
         return self._launch_route(task, spec, sim_time)
 
     def _start_transport(self, task: Stage4Task, origin: str,
@@ -668,9 +953,14 @@ class Stage4Coordinator:
             self._route_resources(spec), owner, task.task_id, sim_time,
             "loaded transport")
         if not acquired:
+            self._note_resource_result(
+                task, acquired=False, busy=busy,
+                owner=self.resources.owner(busy) or "")
             self._note_wait(task, sim_time, f"资源等待: {busy}")
             return False
-        task.resources = list(self._route_resources(spec))
+        self._note_resource_result(
+            task, acquired=True, resources=self._route_resources(spec))
+        self._record_resources(task, self._route_resources(spec))
         return self._launch_route(task, spec, sim_time)
 
     def _launch_route(self, task: Stage4Task, spec, sim_time: float) -> bool:
@@ -689,7 +979,8 @@ class Stage4Coordinator:
         self.route_execution_id = execution_id
         self.route_task = task
         self._mark_started(task, sim_time, execution_id)
-        task.phase = f"ROUTE {spec.route_id}"
+        self._attach_execution(task.instance_id, execution_id)
+        self._set_phase(task, f"ROUTE {spec.route_id}")
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     source=spec.start_dock, destination=spec.end_dock,
                     device="agv",
@@ -707,7 +998,8 @@ class Stage4Coordinator:
                             "legs": len(spec.legs),
                             "direction": spec.direction})
         if spec.loaded:
-            task.upgraded = task.effective_priority(sim_time) < task.priority
+            self._record_upgraded(
+                task, task.effective_priority(sim_time) < task.priority)
             pending = [
                 {"task_id": other.task_id,
                  "priority": other.effective_priority(sim_time)}
@@ -728,7 +1020,7 @@ class Stage4Coordinator:
         if not self.agv_executor.active:
             return
         if self.route_task is not None:
-            self.route_task.phase = self.agv_executor.state.value
+            self._set_phase(self.route_task, self.agv_executor.state.value)
         self.agv_executor.pre_tick(sim_time)
 
     # ═══════════════════════════════════════════════════════
@@ -743,7 +1035,8 @@ class Stage4Coordinator:
             if task is None:
                 continue
             report = record.executor.poll(record.execution_id)
-            task.phase = str(report.detail.get("phase", task.phase))
+            self._set_phase(task, str(report.detail.get("phase",
+                                                       task.phase)))
             if report.state is ExecutionState.FAILED:
                 if report.detail.get("safety_engaged"):
                     latch_reason = str(
@@ -1000,12 +1293,12 @@ class Stage4Coordinator:
             return
         if route_state == RouteState.BLOCKED.value:
             if task.status is not TaskStatus.BLOCKED:
-                self.queue.block(task.task_id, sim_time,
-                                 "AGV 路线受阻, 轮速已停止")
-                self._block_since = sim_time
-                self._event("TASK_BLOCK", task_id=task.task_id,
-                            uid=task.uid, device="agv",
-                            detail={"route_id": spec.route_id})
+                if self._block_task(task, sim_time,
+                                    "AGV 路线受阻, 轮速已停止"):
+                    self._block_since = sim_time
+                    self._event("TASK_BLOCK", task_id=task.task_id,
+                                uid=task.uid, device="agv",
+                                detail={"route_id": spec.route_id})
             if self._block_since is None:
                 self._block_since = sim_time
             if sim_time - self._block_since >= cfg.AGV_BLOCK_CLEAR_AFTER_S:
@@ -1021,8 +1314,9 @@ class Stage4Coordinator:
                 if clearance_ok and executor.resume(
                         sim_time, clearance_ok=True,
                         reason="obstacle_removed_and_ownership_reconfirmed"):
-                    self.queue.unblock(task.task_id, sim_time,
-                                       "障碍清除, 现场/资源所有权重新确认")
+                    self._unblock_task(
+                        task, sim_time,
+                        "障碍清除, 现场/资源所有权重新确认")
                     self._event("TASK_UNBLOCK", task_id=task.task_id,
                                 uid=task.uid, device="agv")
                     self._block_since = None
@@ -1218,11 +1512,12 @@ class Stage4Coordinator:
             if other.status in (TaskStatus.PENDING, TaskStatus.WAITING,
                                 TaskStatus.RUNNING):
                 if other.status is not TaskStatus.BLOCKED:
-                    self.queue.block(other.task_id, sim_time,
-                                     f"CONVEYOR_FAULT: {line.line_id} 停带")
-                    self._event("TASK_BLOCK", task_id=other.task_id,
-                                uid=other.uid, device=line.line_id,
-                                detail={"reason": "CONVEYOR_FAULT"})
+                    if self._block_task(
+                            other, sim_time,
+                            f"CONVEYOR_FAULT: {line.line_id} 停带"):
+                        self._event("TASK_BLOCK", task_id=other.task_id,
+                                    uid=other.uid, device=line.line_id,
+                                    detail={"reason": "CONVEYOR_FAULT"})
         # 冻结整线现场: 停止 AGV/所有线, 活动任务停在当前位置, 保留 UID.
         self._freeze(f"CONVEYOR_FAULT: {line.line_id} 停止", sim_time)
 
@@ -1295,7 +1590,9 @@ class Stage4Coordinator:
     def _owner(self, task: Stage4Task) -> str:
         template = self._operation_or_none(task)
         if template is not None:
-            device = self.catalog.device(template.candidate_devices[0])
+            device_id = (task.operation.selected_device_id
+                         or template.candidate_devices[0])
+            device = self.catalog.device(device_id)
             if device.kind == "arm":
                 unit_id = device.id.removeprefix("arm_")
                 return f"unit_{unit_id}/task_{task.task_id}"
@@ -1343,10 +1640,10 @@ class Stage4Coordinator:
                 pass
         for task in self.queue.all():
             if task.status is TaskStatus.RUNNING:
-                self.queue.fail(task.task_id, sim_time,
+                self._fail_task(task, sim_time,
                                 f"STAGE4_FROZEN: {reason}")
             elif task.status in (TaskStatus.PENDING, TaskStatus.WAITING):
-                self.queue.block(task.task_id, sim_time,
+                self._block_task(task, sim_time,
                                  f"STAGE4_FROZEN: {reason}")
         self._release_all(sim_time, "freeze")
         if self.fault != cfg.FAULT_AGV_BLOCKED:
@@ -1361,8 +1658,8 @@ class Stage4Coordinator:
                 if since is None:
                     since = task.created_sim_time
                 if sim_time - since > cfg.BACKPRESSURE_MAX_WAIT_S:
-                    self.queue.fail(
-                        task.task_id, sim_time,
+                    self._fail_task(
+                        task, sim_time,
                         f"BACKPRESSURE_TIMEOUT: {task.phase}")
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid,
@@ -1373,8 +1670,7 @@ class Stage4Coordinator:
             elif task.status is TaskStatus.RUNNING:
                 if sim_time - (task.started_sim_time or sim_time) > \
                         cfg.TASK_TIMEOUT:
-                    self.queue.fail(task.task_id, sim_time,
-                                    "TASK_TIMEOUT")
+                    self._fail_task(task, sim_time, "TASK_TIMEOUT")
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid,
                                 detail={"reason": "TASK_TIMEOUT"})
@@ -1502,6 +1798,7 @@ class Stage4Coordinator:
                 <= cfg.AGV_ROUTE_HEADING_TOL
                 for row in loaded_routes))
         priority_ok, priority_detail = self._priority_acceptance()
+        scheduler_ok, scheduler_detail = self._scheduler_acceptance()
         graph_instances = self.op_runtime.graph.instances()
         acceptance = {
             "scenario": self.scenario,
@@ -1527,6 +1824,8 @@ class Stage4Coordinator:
             "route_ok": route_ok,
             "priority_ok": priority_ok,
             "priority_detail": priority_detail,
+            "scheduler_ok": scheduler_ok,
+            "scheduler_detail": scheduler_detail,
             "injected": list(self.injected),
             "batch": dict(self._batch),
             "spawned": list(self.spawned),
@@ -1536,7 +1835,8 @@ class Stage4Coordinator:
                 cfg.SCENARIO_FULL_FLOW, cfg.SCENARIO_NO_PAIR,
                 cfg.SCENARIO_AGV_PRIORITY, cfg.SCENARIO_AGV_BLOCKED) else 0)
         common = (not any_latch and resources_released and route_ok
-                  and priority_ok and acceptance["graph_complete"])
+                  and priority_ok and scheduler_ok
+                  and acceptance["graph_complete"])
         if self.scenario == cfg.SCENARIO_FULL_FLOW:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
@@ -1604,6 +1904,62 @@ class Stage4Coordinator:
                 and acceptance["site_preserved"]
                 and acceptance["no_final"])
         return acceptance
+
+    def _scheduler_acceptance(self) -> tuple[bool, dict]:
+        """核对派工决策可解释: 每个已派工工序都有选定设备与策略记录."""
+        errors: list[str] = []
+        decided: dict[str, dict] = {}
+        for row in self.schedule_decisions:
+            instance_id = str(row.get("operation_instance_id", ""))
+            decided[instance_id] = row
+            if row.get("policy_version") != SCHEDULER_POLICY_VERSION:
+                errors.append(
+                    f"{instance_id}: 策略版本 "
+                    f"{row.get('policy_version')!r} != "
+                    f"{SCHEDULER_POLICY_VERSION!r}")
+            accepted = [candidate.get("device_id") for candidate
+                        in row.get("candidates", [])
+                        if candidate.get("accepted")]
+            if row.get("selected_device_id") not in accepted:
+                errors.append(
+                    f"{instance_id}: 选定设备 "
+                    f"{row.get('selected_device_id')!r} 不在通过候选 "
+                    f"{accepted}")
+            if row.get("execution_id") and \
+                    row.get("resource_result") != "ACQUIRED":
+                errors.append(
+                    f"{instance_id}: 已启动但资源结果 "
+                    f"{row.get('resource_result')!r} != ACQUIRED")
+        checked = 0
+        for instance in self.op_runtime.graph.instances():
+            if not instance.run_id:
+                continue
+            try:
+                template = self.catalog.operation(instance.template_id,
+                                                  self.recipe.id)
+            except Exception:
+                continue
+            if template.executor_kind == "logic" or not instance.dispatched:
+                continue
+            checked += 1
+            if not instance.selected_device_id:
+                errors.append(f"{instance.instance_id}: 已派工但无选定设备")
+            elif instance.selected_device_id not in \
+                    instance.candidate_device_ids:
+                errors.append(
+                    f"{instance.instance_id}: 选定设备 "
+                    f"{instance.selected_device_id!r} 不在 recipe 候选 "
+                    f"{instance.candidate_device_ids}")
+            elif instance.instance_id not in decided:
+                errors.append(
+                    f"{instance.instance_id}: 缺少调度决策记录")
+        return not errors, {
+            "checked_instances": checked,
+            "decisions": len(self.schedule_decisions),
+            "waits": len(self.schedule_waits),
+            "policy_version": SCHEDULER_POLICY_VERSION,
+            "errors": errors,
+        }
 
     def _priority_acceptance(self) -> tuple[bool, list[dict]]:
         rows = []
@@ -1693,6 +2049,11 @@ class Stage4Coordinator:
             "controller_history": list(self.controller_history),
             "routes": list(self.agv_history),
             "dispatch_decisions": list(self.dispatch_decisions),
+            "scheduler": {
+                "policy_version": SCHEDULER_POLICY_VERSION,
+                "decisions": list(self.schedule_decisions),
+                "waits": list(self.schedule_waits),
+            },
             "injected": list(self.injected),
             "spawned": list(self.spawned),
             "materials": self.flow.snapshot(),

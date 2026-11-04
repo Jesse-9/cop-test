@@ -237,6 +237,14 @@ def test_direct_route_is_driven_by_ready_set_end_to_end():
         "a_conveyor_uid1", "c_handoff_uid1", "e_conveyor_uid1"]
     assert [row["kind"] for row in coordinator.events
             if row["kind"] == "OPERATION_GRAPH"] == ["OPERATION_GRAPH"]
+    # 阶段 4: 每个派工决策都选定 recipe 候选并回填 execution ID;
+    # 完成后资源表无残留 owner.
+    assert [row["selected_device_id"]
+            for row in coordinator.schedule_decisions] == [
+        "arm_A", "arm_C", "arm_E"]
+    assert all(row["execution_id"] for row in coordinator.schedule_decisions)
+    assert all(owner is None
+               for owner in coordinator.resources.owners.values())
 
 
 def test_no_task_is_queued_for_unselected_route():
