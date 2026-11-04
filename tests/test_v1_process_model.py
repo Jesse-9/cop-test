@@ -364,27 +364,24 @@ def test_negative_duplicate_operation_id():
     assert "recipe=mixed_line_v1" in _error_text(broken)
 
 
-def test_negative_unknown_device_capability_zone_and_resource():
-    assert "未知设备" in _error_text(_catalog_with(
-        "housing_direct_A", candidate_devices=("arm_Z",)))
-    assert "未知能力" in _error_text(_catalog_with(
-        "housing_direct_A", capability="teleport"))
-    assert "未知 zone" in _error_text(_catalog_with(
-        "housing_direct_A",
-        inputs=(MaterialPort("nowhere", ItemType.RAW_A),)))
-    assert "未知资源" in _error_text(_catalog_with(
-        "housing_direct_A",
-        resources=("line_s1a", "handoff_ac", "zone_ab", "zone_ac",
-                   "arm_A", "zone_zz")))
+@pytest.mark.parametrize(("changes", "expected"), [
+    ({"candidate_devices": ("arm_Z",)}, "未知设备"),
+    ({"capability": "teleport"}, "未知能力"),
+    ({"inputs": (MaterialPort("nowhere", ItemType.RAW_A),)}, "未知 zone"),
+    ({"resources": ("line_s1a", "handoff_ac", "zone_ab", "zone_ac",
+                     "arm_A", "zone_zz")}, "未知资源"),
+], ids=["device", "capability", "zone", "resource"])
+def test_negative_unknown_catalog_reference(changes, expected):
+    assert expected in _error_text(_catalog_with("housing_direct_A", **changes))
 
 
-def test_negative_missing_input_output_and_work_step():
-    assert "缺少输入" in _error_text(_catalog_with(
-        "housing_direct_A", inputs=()))
-    assert "缺少输出" in _error_text(_catalog_with(
-        "housing_direct_A", output=None))
-    assert "缺少工步模板引用" in _error_text(_catalog_with(
-        "housing_direct_A", work_steps=()))
+@pytest.mark.parametrize(("changes", "expected"), [
+    ({"inputs": ()}, "缺少输入"),
+    ({"output": None}, "缺少输出"),
+    ({"work_steps": ()}, "缺少工步模板引用"),
+], ids=["input", "output", "work-steps"])
+def test_negative_missing_operation_requirement(changes, expected):
+    assert expected in _error_text(_catalog_with("housing_direct_A", **changes))
 
 
 def test_negative_invalid_successor_and_cycle():
