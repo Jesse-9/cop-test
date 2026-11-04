@@ -14,6 +14,12 @@
 - `v1_conveyor_fault_acceptance_20261103_014225.json` — v1 `conveyor_fault`
   代表性故障回归摘要（冻结、`CONVEYOR_FAULT: line_ce 停止`、无 FINAL、
   资源释放、验收 `ok=true`）。
+- `v1_stage3_full_flow_20261104_153954.json` — 阶段 3 配方实例化与工序 DAG
+  的 `full_flow` 实机验收摘要（337.85 s、13/13 任务 DONE、12 个工序实例全部
+  提交、`graph_complete=true`、FINAL UID 4 父 UID [1,3]、未配对 SEMI_CE 1
+  件、`rejections=[]`）。相对完整报告裁掉了逐 tick 控制器轨迹与规划详情。
+  完整报告保留在
+  `docs/implementation/runs/v1_run_full_flow_20261104_153954.json`。
 
 工件级只读校验证据位于
 `docs/scene_artifacts/v1/L5_UFLOW/v001_20261103_004317/validation.json`

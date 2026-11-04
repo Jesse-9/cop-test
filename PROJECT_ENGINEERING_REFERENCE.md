@@ -43,8 +43,15 @@ src/flexible_factory/
   route/设备能力时递增 `PROCESS_MODEL_VERSION`。
 - `domain/operation_runtime.py` 的 `OperationInstance` 是任务生命周期字段的
   唯一存储；`domain/tasks.py` 的 `Stage4Task` 旧字段是只读/受控投影。
-- `application/coordinator.py` 从目录读取任务字段；逻辑合流 `kit_join` 是
-  依赖 successor，但不创建 `Stage4Task`，由 `_check_join` 提交。
+  阶段 3 起该模块还持有 `RecipeRunContext`、`OperationGraph` 与
+  `OperationRuntime`：按入口固定 route variant 实例化工序链、维护前驱/后继
+  索引、给出 ready 集合，并在物料账本提交成功后 `commit_success`。任务队列
+  只承接已 ready 的实例，依赖未满足的实例留在图中。
+- `application/coordinator.py` 从目录读取任务字段；`_spawn_source()` 建图、
+  `_dispatch_ready()` 逐 tick 派工、`_commit_operation()` 是唯一成功边界，
+  模板 `successors` 不再驱动后继。逻辑合流 `kit_join` 不创建 `Stage4Task`，
+  由 `_check_join` 在两条输入工序都提交后建节点并调用
+  `MaterialRegistry.commit_join()`。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -148,7 +155,7 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 ## 9. 测试与证据
 
-- 纯逻辑测试：`python -m pytest -q`（无仿真环境：397 passed / 2 skipped）。
+- 纯逻辑测试：`python -m pytest -q`（无仿真环境：426 passed / 2 skipped）。
 - 设备级 focused 验收（阶段 2 起，需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，
 

@@ -102,8 +102,10 @@ scope: v1 收敛与迁移
 | 导入边界 | `tests/test_v1_import_boundary.py` | 4 passed |
 
 > 上表是 1.0.0 发布时（阶段 0-1）的计数。2026-11-03 完成阶段 2 后全量为
-> 397 passed / 2 skipped（focused 设备验收需 `FLEXIBLE_FACTORY_SIM=1`），
-> 见 [阶段 2 报告](V1_STAGE2_REPORT.md)。
+> 397 passed / 2 skipped，2026-11-04 完成阶段 3 后全量为
+> 426 passed / 2 skipped（focused 设备验收需 `FLEXIBLE_FACTORY_SIM=1`），
+> 见 [阶段 2 报告](V1_STAGE2_REPORT.md) 与
+> [阶段 3 报告](V1_STAGE3_OPERATION_DAG_REPORT.md)。
 
 覆盖的迁移回归包括：domain 物料/任务/资源/指标；阶段 0-1 工艺目录/任务投影；布局与 AGV 路网；
 stage2 接触/碰撞/规划/轨迹/安全/吸附/停带；stage1 基础配置/布局/TCP/单元
@@ -206,9 +208,12 @@ SEMI_CE、两条载货路线；证据
   不得把未执行场景报告为通过。
 - 无 Windows + CoppeliaSim CI agent；集成验收由受控本地流程执行。
 - 阶段 0-1 静态工艺目录已移植到 v1。阶段 2（设备绑定与执行适配器）已于
-  2026-11-03 完成，见 [阶段 2 报告](V1_STAGE2_REPORT.md)；阶段 3–5
-  （工序 DAG、能力匹配、调度优化/恢复）仍未实现，规划文档保留在
-  06-21–06-23。
+  2026-11-03 完成，阶段 3（配方实例化与工序 DAG）已于 2026-11-04 完成并
+  通过 `full_flow` 实机验收，见 [阶段 2 报告](V1_STAGE2_REPORT.md) 与
+  [阶段 3 报告](V1_STAGE3_OPERATION_DAG_REPORT.md)；阶段 4–5（能力匹配、
+  调度优化/恢复）仍未实现，规划文档保留在 06-22–06-23。
+- 阶段 3 只覆盖 `full_flow`；`no_pair`/`staggered_batch`/故障注入场景未按
+  阶段 3 逐项重跑，不得报告为通过。
 - 阶段三安全锁存仍不自动恢复；统一故障恢复未实现。
 - v1 运行期保留已验证类名 `Stage4Scene`/`Stage4UnitController`/
   `Stage4Coordinator`，以行为等价为先；重命名为 v1 中性名称属于后续清理，
