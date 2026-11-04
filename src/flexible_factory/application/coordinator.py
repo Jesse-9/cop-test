@@ -47,6 +47,8 @@ from ..domain.default_process import DEFAULT_RECIPE_ID, default_catalog
 from ..simulation.layout import line_specs
 from ..domain.materials import (ItemType, MaterialFlowError, MaterialRegistry,
                                 RecordState)
+from ..domain.operation_runtime import (OperationRuntime,
+                                        OperationRuntimeError)
 from ..domain.process_model import OperationTemplate, ProcessCatalog
 from ..domain.resources import ResourceTable
 from ..simulation.scene import Stage4Scene
@@ -112,6 +114,9 @@ class Stage4Coordinator:
 
         self.queue = TaskQueue(catalog=self.catalog)
         self.resources = ResourceTable()
+        # 阶段 3: 配方运行图 hold 工序实例与依赖; 任务队列只承接已 ready 的
+        # 实例, 不再由模板 successor 静态推进.
+        self.op_runtime = OperationRuntime(self.catalog, self.recipe)
         # 设备执行适配器: 每台臂一个, AGV 一个; 只包装, 不改调度策略.
         self.arm_executors = {
             device.id: ArmExecutor(self.sim, scene, comp, device=device,
@@ -233,7 +238,6 @@ class Stage4Coordinator:
         entry = self._source_entries[key]
         spec = cfg.SOURCE_ITEMS[key]
         item_type = ItemType(entry.item_type.value)
-        operation = self.catalog.operation(entry.operation_id)
         uid = self._next_uid
         self._next_uid += 1
         alias = f"Part_{uid:04d}"
@@ -260,9 +264,24 @@ class Stage4Coordinator:
                     zone=entry.line, source=set_name(key),
                     detail={"alias": alias, "handle": int(handle),
                             "spawn": spec["position"]})
-        task = make_task_from_operation(
-            operation, uid, source=entry.line, sim_time=sim_time)
-        self._submit(task, sim_time)
+        # 按入口固定的 route variant 实例化该 UID 的工序链; 首个 ready
+        # 实例由下一次 _dispatch_ready() 进入任务队列.
+        try:
+            instances = self.op_runtime.instantiate_entry(
+                entry.id, uid, item_type=item_type.value, sim_time=sim_time)
+        except OperationRuntimeError as exc:
+            self._event("OPERATION_GRAPH_FAILED", uid=uid,
+                        detail={"source": key, "error": str(exc)})
+            self._freeze(f"OPERATION_GRAPH_FAILED: {exc}", sim_time)
+            return
+        self._event("OPERATION_GRAPH", uid=uid, item_type=item_type.value,
+                    zone=entry.line,
+                    evidence_id=instances[0].run_id,
+                    detail={"run_id": instances[0].run_id,
+                            "recipe": self.recipe.id,
+                            "route": instances[0].selected_route,
+                            "operations": [row.template_id
+                                           for row in instances]})
 
     def _set_material_color(self, handle: int, item_type: ItemType) -> None:
         color = cfg.ITEM_COLORS[item_type.value]
@@ -280,9 +299,56 @@ class Stage4Coordinator:
     def _poll_tasks(self, sim_time: float) -> None:
         if self.aborted or self.frozen:
             return
+        self._dispatch_ready(sim_time)
         for unit_id in cfg.UNIT_IDS:
             self._poll_unit(unit_id, sim_time)
         self._poll_agv(sim_time)
+
+    def _dispatch_ready(self, sim_time: float) -> None:
+        """把运行图中 ready 且未入队的物理实例投影为任务并提交.
+
+        依赖未满足的实例留在图中, 不提前进入队列标成 WAITING; 逻辑合流
+        由 :meth:`_check_join` 提交账本, 不参与臂/AGV 派工.
+        """
+        for instance in self.op_runtime.claim_ready(sim_time):
+            template = self.catalog.operation(instance.template_id,
+                                              self.recipe.id)
+            if template.executor_kind == "logic":
+                continue
+            task = make_task_from_operation(
+                template, instance.uid, instance=instance, sim_time=sim_time)
+            self._submit(task, sim_time)
+
+    # ═══════════════════════════════════════════════════════
+    # 运行图状态迁移 (实例是唯一状态所有者)
+    # ═══════════════════════════════════════════════════════
+
+    def _mark_started(self, task: Stage4Task, sim_time: float,
+                      execution_id: str = "") -> None:
+        """配方工序经 runtime 启动; 空载调机仍走队列."""
+        if task.runtime_backed:
+            self.op_runtime.mark_started(
+                task.instance_id, sim_time, execution_id=execution_id)
+        else:
+            self.queue.start(task.task_id, sim_time)
+
+    def _commit_operation(self, task: Stage4Task, sim_time: float,
+                          evidence: Optional[dict] = None) -> None:
+        """成功唯一边界: 执行完成 + 应用层验证 + 物料账本都成功后才 DONE."""
+        if task.runtime_backed:
+            self.op_runtime.commit_success(
+                task.instance_id, output_uids=[task.uid], sim_time=sim_time,
+                evidence=evidence)
+        else:
+            self.queue.done(task.task_id, sim_time, evidence)
+
+    def _fail_operation(self, task: Stage4Task, sim_time: float, reason: str,
+                        evidence: Optional[dict] = None) -> None:
+        if task.runtime_backed:
+            self.op_runtime.mark_failed(
+                task.instance_id, reason, sim_time, evidence=evidence)
+        else:
+            self.queue.fail(task.task_id, sim_time, reason, evidence)
 
     def _operation(self, task: Stage4Task) -> OperationTemplate:
         """任务 → 默认工艺模板; 调机等动态任务没有模板."""
@@ -390,9 +456,9 @@ class Stage4Coordinator:
         executor = self.arm_executors.get(device.id)
         if executor is None:
             self._release_task(task, sim_time, "controller build failed")
-            self.queue.fail(task.task_id, sim_time,
-                            f"CONTROLLER_BUILD_FAILED: "
-                            f"未登记设备 {device.id!r}")
+            self._fail_operation(task, sim_time,
+                                 f"CONTROLLER_BUILD_FAILED: "
+                                 f"未登记设备 {device.id!r}")
             self._freeze(f"{unit_id} 控制器构建失败: 未登记设备 "
                          f"{device.id!r}", sim_time, abort=True)
             return
@@ -402,13 +468,13 @@ class Stage4Coordinator:
                 uid=task.uid, task_id=task.task_id, sim_time=sim_time))
         except Exception as exc:
             self._release_task(task, sim_time, "controller build failed")
-            self.queue.fail(task.task_id, sim_time,
-                            f"CONTROLLER_BUILD_FAILED: "
-                            f"{type(exc).__name__}: {exc}")
+            self._fail_operation(task, sim_time,
+                                 f"CONTROLLER_BUILD_FAILED: "
+                                 f"{type(exc).__name__}: {exc}")
             self._freeze(f"{unit_id} 控制器构建失败: {exc}", sim_time,
                          abort=True)
             return
-        self.queue.start(task.task_id, sim_time)
+        self._mark_started(task, sim_time, execution_id)
         record = ControllerRecord(
             unit_id=unit_id, task_id=task.task_id, executor=executor,
             execution_id=execution_id)
@@ -615,13 +681,14 @@ class Stage4Coordinator:
                 task_id=task.task_id, sim_time=sim_time, route_spec=spec))
         except Exception as exc:
             self._release_task(task, sim_time, "route build failed")
-            self.queue.fail(task.task_id, sim_time,
-                            f"ROUTE_BUILD_FAILED: {type(exc).__name__}: {exc}")
+            self._fail_operation(
+                task, sim_time,
+                f"ROUTE_BUILD_FAILED: {type(exc).__name__}: {exc}")
             self._freeze(f"AGV 路线构建失败: {exc}", sim_time)
             return False
         self.route_execution_id = execution_id
         self.route_task = task
-        self.queue.start(task.task_id, sim_time)
+        self._mark_started(task, sim_time, execution_id)
         task.phase = f"ROUTE {spec.route_id}"
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     source=spec.start_dock, destination=spec.end_dock,
@@ -681,9 +748,9 @@ class Stage4Coordinator:
                 if report.detail.get("safety_engaged"):
                     latch_reason = str(
                         report.detail.get("safety_latch_reason", ""))
-                    self.queue.fail(task.task_id, sim_time,
-                                    report.failure_reason,
-                                    dict(report.evidence))
+                    self._fail_operation(task, sim_time,
+                                         report.failure_reason,
+                                         dict(report.evidence))
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid, device=f"arm_{unit_id}",
                                 detail={"reason": "SAFETY_LATCH",
@@ -692,8 +759,9 @@ class Stage4Coordinator:
                                  sim_time, abort=True)
                     return
                 failure = str(report.detail.get("controller_failure", ""))
-                self.queue.fail(task.task_id, sim_time,
-                                report.failure_reason, dict(report.evidence))
+                self._fail_operation(task, sim_time,
+                                     report.failure_reason,
+                                     dict(report.evidence))
                 self._event("TASK_FAILED", task_id=task.task_id,
                             uid=task.uid, device=f"arm_{unit_id}",
                             detail={"reason": failure})
@@ -705,7 +773,6 @@ class Stage4Coordinator:
                 ok, reason, evidence = self._verify_unit_task(task, controller,
                                                               unit_id)
                 if ok:
-                    self.queue.done(task.task_id, sim_time, evidence)
                     self._event("TASK_DONE", task_id=task.task_id,
                                 uid=task.uid,
                                 item_type=self.flow.by_uid(
@@ -713,7 +780,9 @@ class Stage4Coordinator:
                                 if self.flow.by_uid(task.uid) else "",
                                 device=f"arm_{unit_id}",
                                 detail={"reason": reason})
-                    self._commit_unit_result(task, unit_id, sim_time)
+                    # 执行端 SUCCEEDED 只触发验证; 物料区域/类型提交成功后
+                    # 才由 _commit_unit_result() 把工序标为 DONE 并解锁后继.
+                    self._commit_unit_result(task, unit_id, sim_time, evidence)
                     self._release_task(task, sim_time, "unit task complete")
                     self.controller_history.append({
                         "unit_id": unit_id, "task_id": task.task_id,
@@ -725,7 +794,7 @@ class Stage4Coordinator:
                     if self.frozen or self.aborted:
                         return
                 else:
-                    self.queue.fail(task.task_id, sim_time, reason, evidence)
+                    self._fail_operation(task, sim_time, reason, evidence)
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid, device=f"arm_{unit_id}",
                                 detail={"reason": reason})
@@ -795,12 +864,18 @@ class Stage4Coordinator:
         return tuple(sink.material_pose[:3])
 
     def _commit_unit_result(self, task: Stage4Task, unit_id: str,
-                            sim_time: float) -> None:
+                            sim_time: float,
+                            evidence: Optional[dict] = None) -> bool:
+        """把验证通过的放置结果提交为物料账本, 再确认工序 DONE.
+
+        任何一步失败都保持原有冻结语义并返回 ``False``: 工序不得标记 DONE,
+        后继也不会解锁.
+        """
         template = self._operation(task)
         flow = self.flow.by_uid(task.uid)
         rec = self.materials.by_uid(task.uid)
         if flow is None:
-            return
+            return False
         if template.output is not None:
             input_types = set(template.input_types)
             if template.output.item_type not in input_types:
@@ -810,7 +885,7 @@ class Stage4Coordinator:
                 except MaterialFlowError as exc:
                     self._freeze(f"PROCESS_FAILED: {exc}", sim_time,
                                  abort=True)
-                    return
+                    return False
                 flow = self.flow.by_uid(task.uid)
         dest = template.output.zone if template.output else ""
         if template.sink_kind == "conveyor":
@@ -823,7 +898,7 @@ class Stage4Coordinator:
                 except Exception as exc:
                     self._freeze(f"CONVEYOR_STATE: {exc}", sim_time,
                                  abort=True)
-                    return
+                    return False
         try:
             self.flow.occupy(
                 task.uid, dest, sim_time, reason=f"{task.kind} done",
@@ -833,25 +908,16 @@ class Stage4Coordinator:
                        else RecordState.IN_TRANSIT))
         except MaterialFlowError as exc:
             self._freeze(f"ZONE_COMMIT_FAILED: {exc}", sim_time, abort=True)
-            return
+            return False
         self._event("MATERIAL_PLACE", task_id=task.task_id, uid=task.uid,
                     item_type=flow.item_type.value if flow else "",
                     zone=dest, source=template.inputs[0].zone,
                     destination=dest, device=f"arm_{unit_id}",
                     detail={"task_kind": task.kind,
                             "operation": template.id})
-        for successor_id in template.successors:
-            self._submit_followup(successor_id, task.uid, sim_time)
-
-    def _submit_followup(self, operation_id: str, uid: int,
-                         sim_time: float) -> None:
-        template = self.catalog.operation(operation_id)
-        # 逻辑合流不是 Stage4Task: 由 _check_join 在两条输入就绪后
-        # 调用 MaterialRegistry.commit_join, 不进入任务队列/资源派工.
-        if template.executor_kind == "logic":
-            return
-        task = make_task_from_operation(template, uid, sim_time=sim_time)
-        self._submit(task, sim_time)
+        # 账本提交成功后才登记输出并解锁后继; 重复提交由 runtime 拒绝.
+        self._commit_operation(task, sim_time, dict(evidence or {}))
+        return True
 
     def _submit(self, task: Stage4Task, sim_time: float) -> bool:
         ok, reason = self.queue.submit(task, sim_time)
@@ -885,8 +951,6 @@ class Stage4Coordinator:
             ok, reason = self._verify_route(task, executor.controller)
             if ok:
                 self.agv_at_dock = spec.end_dock
-                self.queue.done(task.task_id, sim_time,
-                                {"route": route_summary})
                 self._event("ROUTE_DONE", task_id=task.task_id,
                             uid=task.uid, source=spec.start_dock,
                             destination=spec.end_dock, device="agv",
@@ -897,18 +961,18 @@ class Stage4Coordinator:
                     self._event("TASK_DONE", task_id=task.task_id,
                                 uid=task.uid, device="agv",
                                 detail={"reason": reason})
-                    template = self._operation(task)
-                    for successor_id in template.successors:
-                        self._submit_followup(
-                            successor_id, task.uid, sim_time)
                 else:
                     self._event("TASK_DONE", task_id=task.task_id,
                                 uid=task.uid, device="agv",
                                 detail={"reason": reason,
                                         "kind": cfg.TASK_KIND_REPOSITION})
+                # 载货航线与单元工序走同一成功边界: 停靠/滑移验证通过后
+                # 才提交工序, 由运行图解锁后继 (不再读模板 successor).
+                self._commit_operation(task, sim_time,
+                                       {"route": route_summary})
             else:
-                self.queue.fail(task.task_id, sim_time, reason,
-                                {"route": route_summary})
+                self._fail_operation(task, sim_time, reason,
+                                     {"route": route_summary})
                 self._event("TASK_FAILED", task_id=task.task_id,
                             uid=task.uid, device="agv",
                             detail={"reason": reason})
@@ -920,9 +984,9 @@ class Stage4Coordinator:
             self.route_execution_id = ""
             return
         if route_state == RouteState.FAILED.value:
-            self.queue.fail(task.task_id, sim_time,
-                            f"AGV_ROUTE_FAILED: {report.failure_reason}",
-                            {"route": route_summary})
+            self._fail_operation(task, sim_time,
+                                 f"AGV_ROUTE_FAILED: {report.failure_reason}",
+                                 {"route": route_summary})
             self.agv_history.append(route_summary)
             self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
                         device="agv",
@@ -964,9 +1028,9 @@ class Stage4Coordinator:
                     self._block_since = None
                     return
             if sim_time - self._block_since > cfg.AGV_ROUTE_TIMEOUT:
-                self.queue.fail(task.task_id, sim_time,
-                                "AGV_BLOCKED_TIMEOUT: 清障后仍未续行",
-                                {"route": route_summary})
+                self._fail_operation(task, sim_time,
+                                     "AGV_BLOCKED_TIMEOUT: 清障后仍未续行",
+                                     {"route": route_summary})
                 self._freeze("AGV_BLOCKED_TIMEOUT", sim_time, abort=True)
 
     def _verify_route(self, task: Stage4Task,
@@ -1010,16 +1074,41 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def _check_join(self, sim_time: float) -> None:
+        """E 岛合流: 输入与父实例都就绪后建图, 账本成功才把节点标 DONE.
+
+        配对选择仍由 :meth:`MaterialRegistry.pair_candidates` 负责; 本方法只
+        确认这两件物料分别来自图中已完成并提交的两条输入工序, 再绑定父实例.
+        """
         if self.frozen or self.aborted:
             return
-        if not self.recipe.join_operation_id:
+        join_id = self.recipe.join_operation_id
+        if not join_id:
             return
-        join = self.catalog.operation(
-            self.recipe.join_operation_id, self.recipe.id)
+        join = self.catalog.operation(join_id, self.recipe.id)
+        if self.op_runtime.join_blocked(join_id):
+            return
         semi, part = self.flow.pair_candidates()
         if semi is None or part is None:
             return
+        semi_port = self._join_port(join, semi.item_type)
+        part_port = self._join_port(join, part.item_type)
+        if semi_port is None or part_port is None:
+            return
+        semi_instance = self.op_runtime.completed_output(semi.uid, semi_port)
+        part_instance = self.op_runtime.completed_output(part.uid, part_port)
+        if semi_instance is None or part_instance is None:
+            # 物料在位但对应工序尚未提交: 不建节点, 不生成虚假任务.
+            return
         uid = self._next_uid
+        try:
+            instance = self.op_runtime.add_join(
+                parents=[semi_instance, part_instance],
+                input_uids=[semi.uid, part.uid], uid=uid, sim_time=sim_time)
+        except OperationRuntimeError as exc:
+            self._event("JOIN_REJECTED", uid=uid,
+                        detail={"reason": str(exc)})
+            self._freeze(f"JOIN_BIND_FAILED: {exc}", sim_time)
+            return
         self._next_uid += 1
         alias = f"Part_{uid:04d}"
         out = cfg.E_OUTPUT
@@ -1029,6 +1118,9 @@ class Stage4Coordinator:
                 position=(out["position"][0], out["position"][1],
                           out["material_z"]))
         except Exception as exc:
+            self.op_runtime.mark_failed(instance.instance_id,
+                                        f"FINAL_SPAWN_FAILED: {exc}",
+                                        sim_time)
             self._freeze(f"FINAL_SPAWN_FAILED: {exc}", sim_time)
             return
         out_zone = join.output.zone if join.output else "output_e"
@@ -1041,6 +1133,9 @@ class Stage4Coordinator:
         if not result.ok:
             self.scene.remove_material(handle)
             self.materials.remove(uid)
+            self.op_runtime.mark_failed(instance.instance_id,
+                                        f"JOIN_REJECTED: {result.reason}",
+                                        sim_time, evidence=result.as_dict())
             self._event("JOIN_REJECTED", uid=uid,
                         detail=result.as_dict())
             return
@@ -1061,12 +1156,25 @@ class Stage4Coordinator:
                 except Exception:
                     pass
         self.final_count += 1
+        self.op_runtime.commit_success(
+            instance.instance_id, output_uids=[uid], sim_time=sim_time,
+            evidence={"pair_key": result.pair_key, "join": join.id,
+                      "parents": [result.semi_uid, result.part_uid]})
         self._event("FINAL_CREATED", uid=uid,
                     item_type=out_type.value, zone=out_zone,
                     device="E", evidence_id=result.pair_key,
                     detail={"parents": [result.semi_uid, result.part_uid],
                             "pair_key": result.pair_key,
-                            "operation": join.id})
+                            "operation": join.id,
+                            "instance": instance.instance_id})
+
+    @staticmethod
+    def _join_port(join: OperationTemplate,
+                   item_type: ItemType):
+        for port in join.inputs:
+            if port.item_type is item_type:
+                return port
+        return None
 
     # ═══════════════════════════════════════════════════════
     # 故障注入
@@ -1288,6 +1396,9 @@ class Stage4Coordinator:
             return False
         if not self.queue.finished():
             return False
+        # 已实例化的工序图必须全部 DONE: 队列里没有任务不代表图已走完.
+        if not self.op_runtime.all_done():
+            return False
         return all(
             self._source_count[key] >=
             int(self._batch.get(self._source_entries[key].item_type.value, 0))
@@ -1391,10 +1502,16 @@ class Stage4Coordinator:
                 <= cfg.AGV_ROUTE_HEADING_TOL
                 for row in loaded_routes))
         priority_ok, priority_detail = self._priority_acceptance()
+        graph_instances = self.op_runtime.graph.instances()
         acceptance = {
             "scenario": self.scenario,
             "fault": self.fault,
             "tasks_done": self.queue.all_done(),
+            "graph_complete": self.op_runtime.all_done(),
+            "operation_instances": len(graph_instances),
+            "operations_failed": sum(
+                1 for row in graph_instances
+                if row.state is TaskStatus.FAILED),
             "any_task_failed": self.queue.any_failed(),
             "any_task_blocked": self.queue.any_blocked(),
             "final_count": len(finals),
@@ -1419,7 +1536,7 @@ class Stage4Coordinator:
                 cfg.SCENARIO_FULL_FLOW, cfg.SCENARIO_NO_PAIR,
                 cfg.SCENARIO_AGV_PRIORITY, cfg.SCENARIO_AGV_BLOCKED) else 0)
         common = (not any_latch and resources_released and route_ok
-                  and priority_ok)
+                  and priority_ok and acceptance["graph_complete"])
         if self.scenario == cfg.SCENARIO_FULL_FLOW:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
@@ -1560,6 +1677,7 @@ class Stage4Coordinator:
                 "validation": self.process_report,
                 "catalog": self.catalog.as_dict(),
             },
+            "operations": self.op_runtime.as_dict(),
             "tasks": self.queue.as_dict(),
             "resources": self.resources.as_dict(),
             "resource_checks": self.resources.validate(),
