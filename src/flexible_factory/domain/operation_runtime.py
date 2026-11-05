@@ -822,6 +822,10 @@ class OperationRuntime:
     def for_task_id(self, task_id: str) -> Optional[OperationInstance]:
         return self.graph.by_task_id(task_id)
 
+    def instances(self) -> list[OperationInstance]:
+        """只读列出本运行的全部工序实例; 报告/运行记录使用."""
+        return self.graph.instances()
+
     def ready(self) -> list[OperationInstance]:
         return self.graph.ready()
 

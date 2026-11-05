@@ -15,6 +15,7 @@ from flexible_factory.domain.default_process import (DEFAULT_RECIPE_ID,
                                                      default_catalog)
 from flexible_factory.domain.materials import ItemType, MaterialRegistry
 from flexible_factory.domain.operation_runtime import (OperationInstance,
+                                                       OperationRuntime,
                                                        TaskStatus)
 from flexible_factory.domain.resources import ResourceTable
 from flexible_factory.persistence.db import CatalogDatabase
@@ -246,6 +247,38 @@ def test_final_status_failed_when_acceptance_fails(database):
     report = report_run(database, "run_failed")
     assert report["status"] == "FAILED"
     assert report["failure_reason"] == "SAFETY_LATCH"
+
+
+def test_recorder_uses_real_operation_runtime_instances(database):
+    catalog = default_catalog()
+    recipe = catalog.recipe(DEFAULT_RECIPE_ID)
+    runtime = OperationRuntime(catalog, recipe)
+    created = runtime.instantiate_entry(
+        "s1a", 1, item_type="RAW_A", sim_time=0.0)
+    registry = MaterialRegistry()
+    registry.register(1, ItemType.RAW_A, "mat_1", sim_time=0.0)
+    resources = ResourceTable()
+
+    class _Coordinator:
+        pass
+
+    coordinator = _Coordinator()
+    coordinator.catalog = catalog
+    coordinator.recipe = recipe
+    coordinator.op_runtime = runtime
+    coordinator.flow = registry
+    coordinator.resources = resources
+    coordinator.events = []
+
+    recorder = RunRecorder(
+        database, run_id="run_real_runtime", scenario="full_flow")
+    assert recorder.start(sim_time=0.0)["ok"]
+    result = recorder.finish(coordinator, _summary())
+    assert result["ok"] is True, result["error"]
+    assert result["counts"]["operation_instances"] == len(created)
+    report = report_run(database, "run_real_runtime")
+    assert report["counts"]["operation_states"] == {
+        "PENDING": len(created)}
 
 
 def test_recorder_finish_is_idempotent(database):

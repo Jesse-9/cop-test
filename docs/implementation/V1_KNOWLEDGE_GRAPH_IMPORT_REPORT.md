@@ -117,7 +117,7 @@ flexible-factory knowledge publish --extraction-id <extraction_id>
 | 空库 → head → base → head | 通过 |
 | 新增知识图谱测试 | 10 passed |
 | 目录/知识/边界组合测试 | 40 passed |
-| 相关聚焦回归（含运行记录） | 156 passed |
+| 相关聚焦回归（含运行记录） | 157 passed |
 | 合成导出 staging | 6 实体/4 关系/来源行完整 |
 | 幂等复跑 | 第二次 `changed=false`，行数不增长 |
 | 实体冲突 | 状态 `conflict`，发布被拒绝 |

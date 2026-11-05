@@ -428,9 +428,10 @@ RETURN d.id, c.id;
 阶段 4 已按用户确认的 Q1–Q4 口径实施：新增 revision
 `0003_run_records`，在生产运行开始/结束两个边界批量写入运行、工序、物料、
 谱系、资源和事件记录；提供 `report runs/run/genealogy/waits/timeline`
-查询。写入失败只在运行报告标记持久化失败，不回滚仿真、不自动重放。详见
-[运行记录实施报告](V1_RUN_RECORDS_REPORT.md)。真实 `full_flow` 与运行记录
-的联合验收尚未执行。
+查询。写入失败只在运行报告标记持久化失败，不回滚仿真、不自动重放。用户
+已手动运行 `full_flow` 仿真无误；首次运行记录因 `OperationRuntime`
+缺少 `instances()` 失败，已修复并补回归测试，待重跑生成成功记录。详见
+[运行记录实施报告](V1_RUN_RECORDS_REPORT.md)。
 
 阶段 6 仅覆盖迁移测试、来源摘要、发布门槛和工具文档；备份/恢复演练与
 运行记录保留策略仍未实施。第 7 节的完整手工回归和需要 CoppeliaSim 的

@@ -28,7 +28,7 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 | [V1_CATALOG_PERSISTENCE_REPORT.md](V1_CATALOG_PERSISTENCE_REPORT.md) | 静态目录数据库化实施记录：SQLAlchemy/Alembic schema、导入/发布/只读仓储、影子对比、CLI 与验证结果；阶段 4、5 分别见运行记录与知识图谱报告 |
 | [V1_CATALOG_FIELD_INVENTORY.md](V1_CATALOG_FIELD_INVENTORY.md) | 阶段 0 字段盘点：来源模块、静态/运行时边界、顺序语义、术语对照与 `fmpmm.dump` 状态 |
 | [V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) | 阶段 5 知识图谱导入：Neo4j dump 官方载入/导出、`0002_knowledge_graph`、staging/审核发布；真实 222 节点/384 关系已导入并发布 |
-| [V1_RUN_RECORDS_REPORT.md](V1_RUN_RECORDS_REPORT.md) | 阶段 4 运行记录：`0003_run_records`、Q1–Q4 查询、运行开始/结束批量写入、失败语义与未执行的实机联合验收 |
+| [V1_RUN_RECORDS_REPORT.md](V1_RUN_RECORDS_REPORT.md) | 阶段 4 运行记录：`0003_run_records`、Q1–Q4 查询、运行开始/结束批量写入、失败语义；首次实机记录 API 不匹配已修复，待重跑 |
 | [PERFORMANCE_AND_PATH_REUSE_PLAN.md](PERFORMANCE_AND_PATH_REUSE_PLAN.md) | 路径复用与规划性能的跨阶段技术提案，尚未纳入当前 v1 范围 |
 
 ## 文档分组
@@ -51,7 +51,8 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
   `v1_stage2_arm_*.json`、`v1_stage2_agv_*.json`、阶段 3 的
   `v1_stage3_full_flow_*.json`、阶段 4 的
   `v1_stage4_full_flow_20261104_210605.json`，以及知识图谱真实导入摘要
-  `v1_knowledge_graph_import_20261105.json`。
+  `v1_knowledge_graph_import_20261105.json` 和首次运行记录持久化失败摘要
+  `v1_run_record_persistence_failure_20261105.json`。
 - `runs/`：仿真器生成的临时报告，默认由 `.gitignore` 排除；正式结论引用的
   文件应复制到 `evidence/` 并在报告中引用。
 

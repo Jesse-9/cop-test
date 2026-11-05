@@ -104,9 +104,9 @@ Q2 返回递归父树、节点、边和 UID 相关事件；Q3 返回每个资源
 | 迁移 `0002` → `0003` | 通过 |
 | 空库 → head → base → head | 通过 |
 | `alembic check` | `No new upgrade operations detected.` |
-| 新增运行记录测试 | 13 passed |
-| 目录/知识/运行/边界组合测试 | 46 passed |
-| 相关聚焦回归 | 156 passed |
+| 新增运行记录测试 | 14 passed |
+| 目录/知识/运行/边界组合测试 | 47 passed |
+| 相关聚焦回归 | 157 passed |
 | Q1 | 终态、FINAL UID、工序/物料/资源/事件计数 |
 | Q2 | FINAL 3 → 父 UID 1/2，2 条 JOIN 边，事件可追溯 |
 | Q3 | `arm_A` WAIT 1.0 s，holder/owner/task/instance 可追溯 |
@@ -114,10 +114,17 @@ Q2 返回递归父树、节点、边和 UID 相关事件；Q3 返回每个资源
 | 失败/中止 | `ABORTED` / `FAILED` 终态和 `RUN_END` 事件 |
 | 写库失败 | 运行报告 `run_record.ok=false`；行标为 FAILED；不抛到仿真 |
 
-**未执行**：需要 CoppeliaSim 的真实 `full_flow` 运行与运行记录联合验收。
-当前使用真实领域对象（`MaterialRegistry`、`OperationInstance`、
-`ResourceTable`）和合成 coordinator 验证写入/查询逻辑，不声称实机运行记录
-已产生。
+**真实 `full_flow` 首次运行记录（2026-11-05）**：用户手动运行
+`full_flow` 仿真无误：`run_id=run_20261105_160845_346206`、
+`all_ok=true`、`final_count=1`、`operations_failed=0`、`steps=6726`、
+`sim_time=337.15`。运行记录写入失败，`production_run` 状态为 `FAILED`，
+原因为 `OperationRuntime` 缺少 `instances()` 方法。该 API 已补为只读查询
+接口（返回 `graph.instances()`），并新增真实 `OperationRuntime` 回归测试。
+**修复后尚未重跑真实 `full_flow` 生成成功运行记录**；因此不声明实机运行
+记录已完成验收。
+
+证据摘要：
+[evidence/v1_run_record_persistence_failure_20261105.json](evidence/v1_run_record_persistence_failure_20261105.json)。
 
 ## 6. 与方案的差异
 

@@ -43,8 +43,8 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 | 工序运行图 | 阶段 3 完成：入口固定选路 → `OperationGraph` → ready 集合解锁 → E 合流绑定父实例，见 [阶段 3 报告](docs/implementation/V1_STAGE3_OPERATION_DAG_REPORT.md)；阶段 4 完成：能力匹配调度、设备选择决策与 runtime 写入口收敛，`full_flow` 实机验收通过，见 [阶段 4 报告](docs/implementation/V1_STAGE4_REPORT.md)；阶段 5 未实现 |
 | 静态目录数据库 | 阶段 0–3 完成：SQLAlchemy 2.x + Alembic/SQLite，默认目录可导入、校验、发布并重建等价目录；默认运行仍读代码目录，显式 `--catalog-source db` 才切换，见 [实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md) |
 | 知识图谱导入 | 阶段 5 完成：`fmpmm.dump` 经官方 Neo4j 载入/只读导出，`knowledge import` 写 staging 并经审核发布；真实图 222 节点/384 关系已成功导入并发布，见 [实施报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) |
-| 运行记录 | 阶段 4 完成：运行开始/结束批量写入 `production_run`/工序/物料/谱系/资源事件，提供 `report run/genealogy/waits/timeline`（Q1–Q4）；写库失败只标记持久化失败，见 [实施报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)。真实 `full_flow` 联合验收未执行 |
-| 测试 | 纯逻辑测试 `python -m pytest -q`；本轮新增 23 个目录持久化、10 个知识图谱、13 个运行记录测试，完整回归计数未刷新（见实施报告）。三项 focused/实机验收需 `FLEXIBLE_FACTORY_SIM=1` 与运行中的 CoppeliaSim |
+| 运行记录 | 阶段 4 完成：运行开始/结束批量写入 `production_run`/工序/物料/谱系/资源事件，提供 `report run/genealogy/waits/timeline`（Q1–Q4）；写库失败只标记持久化失败，见 [实施报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)。用户实机 `full_flow` 仿真成功；首次运行记录因 `OperationRuntime.instances()` 缺失失败，已修复，待重跑生成成功记录 |
+| 测试 | 纯逻辑测试 `python -m pytest -q`；本轮新增 23 个目录持久化、10 个知识图谱、14 个运行记录测试，完整回归计数未刷新（见实施报告）。三项 focused/实机验收需 `FLEXIBLE_FACTORY_SIM=1` 与运行中的 CoppeliaSim |
 | MCP | 不在 v1 范围；旧 `factory-sim` 注册和实现已移除 |
 | 故障自动恢复 | 未实现；安全锁存不得自动清除 |
 | 历史阶段 | 旧阶段源码、入口、报告和证据已清理；迁移来源工件见 [场景工件说明](docs/scene_artifacts/README.md) |

@@ -11,9 +11,12 @@
 - 失败/中止运行同样写终态；写库失败只标记运行报告
   `run_record.ok=false`，不回滚仿真、不自动重放。`run --run-records off`
   可关闭。
-- 新增 `tests/test_v1_run_records.py`（13 passed）；目录/知识/运行/边界
-  组合测试 46 passed，相关聚焦回归 156 passed。真实 `full_flow` 与运行
-  记录联合验收未执行。
+- 修复运行记录首次实机运行失败：`OperationRuntime` 增加只读
+  `instances()`，`RunRecorder` 可读取真实工序实例；新增真实 runtime 回归
+  测试。用户 `full_flow` 仿真本身无误，修复后仍需重跑生成成功运行记录。
+- 新增 `tests/test_v1_run_records.py`（14 passed）；目录/知识/运行/边界
+  组合测试 47 passed，相关聚焦回归 157 passed。真实 `full_flow` 与运行
+  记录联合验收待重跑。
 - 知识图谱导入（阶段 5）：确认 `fmpmm.dump` 为 Neo4j 数据库 dump，新增
   Alembic revision `0002_knowledge_graph`（来源、抽取运行、实体/关系、
   来源追溯），新增 `tools/neo4j_export.py` 与 `tools/neo4j/` 官方

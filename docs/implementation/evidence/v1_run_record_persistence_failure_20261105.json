@@ -1,0 +1,25 @@
+{
+  "source_report": "docs/implementation/runs/v1_run_full_flow_20261105_160908.json",
+  "note": "用户手动 full_flow 仿真成功；首次运行记录因 OperationRuntime.instances() 缺失失败。修复后需重跑生成成功记录。",
+  "run_id": "run_20261105_160845_346206",
+  "scenario": "full_flow",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "all_ok": true,
+  "acceptance": {
+    "ok": true,
+    "final_count": 1,
+    "operations_failed": 0,
+    "any_task_failed": false,
+    "any_task_blocked": false
+  },
+  "steps": 6726,
+  "sim_time": 337.15,
+  "run_record": {
+    "ok": false,
+    "status": "FAILED",
+    "error": "AttributeError: 'OperationRuntime' object has no attribute 'instances'"
+  },
+  "root_cause": "RunRecorder called OperationRuntime.instances(), which did not exist; the run graph is exposed via OperationRuntime.graph.",
+  "fix_commit": "4487c17",
+  "follow_up": "rerun full_flow after the fix to produce a DONE run record and query Q1-Q4"
+}
