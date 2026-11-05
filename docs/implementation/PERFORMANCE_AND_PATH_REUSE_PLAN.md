@@ -1,3 +1,15 @@
+---
+title: 仿真与运动规划效率提升方案
+type: plan
+tags:
+  - 类别/实施计划
+  - 类别/运动规划
+created: 2026-11-05
+updated: 2026-11-05
+status: proposed
+scope: v1 跨阶段技术提案
+---
+
 # 仿真与运动规划效率提升方案
 
 ## 1. 结论

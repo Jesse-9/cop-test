@@ -5,6 +5,11 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 也不作为 v1 证据。旧实现已从 `src/` 移除，v1 源码见
 [`src/flexible_factory/`](../../src/flexible_factory/)。
 
+目录边界、阶段对应关系和命名规则见
+[项目文档登记表](PROJECT_DOCUMENT_REGISTER.md)。本目录记录如何实施和如何验收；
+业务目标、工艺路线和领域对象统一放在
+[`wiki/06-工业案例/柔性车间/`](../wiki/06-工业案例/柔性车间/README.md)。
+
 ## v1 文档
 
 | 文档 | 内容 |
@@ -18,6 +23,18 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 | [V1_STAGE3_OPERATION_DAG_REPORT.md](V1_STAGE3_OPERATION_DAG_REPORT.md) | 阶段 3 实施记录：配方实例化、工序 DAG、ready 解锁与 E 合流，含 `full_flow` 基线对照 |
 | [V1_STAGE4_SCHEDULER_PLAN.md](V1_STAGE4_SCHEDULER_PLAN.md) | 阶段 4 实施方案：runtime 写入口修复、纯调度策略、能力/资源筛选、coordinator 接入与分层验收 |
 | [V1_STAGE4_REPORT.md](V1_STAGE4_REPORT.md) | 阶段 4 实施记录：纯调度策略、设备选择决策、runtime 写入口边界与 `full_flow` 验收 |
+| [V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md](V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md) | 混线生产灵活性扩展示范方案：有限批次 profile、设备替代和同一物料路线选择的分阶段实施与验收 |
+| [RESOURCE_DATABASE_PLAN.md](RESOURCE_DATABASE_PLAN.md) | 资源目录数据库化与知识图谱方案：目标 schema、现有数据映射、dump 识别流程、分阶段执行与验收门槛 |
+| [PERFORMANCE_AND_PATH_REUSE_PLAN.md](PERFORMANCE_AND_PATH_REUSE_PLAN.md) | 路径复用与规划性能的跨阶段技术提案，尚未纳入当前 v1 范围 |
+
+## 文档分组
+
+- **治理与基线**：`V1_CONSOLIDATION_PLAN.md`、`V1_BASELINE.md`、`V1_REPORT.md`。
+- **阶段实施**：`V1_STAGE*_..._PLAN.md` 与对应的 `V1_STAGE*_..._REPORT.md`。
+- **跨阶段提案**：`V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md`、
+  `RESOURCE_DATABASE_PLAN.md`、`PERFORMANCE_AND_PATH_REUSE_PLAN.md`；这些文件有
+  `proposed` 状态时只是候选工作，不改变当前 v1 能力。
+- **正式证据**：`evidence/` 只保存被报告引用的裁剪证据，`runs/` 只保存被忽略的临时输出。
 
 ## 证据
 
