@@ -5,7 +5,9 @@ description = "柔性工业车间 v1 — CoppeliaSim 4.10 ZeroMQ Remote API 控�
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "alembic>=1.14,<2",
     "coppeliasim-zmqremoteapi-client>=2.0.4",
+    "sqlalchemy>=2.0.36,<3",
 ]
 
 [project.scripts]
@@ -18,6 +20,14 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["flexible_factory*"]
 
+# Alembic 脚本不通过包导入运行, 但必须随发行包一起安装.
+[tool.setuptools.package-data]
+"flexible_factory.persistence" = [
+    "migrations/env.py",
+    "migrations/script.py.mako",
+    "migrations/versions/*.py",
+]
+
 [tool.uv]
 package = true
 
@@ -26,4 +36,5 @@ dev = [
     "pytest>=9.1.1",
     "pywinpty>=3.1.0",
     "imageio-ffmpeg>=0.7.0",
+    "neo4j>=5.13,<6",
 ]
