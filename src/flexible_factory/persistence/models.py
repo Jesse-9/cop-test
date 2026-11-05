@@ -630,6 +630,8 @@ class OrderEntry(Base):
     route_id: Mapped[Optional[str]] = mapped_column(Text)
 
 
-# 知识图谱表 (方案 §2.3) 在同一 metadata 中注册; 单独文件保持静态目录
-# 与抽取结果 schema 的分区. 必须放在 Base/辅助函数定义之后.
+# 知识图谱表 (方案 §2.3) 与运行记录表 (方案 §2.2) 在同一 metadata 中注册;
+# 单独文件保持静态目录、知识结果和运行事实的分区. 必须放在 Base/辅助函数
+# 定义之后.
 from . import knowledge_models  # noqa: E402,F401
+from . import run_models  # noqa: E402,F401

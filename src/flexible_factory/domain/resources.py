@@ -33,6 +33,7 @@ class ResourceEvent:
     owner: str
     task_id: str
     reason: str = ""
+    holder: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -42,6 +43,7 @@ class ResourceEvent:
             "owner": self.owner,
             "task_id": self.task_id,
             "reason": self.reason,
+            "holder": self.holder,
         }
 
 
@@ -112,7 +114,8 @@ class ResourceTable:
         self.task_of[resource] = str(task_id)
         if owner in self.waiting.get(resource, []):
             self.waiting[resource].remove(owner)
-        self._event(sim_time, "ACQUIRE", resource, owner, task_id, reason)
+        self._event(sim_time, "ACQUIRE", resource, owner, task_id, reason,
+                    holder=owner)
         return True
 
     def release(self, resource: str, owner: str, sim_time: float,
@@ -122,11 +125,13 @@ class ResourceTable:
         if current != str(owner):
             self._event(sim_time, "RELEASE_DENIED", resource, str(owner),
                         self.task_of.get(resource, ""),
-                        f"当前 owner={current!r}; {reason}")
+                        f"当前 owner={current!r}; {reason}",
+                        holder=current or "")
             return False
         task_id = self.task_of.pop(resource, "")
         self.owners.pop(resource, None)
-        self._event(sim_time, "RELEASE", resource, str(owner), task_id, reason)
+        self._event(sim_time, "RELEASE", resource, str(owner), task_id,
+                    reason, holder=str(owner))
         return True
 
     def release_all(self, owner: str, sim_time: float,
@@ -168,13 +173,14 @@ class ResourceTable:
             return          # 同一等待方只记录一次, 避免每步刷屏
         queue.append(owner)
         self._event(sim_time, "WAIT", resource, owner, task_id,
-                    f"holder={current}; {reason}")
+                    f"holder={current}; {reason}", holder=current)
 
     def _event(self, sim_time: float, action: str, resource: str,
-               owner: str, task_id: str, reason: str = "") -> None:
+               owner: str, task_id: str, reason: str = "",
+               holder: str = "") -> None:
         self.events.append(ResourceEvent(
             sim_time=float(sim_time), action=action, resource=resource,
-            owner=owner, task_id=task_id, reason=reason))
+            owner=owner, task_id=task_id, reason=reason, holder=holder))
 
     def snapshot(self) -> dict:
         return {

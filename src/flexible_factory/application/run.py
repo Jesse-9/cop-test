@@ -35,6 +35,8 @@ from ..simulation.motion.suction import Stage2SuctionController
 from ..simulation import config as cfg
 from .. import spec
 from .coordinator import Stage4Coordinator
+from ..persistence.db import CatalogDatabase
+from ..persistence.runs import RunRecorder
 from ..simulation.layout import line_specs
 from ..domain.materials import MaterialRegistry
 from ..simulation.runtime import build_v1_runtime
@@ -175,6 +177,7 @@ def collect_scene_snapshot(scene, comp) -> dict:
 def run_scenario_v1(sim, scene, comp, *, scenario: str,
                         max_sim_time: float, logger,
                         fault: str = cfg.FAULT_NONE,
+                        catalog=None, run_recorder=None,
                         stop_event=None, pause_event=None,
                         pause_ack_event=None, on_start=None) -> dict:
     """在已加载/已建组件的 v1 场景上运行一个验收场景."""
@@ -187,58 +190,69 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
     logger.info("[TASK][v1] scenario=%s fault=%s batch=%s",
                 scenario, effective_fault, cfg.SCENARIO_BATCH[scenario])
 
-    coordinator = Stage4Coordinator(
-        sim, scene, comp, scenario=scenario, fault=effective_fault,
-        logger=logger,
-        on_controller=(lambda unit_id, controller: on_start(
-            coordinator) if on_start else None) if on_start else None)
-    coordinator.start(float(sim.getSimulationTime()))
-    if on_start is not None:
-        on_start(coordinator)
+    coordinator = None
+    summary = None
+    try:
+        coordinator = Stage4Coordinator(
+            sim, scene, comp, scenario=scenario, fault=effective_fault,
+            logger=logger, catalog=catalog,
+            on_controller=(lambda unit_id, controller: on_start(
+                coordinator) if on_start else None) if on_start else None)
+        coordinator.start(float(sim.getSimulationTime()))
+        if on_start is not None:
+            on_start(coordinator)
 
-    task_start = float(sim.getSimulationTime())
-    wall_deadline = time.time() + max(600.0, max_sim_time * 6.0)
-    steps = 0
-    while not coordinator.finished:
-        if stop_event is not None and stop_event.is_set():
-            coordinator._freeze("STOP_REQUESTED", coordinator._sim_time(),
-                                abort=True)
-            break
-        if pause_event is not None and pause_event.is_set():
+        task_start = float(sim.getSimulationTime())
+        wall_deadline = time.time() + max(600.0, max_sim_time * 6.0)
+        steps = 0
+        while not coordinator.finished:
+            if stop_event is not None and stop_event.is_set():
+                coordinator._freeze("STOP_REQUESTED", coordinator._sim_time(),
+                                    abort=True)
+                break
+            if pause_event is not None and pause_event.is_set():
+                if pause_ack_event is not None:
+                    pause_ack_event.set()
+                time.sleep(0.01)
+                continue
             if pause_ack_event is not None:
-                pause_ack_event.set()
-            time.sleep(0.01)
-            continue
-        if pause_ack_event is not None:
-            pause_ack_event.clear()
-        coordinator.step()
-        steps += 1
-        if float(sim.getSimulationTime()) - task_start > max_sim_time:
-            coordinator._freeze(f"SIM_TIME_LIMIT: {max_sim_time:.1f}s",
-                                coordinator._sim_time(), abort=True)
-            break
-        if time.time() > wall_deadline:
-            coordinator._freeze("WALL_CLOCK_TIMEOUT",
-                                coordinator._sim_time(), abort=True)
-            break
+                pause_ack_event.clear()
+            coordinator.step()
+            steps += 1
+            if float(sim.getSimulationTime()) - task_start > max_sim_time:
+                coordinator._freeze(f"SIM_TIME_LIMIT: {max_sim_time:.1f}s",
+                                    coordinator._sim_time(), abort=True)
+                break
+            if time.time() > wall_deadline:
+                coordinator._freeze("WALL_CLOCK_TIMEOUT",
+                                    coordinator._sim_time(), abort=True)
+                break
 
-    summary = coordinator.summary()
-    acceptance = summary["acceptance"]
-    materials = comp["materials"]
-    flow = comp["flow"]
-    evidence = {
-        "scenario": scenario,
-        "fault": effective_fault,
-        "steps": steps,
-        "sim_time": round(float(sim.getSimulationTime()), 4),
-        "coordinator": summary,
-        "acceptance": acceptance,
-        "materials": {
-            rec.uid: _material_evidence(sim, materials, flow, rec.uid)
-            for rec in materials.all_records()},
-        "agv": _agv_evidence(comp["agv"]),
-        "ok": bool(acceptance.get("ok")),
-    }
+        summary = coordinator.summary()
+        acceptance = summary["acceptance"]
+        materials = comp["materials"]
+        flow = comp["flow"]
+        evidence = {
+            "scenario": scenario,
+            "fault": effective_fault,
+            "steps": steps,
+            "sim_time": round(float(sim.getSimulationTime()), 4),
+            "coordinator": summary,
+            "acceptance": acceptance,
+            "materials": {
+                rec.uid: _material_evidence(sim, materials, flow, rec.uid)
+                for rec in materials.all_records()},
+            "agv": _agv_evidence(comp["agv"]),
+            "ok": bool(acceptance.get("ok")),
+        }
+    except Exception as exc:
+        if run_recorder is not None:
+            run_recorder.finish(
+                coordinator, summary,
+                error=f"{type(exc).__name__}: {exc}")
+        raise
+    if run_recorder is not None:
+        evidence["run_record"] = run_recorder.finish(coordinator, summary)
     return evidence
 
 
@@ -253,6 +267,9 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             max_sim_time: float = cfg.DEFAULT_MAX_SIM_TIME,
                             repeat: int = 1,
                             out_dir=REPORT_DIR, logger,
+                            catalog=None,
+                            run_record_db: Path | None = None,
+                            run_record_source: str = "code",
                             keep_running: bool = False,
                             stop_event=None, pause_event=None,
                             pause_ack_event=None, on_start=None,
@@ -277,36 +294,61 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    comp = build_components_v1(sim, simIK, scene, logger)
-    snapshot = {
-        "timestamp": stamp,
-        "run_id": run_id,
-        "artifact_id": artifact_id,
-        "phase": "v1",
-        "lifecycle_state": "SIMULATION_RUNNING",
-        "scenario": scenario,
-        "config": {
-            "scenario": scenario,
-            "max_sim_time": max_sim_time,
-            "sim_step": base.SIM_STEP,
-            "layout": scene.stage4_layout.name,
-            "batch": cfg.SCENARIO_BATCH[scenario],
-        },
-        "scene": collect_scene_snapshot(scene, comp),
-        "contract": {
-            "validated_by": "lifecycle.prepare_start",
-            "phase": "v1",
-        },
-    }
-    with open(out_dir / f"v1_scene_snapshot_{stamp}.json", "w",
-              encoding="utf-8") as handle:
-        json.dump(snapshot, handle, ensure_ascii=False, indent=2)
+    recorder = None
+    if run_record_db is not None:
+        recorder = RunRecorder(
+            CatalogDatabase(run_record_db), run_id=run_id or "",
+            scenario=scenario, artifact_id=artifact_id or "",
+            catalog_source=run_record_source,
+            catalog_version=(catalog.version if catalog is not None else ""))
+        started = recorder.start(
+            sim_time=float(sim.getSimulationTime()))
+        if not started.get("ok"):
+            logger.error("[RUN_RECORD] 启动运行记录失败, 运行继续: %s",
+                         started.get("error"))
 
-    start_stepping(sim)
-    logger.info("[SIM][v1] stepping 启动, sim_time=%.3f run_id=%s",
-                sim.getSimulationTime(), run_id)
-    drive_probe = probe_conveyor_drive(sim, scene, comp)
-    logger.info("[CONVEYOR][v1] S1→A 驱动探测: %s", drive_probe)
+    try:
+        comp = build_components_v1(sim, simIK, scene, logger)
+    except Exception as exc:
+        if recorder is not None:
+            recorder.finish(
+                None, None, error=f"{type(exc).__name__}: {exc}")
+        raise
+    try:
+        snapshot = {
+            "timestamp": stamp,
+            "run_id": run_id,
+            "artifact_id": artifact_id,
+            "phase": "v1",
+            "lifecycle_state": "SIMULATION_RUNNING",
+            "scenario": scenario,
+            "config": {
+                "scenario": scenario,
+                "max_sim_time": max_sim_time,
+                "sim_step": base.SIM_STEP,
+                "layout": scene.stage4_layout.name,
+                "batch": cfg.SCENARIO_BATCH[scenario],
+            },
+            "scene": collect_scene_snapshot(scene, comp),
+            "contract": {
+                "validated_by": "lifecycle.prepare_start",
+                "phase": "v1",
+            },
+        }
+        with open(out_dir / f"v1_scene_snapshot_{stamp}.json", "w",
+                  encoding="utf-8") as handle:
+            json.dump(snapshot, handle, ensure_ascii=False, indent=2)
+
+        start_stepping(sim)
+        logger.info("[SIM][v1] stepping 启动, sim_time=%.3f run_id=%s",
+                    sim.getSimulationTime(), run_id)
+        drive_probe = probe_conveyor_drive(sim, scene, comp)
+        logger.info("[CONVEYOR][v1] S1→A 驱动探测: %s", drive_probe)
+    except Exception as exc:
+        if recorder is not None:
+            recorder.finish(
+                None, None, error=f"{type(exc).__name__}: {exc}")
+        raise
 
     results = []
     runtime_destroy = {}
@@ -314,6 +356,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         evidence = run_scenario_v1(
             sim, scene, comp, scenario=scenario,
             max_sim_time=max_sim_time, logger=logger, fault=effective_fault,
+            catalog=catalog, run_recorder=recorder,
             stop_event=stop_event, pause_event=pause_event,
             pause_ack_event=pause_ack_event, on_start=on_start)
         evidence["conveyor_drive_probe"] = drive_probe
@@ -321,7 +364,9 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
     except Exception as exc:
         logger.exception("[TASK][v1] 运行异常: %s", exc)
         results.append({"scenario": scenario, "error": str(exc),
-                        "ok": False})
+                        "ok": False,
+                        "run_record": (None if recorder is None
+                                       else recorder.result)})
     finally:
         try:
             stop_simulation(sim)
@@ -340,6 +385,9 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "scenario": scenario,
         "fault": effective_fault,
         "layout": scene.stage4_layout.name,
+        "catalog_source": "database" if catalog is not None else "code",
+        "catalog_version": None if catalog is None else catalog.version,
+        "run_record": results[0].get("run_record") if results else None,
         "results": results,
         "runtime_destroy": runtime_destroy,
         "all_ok": bool(results) and all(row.get("ok") for row in results),

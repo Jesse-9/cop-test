@@ -1,4 +1,4 @@
-"""persistence — v1 静态资源/工艺目录与知识图谱的 SQLite 持久化边界.
+"""persistence — v1 静态资源/工艺目录、知识图谱与运行记录的持久化边界.
 
 本包只负责关系数据映射与事务, 不导入 ``simulation`` 或 ``application``:
 
@@ -9,6 +9,7 @@
   - :mod:`importer`    ``CatalogSeed`` → staging release (单事务);
   - :mod:`repository`  已发布 release → 领域 ``ProcessCatalog``;
   - :mod:`knowledge`   Neo4j 导出 JSON → staging knowledge extraction;
+  - :mod:`runs`        运行记录批量写入与 Q1–Q4 查询;
   - :mod:`service`     初始化/导入/发布/读取的应用无关服务函数;
   - :mod:`diff`        代码目录与数据库目录的稳定序列化差异.
 
@@ -29,6 +30,8 @@ from .errors import (
     ReleaseExistsError,
     ReleaseNotFoundError,
     ReleaseStateError,
+    RunNotFoundError,
+    RunRecordError,
 )
 from .importer import CatalogImporter, ImportResult
 from .knowledge import (EXPORT_FORMAT, EXTRACTOR_ID, EXTRACTOR_VERSION,
@@ -38,6 +41,9 @@ from .knowledge import (EXPORT_FORMAT, EXTRACTOR_ID, EXTRACTOR_VERSION,
 from .records import (CatalogSeed, MaterialTypeRecord, ResourceRecord,
                       SceneBindingRecord, seed_digest)
 from .repository import CatalogRepository
+from .runs import (RUN_RECORD_VERSION, RunRecorder, list_runs,
+                   material_genealogy, operation_timeline, resource_waits,
+                   run_summary)
 from .service import (load_catalog, publish_release, release_status,
                       stage_catalog)
 
@@ -50,8 +56,11 @@ __all__ = [
     "EXPORT_FORMAT", "EXTRACTOR_ID", "EXTRACTOR_VERSION",
     "load_export", "validate_export", "stage_knowledge_export",
     "publish_extraction", "knowledge_status", "knowledge_verify",
+    "RUN_RECORD_VERSION", "RunRecorder", "list_runs", "run_summary",
+    "material_genealogy", "resource_waits", "operation_timeline",
     "CatalogPersistenceError", "CatalogIntegrityError", "MigrationError",
     "KnowledgeError", "KnowledgeImportError", "KnowledgeStateError",
+    "RunRecordError", "RunNotFoundError",
     "NoPublishedReleaseError", "ReleaseExistsError", "ReleaseNotFoundError",
     "ReleaseStateError",
 ]
