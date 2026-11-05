@@ -96,6 +96,7 @@ class DeviceBinding:
     device_id: str
     kind: str                       # arm | agv | logic
     aliases: tuple[str, ...]        # 场景对象别名 (不含 Shadow_*)
+    alias_roles: tuple[str, ...]    # 与 aliases 一一对应的稳定角色名
     runtime_keys: tuple[str, ...]   # 运行时组件索引键
     resources: tuple[str, ...]      # 资源表条目
     zones: tuple[str, ...]          # 物料区域 ID
@@ -106,6 +107,7 @@ class DeviceBinding:
             "device_id": self.device_id,
             "kind": self.kind,
             "aliases": list(self.aliases),
+            "alias_roles": list(self.alias_roles),
             "runtime_keys": list(self.runtime_keys),
             "resources": list(self.resources),
             "zones": list(self.zones),
@@ -148,6 +150,7 @@ def _arm_binding(unit_id: str) -> DeviceBinding:
         device_id=f"arm_{unit_id}",
         kind="arm",
         aliases=tuple(aliases_cfg[role] for role in _ARM_ALIAS_ROLES),
+        alias_roles=_ARM_ALIAS_ROLES,
         runtime_keys=_DEVICE_RUNTIME_KEYS["arm"],
         resources=tuple(resources),
         zones=tuple(zones),
@@ -163,12 +166,16 @@ def _agv_binding() -> DeviceBinding:
                base.ALIASES["agv_wall_left"],
                base.ALIASES["agv_wall_right"],
                *dock_aliases)
+    roles = ("robot", "tray", "wall_front", "wall_back", "wall_left",
+             "wall_right",
+             *(f"dock_sensor_{dock}" for dock in cfg.AGV_DOCK_IDS))
     resources = (*cfg.AGV_LANES,
                  *(f"dock_{dock}" for dock in cfg.AGV_DOCK_IDS))
     return DeviceBinding(
         device_id="agv_1",
         kind="agv",
         aliases=aliases,
+        alias_roles=roles,
         runtime_keys=_DEVICE_RUNTIME_KEYS["agv"],
         resources=resources,
         zones=("agv",))
@@ -180,6 +187,7 @@ def _logic_binding() -> DeviceBinding:
         device_id="logic_E",
         kind="logic",
         aliases=(),
+        alias_roles=(),
         runtime_keys=_DEVICE_RUNTIME_KEYS["logic"],
         resources=(),
         zones=("buffer_e_c", "buffer_e_d", "output_e"))
@@ -328,11 +336,19 @@ def validate_bindings(catalog: ProcessCatalog) -> dict:
             if zone not in domain_rules.ZONE_CAPACITY:
                 err(f"{_row_id(row)}: 未知区域 {zone!r}")
 
-    # 4. 别名: 扁平下划线、唯一、可在场景配置中解析.
+    # 4. 别名: 扁平下划线、唯一、可在场景配置中解析; 角色与别名一一对应.
     known = _known_aliases()
     owner: dict[str, str] = {}
     for row in (*bindings, *supports):
         row_id = _row_id(row)
+        if isinstance(row, DeviceBinding):
+            if len(row.alias_roles) != len(row.aliases):
+                err(f"{row_id}: alias_roles 数量 "
+                    f"{len(row.alias_roles)} != aliases "
+                    f"{len(row.aliases)}")
+            if len(set(row.alias_roles)) != len(row.alias_roles):
+                err(f"{row_id}: alias_roles 含重复角色 "
+                    f"{list(row.alias_roles)}")
         for alias in row.aliases:
             if not alias or "/" in alias:
                 err(f"{row_id}: 非法别名 {alias!r} (必须扁平下划线)")

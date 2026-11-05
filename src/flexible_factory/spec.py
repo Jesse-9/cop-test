@@ -43,6 +43,9 @@ ARTIFACT_ROOT = Path("docs") / "scene_artifacts"
 REPORT_DIR = Path("docs") / "implementation" / "runs"
 DEFAULT_LOG_FILE = "flexible_factory.log"
 
+# 目录数据库默认位置: 本地运行数据, 不写入受保护的场景工件目录.
+CATALOG_DB = Path("var") / "catalog" / "catalog.db"
+
 # CoppeliaSim 内置模型 (与已有实测基线一致; 不随 v1 改名).
 MODEL_BASE = r"C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models"
 MODEL_PATHS = {
