@@ -46,7 +46,7 @@ status: published
 | 文档 | 角色 | 当前状态 |
 |---|---|---|
 | `V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md` | 混线生产灵活性扩展示范的技术实施方案 | proposed |
-| `RESOURCE_DATABASE_PLAN.md` | 资源目录持久化与知识图谱的架构方案 | proposed |
+| `RESOURCE_DATABASE_PLAN.md` · `V1_CATALOG_PERSISTENCE_REPORT.md` · `V1_CATALOG_FIELD_INVENTORY.md` · `V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md` · `V1_RUN_RECORDS_REPORT.md` | 资源目录持久化与知识图谱的架构方案；阶段 0–3 的静态目录实施记录与字段盘点；阶段 5 的 Neo4j 导出/知识表导入；阶段 4 的运行记录与 Q1–Q4 查询 | 阶段 0–5 已实施（真实 dump 222/384 已导入），阶段 6 部分实施 |
 | `PERFORMANCE_AND_PATH_REUSE_PLAN.md` | 路径复用与规划性能的技术提案 | proposed，待明确纳入版本 |
 
 未进入当前 v1 范围的提案不应出现在 `V1_REPORT` 的已完成清单中；若长期不再推进，

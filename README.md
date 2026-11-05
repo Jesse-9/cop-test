@@ -14,6 +14,9 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 - 阶段 2 设备绑定与执行适配器：[方案](docs/implementation/V1_STAGE2_EXECUTOR_PLAN.md) · [实施报告](docs/implementation/V1_STAGE2_REPORT.md)
 - 阶段 3 配方实例化与工序 DAG：[规划](docs/wiki/06-工业案例/柔性车间/当前规划/06-21-混线生产阶段3配方实例化与工序DAG.md) · [实施报告](docs/implementation/V1_STAGE3_OPERATION_DAG_REPORT.md)
 - 阶段 4 能力匹配调度：[方案](docs/implementation/V1_STAGE4_SCHEDULER_PLAN.md) · [实施报告](docs/implementation/V1_STAGE4_REPORT.md)
+- 静态资源/工艺目录数据库化：[方案](docs/implementation/RESOURCE_DATABASE_PLAN.md) · [实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md)
+- 知识图谱导入（Neo4j dump）：[实施报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) · [本地 Neo4j 工具](tools/neo4j/README.md)
+- 运行记录与 Q1–Q4 查询：[实施报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)
 - 工程不变量、模块职责和实测陷阱：[工程参考](PROJECT_ENGINEERING_REFERENCE.md)
 - 知识库结构与写作规范：[docs/README.md](docs/README.md) · [docs/CLAUDE.md](docs/CLAUDE.md)
 
@@ -38,7 +41,10 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 | 工艺目录 | 阶段 0-1 静态 `RecipeSpec`/`ProcessCatalog` 已接入 `flexible_factory` |
 | 设备执行适配层 | 阶段 2 完成：`device_binding` 静态绑定 + `simulation/execution/`（臂/AGV 适配器），见 [阶段 2 报告](docs/implementation/V1_STAGE2_REPORT.md) |
 | 工序运行图 | 阶段 3 完成：入口固定选路 → `OperationGraph` → ready 集合解锁 → E 合流绑定父实例，见 [阶段 3 报告](docs/implementation/V1_STAGE3_OPERATION_DAG_REPORT.md)；阶段 4 完成：能力匹配调度、设备选择决策与 runtime 写入口收敛，`full_flow` 实机验收通过，见 [阶段 4 报告](docs/implementation/V1_STAGE4_REPORT.md)；阶段 5 未实现 |
-| 测试 | `python -m pytest -q`（450 passed / 3 skipped）；三项 focused/实机验收需 `FLEXIBLE_FACTORY_SIM=1` 与运行中的 CoppeliaSim |
+| 静态目录数据库 | 阶段 0–3 完成：SQLAlchemy 2.x + Alembic/SQLite，默认目录可导入、校验、发布并重建等价目录；默认运行仍读代码目录，显式 `--catalog-source db` 才切换，见 [实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md) |
+| 知识图谱导入 | 阶段 5 完成：`fmpmm.dump` 经官方 Neo4j 载入/只读导出，`knowledge import` 写 staging 并经审核发布；真实图 222 节点/384 关系已成功导入并发布，见 [实施报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) |
+| 运行记录 | 阶段 4 完成：运行开始/结束批量写入 `production_run`/工序/物料/谱系/资源事件，提供 `report run/genealogy/waits/timeline`（Q1–Q4）；写库失败只标记持久化失败，见 [实施报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)。真实 `full_flow` 联合验收未执行 |
+| 测试 | 纯逻辑测试 `python -m pytest -q`；本轮新增 23 个目录持久化、10 个知识图谱、13 个运行记录测试，完整回归计数未刷新（见实施报告）。三项 focused/实机验收需 `FLEXIBLE_FACTORY_SIM=1` 与运行中的 CoppeliaSim |
 | MCP | 不在 v1 范围；旧 `factory-sim` 注册和实现已移除 |
 | 故障自动恢复 | 未实现；安全锁存不得自动清除 |
 | 历史阶段 | 旧阶段源码、入口、报告和证据已清理；迁移来源工件见 [场景工件说明](docs/scene_artifacts/README.md) |
@@ -50,9 +56,13 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
       simulation/    场景、布局、物理、运动、AGV、运行时、device_binding
         execution/   设备执行适配层（臂/AGV 包装，不调用 sim.step）
       artifacts/     v1 manifest、工件仓库、迁移
-      application/   生命周期、运行用例、多岛协调
+      persistence/   静态目录/知识表 ORM、SQLite/Alembic 迁移、导入/发布/仓储
+      application/   生命周期、运行用例、多岛协调、目录 seed/知识导入用例
       cli.py         唯一 v1 命令入口
       spec.py        产品/契约/schema 版本
+    tools/
+      neo4j/         本地 Neo4j Compose、官方 dump 载入脚本与说明
+      neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
 
 旧阶段包（`src/stage1/` … `src/stage4/`、`src/stage1_1/`、
 `src/reference/`）、`run_stage*.py` 入口、旧报告与旧证据均已删除，不得被

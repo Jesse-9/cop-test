@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+- 运行记录（阶段 4）：新增 Alembic revision `0003_run_records` 与
+  `RunRecorder`，只在运行开始/结束两个边界批量写入 `production_run`、
+  工序实例、物料实例、谱系、资源事件和运行事件；`sim.step()` 热路径不写库。
+- 新增 `flexible-factory report runs/run/genealogy/waits/timeline`，对应
+  Q1 运行汇总、Q2 物料谱系、Q3 资源等待、Q4 工序时间线与失败取证；支持
+  最近一次运行和直接 SQLite 查询。
+- 失败/中止运行同样写终态；写库失败只标记运行报告
+  `run_record.ok=false`，不回滚仿真、不自动重放。`run --run-records off`
+  可关闭。
+- 新增 `tests/test_v1_run_records.py`（13 passed）；目录/知识/运行/边界
+  组合测试 46 passed，相关聚焦回归 156 passed。真实 `full_flow` 与运行
+  记录联合验收未执行。
+- 知识图谱导入（阶段 5）：确认 `fmpmm.dump` 为 Neo4j 数据库 dump，新增
+  Alembic revision `0002_knowledge_graph`（来源、抽取运行、实体/关系、
+  来源追溯），新增 `tools/neo4j_export.py` 与 `tools/neo4j/` 官方
+  `neo4j-admin` 载入/迁移工具。
+- 新增 `flexible-factory knowledge import/status/verify/publish`：只读
+  导出 JSON 写 staging extraction，记录来源 SHA-256、原始节点/关系 ID、
+  来源定位与冲突；未映射标签/谓词、端点缺失或 canonical ID 冲突会阻止
+  发布。复跑按来源摘要和抽取器版本幂等。
+- 新增 `tests/test_v1_knowledge_graph.py`（10 passed）；目录/知识/边界
+  组合测试 40 passed。真实 `ref/fmpmm.dump` 已通过 Docker Neo4j 5.13
+  载入/迁移并只读导出：222 节点/384 关系，导入 222 实体/384 关系并发布
+  成功，无未映射/冲突/悬空关系。
+- 阶段 4（运行记录）仍未实施，受“明确查询需求”决策门约束；阶段 6 仅
+  覆盖迁移测试、来源摘要和工具文档。
+- 静态资源/工艺目录数据库化（阶段 0–3）：新增
+  `src/flexible_factory/persistence/`，使用 SQLAlchemy 2.x ORM 与 Alembic
+  管理 SQLite schema；首个 revision `0001_catalog_core` 覆盖物料类型、设备、
+  能力、场景绑定、互斥资源、区域、配方/工序/路线/入口及关系表。
+- 新增 `CatalogSeed` 单事务导入、staging → published 原子发布、只读仓储
+  重建等价 `ProcessCatalog`，并校验来源摘要、领域规则和派生关系。
+- 新增 `flexible-factory catalog init/import/publish/status/diff/verify`；
+  `run` 默认仍读代码目录，`--catalog-source db` 仅在数据库目录与代码目录
+  逐字段等价时切换。
+- `DeviceBinding` 增加 `alias_roles`，使 `scene_binding.role` 显式可持久化；
+  不保存 CoppeliaSim 句柄或运行时 owner/waiting 状态。
+- 新增 `tests/test_v1_catalog_persistence.py` 与 domain/persistence 导入边界
+  测试；相关纯逻辑回归 87 passed。完整 `pytest -q` 与实机目录切换验收未在
+  本轮执行。
+- `fmpmm.dump` 已确认为 Neo4j 数据库 dump；阶段 5 的官方载入/导出和
+  staging 导入已实施，真实 dump 的 Docker 端到端执行未完成。运行记录表
+  （阶段 4）仍未实施。详见
+  `docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md`。
+
 - 阶段 4 纯调度策略：新增 `domain/scheduling.py`（`SchedulingSnapshot` →
   `DispatchDecision`），按 recipe allowlist、静态能力/绑定、物料/区域前提、
   设备占用与动态几何验收状态筛选候选；排序为业务优先级 → 等待时间 →

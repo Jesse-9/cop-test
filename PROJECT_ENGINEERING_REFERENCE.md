@@ -31,11 +31,18 @@ src/flexible_factory/
                      metrics
     execution/       base（执行契约）, arm（ArmExecutor）, agv（AgvExecutor）
   artifacts/         store（manifest/仓库/校验）, migration
-  application/       lifecycle, coordinator, run
+  persistence/       SQLAlchemy 2.x ORM、SQLite Engine/Session、Alembic 迁移、
+                     catalog seed 导入/发布/只读仓储、知识图谱导入、运行记录
+  application/       lifecycle, coordinator, run, catalog, knowledge, report
   cli.py             唯一命令入口
+  tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
+  tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
 ```
 
-依赖方向：`cli → application → domain / simulation / artifacts`。
+依赖方向：`cli → application → domain / simulation / artifacts / persistence`。
+`persistence` 只导入 `domain`、`util` 与 SQLAlchemy/Alembic，不导入
+`simulation`、`application` 或 `cli`；`domain` 不导入 SQLAlchemy、SQLite 或
+persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据类。
 阶段 0-1 工艺目录的边界：
 
 - `domain/process_model.py` 保存静态 `RecipeSpec`/`OperationTemplate`/
@@ -79,7 +86,22 @@ src/flexible_factory/
   `Stage4UnitController` 与 `AGVRouteController4`，不导入 `application`/
   `cli`、不调用 `sim.step()`；唯一 stepping owner 仍是
   `Stage4Coordinator.step()`。`simulation/device_binding.py` 只存
-  device_id → alias/资源/区域的静态映射，不存句柄、不写 manifest。
+  device_id → alias/资源/区域的静态映射，不存句柄、不写 manifest；
+  `alias_roles` 与 `aliases` 一一对应，供 `persistence.scene_binding` 使用。
+- `application/catalog.py` 是 persistence 与领域/场景来源的唯一适配层：
+  默认 `full_flow` 仍读代码内默认目录；`run --catalog-source db` 只有数据库
+  目录与当前代码目录逐字段等价时才切换，否则拒绝启动。
+- `persistence/` 采用 SQLAlchemy 2.x ORM + Alembic；revision
+  `0001_catalog_core` 是静态目录，`0002_knowledge_graph` 是知识图谱表和
+  来源追溯。数据库默认路径 `var/catalog/catalog.db`（`.gitignore`），不得
+  写入场景工件目录；连接级 `PRAGMA foreign_keys=ON` 失败即拒绝运行。
+- 知识图谱导入只消费 `tools/neo4j_export.py` 的 JSON：原始 `fmpmm.dump`
+  由官方 `neo4j-admin` 载入/迁移，项目不解析二进制 dump。`knowledge import`
+  只创建 staging；未映射标签/谓词、端点缺失或 canonical ID 冲突会阻止
+  `knowledge publish`，不得绕过报告直接改状态。
+- 运行记录只允许在 `RunRecorder.start` 与 `RunRecorder.finish` 两个边界写库；
+  `sim.step()` 热路径不得执行同步 SQL。写库失败只在运行报告中标记
+  `run_record.ok=false`，不回滚仿真、不自动重放；失败/中止运行也写终态。
 - `application/coordinator.py` 仍是多岛编排整体；业务规则已抽到 `domain`，
   但“领域决策/仿真动作端口”的进一步拆分未实施。
 
@@ -167,7 +189,22 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 ## 9. 测试与证据
 
-- 纯逻辑测试：`python -m pytest -q`（无仿真环境：448 passed / 3 skipped）。
+- 纯逻辑测试：`python -m pytest -q`（无仿真环境）。本轮新增目录持久化
+  测试 `tests/test_v1_catalog_persistence.py`、知识图谱测试
+  `tests/test_v1_knowledge_graph.py` 和运行记录测试
+  `tests/test_v1_run_records.py`；完整回归计数未在这些实施轮刷新，见
+  [目录实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md)、
+  [知识图谱报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) 与
+  [运行记录报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)。
+- 目录数据库验证：`flexible-factory catalog init/import/publish/verify/diff`
+  （不需要 CoppeliaSim）；数据库默认 `var/catalog/catalog.db`。
+- 运行记录验证：`flexible-factory report runs/run/genealogy/waits/timeline`
+  （不需要 CoppeliaSim）；`run` 默认在开始/结束批量写入，`--run-records off`
+  可关闭。
+- 知识图谱验证：`flexible-factory knowledge import/status/verify/publish`
+  （不需要 CoppeliaSim）；真实 dump 的载入/导出需要 Docker Desktop 和
+  Neo4j；本机已执行 222 节点/384 关系导入并发布，见
+  [tools/neo4j/README.md](tools/neo4j/README.md)。
 - 设备级 focused 验收与阶段 4 `full_flow`（需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，
 

@@ -27,6 +27,17 @@ logs/
 # 运行输出与测试临时目录 (证据按需归档到 docs/implementation/evidence/)
 docs/implementation/runs/
 .pytest-tmp/
+/.tmp/
+# 本地目录数据库 (按需重建; 不进入版本控制, 不写入场景工件目录)
+/var/
+
+# 本地 Neo4j 凭据与临时导入文件
+/tools/neo4j/.env
+/tools/neo4j/import/*
+!/tools/neo4j/import/.gitkeep
+
+# 用户提供的本地参考 dump/脚本 (可能含凭据, 不纳入版本控制)
+/ref/
 
 # 本地工作区记忆与助手状态 (不入库)
 /.workbuddy/

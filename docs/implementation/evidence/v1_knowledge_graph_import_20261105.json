@@ -1,0 +1,92 @@
+{
+  "source_report": "docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md",
+  "note": "真实 ref/fmpmm.dump 经官方 neo4j-admin 载入 Neo4j 5.13，再由 tools/neo4j_export.py 只读导出并导入 SQLite；不含密码。",
+  "executed_at": "2026-11-05T08:52:48+00:00",
+  "source_dump": {
+    "path": "ref/fmpmm.dump",
+    "sha256": "9413d53dd5b6206e5f6082bf134757a3aa8f28e367f2fb95bea094cfdc75e344",
+    "size_bytes": 273272
+  },
+  "neo4j": {
+    "image": "neo4j:5.13-community",
+    "database": "neo4j",
+    "nodes": 222,
+    "relationships": 384,
+    "labels": {
+      "Instance": 155,
+      "Abstraction": 18,
+      "Goal": 17,
+      "Operation": 12,
+      "Parameter": 9,
+      "Action": 7,
+      "Capability": 4
+    },
+    "relationship_types": {
+      "include": 131,
+      "has_instance": 68,
+      "achieve_goal": 48,
+      "has_capability": 42,
+      "operation": 24,
+      "has_action": 23,
+      "has_parameter": 22,
+      "after": 21,
+      "installed_on": 5
+    },
+    "goal_id_90_present": true
+  },
+  "export": {
+    "tool": "tools/neo4j_export.py",
+    "format": "cop-test-neo4j-export/1",
+    "nodes": 222,
+    "relationships": 384
+  },
+  "extraction": {
+    "extraction_id": "ext_84992b7bf206e20dc529",
+    "source_id": "neo4j_9413d53dd5b6206e",
+    "extractor_id": "flexible_factory.neo4j_export",
+    "extractor_version": "1",
+    "status": "published",
+    "entities": 222,
+    "relations": 384,
+    "ambiguous_canonical_ids": 44,
+    "entity_source_rows": 222,
+    "relation_source_rows": 384,
+    "unmapped_entity_types": [],
+    "unmapped_predicates": [],
+    "entity_conflicts": 0,
+    "relation_conflicts": 0,
+    "unresolved_relationships": 0
+  },
+  "checks": {
+    "knowledge_verify_ok": true,
+    "idempotent_reimport_changed": false,
+    "required_instances_published": {
+      "TESTBOX": true,
+      "TESTCOVER": true,
+      "AUR0001": true,
+      "AUR0002": true,
+      "GDH0001": true,
+      "GDH0002": true
+    },
+    "entity_types": {
+      "Abstraction": 18,
+      "Action": 7,
+      "Capability": 4,
+      "Goal": 17,
+      "Instance": 155,
+      "Operation": 12,
+      "Parameter": 9
+    },
+    "predicates": {
+      "ACHIEVES_GOAL": 48,
+      "AFTER": 21,
+      "HAS_ACTION": 23,
+      "HAS_CAPABILITY": 42,
+      "HAS_INSTANCE": 68,
+      "HAS_OPERATION": 24,
+      "HAS_PARAMETER": 22,
+      "INCLUDES": 131,
+      "INSTALLED_ON": 5
+    }
+  }
+}

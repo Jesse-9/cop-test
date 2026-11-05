@@ -1,10 +1,12 @@
 ---
 title: 资源目录数据库化与知识图谱实施方案
 type: plan
-status: proposed
+status: partially-implemented
 created: 2026-11-05
 updated: 2026-11-05
 scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump assessment
+related:
+  - V1_CATALOG_PERSISTENCE_REPORT.md
 ---
 
 # 资源目录数据库化与知识图谱实施方案
@@ -15,7 +17,7 @@ scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump
 
 ### 1.1 首选方案
 
-- 首期使用 Python 标准库 `sqlite3` 和 SQL 迁移文件，不增加 ORM、服务端数据库或图数据库依赖。
+- 首期使用 SQLAlchemy 2.x ORM/Core 管理 SQLite 映射、查询和事务，并使用 Alembic 管理 schema 迁移；不增加服务端关系数据库依赖。Neo4j 仍只作为后续可选图谱投影。
 - SQLite 是当前单机仿真产品的本地权威数据存储。静态目录在应用启动时载入并转换成现有领域对象；运行时调度仍由内存中的 `ResourceTable`、`MaterialRegistry`、`OperationRuntime` 管理。
 - 第一批持久化范围为物料类型、设备、能力、场景绑定、互斥资源、物料区域、配方/工序/路线及它们的显式关系。运行记录与知识抽取分后续阶段进入。
 - 关系表是可查询业务数据和关系事实的权威表示。JSON 只存非核心扩展属性、来源原文/片段和交换快照；不得用 JSON 数组替代需要约束或查询的外键关系。
@@ -24,7 +26,7 @@ scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump
 
 ### 1.2 当前项目边界
 
-当前 `domain/process_model.py` 已定义静态配方、工序、路线、订单入口、设备与能力目录；`domain/resources.py` 是固定顺序、全有或全无的运行时互斥锁；`domain/materials.py` 管理 UID、物料谱系和区域；`artifacts/store.py` 管理版本化场景工件。数据库实现放在新建的 `src/flexible_factory/catalog/` 或 `src/flexible_factory/persistence/` 边界内，不能让 `domain/` 直接导入 SQLite、文件系统或 CLI。
+当前 `domain/process_model.py` 已定义静态配方、工序、路线、订单入口、设备与能力目录；`domain/resources.py` 是固定顺序、全有或全无的运行时互斥锁；`domain/materials.py` 管理 UID、物料谱系和区域；`artifacts/store.py` 管理版本化场景工件。数据库实现放在新建的 `src/flexible_factory/persistence/` 边界内，不能让 `domain/` 直接导入 SQLAlchemy、SQLite、文件系统或 CLI。Repository 将 ORM 实体转换为现有领域数据类；ORM 对象不得越过 persistence/application 边界。
 
 句柄、连接对象、仿真时刻中的临时 owner/waiting 队列和控制器对象均为运行时状态，不进入静态资源目录。持久化场景绑定时使用稳定设备 ID、场景/契约版本与 alias，不保存 CoppeliaSim handle。
 
@@ -36,7 +38,7 @@ scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump
 
 | 表 | 核心字段 | 约束/说明 |
 |---|---|---|
-| `schema_migration` | `version`, `applied_at`, `checksum` | 迁移版本唯一；已应用迁移不可编辑 |
+| `alembic_version` | Alembic 管理的当前 revision | 由 Alembic 创建和维护；schema 变更追加 revision |
 | `catalog_release` | `release_id`, `catalog_version`, `status`, `source_digest`, `created_at`, `published_at` | 导入先为 `staging`；校验通过后原子发布 |
 | `material_type` | `material_type_id`, `release_id`, `description`, `color_json` | `(release_id, material_type_id)` 唯一 |
 | `device` | `device_id`, `release_id`, `kind`, `physical`, `description` | 物理设备和逻辑处理器均可表达；逻辑设备不伪装为场景对象 |
@@ -59,7 +61,7 @@ scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump
 | `route_operation` | `recipe_id`, `route_id`, `ordinal`, `operation_id` | 按 ordinal 保留有序路线；组合外键保证同配方 |
 | `order_entry` | `recipe_id`, `entry_id`, `operation_id`, `line_id`, `material_type_id`, `route_group`, `route_id` | 静态入口定义，不代表当前已有生产订单实体 |
 
-数据库采用 SQLite `STRICT` 表（运行 SQLite 版本满足要求时）或等价的显式 `CHECK` 约束。每个连接创建时启用 `PRAGMA foreign_keys = ON`；应用启动检查其实际值，未启用即失败。建表时明确 `NOT NULL`、唯一性、外键和范围约束；Python 领域校验继续负责跨行不变量和拓扑无环验证。
+数据库采用 SQLite `STRICT` 表（运行 SQLite 版本满足要求时）或等价的显式 `CHECK` 约束。SQLAlchemy Engine 的 connect hook 统一启用 `PRAGMA foreign_keys = ON`，并检查实际值；SQLite 默认不启用外键，不能只依赖 ORM relationship。建表时明确 `NOT NULL`、唯一性、外键和范围约束；Python 领域校验继续负责跨行不变量和拓扑无环验证。SQLAlchemy 提供 ORM 映射及 Core 表达能力；批量 seed/import 可用 Core 批量语句，不为追求“全 ORM”牺牲清晰性。
 
 ### 2.2 后续运行记录表（不进入首期）
 
@@ -106,7 +108,7 @@ scope: flexible_factory resources, process catalog, material lineage, fmpmm.dump
 
 ## 4. `fmpmm.dump` 识别与知识图谱导入流程
 
-当前工作区检查结果：文件名为 `fmpmm.dump`，大小约 273 KB，开头字节为 ASCII `DZV1`；zstd 检测未识别为 zstd 压缩数据。仅凭这些信息不能确认生成工具、容器格式、内部版本或其是否包含知识图谱。
+当前工作区检查结果：文件名为 `fmpmm.dump`，大小约 273 KB，开头字节为 ASCII `DZV1`；后续用户提供的 `ref/scripts/import-neo4j-dump.ps1` 确认它是 Neo4j 数据库 dump，官方读取方式为 `neo4j-admin database load` + `neo4j-admin database migrate`，再通过 Bolt/Cypher 只读查询（参见 `ref/scripts/verify_neo4j.sh`）。项目仍不自行解析二进制 dump；真实载入和导出需要本机 Docker。
 
 按以下门槛执行：
 
@@ -233,7 +235,7 @@ docker compose down
 
 ## 6. 详细执行步骤与验收门槛
 
-以下步骤按顺序实施。每阶段在前一阶段验收通过后再开始依赖它的工作；变更通过正常代码评审和项目测试，不改变已保护场景工件。
+以下步骤按顺序实施。每阶段在前一阶段验收通过后再开始依赖它的工作；变更通过代码评审和用户手工验证，不改变已保护场景工件。
 
 ### 阶段 0：盘点与数据契约
 
@@ -246,19 +248,20 @@ docker compose down
 
 ### 阶段 1：schema 与迁移框架
 
-1. 新建 persistence/catalog 包，明确连接工厂、迁移 runner、仓储接口与领域转换器；领域模块只接收数据对象，不依赖 SQLite。
-2. 新建有序 SQL 迁移文件 `0001_catalog_core.sql`，实现本方案 2.1 的最小核心表与约束；大表/运行记录/图谱表留到各自阶段。
-3. 实现迁移账本：按版本顺序执行；同一迁移重复执行不重复应用；应用后校验文件 checksum，禁止静默修改已应用迁移。
-4. 每个连接设置并验证外键开启、忙等待策略和事务模式；不配置 WAL/线程池等未经需要证明的机制。
-5. 数据库路径通过现有应用配置/CLI 注入，测试使用临时目录；不得默认将数据库写入已受保护的场景工件目录。
+1. 在 `pyproject.toml` 中将 SQLAlchemy 2.x、Alembic 加入依赖，并按项目既有工具更新 `uv.lock`；不增加额外 ORM 插件。
+2. 新建 `src/flexible_factory/persistence/`，划分 SQLAlchemy `Base`/ORM 映射、Engine/Session 工厂、repository 和领域转换器；领域模块只接收/返回领域数据类，不依赖 ORM。
+3. 初始化 Alembic 并将 ORM metadata 接入 `env.py`；创建首个 revision，实现本方案 2.1 的最小核心表与约束。运行记录/图谱表留到对应阶段新增 revision。
+4. Alembic autogenerate 只生成候选迁移；每个候选都必须人工检查约束、索引、SQLite DDL 与 upgrade/downgrade 行为后才能提交。已发布 revision 不修改，schema 变更追加新 revision。
+5. 在 Engine connect hook 中设置并验证 `PRAGMA foreign_keys = ON`；显式配置 SQLAlchemy Session/事务边界。SQLite 事务和 DDL 行为按项目支持的 Python/sqlite 版本确认。
+6. 数据库路径通过现有应用配置/CLI 注入，手工验证使用临时目录；不得默认将数据库写入已受保护的场景工件目录。
 
-验收：空库可从零迁移；重复初始化无重复副作用；非法外键/容量/重复 ID 被拒绝；失败迁移保留明确错误且不将版本标记成功。
+验收：空库可由 `alembic upgrade head` 从零迁移；重复 upgrade 无副作用；非法外键/容量/重复 ID 被拒绝；失败迁移保留明确错误且 `alembic_version` 不误报成功。
 
 ### 阶段 2：目录导入与只读仓储
 
 1. 实现 `ProcessCatalog` → 数据库 staging release 的显式转换器；先导入 material/device/capability/resource/zone，再导入 recipe/operation/route/entry 和关联表。
-2. 通过参数化 SQL 写入，在单一事务内完成一个 staging release；任何校验失败都回滚该批次。
-3. 查询仓储从已发布 release 构造现有不可变领域数据类；验证外键完整性和全部领域校验后才返回目录。
+2. 使用 SQLAlchemy Core 批量 insert 或 ORM unit of work，在单一 Session/事务内完成一个 staging release；任何校验失败都回滚该批次。
+3. 查询仓储从已发布 release 查询 ORM 映射，并构造现有不可变领域数据类；验证外键完整性和全部领域校验后才返回目录。
 4. 对比数据库往返前后的稳定 `as_dict()` 输出，并校验资源顺序、输入/输出顺序、工步顺序、路线顺序、候选设备顺序及前置策略。
 5. 提供显式的初始化/导入入口；尚未迁移 CLI 前，生产仿真继续使用原默认目录，不做静默 fallback。
 
@@ -367,14 +370,14 @@ RETURN d.id, c.id;
 - 不把“手动启动 Neo4j 成功”描述为资源数据库迁移完成。
 - 不在 `fmpmm.dump` 格式未确认时执行恢复、加载或批量导入。
 
-## 8. 测试与交付要求
+## 8. 后续自动化测试范围
 
-- migration 测试：空库迁移、连续升级、迁移失败、重复启动、checksum 不匹配。
+- migration 检查：空库迁移、连续升级、迁移失败、重复升级；Alembic revision 与数据库当前版本一致。
 - 约束测试：外键、唯一键、容量范围、受控枚举、路线 ordinal、禁止自环和非法关联。
 - 转换测试：默认 catalog 往返等价、顺序语义保持、缺失引用给出具体诊断。
 - 发布测试：staging 失败不动 current release；成功发布在一个事务边界内切换。
-- 边界测试：`domain` 不导入 `sqlite3`/persistence；仿真热路径不执行同步数据库写入；数据库目录无句柄和临时运行状态。
-- 本阶段完整自动回归暂缓；交付物提供 7 节手动验证步骤。后续自动化测试必须以已通过的手工步骤为基础，并单独立项。
+- 边界检查：`domain` 不导入 SQLAlchemy/SQLite/persistence；仿真热路径不执行同步数据库写入；数据库目录无句柄和临时运行状态。
+- 本阶段不要求实现或执行以上自动化测试，按第 7 节手工验证。若后续转为自动化，按上述范围单独实施。
 - 任何数据库实现阶段都不得修改或覆盖受保护的 `docs/scene_artifacts/v1/` 场景工件；若目录版本变化要求新工件，使用现有工件派生/验证流程另行生成。
 
 ## 9. 风险、回退与停止条件
@@ -393,6 +396,43 @@ RETURN d.id, c.id;
 - SQLite Foreign Key Support: <https://www.sqlite.org/foreignkeys.html>（每个连接需启用外键约束。）
 - SQLite FTS5: <https://www.sqlite.org/fts5.html>（可用于后续全文检索评估；中文分词效果必须以实际数据验证。）
 - PostgreSQL JSON Types: <https://www.postgresql.org/docs/current/datatype-json.html>（JSON/JSONB 适用边界参考；首期并不依赖 PostgreSQL。）
+- SQLAlchemy ORM: <https://docs.sqlalchemy.org/en/20/orm/>（映射、查询和 Session/unit-of-work。）
+- SQLAlchemy SQLite dialect: <https://docs.sqlalchemy.org/en/20/dialects/sqlite.html>（SQLite 外键需对每个连接启用 `PRAGMA foreign_keys=ON`，并说明 SQLite 事务行为。）
+- Alembic autogenerate: <https://alembic.sqlalchemy.org/en/latest/autogenerate.html>（生成结果是候选迁移，需人工复核。）
 - Neo4j CSV Import: <https://neo4j.com/docs/getting-started/data-import/csv-import/>（关系数据导出后按需构造图导入。）
 - Neo4j relational-to-graph import: <https://neo4j.com/docs/getting-started/data-import/relational-to-graph-import/>（关系模型到图模型的派生导入参考。）
+
+## 11. 实施状态（2026-11-05）
+
+阶段 0–3 已按本方案实施，详见
+[V1 资源目录数据库化实施报告](V1_CATALOG_PERSISTENCE_REPORT.md) 和
+[静态目录字段盘点](V1_CATALOG_FIELD_INVENTORY.md)：
+
+- 新增 `src/flexible_factory/persistence/`、Alembic revision
+  `0001_catalog_core` 和 `flexible-factory catalog` 命令组；
+- 默认目录可导入为 staging release，校验后原子发布，并能重建等价
+  `ProcessCatalog`；
+- 影子对比 (`catalog diff`) 为空；`run --catalog-source db` 只接受与代码
+  目录完全等价的已发布目录；
+- 新增持久化测试覆盖迁移、约束、导入/发布、往返和故障回滚。
+
+阶段 5 已实施并完成真实 dump 端到端导入：`ref/scripts/` 确认
+`fmpmm.dump` 是 Neo4j 数据库 dump，官方路径为
+`neo4j-admin database load` / `migrate`；新增 Alembic revision
+`0002_knowledge_graph`、`tools/neo4j_export.py`、`tools/neo4j/` 载入工具
+和 `flexible-factory knowledge import/status/verify/publish`。真实图为
+222 节点/384 关系、7 类标签、9 类关系；导入 222 实体/384 关系并发布成功，
+无未映射/冲突/悬空关系。详见
+[知识图谱导入实施报告](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+
+阶段 4 已按用户确认的 Q1–Q4 口径实施：新增 revision
+`0003_run_records`，在生产运行开始/结束两个边界批量写入运行、工序、物料、
+谱系、资源和事件记录；提供 `report runs/run/genealogy/waits/timeline`
+查询。写入失败只在运行报告标记持久化失败，不回滚仿真、不自动重放。详见
+[运行记录实施报告](V1_RUN_RECORDS_REPORT.md)。真实 `full_flow` 与运行记录
+的联合验收尚未执行。
+
+阶段 6 仅覆盖迁移测试、来源摘要、发布门槛和工具文档；备份/恢复演练与
+运行记录保留策略仍未实施。第 7 节的完整手工回归和需要 CoppeliaSim 的
+验收仍未执行。
 

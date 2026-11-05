@@ -25,6 +25,10 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 | [V1_STAGE4_REPORT.md](V1_STAGE4_REPORT.md) | 阶段 4 实施记录：纯调度策略、设备选择决策、runtime 写入口边界与 `full_flow` 验收 |
 | [V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md](V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md) | 混线生产灵活性扩展示范方案：有限批次 profile、设备替代和同一物料路线选择的分阶段实施与验收 |
 | [RESOURCE_DATABASE_PLAN.md](RESOURCE_DATABASE_PLAN.md) | 资源目录数据库化与知识图谱方案：目标 schema、现有数据映射、dump 识别流程、分阶段执行与验收门槛 |
+| [V1_CATALOG_PERSISTENCE_REPORT.md](V1_CATALOG_PERSISTENCE_REPORT.md) | 静态目录数据库化实施记录：SQLAlchemy/Alembic schema、导入/发布/只读仓储、影子对比、CLI 与验证结果；阶段 4、5 分别见运行记录与知识图谱报告 |
+| [V1_CATALOG_FIELD_INVENTORY.md](V1_CATALOG_FIELD_INVENTORY.md) | 阶段 0 字段盘点：来源模块、静态/运行时边界、顺序语义、术语对照与 `fmpmm.dump` 状态 |
+| [V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) | 阶段 5 知识图谱导入：Neo4j dump 官方载入/导出、`0002_knowledge_graph`、staging/审核发布；真实 222 节点/384 关系已导入并发布 |
+| [V1_RUN_RECORDS_REPORT.md](V1_RUN_RECORDS_REPORT.md) | 阶段 4 运行记录：`0003_run_records`、Q1–Q4 查询、运行开始/结束批量写入、失败语义与未执行的实机联合验收 |
 | [PERFORMANCE_AND_PATH_REUSE_PLAN.md](PERFORMANCE_AND_PATH_REUSE_PLAN.md) | 路径复用与规划性能的跨阶段技术提案，尚未纳入当前 v1 范围 |
 
 ## 文档分组
@@ -33,7 +37,10 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
 - **阶段实施**：`V1_STAGE*_..._PLAN.md` 与对应的 `V1_STAGE*_..._REPORT.md`。
 - **跨阶段提案**：`V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md`、
   `RESOURCE_DATABASE_PLAN.md`、`PERFORMANCE_AND_PATH_REUSE_PLAN.md`；这些文件有
-  `proposed` 状态时只是候选工作，不改变当前 v1 能力。
+  `proposed` 状态时只是候选工作，不改变当前 v1 能力。`RESOURCE_DATABASE_PLAN`
+  的阶段 0–3 见 `V1_CATALOG_PERSISTENCE_REPORT.md`，阶段 4 见
+  `V1_RUN_RECORDS_REPORT.md`，阶段 5 见
+  `V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md`；阶段 6 仅部分实施。
 - **正式证据**：`evidence/` 只保存被报告引用的裁剪证据，`runs/` 只保存被忽略的临时输出。
 
 ## 证据
@@ -42,8 +49,9 @@ v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输
   `v1_full_flow_acceptance_*.json`、`v1_conveyor_fault_acceptance_*.json`、
   `v1_stage0_1_full_flow_acceptance_*.json`、阶段 2 的
   `v1_stage2_arm_*.json`、`v1_stage2_agv_*.json`、阶段 3 的
-  `v1_stage3_full_flow_*.json` 与阶段 4 的
-  `v1_stage4_full_flow_20261104_210605.json`。
+  `v1_stage3_full_flow_*.json`、阶段 4 的
+  `v1_stage4_full_flow_20261104_210605.json`，以及知识图谱真实导入摘要
+  `v1_knowledge_graph_import_20261105.json`。
 - `runs/`：仿真器生成的临时报告，默认由 `.gitignore` 排除；正式结论引用的
   文件应复制到 `evidence/` 并在报告中引用。
 

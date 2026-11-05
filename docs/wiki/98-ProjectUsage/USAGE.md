@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-03
+updated: 2026-11-05
 status: published
 sim_version: "4.10+"
 ---
@@ -64,6 +64,8 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 - `validate` 是可选诊断，不是 `run` 的前置条件。
 - 运行期间禁止 build/load/save/validate 或启动第二个控制任务。
 - 报告写入 `docs/implementation/runs/v1_run_<scenario>_<stamp>.json`。
+- 运行记录默认写入 `var/catalog/catalog.db`；`--run-records off` 可关闭，
+  写库失败不会中止运行。
 
 `--scenario` 的 `full_flow` 是唯一用户运行模式；`no_pair`、`agv_priority`、
 `agv_blocked`、`conveyor_fault`、`staggered_batch` 仅用于内部回归和诊断。
@@ -74,6 +76,93 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
     flexible-factory status --offline
     flexible-factory list
     flexible-factory stop
+
+## 静态目录数据库（维护操作）
+
+静态资源/工艺目录可持久化到本地 SQLite；默认路径
+`var/catalog/catalog.db`（不写入受保护的场景工件目录）。该功能不影响默认
+运行：`run` 仍读取代码内默认目录，只有显式 `--catalog-source db` 才切换。
+
+    # 初始化或升级 schema（幂等）
+    flexible-factory catalog init
+
+    # 导入代码默认目录为 staging release（--release-id 可省略）
+    flexible-factory catalog import --release-id rel_v1_process_20261103b_01
+
+    # 校验后原子发布
+    flexible-factory catalog publish --release-id rel_v1_process_20261103b_01
+
+    # 状态、代码/数据库影子对比、完整性与往返校验
+    flexible-factory catalog status
+    flexible-factory catalog diff
+    flexible-factory catalog verify
+
+    # 显式使用已发布数据库目录运行 full_flow
+    flexible-factory run --scenario full_flow --time 700 --catalog-source db
+
+`catalog diff` 必须输出 `"ok": true` 且差异为空；`run --catalog-source db`
+也会在连接 CoppeliaSim 前执行同样的等价检查，不一致则拒绝启动。数据库不可用
+或没有已发布 release 时不会回退到代码目录，错误为 `CATALOG_*`。需要
+CoppeliaSim 的 `full_flow` 验收不在目录数据库维护命令范围内。
+
+开发者也可直接使用 Alembic：
+
+    alembic -c alembic.ini -x db_url=sqlite:///E:/path/catalog.db upgrade head
+    alembic -c alembic.ini -x db_url=sqlite:///E:/path/catalog.db check
+
+## 知识图谱导入（维护操作）
+
+`fmpmm.dump` 已确认是 Neo4j 数据库 dump。原文件只用官方
+`neo4j-admin database load` / `migrate` 载入本地 Neo4j，再由只读导出器
+生成 JSON；项目不自行解析二进制 dump。完整步骤见
+[本地 Neo4j 工具](../../../tools/neo4j/README.md)。
+
+前置条件：Docker Desktop 已启动，`uv sync --group dev` 已安装 Neo4j 驱动。
+
+    $env:NEO4J_AUTH = 'neo4j/<password>'
+    $env:NEO4J_PASSWORD = '<password>'
+
+    .\tools\neo4j\load-dump.ps1 -DumpPath .\ref\fmpmm.dump
+
+    uv run python .\tools\neo4j_export.py `
+      --source-dump .\ref\fmpmm.dump `
+      --out .\docs\implementation\runs\fmpmm_graph.json
+
+    flexible-factory knowledge import `
+      --export .\docs\implementation\runs\fmpmm_graph.json `
+      --source-dump .\ref\fmpmm.dump
+
+    flexible-factory knowledge status
+    flexible-factory knowledge verify --extraction-id <extraction_id>
+    flexible-factory knowledge publish --extraction-id <extraction_id>
+
+`knowledge import` 只写 staging；未映射标签/谓词、端点缺失或 canonical ID
+冲突会进入报告并阻止发布。`knowledge verify` 返回非零时不要发布。真实
+dump 的载入/导出需要 Docker；本机已用 `ref/fmpmm.dump` 完成
+222 节点/384 关系的导入与发布。仅有导出 JSON 时可做 staging 和测试，但
+不能在未重新载入/导出的环境声称真实图谱已完成端到端导入。
+
+## 运行记录与查询（维护操作）
+
+`run` 默认在开始/结束边界批量写运行记录到同一数据库
+（`var/catalog/catalog.db`）；仿真循环内不写库。写库失败只会在运行报告
+标记持久化失败，不影响仿真结果。可用 `--run-records off` 关闭。
+
+    flexible-factory report runs
+    flexible-factory report run --run-id <run_id>
+    flexible-factory report genealogy --run-id <run_id> --uid <final_uid>
+    flexible-factory report waits --run-id <run_id> --resource arm_A
+    flexible-factory report timeline --run-id <run_id> --instance-id <id>
+
+不传 `--run-id` 时使用最近一次运行。四个命令分别对应：
+
+- `run`：运行汇总与验收（Q1）；
+- `genealogy`：FINAL 物料谱系（Q2）；
+- `waits`：资源等待/竞争（Q3）；
+- `timeline`：工序时间线与失败取证（Q4）。
+
+数据库可直接用 SQLite 查询；记录全部保留，当前没有自动清理命令。需要
+CoppeliaSim 的 `full_flow` 与运行记录联合验收不在本机维护命令范围内。
 
 ## 迁移与重建（维护操作）
 
@@ -120,4 +209,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 本文件是 v1 启动、工件生命周期和运行方法的操作手册。改动启动/连接方式、
 CLI 参数、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
 场景工件说明与实现保持一致。新增可运行模式时，补充其前置工件、加载步骤、
-运行命令和输出位置。
+运行命令和输出位置。新增目录数据库、知识图谱或运行记录命令时，同步更新
+本节、[资源目录数据库化实施报告](../../implementation/V1_CATALOG_PERSISTENCE_REPORT.md)、
+[知识图谱导入实施报告](../../implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)
+与[运行记录实施报告](../../implementation/V1_RUN_RECORDS_REPORT.md)。
