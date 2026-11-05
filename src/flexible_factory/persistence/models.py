@@ -628,3 +628,8 @@ class OrderEntry(Base):
     material_type_id: Mapped[str] = mapped_column(Text, nullable=False)
     route_group: Mapped[Optional[str]] = mapped_column(Text)
     route_id: Mapped[Optional[str]] = mapped_column(Text)
+
+
+# 知识图谱表 (方案 §2.3) 在同一 metadata 中注册; 单独文件保持静态目录
+# 与抽取结果 schema 的分区. 必须放在 Base/辅助函数定义之后.
+from . import knowledge_models  # noqa: E402,F401
