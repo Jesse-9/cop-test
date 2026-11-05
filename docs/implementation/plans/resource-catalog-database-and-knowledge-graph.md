@@ -13,7 +13,7 @@ related:
 
 ## 1. 目标与决策
 
-本文规划把当前散布在 Python 常量、静态工艺目录、场景绑定和运行证据中的资源数据整理为版本化、可校验、可查询的数据格式，并以数据库持久化。知识图谱用于表达实体关系、来源和查询路径，不取代运行时领域模型。
+本文记录资源数据数据库化的架构决策、剩余融合工作和验收边界。数据库化及 Neo4j dump 导入的已完成实现以对应实施报告为准；本方案不重复列出已完成实现步骤。知识图谱用于表达实体关系、来源和查询路径，不取代运行时领域模型。
 
 ### 1.1 首选方案
 
@@ -22,7 +22,7 @@ related:
 - 第一批持久化范围为物料类型、设备、能力、场景绑定、互斥资源、物料区域、配方/工序/路线及它们的显式关系。运行记录与知识抽取分后续阶段进入。
 - 关系表是可查询业务数据和关系事实的权威表示。JSON 只存非核心扩展属性、来源原文/片段和交换快照；不得用 JSON 数组替代需要约束或查询的外键关系。
 - 暂不部署 Neo4j。只有明确的多跳查询、规模或图算法需求通过关系查询基准后仍无法满足时，才评估从关系表导出到 Neo4j。
-- `fmpmm.dump` 作为未经识别的输入工件处理。识别真实生成软件、版本和官方导出/恢复格式后才设计解析；在此之前不猜测文件内容、不执行导入、不把它视为已知图数据库备份。
+- `fmpmm.dump` 已由官方 Neo4j 工具载入并完成只读导出及 SQLite staging 导入；来源、处理过程和验证证据见[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)。这里的 `fmpmm` 是文件/来源项目标识，不作为通用领域标准名称使用。
 
 ### 1.2 当前项目边界
 
@@ -106,23 +106,11 @@ related:
 
 首期目录发布必须能从当前 `default_catalog()` 和当前规则数据导入，再由数据库仓储读取并重建等价的 `ProcessCatalog`。以稳定序列化结果比较（忽略无语义顺序的映射键排序，但保留 routes、inputs、work steps、resources 和 candidates 的业务顺序）。
 
-## 4. `fmpmm.dump` 识别与知识图谱导入流程
+## 4. 来源知识图谱导入状态
 
-当前工作区检查结果：文件名为 `fmpmm.dump`，大小约 273 KB，开头字节为 ASCII `DZV1`；后续用户提供的 `ref/scripts/import-neo4j-dump.ps1` 确认它是 Neo4j 数据库 dump，官方读取方式为 `neo4j-admin database load` + `neo4j-admin database migrate`，再通过 Bolt/Cypher 只读查询（参见 `ref/scripts/verify_neo4j.sh`）。项目仍不自行解析二进制 dump；真实载入和导出需要本机 Docker。
+`fmpmm.dump` 是 Neo4j 数据库 dump；它已通过官方 Neo4j 工具载入、只读导出为 JSON，并导入 SQLite staging。完整命令、实际实体/关系统计、发布状态和手工复核方式见[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)。本方案只保留导入边界：二进制 dump 不由项目自行解析；源 ID、原标签/谓词和来源摘要用于追溯；Neo4j 负责读取原始 dump 或按需查询，不成为仿真运行时依赖。
 
-按以下门槛执行：
-
-1. 从文件提供者/生成系统取得导出应用名称、版本、导出命令或界面选项、对应恢复/导入说明、是否加密及脱敏要求。
-2. 优先使用生成应用官方的只读 inspect/list 或官方格式转换功能，将 dump 导出为受支持的中间格式；不对原文件执行可能修改内容的恢复操作。
-3. 对原始文件计算 SHA-256，记录文件字节数、提供者、工具版本、时间和转换命令；转换产物另算摘要。
-4. 先在独立 staging 数据库导入小样本。识别节点/边/属性/来源字段、ID 规则、关系方向和编码；将统计及无法映射项写入导入报告。
-5. 制作映射表，将来源标签/关系映射到 `knowledge_entity.entity_type` 和受控谓词；保留来源原始 ID 和原始片段，不以模型生成内容覆盖事实字段。
-6. 验证实体/关系数量、唯一 ID、引用闭合、关系端点存在、孤立率、重复率、无来源比例及抽样追溯。定义具体阈值后由数据负责人确认；在确认阈值前，报告所有异常并禁止发布。
-7. 重复运行同一来源摘要和同一转换器版本应幂等；相同 canonical ID 的冲突写入冲突报告/待审核状态，不采用“最后写入覆盖”。
-8. 仅在 staging 校验通过后，于事务中发布对应 extraction/catalog release；发布前后的数据库备份和恢复流程经过演练。
-9. 如果官方转换可导出 CSV/JSON 等，优先基于该输出导入关系库；若后续确实需要 Neo4j，从关系数据生成节点/边文件并单独验证图导入。不要让未知 dump 解析逻辑进入仿真主路径。
-
-若无法得到格式来源或官方解析途径，`fmpmm.dump` 保持为待识别资料，资源目录数据库化仍可独立按本方案推进；不得把未读取的文件描述为已完成图谱导入。
+仍待完成的是将 staging 中已审核的来源知识语义映射为本项目可执行 catalog 候选，详见阶段 5.1。知识抽取已发布不等于可执行 recipe 已发布；两者须分别审核和发布。
 
 ## 5. Neo4j 运行方式与定位
 
@@ -224,7 +212,7 @@ docker compose down
 
 4. 大批量 CSV 导入才使用 `neo4j-admin database import full`；该工具需要符合 Neo4j CSV header 规范，并应在独立的 staging 数据目录执行。官方 Docker 操作文档说明可通过 `docker exec` 在容器内运行 `neo4j-admin` 和导入工具，参见 [Docker-specific operations](https://neo4j.com/docs/operations-manual/current/docker/operations/)。
 5. 导入后手工检查节点/关系数量、关键关系方向、孤立节点和来源字段；用 Cypher 保存可复现的查询样例。
-6. `fmpmm.dump` 在来源和格式未确认前禁止直接传给 `neo4j-admin database load` 或任何猜测性的恢复命令。它必须先经过第 4 节的只读识别和转换。
+6. 对已确认的原始 Neo4j dump，只使用其实施报告记录的官方载入/迁移流程；不要对 dump 做项目自定义二进制解析。其他来源文件仍须先确认格式和官方恢复方式。
 
 ### 5.5 与本项目的连接边界
 
@@ -237,16 +225,16 @@ docker compose down
 
 以下步骤按顺序实施。每阶段在前一阶段验收通过后再开始依赖它的工作；变更通过代码评审和用户手工验证，不改变已保护场景工件。
 
-### 阶段 0：盘点与数据契约
+### 阶段 0：盘点与数据契约（已完成）
 
 1. 盘点 `rules.py`、`default_process.py`、`process_model.py`、`device_binding.py`、`layout.py`、`materials.py`、`resources.py`、manifest 和相关测试中的持久字段。
 2. 为每个字段记录：稳定 ID、来源模块、静态/运行时属性、消费者、版本策略、可空性、顺序语义、是否持久化。
 3. 对 `device`/`resource`/`zone`/`material_type`/`operation` 形成术语对照，列出同名字符串代表不同语义的情况。
-4. 对 `fmpmm.dump` 执行格式来源调查；该项不阻塞静态目录 schema，但阻塞 dump 导入。
+4. 记录来源知识图谱格式、标签/谓词和已导入状态；静态目录字段盘点与术语对照见[字段盘点](../reference/static-catalog-field-inventory.md)，dump 导入细节见[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)。
 
 交付：字段目录、词汇表、dump 来源状态记录。验收：没有把句柄、运行时 owner、waiting 队列或物理仿真瞬时状态列入静态目录。
 
-### 阶段 1：schema 与迁移框架
+### 阶段 1：schema 与迁移框架（已实施）
 
 1. 在 `pyproject.toml` 中将 SQLAlchemy 2.x、Alembic 加入依赖，并按项目既有工具更新 `uv.lock`；不增加额外 ORM 插件。
 2. 新建 `src/flexible_factory/persistence/`，划分 SQLAlchemy `Base`/ORM 映射、Engine/Session 工厂、repository 和领域转换器；领域模块只接收/返回领域数据类，不依赖 ORM。
@@ -257,7 +245,7 @@ docker compose down
 
 验收：空库可由 `alembic upgrade head` 从零迁移；重复 upgrade 无副作用；非法外键/容量/重复 ID 被拒绝；失败迁移保留明确错误且 `alembic_version` 不误报成功。
 
-### 阶段 2：目录导入与只读仓储
+### 阶段 2：目录导入与只读仓储（已实施）
 
 1. 实现 `ProcessCatalog` → 数据库 staging release 的显式转换器；先导入 material/device/capability/resource/zone，再导入 recipe/operation/route/entry 和关联表。
 2. 使用 SQLAlchemy Core 批量 insert 或 ORM unit of work，在单一 Session/事务内完成一个 staging release；任何校验失败都回滚该批次。
@@ -267,7 +255,7 @@ docker compose down
 
 验收：当前默认目录可导入、读取并重建；非法引用、重复 order、循环依赖及未登记执行器 ID 均在发布前失败；读取 staging release 不会改变当前发布指针。
 
-### 阶段 3：影子读取与切换
+### 阶段 3：影子读取与切换（已实施）
 
 1. 在测试与诊断命令中并行构建“代码目录”和“数据库目录”，对规范化序列化值做 diff；运行时先不切换。
 2. 清理所有 diff：区分无语义字段顺序、明确的展示字段和真实数据差异；不能用放宽比较掩盖顺序语义差异。
@@ -277,26 +265,81 @@ docker compose down
 
 验收：等价性 diff 为空；数据库不可用时错误清晰且不会悄悄使用过期空目录；full_flow 结果契约和工件内容未被目录读取切换意外改变。
 
-### 阶段 4：运行记录（独立决策门）
+### 阶段 4：运行记录与已确认查询契约（已实施）
 
-1. 先确定要支持的实际查询（例如按 run 查询最终产物谱系、资源等待原因、工序执行耗时）；没有明确查询则暂不实现该阶段。
-2. 为所需查询设计最小运行记录表和索引，明确每种记录的权威提交点、幂等键、时间基准和事件保留规则。
-3. 在应用层明确批量提交边界，只在事件生成/工序提交边界写库；不在每个仿真 tick 做同步 SQL。
-4. 为写入失败定义可观察结果：运行报告必须标记持久化失败；不得把记录缺失当作成功，也不得自动重放会重复应用物料提交的命令。
-5. 测试事务中断、进程异常结束、重复事件导入及由事件重算的现有指标。
+阶段 4 已按实际生产排查需要确定并实现 Q1–Q4。它们分别回答“这次运行是否可信”“最终物料从哪里来”“运行被什么资源卡住”“具体哪道工序何时、由谁执行、在哪里失败”。设计时不以图查询或报表数量作为目标，而以能否复核一次 `full_flow` 的结果和异常为准。
 
-验收：指定查询可由持久化记录重建；`ResourceTable` 的 acquire-all/释放顺序和 `MaterialRegistry` 原子配对语义不因写库而改变。
+| 查询 | 现场问题与触发场景 | 权威数据边界 | 当前支持 |
+|---|---|---|---|
+| Q1 运行索引与验收汇总 | 最近运行是哪次？是否 DONE、验收是否通过？产出几个 FINAL？失败/中止原因是什么？不同场景或目录来源是否可辨？ | 以 `production_run` 为权威；计数来自同 run 的工序、物料、资源和事件记录 | 已有运行列表和单次运行报告。跨运行聚合筛选 UI 暂不支持；按场景/版本/时间筛选有实际需求后再扩展。 |
+| Q2 单件物料谱系与过程追溯 | 某个 FINAL/异常物料由哪些输入 UID 合流？输入物料是什么类型、从哪个入口来、在哪个工序/仿真时刻形成？相关验证事件是什么？ | `material_instance` 与有向 `material_genealogy(parent_uid → child_uid)`，关联产生工序和 UID 事件，限定同一 run | 已有按 UID 查询目标物料、祖先树、谱系边和相关事件。当前 E 岛 `FINAL` 是逻辑配对输出，不代表真实机械装配；当前沿父方向查祖先，反向后代影响分析暂缓。 |
+| Q3 资源等待、持有与竞争 | 哪个共享资源造成等待？谁在等、当时 holder 是谁、等待是否解决、等待/持有多久？是否出现拒绝释放或资源顺序违规？ | `resource_event` 的 WAIT、ACQUIRE、RELEASE、RELEASE_DENIED、ORDER_VIOLATION；按 run/resource/owner/task 关联 | 已有等待报告，可按资源筛选并查看等待/持有统计、未解决等待和争用明细。WAIT 是状态变化记录，不是逐仿真 tick 采样。 |
+| Q4 工序时间线与失败取证 | 指定 run/工序实例中，工序何时可派、何时启动/提交/结束？实际用了哪个 route/device、输入输出 UID、在哪个阶段/事件失败？等待资源多久？ | `operation_instance` 生命周期、输入/输出 UID、相关资源事件和 run events | 已有工序时间线和失败汇总。最终快照及事件不支持连续控制器状态或物理轨迹回放。 |
 
-### 阶段 5：知识图谱抽取与导入
+以上是阶段 4 的查询需求摘要，具体返回字段、CLI 参数、手工检查命令和验证证据以[运行记录实施报告](../reports/v1-run-record-persistence.md)为准；这里不重复维护命令清单。
 
-1. 只有 `fmpmm.dump` 来源和官方解析方式已确认后，新增格式适配器；适配器只负责 source → staging 中间记录，不依赖仿真运行代码。
-2. 按 4 节流程记录来源、摘要、转换器版本、原始 ID、实体/关系、来源定位和冲突。
-3. 对实体与谓词实行受控词表；先确定当前项目需要查询的关系，再加关系类型，不建设通用可执行规则语言。
-4. 在 staging 数据库生成导入报告，覆盖计数、冲突、悬空关系、无来源关系、无法映射属性和样例回溯。
-5. 经过数据审核并通过质量门槛后事务发布；建立针对真实检索问题的 SQL 查询和结果样例。
-6. 若查询性能确有不足，记录数据规模、查询计划、响应基线和 SQL 优化尝试，再单独评估 Neo4j；图数据库是派生视图，必须能从已发布关系数据重建。
+### 阶段 4.1：有证据后再扩展的查询
 
-验收：原文件摘要可追踪；同输入重跑幂等；每个发布实体/关系可回溯来源；冲突没有被静默覆盖；未知格式继续保持未发布状态。
+以下不是首期承诺，也不应为“可能有用”而加表或加事件：
+
+| 候选查询 | 只有出现以下实际问题时才考虑 | 需要新增的事实 |
+|---|---|---|
+| Q5 跨运行对比/趋势 | 用户需要比较目录版本、场景、route 或设备策略对通过率、周期、产量的影响 | 统一 acceptance/metrics schema、运行筛选器和可比较的指标版本；目前 `result_json` 为紧凑快照，不能假定所有历史运行字段口径一致 |
+| Q6 调度决策解释/设备利用率 | 用户需要回答“某道工序为什么选了/拒绝了某设备”或“设备实际忙了多久” | 将 `dispatch_decisions` 及候选拒绝原因持久化；定义设备占用的起止事件和利用率分母。只存最终 selected device 不足以重建候选比较过程 |
+| Q7 故障恢复分析 | 未来确实实现重试、换设备或恢复策略，且需要比较恢复效果 | attempt 级事件、故障类别、原设备/替代设备、策略版本及恢复结果；当前 `TASK_MAX_ATTEMPTS=1`，不得预造恢复流水线 |
+| Q8 全物理过程回放 | 发生需要重建控制器逐步状态的诊断/监管要求 | 单独定义采样率、存储量、时钟与轨迹 schema；当前只存业务状态变化与验证证据，不应把逐 tick 日志塞入运行记录库 |
+
+### 阶段 4.2：写入边界和事实口径（已实施）
+
+仿真期间不做同步数据库写入；运行事实在指定生命周期边界批量持久化，并明确中止、失败、记录失败和强制终止的处理。字段、事务边界、失败口径及验证证据见[运行记录实施报告](../reports/v1-run-record-persistence.md)。
+
+### 阶段 5：知识图谱导入（已实施）
+
+dump 识别、Neo4j 官方工具载入、只读导出、来源追溯、SQLite staging 和审核发布流程均已实现。实际实现与验证情况见[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)；阶段 5.1 是尚待实施的语义融合，不重复安排导入器工作。
+
+### 阶段 5.1：把来源项目知识接入可执行流程
+
+此处的 `FMPMM` 沿用 dump/来源项目的标识。该缩写在其他领域也有不同释义，不能据此认定它是知识图谱方法或行业标准名称。该来源图谱包含产品/零件结构、工艺目标及 `Goal → Operation → Action → Parameter` 等关系，可据此形成有序工艺候选并匹配设备能力。当前 `flexible_factory` 已有 `RecipeSpec`、`OperationTemplate`、工序依赖 DAG、设备能力、静态资源、WorkStep 引用、完成验证器和 CoppeliaSim alias 绑定；待做的是把已导入的来源知识经过项目自身校验后映射为可执行目录，不把来源图节点直接交给仿真器执行。
+
+| 来源图谱概念 | 当前项目对应 | 融合规则 |
+|---|---|---|
+| `Instance` + `include` | 产品/零件结构候选；物料类型/产品定义 | `include` 只在确认其表示设计组成/BOM 时映射为产品结构。不得映射成运行时物料父子谱系；后者来自真实 UID 转换/合流事件。通用 Instance 不能一律当作物料或设备，须用 labels、`pro_code`/code、来源及人工映射确定实体角色。 |
+| `Goal` + `achieve_goal` | 工艺目标、工序输出/完成条件 | 目标映射为可校验的目标/工艺候选；当前 `completion_verifier` 是已登记代码路径 ID，不能把自然语言 Goal 直接当成验证器或成功条件。 |
+| `Operation` + `after` + Goal 的 `operation` | `OperationTemplate` + `operation_dependency` / route DAG | 将 after 关系方向和拓扑顺序显式核验，再构建 recipe 操作图。必须确定 AND/OR、路线互斥、合流输入及循环规则；源图顺序不明确时禁止直接发布。 |
+| `Action` | 已登记 `WORK_STEP_TEMPLATES` 中的工步引用或未来新增的受控工步类型 | 只允许映射至当前已实现的执行路径 ID（如 `arm_pick_place`、`agv_route`、`logical_join`）。未知动作仅作为知识记录/待映射项；不从图谱加载或调用任意代码。 |
+| `Parameter` | 受版本控制的工步参数（当前工步引用尚无通用参数 schema） | 首期只保存/审查来源参数。只有把参数名、类型、单位、范围、默认值和消费代码逐项登记后，才可进入可执行配置；不把任意 Neo4j property 字典透传给 controller。 |
+| `Capability` + `has_capability` | `capability`、`device_capability`、工序所需 capability | 形成设备候选集合，继续经当前项目的 scene binding、资源可用性、物料位置和调度策略筛选；有 capability 不等于几何可达或安全可执行。 |
+| `installed_on` | 设备/夹具装配关系或场景 binding 的来源证据 | 区分“夹具物理安装在机器人上”和“设备与 CoppeliaSim alias 对应”；不能以安装关系代替运行时 handle 解析、alias 契约校验或设备能力验证。 |
+
+已有导入链路到 SQLite staging 的部分已经实现；融合阶段从已审核的 staging 记录开始，后续流程为：
+
+```text
+已实现：Neo4j dump → 官方工具只读导出 JSON → SQLite knowledge staging
+待实施：已审核 staging
+  → 人工语义映射（产品结构、工艺目标、操作、工步、参数、能力、设备/夹具）
+  → 生成或更新静态 catalog staging release
+  → ProcessCatalog.validate + 场景绑定/设备/资源/工步 allowlist 校验
+  → 发布 catalog release（知识抽取发布和可执行目录发布是两个独立动作）
+  → 应用启动选定 release，构建 RecipeSpec/OperationTemplate
+  → Coordinator 按订单入口/route 实例化 OperationGraph，调度并调用现有执行器
+  → 完成 verifier 通过后提交 MaterialRegistry 变换/合流
+  → RunRecorder 保存 run、工序快照、UID 谱系、资源等待和证据
+  → Q1–Q4 复核运行，必要时回到知识映射或目录修订
+```
+
+具体落地步骤：
+
+1. **建立语义映射清单**：以已导入图谱中的节点标签、关系谓词和业务 ID 为输入建立字段映射。每条映射注明 `source_type/source_predicate`、目标对象、是否自动、人工责任人和缺失处理。保持原始 Neo4j ID/原谓词/来源摘要以便回溯，不把 Neo4j `elementId` 当成项目长期业务主键。实际标签/谓词清单见导入报告。
+2. **定义产品结构与运行谱系边界**：若 `include` 表示产品设计组成，建立/填充设计时 BOM/产品结构对象；若来源不能证明该语义，只保留知识边。每批物料 UID 在运行中生成的谱系只由 `MaterialRegistry` 的已验证提交事实产生，两者分库表/关系类型并明确标识设计关系与执行关系。
+3. **生成静态工艺候选**：按具体 product/Goal 查相关 Operation、`after` 顺序和 Action/Parameter，生成可审查的 recipe 候选 JSON；这是离线导入/维护流程，不在仿真每步查询 Neo4j，也不对导入图谱自动做模糊语义推断。
+4. **做执行可行性映射**：每个 operation 明确 executor kind、所需 capability、输入输出 material ports、route/前置策略、resource policy、work-step ID 和 completion verifier。每个 action/parameter 必须指向登记过的适配器和参数 schema；未知项进入 unresolved 报告，阻止 catalog 发布。
+5. **设备匹配与场景契约检查**：来源图谱的 capability/install 关系只生成候选。再用当前 `ProcessCatalog.validate()`、候选设备 capability、`device_binding`、required aliases、布局/IK/碰撞和资源规则逐层筛选。候选设备选择仍由当前 scheduler 记录；物理可达性和安全验证仍由仿真执行器负责。
+6. **双重发布**：先发布经过来源/冲突验证的 knowledge extraction；再独立导入 catalog staging，跑目录结构与仿真绑定校验，通过后发布 catalog release。知识事实有效不代表它是完整可执行 recipe；任何一步失败都保留旧 current release。
+7. **运行时钉住版本**：每个 run 记录 recipe/catalog version、route、artifact ID 和 contract version。运行中目录不可变更；`OperationGraph` 使用该版本实例化，所有实际输入/输出 UID 与资源事件归入同一 run。
+8. **用已实现的运行查询反馈修订**：Q1 确认批次/验收结果，Q2 检查产物和设计输入差异，Q3 检查 route/resource 竞争，Q4 检查实际工序、设备、输入输出和 verifier 事件。发现错误后修订源映射或新 catalog release，不回写已发布运行事实。
+9. **按需导出图查询视图**：只有出现具体的多跳推荐/反向影响分析需求时，才从已发布知识和 catalog 导出 Neo4j projection；运行记录默认留在关系库。
+
+第一批融合范围限定为：产品/部件语义、工艺目标、Operation 顺序、Action 到现有 work-step 的映射、Capability 到设备候选。参数驱动控制、动态夹具更换、在线工艺推荐、自动生成可执行 Python、跨运行优化均不纳入首批。
 
 ### 阶段 6：维护与运维约定
 
@@ -342,7 +385,7 @@ MATCH (d:Device)-[:PROVIDES_CAPABILITY]->(c:Capability)
 RETURN d.id, c.id;
 ```
 
-重复执行脚本后，节点和关系数量不应重复增长；这只验证容器、认证、Cypher 和幂等样例，不代表 `fmpmm.dump` 已导入。
+重复执行脚本后，节点和关系数量不应重复增长；这只验证容器、认证、Cypher 和幂等样例。来源 dump 的实际导入状态见[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)。
 
 ### 7.3 SQLite 目录手工验证
 
@@ -368,7 +411,7 @@ RETURN d.id, c.id;
 - 不执行完整 `python -m pytest -q` 回归。
 - 不执行需要 CoppeliaSim 的 focused/full_flow 自动验收。
 - 不把“手动启动 Neo4j 成功”描述为资源数据库迁移完成。
-- 不在 `fmpmm.dump` 格式未确认时执行恢复、加载或批量导入。
+- 不重复实施或描述已完成的 dump 识别、导入和运行记录查询；后续工作聚焦 5.1 的语义映射与可执行 catalog 发布。
 
 ## 8. 后续自动化测试范围
 
