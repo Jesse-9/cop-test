@@ -4,16 +4,16 @@ type: reference
 status: review
 created: 2026-11-05
 updated: 2026-11-05
-scope: RESOURCE_DATABASE_PLAN 阶段 0 交付物
+scope: 资源目录数据库化方案阶段 0 交付物
 related:
-  - RESOURCE_DATABASE_PLAN.md
-  - V1_CATALOG_PERSISTENCE_REPORT.md
+  - docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/reports/v1-catalog-persistence.md
 ---
 
 # v1 静态目录字段盘点与术语对照
 
 本文是
-[资源目录数据库化与知识图谱实施方案](RESOURCE_DATABASE_PLAN.md)
+[资源目录数据库化与知识图谱实施方案](../plans/resource-catalog-database-and-knowledge-graph.md)
 阶段 0 的交付物：记录哪些字段进入静态目录数据库、来源模块、业务顺序和
 消费者，并明确不进入数据库的运行时状态。字段的权威定义仍以
 `domain/process_model.py`、`domain/rules.py` 和
@@ -129,10 +129,10 @@ related:
   `device_binding.support_bindings()` 在代码中校验，未写入
   `scene_binding`。
 - 运行记录表：已在 revision `0003_run_records` 实施（方案 §2.2），见
-  [V1_RUN_RECORDS_REPORT.md](V1_RUN_RECORDS_REPORT.md)。
+  [docs/implementation/reports/v1-run-record-persistence.md](../reports/v1-run-record-persistence.md)。
 - 知识图谱表：已在 revision `0002_knowledge_graph` 实施（方案 §2.3）；
   真实 `fmpmm.dump` 的 Docker/Neo4j 端到端导入未执行，见
-  [V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+  [docs/implementation/reports/v1-knowledge-graph-import.md](../reports/v1-knowledge-graph-import.md)。
 
 ## 5. `fmpmm.dump` 来源状态
 
@@ -146,5 +146,5 @@ related:
 `ref/scripts/` 后续确认它是 **Neo4j 数据库 dump**，官方读取路径为
 `neo4j-admin database load` / `migrate`。项目仍不解析二进制 dump；真实图
 （222 节点/384 关系）已通过官方工具载入、导出并成功导入知识表，见
-[V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+[docs/implementation/reports/v1-knowledge-graph-import.md](../reports/v1-knowledge-graph-import.md)。
 该项不阻塞静态目录数据库。

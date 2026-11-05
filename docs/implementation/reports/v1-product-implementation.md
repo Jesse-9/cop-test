@@ -9,7 +9,7 @@ scope: v1 收敛与迁移
 
 # 柔性工业车间 v1 实施报告
 
-本报告记录 [V1 收敛与迁移方案](V1_CONSOLIDATION_PLAN.md) 的实施结果。
+本报告记录 [V1 收敛与迁移方案](../governance/v1-scope-and-migration-plan.md) 的实施结果。
 只记录已执行并核对的事实；未执行项和已知限制在 §6 明确列出。
 
 ## 1. 交付范围
@@ -54,7 +54,7 @@ scope: v1 收敛与迁移
 | `cli.py` | 新增唯一 v1 命令入口 |
 
 阶段 0-1 的静态工艺目录/`OperationInstance` 移植细节见
-[V1 阶段 0-1 移植报告](V1_STAGE0_1_REPORT.md)；它只在任务字段来源和状态投影层面
+[V1 阶段 0-1 移植报告](v1-stage-00-01-static-process-catalog.md)；它只在任务字段来源和状态投影层面
 改变代码，不改变运动、吸附或资源行为。
 
 依赖边界由 `tests/test_v1_import_boundary.py` 自动检查：
@@ -106,9 +106,9 @@ scope: v1 收敛与迁移
 > skipped；其后目录负例参数化为 431 passed / 2 skipped，完成阶段 4 后为
 > 450 passed / 3 skipped（focused/实机验收需
 > `FLEXIBLE_FACTORY_SIM=1`），见
-> [阶段 2 报告](V1_STAGE2_REPORT.md)、
-> [阶段 3 报告](V1_STAGE3_OPERATION_DAG_REPORT.md) 与
-> [阶段 4 报告](V1_STAGE4_REPORT.md)。
+> [阶段 2 报告](v1-stage-02-device-executor.md)、
+> [阶段 3 报告](v1-stage-03-operation-dag.md) 与
+> [阶段 4 报告](v1-stage-04-capability-scheduling.md)。
 
 覆盖的迁移回归包括：domain 物料/任务/资源/指标；阶段 0-1 工艺目录/任务投影；布局与 AGV 路网；
 stage2 接触/碰撞/规划/轨迹/安全/吸附/停带；stage1 基础配置/布局/TCP/单元
@@ -171,12 +171,12 @@ v1 工件仓库 schema/current/保护。
 数量、AGV 航线与安全/资源断言全部与历史验收口径一致。该偏移属于运行间
 物理/规划候选差异，不影响验收结论；v1 未改变参数、容差或控制顺序。
 
-证据摘要：[`v1_full_flow_acceptance_20261103_010923.json`](evidence/v1_full_flow_acceptance_20261103_010923.json)。
+证据摘要：[`v1_full_flow_acceptance_20261103_010923.json`](../evidence/v1_full_flow_acceptance_20261103_010923.json)。
 
 阶段 0-1 工艺目录移植后再次运行同一 `full_flow`：
 337.45 s、13/13 任务 DONE、1 个 FINAL（父 UID 1+3）、1 个未配对
 SEMI_CE、两条载货路线；证据
-[`v1_stage0_1_full_flow_acceptance_20261103_132919.json`](evidence/v1_stage0_1_full_flow_acceptance_20261103_132919.json)。
+[`v1_stage0_1_full_flow_acceptance_20261103_132919.json`](../evidence/v1_stage0_1_full_flow_acceptance_20261103_132919.json)。
 任务/FINAL/物料/路线结果与上表一致。
 
 ### 5.3 代表性故障回归：`conveyor_fault`
@@ -202,7 +202,7 @@ SEMI_CE、两条载货路线；证据
 该回归验证了停带故障下冻结现场、阻塞受影响任务、不生成 FINAL、释放普通
 调度资源且不自动恢复的行为。
 
-证据摘要：[`v1_conveyor_fault_acceptance_20261103_014225.json`](evidence/v1_conveyor_fault_acceptance_20261103_014225.json)。
+证据摘要：[`v1_conveyor_fault_acceptance_20261103_014225.json`](../evidence/v1_conveyor_fault_acceptance_20261103_014225.json)。
 
 ## 6. 未执行项与已知限制
 
@@ -214,9 +214,9 @@ SEMI_CE、两条载货路线；证据
   2026-11-03 完成，阶段 3（配方实例化与工序 DAG）与阶段 4（能力匹配调度）
   已于 2026-11-04 完成，阶段 4 `full_flow` 实机验收通过（FINAL 1 件、
   父 UID `[1,3]`、11 条调度决策可解释），见
-  [阶段 2 报告](V1_STAGE2_REPORT.md)、
-  [阶段 3 报告](V1_STAGE3_OPERATION_DAG_REPORT.md) 与
-  [阶段 4 报告](V1_STAGE4_REPORT.md)；阶段 5（调度优化/恢复）仍未实现，
+  [阶段 2 报告](v1-stage-02-device-executor.md)、
+  [阶段 3 报告](v1-stage-03-operation-dag.md) 与
+  [阶段 4 报告](v1-stage-04-capability-scheduling.md)；阶段 5（调度优化/恢复）仍未实现，
   规划文档保留在 06-23。
 - 阶段 3 只覆盖 `full_flow`；`no_pair`/`staggered_batch`/故障注入场景未按
   阶段 3 逐项重跑，不得报告为通过。
@@ -240,7 +240,7 @@ SEMI_CE、两条载货路线；证据
 
 | 里程碑 | 状态 | 证据/说明 |
 |---|---|---|
-| M0 冻结范围与基线 | 完成 | [V1_BASELINE.md](V1_BASELINE.md)；492 passed 基线 |
+| M0 冻结范围与基线 | 完成 | [docs/implementation/governance/v1-baseline-m0.md](../governance/v1-baseline-m0.md)；492 passed 基线 |
 | M1 v1 包骨架 + domain | 完成 | `src/flexible_factory/domain/`；domain 导入边界测试 |
 | M2 simulation 公共能力 | 完成 | 行为等价复制；差分对比除日志/版本标识外无代码差异；340 项 v1 测试 |
 | M3 独立工件契约与迁移 | 完成 | v1 工件、452 项校验、幂等迁移、源工件摘要不变 |

@@ -10,7 +10,7 @@ scope: v1 UFLOW / 阶段 2
 # v1 混线阶段 2 实施报告：设备目录与执行适配器
 
 本报告记录
-[V1_STAGE2_EXECUTOR_PLAN.md](V1_STAGE2_EXECUTOR_PLAN.md)
+[docs/implementation/plans/v1-stage-02-device-executor-implementation.md](../plans/v1-stage-02-device-executor-implementation.md)
 在 v1 代码（`src/flexible_factory/`）上的实施结果。阶段目标是**包装**现有
 机械臂与 AGV 执行实现、建立稳定 ID 到场景/运行时对象的静态绑定，
 不改变 `full_flow` 行为、场景工件、运动算法和资源互锁。

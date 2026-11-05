@@ -15,7 +15,7 @@ sim_version: "4.10+"
 
 本指南说明 CoppeliaSim、ZMQ 连接、v1 工件操作和 `full_flow` 运行。命令以
 Windows PowerShell、仓库根目录为例。v1 不支持历史阶段入口；历史实现、报告
-与证据已清理，结论见 [V1 实施报告](../../implementation/V1_REPORT.md)。
+与证据已清理，结论见 [V1 实施报告](../../implementation/reports/v1-product-implementation.md)。
 
 ## 启动仿真软件
 
@@ -238,6 +238,6 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 CLI 参数、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
 场景工件说明与实现保持一致。新增可运行模式时，补充其前置工件、加载步骤、
 运行命令和输出位置。新增目录数据库、知识图谱或运行记录命令时，同步更新
-本节、[资源目录数据库化实施报告](../../implementation/V1_CATALOG_PERSISTENCE_REPORT.md)、
-[知识图谱导入实施报告](../../implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)
-与[运行记录实施报告](../../implementation/V1_RUN_RECORDS_REPORT.md)。
+本节、[资源目录数据库化实施报告](../../implementation/reports/v1-catalog-persistence.md)、
+[知识图谱导入实施报告](../../implementation/reports/v1-knowledge-graph-import.md)
+与[运行记录实施报告](../../implementation/reports/v1-run-record-persistence.md)。

@@ -9,9 +9,9 @@ scope: v1 收敛与迁移
 
 # 柔性工业车间 v1 实施基线（M0）
 
-本文件记录 [V1 收敛与迁移方案](V1_CONSOLIDATION_PLAN.md) §8 M0 的冻结结果。
+本文件记录 [V1 收敛与迁移方案](v1-scope-and-migration-plan.md) §8 M0 的冻结结果。
 它只记录**已实测事实**与已固定决策；实现进度和验收结论写入
-`V1_REPORT.md`，不得把计划改写成已完成。
+`docs/implementation/reports/v1-product-implementation.md`，不得把计划改写成已完成。
 
 ## 1. 范围与入口决策
 

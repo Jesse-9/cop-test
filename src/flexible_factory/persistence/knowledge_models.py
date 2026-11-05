@@ -1,6 +1,6 @@
 """persistence.knowledge_models — 知识图谱抽取结果的 ORM 映射.
 
-本模块对应 ``RESOURCE_DATABASE_PLAN.md`` §2.3 的六张表。权威事实仍来自
+本模块对应 ``docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md`` §2.3 的六张表。权威事实仍来自
 关系表: 实体/关系行是经过来源登记和抽取运行校验后的导入结果;
 ``entity_source`` / ``relation_source`` 保存来源定位、原始片段和置信度.
 Neo4j 只是读取原始 dump 和人工查询的工具, 不是本 schema 的权威来源.

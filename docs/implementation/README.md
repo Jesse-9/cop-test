@@ -1,64 +1,45 @@
-# 实施记录
+# 实施资料
 
-本目录只保留 v1 产品的实施记录与证据。历史阶段一至四的报告与正式证据已按
-v1 收敛要求清理；`runs/` 中可能残留本地忽略的旧阶段运行输出，不纳入版本控制，
-也不作为 v1 证据。旧实现已从 `src/` 移除，v1 源码见
-[`src/flexible_factory/`](../../src/flexible_factory/)。
+本目录按项目管理职责归档 v1 的方案、基线、实施报告和证据。业务目标、工艺路线
+与领域对象见 [柔性车间资料导航](../wiki/06-工业案例/柔性车间/README.md)。
+两边的职责和阶段对应见
+[项目文档登记表](governance/project-document-register.md)。
 
-目录边界、阶段对应关系和命名规则见
-[项目文档登记表](PROJECT_DOCUMENT_REGISTER.md)。本目录记录如何实施和如何验收；
-业务目标、工艺路线和领域对象统一放在
-[`wiki/06-工业案例/柔性车间/`](../wiki/06-工业案例/柔性车间/README.md)。
+## 目录
 
-## v1 文档
-
-| 文档 | 内容 |
+| 目录 | 内容 |
 |---|---|
-| [V1_CONSOLIDATION_PLAN.md](V1_CONSOLIDATION_PLAN.md) | v1 产品边界、迁移映射、工件策略、测试矩阵和分批门槛 |
-| [V1_BASELINE.md](V1_BASELINE.md) | M0 范围、决策、代码/工件/测试基线 |
-| [V1_REPORT.md](V1_REPORT.md) | v1 实施、迁移、测试和实机验收记录；未执行项与限制 |
-| [V1_STAGE0_1_REPORT.md](V1_STAGE0_1_REPORT.md) | 阶段 0-1 静态工艺目录移植到 `flexible_factory` 的代码映射与验证 |
-| [V1_STAGE2_EXECUTOR_PLAN.md](V1_STAGE2_EXECUTOR_PLAN.md) | 阶段 2 设备目录与执行适配器在 v1 代码上的实施方案 |
-| [V1_STAGE2_REPORT.md](V1_STAGE2_REPORT.md) | 阶段 2 实施记录：静态绑定、纯测试与代表臂/代表 AGV focused 实测 |
-| [V1_STAGE3_OPERATION_DAG_REPORT.md](V1_STAGE3_OPERATION_DAG_REPORT.md) | 阶段 3 实施记录：配方实例化、工序 DAG、ready 解锁与 E 合流，含 `full_flow` 基线对照 |
-| [V1_STAGE4_SCHEDULER_PLAN.md](V1_STAGE4_SCHEDULER_PLAN.md) | 阶段 4 实施方案：runtime 写入口修复、纯调度策略、能力/资源筛选、coordinator 接入与分层验收 |
-| [V1_STAGE4_REPORT.md](V1_STAGE4_REPORT.md) | 阶段 4 实施记录：纯调度策略、设备选择决策、runtime 写入口边界与 `full_flow` 验收 |
-| [V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md](V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md) | 混线生产灵活性扩展示范方案：有限批次 profile、设备替代和同一物料路线选择的分阶段实施与验收 |
-| [RESOURCE_DATABASE_PLAN.md](RESOURCE_DATABASE_PLAN.md) | 资源目录数据库化与知识图谱方案：目标 schema、现有数据映射、dump 识别流程、分阶段执行与验收门槛 |
-| [V1_CATALOG_PERSISTENCE_REPORT.md](V1_CATALOG_PERSISTENCE_REPORT.md) | 静态目录数据库化实施记录：SQLAlchemy/Alembic schema、导入/发布/只读仓储、影子对比、CLI 与验证结果；阶段 4、5 分别见运行记录与知识图谱报告 |
-| [V1_CATALOG_FIELD_INVENTORY.md](V1_CATALOG_FIELD_INVENTORY.md) | 阶段 0 字段盘点：来源模块、静态/运行时边界、顺序语义、术语对照与 `fmpmm.dump` 状态 |
-| [V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) | 阶段 5 知识图谱导入：Neo4j dump 官方载入/导出、`0002_knowledge_graph`、staging/审核发布；真实 222 节点/384 关系已导入并发布 |
-| [V1_RUN_RECORDS_REPORT.md](V1_RUN_RECORDS_REPORT.md) | 阶段 4 运行记录：`0003_run_records`、Q1–Q4 查询、运行开始/结束批量写入、失败语义；首次实机记录 API 不匹配已修复，待重跑 |
-| [PERFORMANCE_AND_PATH_REUSE_PLAN.md](PERFORMANCE_AND_PATH_REUSE_PLAN.md) | 路径复用与规划性能的跨阶段技术提案，尚未纳入当前 v1 范围 |
+| [governance/](governance/) | 项目登记规则、v1 范围/迁移方案和 M0 基线 |
+| [plans/](plans/) | 阶段实施方案及跨阶段技术提案 |
+| [reports/](reports/) | 产品、阶段和技术专题实施报告，记录实际结果与限制 |
+| [reference/](reference/) | 实施方案的输入盘点及技术参考 |
+| [evidence/](evidence/) | 报告引用的正式、精简验收证据 |
+| [runs/](runs/) | 被 Git 忽略的临时运行输出；不作为正式证据 |
 
-## 文档分组
+## 项目治理与基线
 
-- **治理与基线**：`V1_CONSOLIDATION_PLAN.md`、`V1_BASELINE.md`、`V1_REPORT.md`。
-- **阶段实施**：`V1_STAGE*_..._PLAN.md` 与对应的 `V1_STAGE*_..._REPORT.md`。
-- **跨阶段提案**：`V1_MIXED_PRODUCTION_FLEXIBILITY_PLAN.md`、
-  `RESOURCE_DATABASE_PLAN.md`、`PERFORMANCE_AND_PATH_REUSE_PLAN.md`；这些文件有
-  `proposed` 状态时只是候选工作，不改变当前 v1 能力。`RESOURCE_DATABASE_PLAN`
-  的阶段 0–3 见 `V1_CATALOG_PERSISTENCE_REPORT.md`，阶段 4 见
-  `V1_RUN_RECORDS_REPORT.md`，阶段 5 见
-  `V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md`；阶段 6 仅部分实施。
-- **正式证据**：`evidence/` 只保存被报告引用的裁剪证据，`runs/` 只保存被忽略的临时输出。
+- [v1 范围与迁移方案](governance/v1-scope-and-migration-plan.md)：产品边界、迁移映射、工件策略和实施门槛。
+- [v1 M0 基线](governance/v1-baseline-m0.md)：冻结范围、决策、代码与工件基线。
+- [项目文档登记表](governance/project-document-register.md)：业务规划与实施资料的分层、对应和命名。
 
-## 证据
+## 阶段实施
 
-- [evidence/](evidence/)：被报告引用的 v1 验收摘要，包括
-  `v1_full_flow_acceptance_*.json`、`v1_conveyor_fault_acceptance_*.json`、
-  `v1_stage0_1_full_flow_acceptance_*.json`、阶段 2 的
-  `v1_stage2_arm_*.json`、`v1_stage2_agv_*.json`、阶段 3 的
-  `v1_stage3_full_flow_*.json`、阶段 4 的
-  `v1_stage4_full_flow_20261104_210605.json`，以及知识图谱真实导入摘要
-  `v1_knowledge_graph_import_20261105.json` 和首次运行记录持久化失败摘要
-  `v1_run_record_persistence_failure_20261105.json`。
-- `runs/`：仿真器生成的临时报告，默认由 `.gitignore` 排除；正式结论引用的
-  文件应复制到 `evidence/` 并在报告中引用。
+| 阶段/主题 | 实施方案 | 实施报告 |
+|---|---|---|
+| v1 产品收敛 | [范围与迁移方案](governance/v1-scope-and-migration-plan.md) | [产品实施报告](reports/v1-product-implementation.md) |
+| 阶段 0–1 静态工艺目录 | [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-19-混线生产阶段0-1基线与静态工艺目录.md) | [工艺目录移植报告](reports/v1-stage-00-01-static-process-catalog.md) |
+| 阶段 2 设备执行适配 | [实施方案](plans/v1-stage-02-device-executor-implementation.md) | [实施报告](reports/v1-stage-02-device-executor.md) |
+| 阶段 3 工序 DAG | [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-21-混线生产阶段3配方实例化与工序DAG.md) | [实施报告](reports/v1-stage-03-operation-dag.md) |
+| 阶段 4 能力匹配调度 | [实施方案](plans/v1-stage-04-capability-scheduling-implementation.md) | [实施报告](reports/v1-stage-04-capability-scheduling.md) |
 
-## 归档规则
+## 跨阶段方案与专项报告
 
-1. 当前行为写入 v1 报告和 [项目使用指南](../wiki/98-ProjectUsage/USAGE.md)；
-   不保留与 v1 无关的阶段计划、阶段报告和旧证据。
-2. 能力变化时更新 v1 报告，明确区分已实测、未执行和已知限制。
-3. 可复现测量脚本如需保留，应直接面向 v1 包；历史阶段测量不再维护。
+- [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)：提案，尚未纳入当前 v1 能力。
+- [资源目录数据库化与知识图谱方案](plans/resource-catalog-database-and-knowledge-graph.md)：阶段 0–6 的总体架构与门槛。
+- [仿真与运动规划性能方案](plans/simulation-motion-planning-performance.md)：路径复用和性能提案。
+- [静态目录字段盘点](reference/static-catalog-field-inventory.md)：数据库化方案阶段 0 的输入盘点。
+- [静态目录持久化报告](reports/v1-catalog-persistence.md)：数据库 schema、导入、发布及选库验证。
+- [运行记录持久化报告](reports/v1-run-record-persistence.md)：运行写入及 Q1–Q4 查询。
+- [知识图谱导入报告](reports/v1-knowledge-graph-import.md)：Neo4j dump 导出、staging 和审核发布。
+
+提案状态不表示已实现。能力完成情况以对应实施报告和 `evidence/` 为准；旧阶段运行输出留在 `runs/`，不要当成验收证据。

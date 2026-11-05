@@ -1,6 +1,6 @@
 # 证据目录
 
-本目录只存放被 [V1_REPORT.md](../V1_REPORT.md) 引用的 v1 验收证据，随代码提交。
+本目录只存放被 [v1 产品实施报告](../reports/v1-product-implementation.md) 引用的 v1 验收证据，随代码提交。
 
 - `v1_full_flow_acceptance_20261103_010923.json` — v1 `full_flow` 实机验收摘要
   （`all_ok=true`、FINAL UID 4 父 UID [1,3]、无安全锁存、资源释放、双 AGV

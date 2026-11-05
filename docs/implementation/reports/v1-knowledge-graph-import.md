@@ -4,17 +4,17 @@ type: report
 status: review
 created: 2026-11-05
 updated: 2026-11-05
-scope: RESOURCE_DATABASE_PLAN 阶段 5 / Neo4j 导出 / 知识表
+scope: 资源目录数据库化方案阶段 5 / Neo4j 导出 / 知识表
 related:
-  - RESOURCE_DATABASE_PLAN.md
-  - V1_CATALOG_PERSISTENCE_REPORT.md
+  - docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/reports/v1-catalog-persistence.md
   - ../../tools/neo4j/README.md
 ---
 
 # v1 知识图谱导入实施报告：Neo4j dump 导出与 staging
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](RESOURCE_DATABASE_PLAN.md)
+[资源目录数据库化与知识图谱实施方案](../plans/resource-catalog-database-and-knowledge-graph.md)
 阶段 5 的实施结果。来源门槛已由用户提供的
 `ref/scripts/` 和 `ref/fmpmm.dump` 满足：
 
@@ -143,7 +143,7 @@ flexible-factory knowledge publish --extraction-id <extraction_id>
   均以 `Instance:<pro_code>` 发布；`TESTBOX -[:achieve_goal]-> Goal` 在
   Neo4j 与 SQLite 中可对应查询（含 `id(g)=90` 的目标）。
 
-证据摘要：[evidence/v1_knowledge_graph_import_20261105.json](evidence/v1_knowledge_graph_import_20261105.json)。
+证据摘要：[evidence/v1_knowledge_graph_import_20261105.json](../evidence/v1_knowledge_graph_import_20261105.json)。
 
 **仍未执行**：真实 `full_flow` 与运行记录的联合验收；Docker 环境外的新机器
 需要重新执行载入/导出。
@@ -165,7 +165,7 @@ flexible-factory knowledge publish --extraction-id <extraction_id>
 
 - **阶段 4 已实施**：按用户确认的 Q1–Q4 口径新增 `0003_run_records`、
   `RunRecorder` 和 `report` 查询，见
-  [运行记录实施报告](V1_RUN_RECORDS_REPORT.md)。真实 `full_flow` 与运行
+  [运行记录实施报告](v1-run-record-persistence.md)。真实 `full_flow` 与运行
   记录的联合验收未执行。
 - **阶段 6 部分覆盖**：迁移测试、来源摘要、发布门槛和工具文档已落地；
   备份/恢复演练和运行记录保留策略未实施（当前全量保留、无删除命令）。

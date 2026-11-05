@@ -1,5 +1,5 @@
 {
-  "source_report": "docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md",
+  "source_report": "docs/implementation/reports/v1-knowledge-graph-import.md",
   "note": "真实 ref/fmpmm.dump 经官方 neo4j-admin 载入 Neo4j 5.13，再由 tools/neo4j_export.py 只读导出并导入 SQLite；不含密码。",
   "executed_at": "2026-11-05T08:52:48+00:00",
   "source_dump": {

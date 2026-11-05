@@ -11,7 +11,7 @@
 | CoppeliaSim 通用知识 | [wiki/index.md](wiki/index.md)、`wiki/00`–`wiki/05`、`wiki/99` | 平台概念、API、建模、运动、视觉、协同仿真与附录 |
 | 混线生产规划 | [柔性车间规划](wiki/06-工业案例/柔性车间/README.md)、`当前规划/06-18`–`06-25` | 阶段 0-1 已移植；阶段 2–4 已有实施报告；阶段 5 暂缓 |
 | v1 操作指南 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) | 启动仿真器、连接 ZMQ、加载/校验 v1 工件、运行 `full_flow` |
-| v1 方案与验收 | [项目文档登记表](implementation/PROJECT_DOCUMENT_REGISTER.md)、[V1 方案](implementation/V1_CONSOLIDATION_PLAN.md)、[M0 基线](implementation/V1_BASELINE.md)、[v1 报告](implementation/V1_REPORT.md) | 文档分层、产品边界、迁移映射、实施与实测记录 |
+| v1 方案与验收 | [项目文档登记表](implementation/governance/project-document-register.md)、[V1 方案](implementation/governance/v1-scope-and-migration-plan.md)、[M0 基线](implementation/governance/v1-baseline-m0.md)、[v1 报告](implementation/reports/v1-product-implementation.md) | 文档分层、产品边界、迁移映射、实施与实测记录 |
 | 工件与证据 | [实施记录](implementation/README.md)、[场景工件](scene_artifacts/README.md) | v1 工件、manifest、校验摘要和验收证据 |
 | 知识库维护规范 | [CLAUDE.md](CLAUDE.md) | wiki 分类、元数据、内容质量和维护要求 |
 | 工程实现参考 | [../PROJECT_ENGINEERING_REFERENCE.md](../PROJECT_ENGINEERING_REFERENCE.md) | 模块职责、工程不变量、实现细节和实测陷阱 |
@@ -31,7 +31,7 @@
 | 想做什么 | 从这里开始 |
 |---|---|
 | 从安装到运行仿真 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) |
-| 查看 v1 产品范围和验收 | [v1 报告](implementation/V1_REPORT.md)、[项目 README](../README.md) |
+| 查看 v1 产品范围和验收 | [v1 报告](implementation/reports/v1-product-implementation.md)、[项目 README](../README.md) |
 | 理解当前实现约束 | [工程参考](../PROJECT_ENGINEERING_REFERENCE.md) |
 | 学习 CoppeliaSim 通用功能 | [知识库索引](wiki/index.md) |
 | 查场景版本及派生规则 | [场景工件说明](scene_artifacts/README.md) |

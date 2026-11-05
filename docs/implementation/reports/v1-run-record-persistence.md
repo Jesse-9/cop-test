@@ -4,16 +4,16 @@ type: report
 status: review
 created: 2026-11-05
 updated: 2026-11-05
-scope: RESOURCE_DATABASE_PLAN 阶段 4 / production_run / 运行查询
+scope: 资源目录数据库化方案阶段 4 / production_run / 运行查询
 related:
-  - RESOURCE_DATABASE_PLAN.md
-  - V1_CATALOG_PERSISTENCE_REPORT.md
+  - docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/reports/v1-catalog-persistence.md
 ---
 
 # v1 运行记录实施报告：Q1–Q4 查询与批量写入
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](RESOURCE_DATABASE_PLAN.md)
+[资源目录数据库化与知识图谱实施方案](../plans/resource-catalog-database-and-knowledge-graph.md)
 阶段 4 的实施结果。实施范围按用户确认的查询口径执行：
 
 - Q1 运行汇总与验收；
@@ -124,7 +124,7 @@ Q2 返回递归父树、节点、边和 UID 相关事件；Q3 返回每个资源
 记录已完成验收。
 
 证据摘要：
-[evidence/v1_run_record_persistence_failure_20261105.json](evidence/v1_run_record_persistence_failure_20261105.json)。
+[evidence/v1_run_record_persistence_failure_20261105.json](../evidence/v1_run_record_persistence_failure_20261105.json)。
 
 ## 6. 与方案的差异
 

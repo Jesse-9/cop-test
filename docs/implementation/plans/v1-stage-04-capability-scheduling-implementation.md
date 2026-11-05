@@ -6,18 +6,18 @@ created: 2026-11-04
 updated: 2026-11-04
 scope: v1 UFLOW / 阶段 4
 related:
-  - ../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
-  - ../wiki/06-工业案例/柔性车间/当前规划/06-21-混线生产阶段3配方实例化与工序DAG.md
-  - V1_STAGE3_OPERATION_DAG_REPORT.md
-  - V1_STAGE4_REPORT.md
+  - ../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
+  - ../../wiki/06-工业案例/柔性车间/当前规划/06-21-混线生产阶段3配方实例化与工序DAG.md
+  - docs/implementation/reports/v1-stage-03-operation-dag.md
+  - docs/implementation/reports/v1-stage-04-capability-scheduling.md
 ---
 
 # v1 混线阶段 4 实施方案：产品变体与能力匹配调度
 
-实施结果见 [阶段 4 实施报告](V1_STAGE4_REPORT.md)；本方案保留为工作包、
+实施结果见 [阶段 4 实施报告](../reports/v1-stage-04-capability-scheduling.md)；本方案保留为工作包、
 门槛与验收口径的权威依据。
 
-本方案把 [06-22 阶段 4 规划](../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md) 拆成可逐步合并和验收的工作包。按门槛顺序实施：每个工作包先通过纯测试，再进入下一包；任何时候都保留阶段 3 的默认 `full_flow` 路径作为回归基线。
+本方案把 [06-22 阶段 4 规划](../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md) 拆成可逐步合并和验收的工作包。按门槛顺序实施：每个工作包先通过纯测试，再进入下一包；任何时候都保留阶段 3 的默认 `full_flow` 路径作为回归基线。
 
 ## 1. 范围与完成定义
 
@@ -129,7 +129,7 @@ FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage4_scheduler_sim.py
 - decision 序列符合纯策略确定性测试；集成验收只需核对本次 trace 与策略选择一致，不额外重复跑仿真来证明排序稳定。
 - 从事件重算 throughput、WIP、等待与并发工序数，并与 summary 对照；若重算不一致，修复指标/事件证据后再验收。
 
-**产物：**`docs/implementation/V1_STAGE4_REPORT.md`、裁剪后的正式 evidence JSON；大体积逐 tick run 留在被忽略的 `runs/`。报告分别写明纯测试、每次仿真结果、基线差异、未覆盖设备组合和任何失败尝试。
+**产物：**`docs/implementation/reports/v1-stage-04-capability-scheduling.md`、裁剪后的正式 evidence JSON；大体积逐 tick run 留在被忽略的 `runs/`。报告分别写明纯测试、每次仿真结果、基线差异、未覆盖设备组合和任何失败尝试。
 
 ### WP5：等价候选设备的受控扩展（条件工作包）
 

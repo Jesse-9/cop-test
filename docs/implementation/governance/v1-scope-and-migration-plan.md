@@ -5,7 +5,7 @@ status: review
 created: 2026-11-03
 updated: 2026-11-03
 scope: v1 L5_UFLOW
-implementation: V1_REPORT.md
+implementation: docs/implementation/reports/v1-product-implementation.md
 ---
 
 # 柔性工业车间 v1 收敛与迁移方案
@@ -20,7 +20,7 @@ implementation: V1_REPORT.md
 
 ## 2. 当前基线与约束
 
-- 迁移来源场景工件：`stage4/L5_UFLOW/v004_20261029_133249`；验收事实和已知问题见 [V1 报告](V1_REPORT.md) 与 [M0 基线](V1_BASELINE.md)。
+- 迁移来源场景工件：`stage4/L5_UFLOW/v004_20261029_133249`；验收事实和已知问题见 [V1 报告](../reports/v1-product-implementation.md) 与 [M0 基线](v1-baseline-m0.md)。
 - 重排前 `stage4/L4_COLUMN/v008_20261028_225634` 只作为历史对照，未保留，也不是 v1 默认场景。
 - 迁移前 `src/stage4/` 依赖 `stage1`、`stage2`、`stage3`：包括物理、传送带、IK、吸附、安全/碰撞规划、场景构造、AGV 路线及资源逻辑；迁移完成后这些包已删除。
 - 迁移前阶段四 manifest 校验 stage2/stage3 配置摘要及 stage3 父工件来源；v1 已调整为独立运行契约，同时保留来源追溯信息。
@@ -182,7 +182,7 @@ v1 发布后按“规范描述当前行为、使用指南描述操作、实施�
 
 ### M5：文档与验收
 
-- 新建 v1 权威设计/运行说明及 `V1_REPORT.md`；按 §6 更新索引和历史文档状态。
+- 新建 v1 权威设计/运行说明及 `docs/implementation/reports/v1-product-implementation.md`；按 §6 更新索引和历史文档状态。
 - 执行全量 Python 测试、干净安装测试、v1 工件生命周期验证、`full_flow` 仿真以及规定的故障回归。
 - 保存被报告引用的 JSON 证据和场景校验结果；确认引用、命令、工件 ID 与实测一致。
 
@@ -230,8 +230,8 @@ v1 完成定义：用户可从干净环境安装一个产品包，使用一套�
 
 ## 12. 参考资料
 
-- [V1 实施报告](V1_REPORT.md)
-- [M0 基线](V1_BASELINE.md)
-- [场景工件说明](../scene_artifacts/README.md)
-- [工程参考](../../PROJECT_ENGINEERING_REFERENCE.md)
-- [项目使用指南](../wiki/98-ProjectUsage/USAGE.md)
+- [V1 实施报告](../reports/v1-product-implementation.md)
+- [M0 基线](v1-baseline-m0.md)
+- [场景工件说明](../../scene_artifacts/README.md)
+- [工程参考](../../../PROJECT_ENGINEERING_REFERENCE.md)
+- [项目使用指南](../../wiki/98-ProjectUsage/USAGE.md)

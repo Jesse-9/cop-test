@@ -6,16 +6,16 @@ created: 2026-11-04
 updated: 2026-11-04
 scope: v1 UFLOW / 阶段 4
 related:
-  - V1_STAGE4_SCHEDULER_PLAN.md
-  - V1_STAGE3_OPERATION_DAG_REPORT.md
-  - ../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
+  - docs/implementation/plans/v1-stage-04-capability-scheduling-implementation.md
+  - docs/implementation/reports/v1-stage-03-operation-dag.md
+  - ../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
 ---
 
 # v1 混线阶段 4 实施报告：产品变体与能力匹配调度
 
 本报告记录
-[阶段 4 实施方案](V1_STAGE4_SCHEDULER_PLAN.md) 与
-[06-22 阶段 4 规划](../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md)
+[阶段 4 实施方案](../plans/v1-stage-04-capability-scheduling-implementation.md) 与
+[06-22 阶段 4 规划](../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md)
 在 v1 代码（`src/flexible_factory/`）上的实施结果。阶段目标是：把已有
 ready 工序、静态 capability/device 目录、资源表和执行适配器接入确定性
 派工；默认 `full_flow` 仍按阶段 3 的固定路线与固定设备运行。
@@ -216,7 +216,7 @@ FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage4_scheduler_sim.py
 `peak_active=2`、`wip.total=1`（`SEMI_CE` UID 2 在 `buffer_e_c`），
 与 `acceptance/materials` 对照一致。
 
-证据：[`v1_stage4_full_flow_20261104_210605.json`](evidence/v1_stage4_full_flow_20261104_210605.json)
+证据：[`v1_stage4_full_flow_20261104_210605.json`](../evidence/v1_stage4_full_flow_20261104_210605.json)
 （237 KB）。`runs/` 中同名文件是同一裁剪版本的运行输出，未另外保存逐 tick
 全量报告。
 

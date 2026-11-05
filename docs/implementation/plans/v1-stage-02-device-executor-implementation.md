@@ -10,10 +10,10 @@ scope: v1 UFLOW / 阶段 2
 # v1 混线阶段 2 实施方案：设备目录与执行适配器
 
 本文件把
-[06-20 阶段 2 规划](../wiki/06-工业案例/柔性车间/当前规划/06-20-混线生产阶段2设备目录与执行适配器.md)
+[06-20 阶段 2 规划](../../wiki/06-工业案例/柔性车间/当前规划/06-20-混线生产阶段2设备目录与执行适配器.md)
 落到 v1 代码（`src/flexible_factory/`）的可执行改动清单：文件级落点、接口
 契约、测试矩阵、文档与版本处置。**本文件不声明任何新能力**；实施完成后由
-`V1_STAGE2_REPORT.md` 给出实测结论，06-20 的 `status` 才改为 `implemented`。
+`docs/implementation/reports/v1-stage-02-device-executor.md` 给出实测结论，06-20 的 `status` 才改为 `implemented`。
 
 范围前提（与 06-20 一致）：调度仍用默认 `mixed_line_v1` 与固定候选设备；
 `full_flow` 的用户入口、运行模式、场景工件、运动算法、资源互锁均不改变。
@@ -24,7 +24,7 @@ scope: v1 UFLOW / 阶段 2
 实施状态（2026-11-03）：步骤 1–6 全部完成。静态绑定核对、57 个纯测试与
 两项 focused 仿真（`arm_A` 取放；AGV 空载 `A→B` + 载货 `B→A`）均已执行
 通过，实测数据、证据路径与边界见
-[V1_STAGE2_REPORT.md](V1_STAGE2_REPORT.md)；偏差记录见 §11。
+[docs/implementation/reports/v1-stage-02-device-executor.md](../reports/v1-stage-02-device-executor.md)；偏差记录见 §11。
 
 ## 1. 目标与验收映射
 
@@ -336,7 +336,7 @@ AGV 路线受阻是既有已验收行为（`agv_blocked` 回归：进入受阻�
 | 文档 | 动作 | 时点 |
 |---|---|---|
 | 本文件 | `status: proposed → implemented`，补"实施偏差"节 | 全部步骤通过后 |
-| `V1_STAGE2_REPORT.md` | 新建，`type: report`、`status: review`、`scope: v1 UFLOW / 阶段 2` | 落地 |
+| `docs/implementation/reports/v1-stage-02-device-executor.md` | 新建，`type: report`、`status: review`、`scope: v1 UFLOW / 阶段 2` | 落地 |
 | `docs/implementation/README.md` | 表格新增两行（方案、报告） | 落地 |
 | 06-20 规划 | 更新 `updated`、`status`；`related` 加报告；正文追加"实施记录"（写法对齐 06-19） | 落地 |
 | `PROJECT_ENGINEERING_REFERENCE.md` §2 | 目录树加 `simulation/execution/`、`device_binding.py`；边界段补"execution 不导入 application、不调用 sim.step" | 落地 |
@@ -374,7 +374,7 @@ AGV 路线受阻是既有已验收行为（`agv_blocked` 回归：进入受阻�
 - `application/coordinator.py` 经 adapter 启动/轮询，重复分支删除。
 - 6 个纯测试文件 + 2 个 focused sim 测试文件 + harness；E join 沿用现有测试。
 - `python -m pytest -q` 全绿（基线 340 passed，新增用例数在报告中列出）。
-- `V1_STAGE2_REPORT.md` 含：映射表核对结论、代表臂/代表 AGV 实测证据、
+- `docs/implementation/reports/v1-stage-02-device-executor.md` 含：映射表核对结论、代表臂/代表 AGV 实测证据、
   未执行项、版本处置记录。
 - 以上全部满足后，06-20 的 `status` 才改为 `implemented`（已于 2026-11-03
   完成）。

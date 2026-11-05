@@ -3,7 +3,7 @@
 本文件记录 v1 产品的工程约束、模块职责和仿真实测陷阱。项目状态见
 [README.md](README.md)，运行命令见
 [docs/wiki/98-ProjectUsage/USAGE.md](docs/wiki/98-ProjectUsage/USAGE.md)，
-实施与验收见 [docs/implementation/V1_REPORT.md](docs/implementation/V1_REPORT.md)。
+实施与验收见 [v1 产品实施报告](docs/implementation/reports/v1-product-implementation.md)。
 
 ## 1. 产品边界
 
@@ -194,9 +194,9 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   测试 `tests/test_v1_catalog_persistence.py`、知识图谱测试
   `tests/test_v1_knowledge_graph.py` 和运行记录测试
   `tests/test_v1_run_records.py`；完整回归计数未在这些实施轮刷新，见
-  [目录实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md)、
-  [知识图谱报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) 与
-  [运行记录报告](docs/implementation/V1_RUN_RECORDS_REPORT.md)。
+  [目录实施报告](docs/implementation/reports/v1-catalog-persistence.md)、
+  [知识图谱报告](docs/implementation/reports/v1-knowledge-graph-import.md) 与
+  [运行记录报告](docs/implementation/reports/v1-run-record-persistence.md)。
 - 目录数据库验证：`flexible-factory catalog init/import/publish/verify/diff`
   （不需要 CoppeliaSim）；数据库默认 `var/catalog/catalog.db`。
 - 运行记录验证：`flexible-factory report runs/run/genealogy/waits/timeline`

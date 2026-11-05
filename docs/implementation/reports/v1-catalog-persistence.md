@@ -6,27 +6,27 @@ created: 2026-11-05
 updated: 2026-11-05
 scope: flexible_factory persistence / SQLAlchemy + Alembic / 静态目录
 related:
-  - RESOURCE_DATABASE_PLAN.md
-  - ../../PROJECT_ENGINEERING_REFERENCE.md
+  - docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md
+  - ../../../PROJECT_ENGINEERING_REFERENCE.md
 ---
 
 # v1 资源目录数据库化实施报告：静态目录持久化
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](RESOURCE_DATABASE_PLAN.md)
+[资源目录数据库化与知识图谱实施方案](../plans/resource-catalog-database-and-knowledge-graph.md)
 阶段 0–3 在 v1 代码上的实施结果。阶段 0 的字段盘点与术语对照见
-[静态目录字段盘点](V1_CATALOG_FIELD_INVENTORY.md)。本阶段只把
+[静态目录字段盘点](../reference/static-catalog-field-inventory.md)。本阶段只把
 **静态资源与工艺目录**持久化到 SQLite，并增加显式选库能力；运行记录和
 知识图谱导入已在后续阶段实施，分别见
-[运行记录实施报告](V1_RUN_RECORDS_REPORT.md) 与
-[知识图谱导入实施报告](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+[运行记录实施报告](v1-run-record-persistence.md) 与
+[知识图谱导入实施报告](v1-knowledge-graph-import.md)。
 
 结论：
 
 - 阶段 1（schema/迁移）、阶段 2（目录导入/只读仓储）、阶段 3（影子对比与
   显式选库）已实现。
 - 阶段 4（运行记录）已按确认的 Q1–Q4 口径另行实施，见
-  [运行记录实施报告](V1_RUN_RECORDS_REPORT.md)；阶段 5 的知识图谱表与导入
+  [运行记录实施报告](v1-run-record-persistence.md)；阶段 5 的知识图谱表与导入
   管线已实施，真实 dump 222 节点/384 关系已导入并发布；阶段 6 仅覆盖
   迁移/文档部分。
 - 新增 23 个持久化测试通过；相关既有纯逻辑回归 87 个通过；完整
@@ -54,7 +54,7 @@ related:
 | `alembic.ini`（新增） | 开发者手动执行 Alembic 的入口；应用不依赖它 |
 | `tests/test_v1_catalog_persistence.py`（新增） | 迁移、约束、导入/发布、往返、CLI 与故障回滚 |
 | `tests/test_v1_import_boundary.py`（扩展） | `domain` 不导入 SQLAlchemy/SQLite/persistence；persistence 不导入 simulation/application |
-| [V1_CATALOG_FIELD_INVENTORY.md](V1_CATALOG_FIELD_INVENTORY.md)（阶段 0） | 字段来源、静态/运行时边界、顺序语义、术语对照与 dump 状态 |
+| [docs/implementation/reference/static-catalog-field-inventory.md](../reference/static-catalog-field-inventory.md)（阶段 0） | 字段来源、静态/运行时边界、顺序语义、术语对照与 dump 状态 |
 
 ## 2. Schema 与关键决策
 
@@ -153,7 +153,7 @@ focused/full_flow 验收；`run --catalog-source db` 的实机运行。因此本
 本报告只记录目录阶段的只读识别结果；后续由用户提供的 `ref/scripts/`
 确认它是 **Neo4j 数据库 dump**，官方读取路径为 `neo4j-admin database
 load` / `migrate`。知识图谱表、导出器和 staging 导入已在阶段 5 单独实施，
-见 [知识图谱导入实施报告](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+见 [知识图谱导入实施报告](v1-knowledge-graph-import.md)。
 
 | 属性 | 值 |
 |---|---|
@@ -168,11 +168,11 @@ load` / `migrate`。知识图谱表、导出器和 staging 导入已在阶段 5 
 ## 7. 未实施与限制
 
 - 运行记录表已在 revision `0003_run_records` 创建，见
-  [运行记录实施报告](V1_RUN_RECORDS_REPORT.md)；真实 `full_flow` 与运行
+  [运行记录实施报告](v1-run-record-persistence.md)；真实 `full_flow` 与运行
   记录的联合验收未执行。
 - 知识图谱表已在 revision `0002_knowledge_graph` 创建；真实 dump 的 Docker
   载入、Bolt 导出、SQLite 导入和发布已完成（222 实体/384 关系），见
-  [知识图谱导入实施报告](V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md)。
+  [知识图谱导入实施报告](v1-knowledge-graph-import.md)。
 - 物料转换 `PROCESS_TRANSITIONS` 未单独建表；当前由领域规则维护，未进入
   首期数据库 schema。
 - `scene_binding` 只覆盖设备别名；传送带/交接台/缓冲/输出台等 support
