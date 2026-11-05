@@ -204,8 +204,8 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   可关闭。
 - 知识图谱验证：`flexible-factory knowledge import/status/verify/publish`
   （不需要 CoppeliaSim）；真实 dump 的载入/导出需要 Docker Desktop 和
-  Neo4j；本机已执行 222 节点/384 关系导入并发布，见
-  [tools/neo4j/README.md](tools/neo4j/README.md)。
+  Neo4j；操作步骤见 [tools/neo4j/README.md](tools/neo4j/README.md)，实测结果以
+  [知识图谱实施报告](docs/implementation/reports/v1-knowledge-graph-import.md)为准。
 - 设备级 focused 验收与阶段 4 `full_flow`（需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，
 

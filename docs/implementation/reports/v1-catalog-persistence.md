@@ -26,9 +26,8 @@ related:
 - 阶段 1（schema/迁移）、阶段 2（目录导入/只读仓储）、阶段 3（影子对比与
   显式选库）已实现。
 - 阶段 4（运行记录）已按确认的 Q1–Q4 口径另行实施，见
-  [运行记录实施报告](v1-run-record-persistence.md)；阶段 5 的知识图谱表与导入
-  管线已实施，真实 dump 222 节点/384 关系已导入并发布；阶段 6 仅覆盖
-  迁移/文档部分。
+  [运行记录实施报告](v1-run-record-persistence.md)；阶段 5 的知识图谱表与导入管线
+  见[知识图谱导入实施报告](v1-knowledge-graph-import.md)。阶段 6 仅覆盖迁移/文档部分。
 - 新增 23 个持久化测试通过；相关既有纯逻辑回归 87 个通过；完整
   `python -m pytest -q` 按方案 §7.5 未执行。
 - 默认 `full_flow` 运行时仍使用代码内默认目录；
@@ -162,17 +161,16 @@ load` / `migrate`。知识图谱表、导出器和 staging 导入已在阶段 5 
 | SHA-256 | `9413d53dd5b6206e5f6082bf134757a3aa8f28e367f2fb95bea094cfdc75e344` |
 | 开头字节 | ASCII `DZV1`，其后为 `28 b5 2f fd` 字节序列 |
 
-二进制 dump 仍不由项目自行解析；真实载入和 Bolt 导出已在阶段 5 执行
-（222 节点/384 关系，导入并发布成功），细节见对应报告。
+二进制 dump 仍不由项目自行解析；真实载入和 Bolt 导出的执行结果见
+[知识图谱导入实施报告](v1-knowledge-graph-import.md)。
 
 ## 7. 未实施与限制
 
 - 运行记录表已在 revision `0003_run_records` 创建，见
   [运行记录实施报告](v1-run-record-persistence.md)；真实 `full_flow` 与运行
   记录的联合验收未执行。
-- 知识图谱表已在 revision `0002_knowledge_graph` 创建；真实 dump 的 Docker
-  载入、Bolt 导出、SQLite 导入和发布已完成（222 实体/384 关系），见
-  [知识图谱导入实施报告](v1-knowledge-graph-import.md)。
+- 知识图谱表已在 revision `0002_knowledge_graph` 创建；真实 dump 的导入验收
+  见[知识图谱导入实施报告](v1-knowledge-graph-import.md)。
 - 物料转换 `PROCESS_TRANSITIONS` 未单独建表；当前由领域规则维护，未进入
   首期数据库 schema。
 - `scene_binding` 只覆盖设备别名；传送带/交接台/缓冲/输出台等 support

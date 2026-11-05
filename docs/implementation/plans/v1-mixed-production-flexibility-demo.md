@@ -9,7 +9,7 @@ related:
   - [[wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明]]
   - [[wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度]]
   - [[wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复]]
-  - [[implementation/reports/v1-stage-04-capability-scheduling.]]
+  - [[implementation/reports/v1-stage-04-capability-scheduling]]
 ---
 
 # v1 混线生产灵活性扩展示范实施方案

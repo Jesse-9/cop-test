@@ -96,21 +96,11 @@ docker compose -f .\tools\neo4j\docker-compose.yml down
 `down` 保留命名卷；只有确认不再需要本地图谱时才执行
 `docker volume rm cop-test-neo4j-data`（破坏性操作）。
 
-## 已验证的本地结果（2026-11-05）
+## 验收记录
 
-使用本目录脚本把 `ref/fmpmm.dump` 载入 `cop-test-neo4j-data` 后：
-
-- 图规模：222 节点 / 384 关系；
-- 节点标签：`Instance` 155、`Abstraction` 18、`Goal` 17、`Operation` 12、
-  `Parameter` 9、`Action` 7、`Capability` 4；
-- 关系类型：`include` 131、`has_instance` 68、`achieve_goal` 48、
-  `has_capability` 42、`operation` 24、`has_action` 23、
-  `has_parameter` 22、`after` 21、`installed_on` 5；
-- `knowledge import` 写入 222 实体/384 关系并发布成功，无未映射/冲突/
-  悬空关系。
-
-这些数字对应当前 `ref/fmpmm.dump` 的 SHA-256
-`9413d53d…75e344`；换用其他 dump 后必须重新核对。
+本地 dump 的载入、导出和知识导入验收结果由
+[知识图谱实施报告](../../docs/implementation/reports/v1-knowledge-graph-import.md)
+记录。换用 dump 或修改映射后，应按本指南重新执行并更新报告；本文件只维护操作步骤。
 
 ## 限制
 

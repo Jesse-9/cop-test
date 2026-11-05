@@ -402,38 +402,11 @@ RETURN d.id, c.id;
 - Neo4j CSV Import: <https://neo4j.com/docs/getting-started/data-import/csv-import/>（关系数据导出后按需构造图导入。）
 - Neo4j relational-to-graph import: <https://neo4j.com/docs/getting-started/data-import/relational-to-graph-import/>（关系模型到图模型的派生导入参考。）
 
-## 11. 实施状态（2026-11-05）
+## 11. 实施记录入口
 
-阶段 0–3 已按本方案实施，详见
-[V1 资源目录数据库化实施报告](../reports/v1-catalog-persistence.md) 和
-[静态目录字段盘点](../reference/static-catalog-field-inventory.md)：
-
-- 新增 `src/flexible_factory/persistence/`、Alembic revision
-  `0001_catalog_core` 和 `flexible-factory catalog` 命令组；
-- 默认目录可导入为 staging release，校验后原子发布，并能重建等价
-  `ProcessCatalog`；
-- 影子对比 (`catalog diff`) 为空；`run --catalog-source db` 只接受与代码
-  目录完全等价的已发布目录；
-- 新增持久化测试覆盖迁移、约束、导入/发布、往返和故障回滚。
-
-阶段 5 已实施并完成真实 dump 端到端导入：`ref/scripts/` 确认
-`fmpmm.dump` 是 Neo4j 数据库 dump，官方路径为
-`neo4j-admin database load` / `migrate`；新增 Alembic revision
-`0002_knowledge_graph`、`tools/neo4j_export.py`、`tools/neo4j/` 载入工具
-和 `flexible-factory knowledge import/status/verify/publish`。真实图为
-222 节点/384 关系、7 类标签、9 类关系；导入 222 实体/384 关系并发布成功，
-无未映射/冲突/悬空关系。详见
-[知识图谱导入实施报告](../reports/v1-knowledge-graph-import.md)。
-
-阶段 4 已按用户确认的 Q1–Q4 口径实施：新增 revision
-`0003_run_records`，在生产运行开始/结束两个边界批量写入运行、工序、物料、
-谱系、资源和事件记录；提供 `report runs/run/genealogy/waits/timeline`
-查询。写入失败只在运行报告标记持久化失败，不回滚仿真、不自动重放。用户
-已手动运行 `full_flow` 仿真无误；首次运行记录因 `OperationRuntime`
-缺少 `instances()` 失败，已修复并补回归测试，待重跑生成成功记录。详见
-[运行记录实施报告](../reports/v1-run-record-persistence.md)。
-
-阶段 6 仅覆盖迁移测试、来源摘要、发布门槛和工具文档；备份/恢复演练与
-运行记录保留策略仍未实施。第 7 节的完整手工回归和需要 CoppeliaSim 的
-验收仍未执行。
+本方案维护架构决策、范围和验收门槛，不维护阶段完成快照或实测数字。实际改动、
+测试结果与未完成项分别记录在[目录持久化报告](../reports/v1-catalog-persistence.md)、
+[运行记录报告](../reports/v1-run-record-persistence.md)和
+[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)；字段来源见
+[静态目录字段盘点](../reference/static-catalog-field-inventory.md)。
 

@@ -131,7 +131,7 @@ related:
 - 运行记录表：已在 revision `0003_run_records` 实施（方案 §2.2），见
   [docs/implementation/reports/v1-run-record-persistence.md](../reports/v1-run-record-persistence.md)。
 - 知识图谱表：已在 revision `0002_knowledge_graph` 实施（方案 §2.3）；
-  真实 `fmpmm.dump` 的 Docker/Neo4j 端到端导入未执行，见
+  真实 `fmpmm.dump` 的导入状态与验收见
   [docs/implementation/reports/v1-knowledge-graph-import.md](../reports/v1-knowledge-graph-import.md)。
 
 ## 5. `fmpmm.dump` 来源状态
@@ -144,7 +144,6 @@ related:
 
 生成软件、版本、容器格式、是否加密和官方恢复方式最初未确认；用户提供的
 `ref/scripts/` 后续确认它是 **Neo4j 数据库 dump**，官方读取路径为
-`neo4j-admin database load` / `migrate`。项目仍不解析二进制 dump；真实图
-（222 节点/384 关系）已通过官方工具载入、导出并成功导入知识表，见
-[docs/implementation/reports/v1-knowledge-graph-import.md](../reports/v1-knowledge-graph-import.md)。
-该项不阻塞静态目录数据库。
+`neo4j-admin database load` / `migrate`。项目仍不解析二进制 dump；载入和导入
+验收事实由[知识图谱导入报告](../reports/v1-knowledge-graph-import.md)维护。
+本盘点只记录 dump 元信息与静态目录字段来源，不维护实施状态。该项不阻塞静态目录数据库。

@@ -112,35 +112,10 @@ CoppeliaSim 的 `full_flow` 验收不在目录数据库维护命令范围内。
 
 ## 知识图谱导入（维护操作）
 
-`fmpmm.dump` 已确认是 Neo4j 数据库 dump。原文件只用官方
-`neo4j-admin database load` / `migrate` 载入本地 Neo4j，再由只读导出器
-生成 JSON；项目不自行解析二进制 dump。完整步骤见
-[本地 Neo4j 工具](../../../tools/neo4j/README.md)。
-
-前置条件：Docker Desktop 已启动，`uv sync --group dev` 已安装 Neo4j 驱动。
-
-    $env:NEO4J_AUTH = 'neo4j/<password>'
-    $env:NEO4J_PASSWORD = '<password>'
-
-    .\tools\neo4j\load-dump.ps1 -DumpPath .\ref\fmpmm.dump
-
-    uv run python .\tools\neo4j_export.py `
-      --source-dump .\ref\fmpmm.dump `
-      --out .\docs\implementation\runs\fmpmm_graph.json
-
-    flexible-factory knowledge import `
-      --export .\docs\implementation\runs\fmpmm_graph.json `
-      --source-dump .\ref\fmpmm.dump
-
-    flexible-factory knowledge status
-    flexible-factory knowledge verify --extraction-id <extraction_id>
-    flexible-factory knowledge publish --extraction-id <extraction_id>
-
-`knowledge import` 只写 staging；未映射标签/谓词、端点缺失或 canonical ID
-冲突会进入报告并阻止发布。`knowledge verify` 返回非零时不要发布。真实
-dump 的载入/导出需要 Docker；本机已用 `ref/fmpmm.dump` 完成
-222 节点/384 关系的导入与发布。仅有导出 JSON 时可做 staging 和测试，但
-不能在未重新载入/导出的环境声称真实图谱已完成端到端导入。
+真实 Neo4j dump 的载入、只读导出、staging、审核和发布流程统一维护在
+[本地 Neo4j 工具说明](../../../tools/neo4j/README.md)。导入验收结果以
+[知识图谱实施报告](../../implementation/reports/v1-knowledge-graph-import.md)
+为准。`knowledge import` 只写 staging；校验失败时不得发布。
 
 ## 运行记录与查询（维护操作）
 

@@ -21,8 +21,8 @@ v1/
 - schema：`2.0`；契约：`v1_contract_20261103`；产品版本 `1.0.0`
 - scene SHA-256：`bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c`
   （与来源 stage4 场景逐字节一致）
-- 校验：迁移时保存的 `validation.json` 为 452 项通过、0 差异；最终代码
-  独立 `flexible-factory validate` 为 454 项通过、0 差异。
+- 校验：迁移时保存的 `validation.json` 记录该工件的只读校验结果；后续代码校验
+  结果以对应实施报告和当前 `flexible-factory validate` 输出为准。
 - 迁移命令：
 
       flexible-factory migrate \
@@ -42,14 +42,8 @@ v1 运行期不读取它们，只读取 `v1/current.json`。
 
 ## current 指针
 
-```text
-docs/scene_artifacts/v1/current.json
-  {"artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
-   "path": "L5_UFLOW/v001_20261103_004317",
-   "manifest_digest": "...", "scene_sha256": "...", "updated_at": "..."}
-```
-
-`current.json` 只在新工件写入、重新加载并只读校验通过后原子更新。
+`v1/current.json` 是当前工件标识与摘要的唯一指针；只在新工件写入、重新加载
+并只读校验通过后原子更新。使用者应读取该文件，不要在其他文档另存一份指针副本。
 
 ## 覆盖与派生规则
 
@@ -59,15 +53,4 @@ docs/scene_artifacts/v1/current.json
 4. `build` 只执行构建契约检查；`build → save` 才生成新的 v1 版本。
 5. 不得用 CoppeliaSim GUI 的 **File > Save Scene** 覆盖工件内的 `scene.ttt`。
 
-## 命令
-
-```bash
-flexible-factory load
-flexible-factory validate        # 可选诊断
-flexible-factory run --scenario full_flow --time 700
-flexible-factory stop
-flexible-factory status
-flexible-factory list
-```
-
-运行说明见 [项目使用指南](../wiki/98-ProjectUsage/USAGE.md)。
+CLI 命令与运行流程见[项目使用指南](../wiki/98-ProjectUsage/USAGE.md)。
