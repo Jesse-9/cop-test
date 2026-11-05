@@ -62,5 +62,27 @@ def test_scheduler_policy_does_not_import_simulation_or_application():
     assert out == "", f"scheduler imported runtime layer: {out}"
 
 
+def test_domain_does_not_import_persistence_sqlalchemy_or_sqlite():
+    out = _run(
+        "import flexible_factory.domain.materials, "
+        "flexible_factory.domain.process_model, "
+        "flexible_factory.domain.default_process; import sys; "
+        "banned=sorted(m for m in sys.modules "
+        "if m.startswith('flexible_factory.persistence') "
+        "or m.split('.')[0] in {'sqlalchemy', 'alembic', 'sqlite3'}); "
+        "print(','.join(banned))")
+    assert out == "", f"domain imported persistence: {out}"
+
+
+def test_persistence_does_not_import_simulation_or_application():
+    out = _run(
+        "import flexible_factory.persistence; import sys; "
+        "banned=sorted(m for m in sys.modules "
+        "if m.startswith('flexible_factory.simulation') "
+        "or m.startswith('flexible_factory.application') "
+        "or m == 'flexible_factory.cli'); print(','.join(banned))")
+    assert out == "", f"persistence imported outer layer: {out}"
+
+
 def test_mcp_registration_is_removed_for_v1():
     assert not (ROOT / ".mcp.json").exists(), "v1 已移除旧 factory-sim MCP 注册"

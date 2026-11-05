@@ -141,6 +141,16 @@ def test_binding_aliases_are_flat_and_owned_once():
             owners[alias] = row_id
 
 
+def test_device_binding_roles_match_aliases_one_to_one():
+    for binding in device_bindings():
+        assert len(binding.alias_roles) == len(binding.aliases)
+        assert len(set(binding.alias_roles)) == len(binding.alias_roles)
+        if binding.kind == "logic":
+            assert binding.alias_roles == ()
+        else:
+            assert binding.alias_roles
+
+
 def test_operations_are_covered_by_their_device_bindings():
     catalog = default_catalog()
     for recipe in catalog.recipes:
