@@ -28,6 +28,7 @@
 | 静态目录数据库：schema、导入/发布、影子对比与选库 | [实施报告](docs/implementation/V1_CATALOG_PERSISTENCE_REPORT.md) · [字段盘点](docs/implementation/V1_CATALOG_FIELD_INVENTORY.md) · [方案](docs/implementation/RESOURCE_DATABASE_PLAN.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 知识图谱导入：Neo4j dump 载入/导出、staging 与发布 | [实施报告](docs/implementation/V1_KNOWLEDGE_GRAPH_IMPORT_REPORT.md) · [Neo4j 工具](tools/neo4j/README.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 运行记录：批量写入与 Q1–Q4 查询 | [实施报告](docs/implementation/V1_RUN_RECORDS_REPORT.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
+| 本地数据库可视化 | [仪表盘工具](tools/db_dashboard.py) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 项目状态与代码结构 | [README.md](README.md) |
 | 历史阶段结论与未来边界 | [V1 实施报告](docs/implementation/V1_REPORT.md) |
 | wiki 笔记 schema、标签、撰写流程 | [docs/CLAUDE.md](docs/CLAUDE.md) |

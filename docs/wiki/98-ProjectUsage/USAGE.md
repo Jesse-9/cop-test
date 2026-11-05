@@ -164,6 +164,34 @@ dump 的载入/导出需要 Docker；本机已用 `ref/fmpmm.dump` 完成
 数据库可直接用 SQLite 查询；记录全部保留，当前没有自动清理命令。需要
 CoppeliaSim 的 `full_flow` 与运行记录联合验收不在本机维护命令范围内。
 
+## 数据库可视化（维护操作）
+
+生成一个自包含 HTML 仪表盘（不依赖外部 CDN 或服务端）：
+
+```powershell
+uv run python .\tools\db_dashboard.py `
+  --db .\var\catalog\catalog.db `
+  --out .\docs\implementation\runs\db_dashboard.html `
+  --open
+```
+
+仪表盘显示：
+
+- 知识图谱（SQLite 知识表的按类型分组视图、节点/关系表格）；
+- 实体类型与关系谓词计数；
+- 运行记录列表、Q4 工序时间线、Q3 资源等待、Q2 物料谱系；
+- 目录发布版本、知识来源与抽取状态。
+
+页面是只读快照，数据变化后重新运行生成命令。图谱也可直接在 Neo4j
+Browser（`http://localhost:7474`）查看，例如：
+
+```cypher
+MATCH p=()-[]->() RETURN p LIMIT 100;
+MATCH (i:Instance)-[:achieve_goal]->(g:Goal) RETURN i, g LIMIT 50;
+```
+
+Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要 Docker。
+
 ## 迁移与重建（维护操作）
 
 从历史 stage4 工件生成 v1 副本（幂等；源工件只读）：

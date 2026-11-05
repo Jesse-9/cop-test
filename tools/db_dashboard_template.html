@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cop-test 数据库仪表盘</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-other: #b7b5ac;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --success-text: #006300;
+    --shadow: 0 1px 2px rgba(11, 11, 11, 0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-other: #6f6e68;
+      --success-text: #0ca30c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-other: #6f6e68;
+    --success-text: #0ca30c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .viz-root {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 28px 28px 48px;
+  }
+  .top { display: flex; justify-content: space-between; gap: 20px;
+         align-items: flex-start; margin-bottom: 20px; }
+  .eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 12px;
+             letter-spacing: .08em; text-transform: uppercase; }
+  h1 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -.02em; }
+  h2 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+  .sub { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  button, select, input { font: inherit; color: var(--ink); }
+  .ghost {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .ghost:hover { border-color: var(--axis); }
+  .hero-row { display: grid; grid-template-columns: minmax(280px, 1.2fr) 3fr;
+              gap: 14px; margin-bottom: 14px; }
+  .hero { display: flex; flex-direction: column; justify-content: center; }
+  .hero .label { margin: 0; color: var(--muted); font-size: 12px;
+                 letter-spacing: .06em; text-transform: uppercase; }
+  .hero-value { margin: 2px 0 0; font-size: 58px; line-height: 1;
+                font-weight: 650; letter-spacing: -.04em; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat { display: flex; flex-direction: column; justify-content: center; }
+  .stat .value { font-size: 28px; font-weight: 650; letter-spacing: -.02em; }
+  .stat .label { color: var(--muted); font-size: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 14px;
+             margin-bottom: 14px; }
+  .filters label { display: flex; flex-direction: column; gap: 4px;
+                   color: var(--muted); font-size: 12px; }
+  .filters select, .filters input {
+    background: var(--page); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 10px; min-width: 180px;
+  }
+  .filters .search input { min-width: 240px; }
+  .filter-note { color: var(--muted); font-size: 12px; padding-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: 7fr 5fr; gap: 14px;
+          margin-bottom: 14px; align-items: start; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+  .card-head { display: flex; justify-content: space-between;
+               align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: end;
+            color: var(--ink-2); font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .swatch.line { width: 16px; height: 2px; border-radius: 2px; }
+  .canvas-wrap { position: relative; width: 100%; height: 520px;
+                 border-radius: 10px; background: var(--page);
+                 border: 1px solid var(--border); overflow: hidden; }
+  #graph-canvas { display: block; width: 100%; height: 100%; }
+  .hint { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row {
+    display: grid; grid-template-columns: minmax(92px, 128px) 1fr 58px;
+    gap: 10px; align-items: center; outline: none;
+  }
+  .bar-row:focus-visible { outline: 2px solid var(--series-1);
+                           outline-offset: 2px; border-radius: 4px; }
+  .bar-label { color: var(--ink-2); font-size: 12px; text-align: right;
+               overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { height: 18px; display: flex; align-items: center; }
+  .bar-fill { height: 18px; background: var(--series-1);
+              border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bar-value { color: var(--ink-2); font-size: 12px;
+               font-variant-numeric: tabular-nums; }
+  .table-view { margin-top: 12px; }
+  .table-view summary { color: var(--ink-2); cursor: pointer; font-size: 12px; }
+  .table-scroll { max-height: 320px; overflow: auto; margin-top: 8px;
+                  border: 1px solid var(--border); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  caption { text-align: left; color: var(--muted); padding: 8px; }
+  th, td { text-align: left; padding: 6px 8px; vertical-align: top;
+           border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0;
+       background: var(--surface); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .truncate { max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+              white-space: nowrap; }
+  .run-card { margin-bottom: 14px; }
+  .run-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+              margin: 10px 0 16px; }
+  .run-grid .stat { background: var(--page); border: 1px solid var(--border);
+                    border-radius: 10px; padding: 10px 12px; }
+  .run-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .run-cols h3 { margin: 0 0 8px; font-size: 13px; font-weight: 650; }
+  .empty { border: 1px dashed var(--axis); border-radius: 10px; padding: 16px;
+           color: var(--muted); font-size: 13px; }
+  .status { display: inline-flex; align-items: center; gap: 6px;
+            border: 1px solid var(--border); border-radius: 999px;
+            padding: 4px 10px; font-size: 12px; font-weight: 600;
+            color: var(--ink); background: var(--page); }
+  .status-icon { font-size: 12px; line-height: 1; }
+  .status.good .status-icon { color: var(--good); }
+  .status.critical .status-icon { color: var(--critical); }
+  .status.warning .status-icon { color: var(--warning); }
+  .status.serious .status-icon { color: var(--serious); }
+  .alert { border: 1px solid var(--border); border-left: 3px solid var(--critical);
+           border-radius: 8px; padding: 10px 12px; margin: 8px 0 14px;
+           background: var(--page); color: var(--ink-2); font-size: 13px; }
+  .alert.warning { border-left-color: var(--warning); }
+  .tree { list-style: none; margin: 0; padding-left: 16px; font-size: 12px; }
+  .tree li { margin: 3px 0; }
+  .tree .uid { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .tip {
+    position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    color: var(--ink-2); font-size: 12px;
+  }
+  .tip .tip-title { color: var(--ink); font-weight: 650; margin-bottom: 3px; }
+  .tip .tip-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .kv { display: grid; grid-template-columns: 150px 1fr; gap: 4px 10px;
+        font-size: 12px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+  footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 1100px) {
+    .hero-row, .grid, .grid.two, .run-cols { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .run-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .viz-root { padding: 16px; }
+    .top { flex-direction: column; }
+    .kpis, .run-grid { grid-template-columns: 1fr; }
+    .canvas-wrap { height: 420px; }
+    .filters select, .filters input, .filters .search input { min-width: 100%; }
+    .filters label, .filters .search { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <header class="top">
+    <div>
+      <p class="eyebrow">cop-test · local SQLite</p>
+      <h1>工厂数据仪表盘</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button class="ghost" id="theme-toggle" type="button">深色模式</button>
+  </header>
+
+  <section class="hero-row">
+    <div class="card hero">
+      <p class="label" id="hero-label">Knowledge entities</p>
+      <p class="hero-value" id="hero-value">—</p>
+      <p class="sub" id="hero-sub"></p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="card filters" aria-label="Filters">
+    <label>实体类型
+      <select id="type-filter"></select>
+    </label>
+    <label>运行记录
+      <select id="run-filter"></select>
+    </label>
+    <label class="search">搜索图谱
+      <input id="search" type="search" placeholder="label / canonical id">
+    </label>
+    <span class="filter-note" id="filter-note"></span>
+  </section>
+
+  <main>
+    <section class="grid">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>知识图谱</h2>
+            <p class="sub">SQLite 快照 · 按实体类型分组 · 节点大小按连接度 · 悬停查看详情</p>
+          </div>
+          <div class="legend" id="graph-legend"></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="graph-canvas" role="img"
+                  aria-label="Knowledge graph; use the node table for accessible values"></canvas>
+        </div>
+        <p class="hint">图谱是探索视图；类型、标签和关系的完整值在下方表格中。</p>
+        <details class="table-view">
+          <summary>节点表（<span id="node-count">0</span>）</summary>
+          <div class="table-scroll">
+            <table>
+              <caption>按当前实体类型与搜索条件过滤</caption>
+              <thead><tr><th>类型</th><th>标签</th><th>Canonical ID</th><th>状态</th></tr></thead>
+              <tbody id="node-table"></tbody>
+            </table>
+          </div>
+        </details>
+        <details class="table-view">
+          <summary>关系表（<span id="edge-count">0</span>）</summary>
+          <div class="table-scroll">
+            <table>
+              <caption>全部知识关系</caption>
+              <thead><tr><th>Subject</th><th>谓词</th><th>Object</th><th>状态</th></tr></thead>
+              <tbody id="edge-table"></tbody>
+            </table>
+          </div>
+        </details>
+      </article>
+
+      <div class="stack">
+        <article class="card">
+          <h2>实体类型</h2>
+          <p class="sub">当前 SQLite 知识表计数</p>
+          <div id="entity-bars" class="bars"></div>
+          <details class="table-view">
+            <summary>表格视图</summary>
+            <div class="table-scroll">
+              <table><thead><tr><th>类型</th><th class="num">数量</th></tr></thead>
+              <tbody id="entity-table"></tbody></table>
+            </div>
+          </details>
+        </article>
+        <article class="card">
+          <h2>关系谓词</h2>
+          <p class="sub">原始谓词映射后的受控名称</p>
+          <div id="predicate-bars" class="bars"></div>
+          <details class="table-view">
+            <summary>表格视图</summary>
+            <div class="table-scroll">
+              <table><thead><tr><th>谓词</th><th class="num">数量</th></tr></thead>
+              <tbody id="predicate-table"></tbody></table>
+            </div>
+          </details>
+        </article>
+      </div>
+    </section>
+
+    <section class="card run-card">
+      <div class="card-head">
+        <div>
+          <h2>运行记录</h2>
+          <p class="sub">Q1 汇总 · Q2 谱系 · Q3 资源等待 · Q4 工序时间线</p>
+        </div>
+        <div id="run-status"></div>
+      </div>
+      <div id="run-body"></div>
+    </section>
+
+    <section class="grid two">
+      <article class="card">
+        <h2>目录发布</h2>
+        <p class="sub">静态资源/工艺目录 release</p>
+        <div id="catalog-body"></div>
+      </article>
+      <article class="card">
+        <h2>来源与抽取</h2>
+        <p class="sub">知识图谱来源、摘要和发布状态</p>
+        <div id="source-body"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer id="footer"></footer>
+</div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+(function () {
+  "use strict";
+  const data = JSON.parse(document.getElementById("payload").textContent);
+  const $ = (selector, root) => (root || document).querySelector(selector);
+  const el = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const clear = (node) => { while (node.firstChild) node.removeChild(node.firstChild); };
+  const fmt = (value) => new Intl.NumberFormat().format(value);
+  const fmtSeconds = (value) => value == null ? "—" : `${Number(value).toFixed(2)} s`;
+  const fmtDate = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  };
+  const short = (value, n) => {
+    const text = String(value || "");
+    return text.length > n ? text.slice(0, n - 1) + "…" : text;
+  };
+  const empty = (text) => el("div", "empty", text);
+
+  const state = {
+    type: "all",
+    search: "",
+    runId: data.runs.length ? data.runs[0].run_id : "",
+  };
+
+  const tooltip = el("div", "tip");
+  tooltip.hidden = true;
+  document.body.appendChild(tooltip);
+  function showTip(title, lines, x, y) {
+    clear(tooltip);
+    tooltip.appendChild(el("div", "tip-title", title));
+    for (const line of lines) tooltip.appendChild(el("div", "tip-line", line));
+    tooltip.hidden = false;
+    const pad = 14;
+    const rect = tooltip.getBoundingClientRect();
+    const left = Math.min(window.innerWidth - rect.width - pad,
+                          Math.max(pad, x + 12));
+    const top = Math.min(window.innerHeight - rect.height - pad,
+                         Math.max(pad, y + 12));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+  function hideTip() { tooltip.hidden = true; }
+  function bindTip(node, title, lines) {
+    node.addEventListener("pointerenter", (event) =>
+      showTip(title, lines, event.clientX, event.clientY));
+    node.addEventListener("pointermove", (event) =>
+      showTip(title, lines, event.clientX, event.clientY));
+    node.addEventListener("pointerleave", hideTip);
+    node.addEventListener("focus", () => {
+      const box = node.getBoundingClientRect();
+      showTip(title, lines, box.left + box.width / 2, box.top);
+    });
+    node.addEventListener("blur", hideTip);
+  }
+
+  function renderHeader() {
+    const k = data.knowledge;
+    const counts = data.counts;
+    $("#subtitle").textContent =
+      `${data.db_path} · revision ${data.revision || "unknown"}`;
+    if (k.available && k.entities > 0) {
+      $("#hero-label").textContent = "知识实体";
+      $("#hero-value").textContent = fmt(k.entities);
+      $("#hero-sub").textContent =
+        `${fmt(k.relations)} 条关系 · ${k.entity_types.length} 类实体 · ${k.predicates.length} 类谓词`;
+    } else if (counts.runs > 0) {
+      $("#hero-label").textContent = "运行记录";
+      $("#hero-value").textContent = fmt(counts.runs);
+      $("#hero-sub").textContent = "当前数据库还没有知识实体";
+    } else {
+      $("#hero-label").textContent = "本地数据库";
+      $("#hero-value").textContent = "—";
+      $("#hero-sub").textContent = "尚无知识实体或运行记录";
+    }
+    const kpis = $("#kpis");
+    clear(kpis);
+    const latest = data.runs[0];
+    const tiles = [
+      ["关系", fmt(k.relations)],
+      ["实体类型", fmt(k.entity_types.length)],
+      ["运行记录", fmt(counts.runs)],
+    ];
+    for (const [label, value] of tiles) {
+      const tile = el("div", "card stat");
+      tile.appendChild(el("div", "value", value));
+      tile.appendChild(el("div", "label", label));
+      kpis.appendChild(tile);
+    }
+    const statusTile = el("div", "card stat");
+    statusTile.appendChild(el("div", "value", latest ? latest.status : "—"));
+    statusTile.appendChild(el("div", "label",
+      latest ? `最近运行 · ${fmtDate(latest.started_at)}` : "最近运行"));
+    kpis.appendChild(statusTile);
+  }
+
+  const statusMeta = {
+    DONE: { cls: "good", icon: "✓" },
+    FAILED: { cls: "critical", icon: "✕" },
+    ABORTED: { cls: "warning", icon: "!" },
+    RUNNING: { cls: "serious", icon: "…" },
+  };
+  function statusChip(status) {
+    const meta = statusMeta[status] || { cls: "serious", icon: "•" };
+    const chip = el("span", `status ${meta.cls}`);
+    chip.appendChild(el("span", "status-icon", meta.icon));
+    chip.appendChild(document.createTextNode(` ${status || "UNKNOWN"}`));
+    return chip;
+  }
+
+  function renderFilters() {
+    const typeSelect = $("#type-filter");
+    clear(typeSelect);
+    typeSelect.appendChild(new Option("全部类型", "all"));
+    for (const row of data.knowledge.entity_types) {
+      typeSelect.appendChild(new Option(`${row.entity_type} (${fmt(row.count)})`,
+                                        row.entity_type));
+    }
+    typeSelect.value = state.type;
+    typeSelect.addEventListener("change", () => {
+      state.type = typeSelect.value;
+      renderGraph();
+      renderGraphLegend();
+      updateFilterNote();
+    });
+    const runSelect = $("#run-filter");
+    clear(runSelect);
+    if (!data.runs.length) {
+      runSelect.appendChild(new Option("无运行记录", ""));
+      runSelect.disabled = true;
+    } else {
+      for (const run of data.runs) {
+        runSelect.appendChild(new Option(
+          `${run.run_id} · ${run.status}` +
+          (run.all_ok === true ? " · all_ok" : ""), run.run_id));
+      }
+      runSelect.value = state.runId;
+      runSelect.addEventListener("change", () => {
+        state.runId = runSelect.value;
+        renderRuns();
+      });
+    }
+    const search = $("#search");
+    search.addEventListener("input", () => {
+      state.search = search.value.trim().toLowerCase();
+      renderGraph();
+      renderGraphTables();
+      updateFilterNote();
+    });
+    updateFilterNote();
+  }
+  function updateFilterNote() {
+    const parts = [];
+    if (state.type !== "all") parts.push(`高亮 ${state.type}`);
+    if (state.search) parts.push(`搜索 “${state.search}”`);
+    $("#filter-note").textContent = parts.length ? parts.join(" · ") : "";
+  }
+
+  /* ── knowledge bars ───────────────────────────────────── */
+  function renderBars(container, table, rows, labelKey, valueKey) {
+    clear(container);
+    clear(table);
+    const max = Math.max(1, ...rows.map((row) => Number(row[valueKey]) || 0));
+    for (const row of rows) {
+      const label = String(row[labelKey]);
+      const value = Number(row[valueKey]) || 0;
+      const line = el("div", "bar-row");
+      line.tabIndex = 0;
+      line.setAttribute("role", "img");
+      line.setAttribute("aria-label", `${label}: ${fmt(value)}`);
+      line.appendChild(el("div", "bar-label", label));
+      const track = el("div", "bar-track");
+      const fill = el("div", "bar-fill");
+      fill.style.width = `${Math.max(1, value / max * 100)}%`;
+      track.appendChild(fill);
+      line.appendChild(track);
+      line.appendChild(el("div", "bar-value", fmt(value)));
+      bindTip(line, label, [`数量 ${fmt(value)}`]);
+      container.appendChild(line);
+      const tr = el("tr");
+      tr.appendChild(el("td", "", label));
+      tr.appendChild(el("td", "num", fmt(value)));
+      table.appendChild(tr);
+    }
+    if (!rows.length) container.appendChild(empty("暂无数据"));
+  }
+
+  /* ── knowledge graph ──────────────────────────────────── */
+  const graph = {
+    nodes: [], edges: [], byId: new Map(), topTypes: [],
+    hovered: null, canvas: null, ctx: null,
+  };
+  function initGraph() {
+    const nodes = data.knowledge.nodes || [];
+    const edges = data.knowledge.edges || [];
+    graph.nodes = nodes.map((node, index) => ({
+      ...node, index, degree: 0, x: 0.5, y: 0.5, vx: 0, vy: 0,
+    }));
+    graph.byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    graph.edges = edges.map((edge) => ({
+      ...edge,
+      sourceNode: graph.byId.get(edge.source),
+      targetNode: graph.byId.get(edge.target),
+    })).filter((edge) => edge.sourceNode && edge.targetNode);
+    for (const edge of graph.edges) {
+      edge.sourceNode.degree += 1;
+      edge.targetNode.degree += 1;
+    }
+    graph.topTypes = data.knowledge.entity_types.slice(0, 3)
+      .map((row) => row.entity_type);
+    layoutGroups();
+    graph.canvas = $("#graph-canvas");
+    graph.ctx = graph.canvas.getContext("2d");
+    graph.canvas.addEventListener("pointermove", onGraphMove);
+    graph.canvas.addEventListener("pointerleave", () => {
+      graph.hovered = null;
+      hideTip();
+      drawGraph();
+    });
+    window.addEventListener("resize", debounce(() => {
+      fitCanvas();
+      drawGraph();
+    }, 120));
+    fitCanvas();
+    drawGraph();
+  }
+  function layoutGroups() {
+    const nodes = graph.nodes;
+    graph.groupLabels = [];
+    if (!nodes.length) return;
+    const counts = new Map();
+    for (const row of data.knowledge.entity_types) {
+      counts.set(row.entity_type, row.count);
+    }
+    const groups = [...counts.keys()];
+    const topGroups = groups.filter((type) => type !== "Instance");
+    const hasInstances = groups.includes("Instance");
+    const rects = new Map();
+    const gap = 0.012;
+    const left = 0.02;
+    const right = 0.98;
+    const width = topGroups.length
+      ? (right - left - gap * (topGroups.length - 1)) / topGroups.length
+      : 0;
+    let cursor = left;
+    for (const type of topGroups) {
+      rects.set(type, { x0: cursor, x1: cursor + width,
+                        y0: 0.09, y1: 0.33 });
+      cursor += width + gap;
+    }
+    if (hasInstances) {
+      rects.set("Instance", { x0: left, x1: right, y0: 0.42, y1: 0.96 });
+    }
+    for (const type of groups) {
+      const rect = rects.get(type);
+      if (!rect) continue;
+      const groupNodes = nodes.filter((node) => node.type === type);
+      if (!groupNodes.length) continue;
+      const rectWidth = rect.x1 - rect.x0;
+      const rectHeight = rect.y1 - rect.y0;
+      const cols = Math.max(1, Math.ceil(Math.sqrt(
+        groupNodes.length * rectWidth / Math.max(rectHeight, 0.001))));
+      const rows = Math.max(1, Math.ceil(groupNodes.length / cols));
+      groupNodes.forEach((node, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        node.x = rect.x0 + (col + 0.5) / cols * rectWidth;
+        node.y = rect.y0 + (row + 0.5) / rows * rectHeight;
+      });
+      graph.groupLabels.push({
+        text: `${type} (${groupNodes.length})`,
+        x: rect.x0 + 0.004,
+        y: rect.y0 - 0.022,
+      });
+    }
+  }
+  function fitCanvas() {
+    if (!graph.canvas) return;
+    const wrap = graph.canvas.parentElement;
+    const width = wrap.clientWidth || 800;
+    const height = wrap.clientHeight || 520;
+    const dpr = window.devicePixelRatio || 1;
+    graph.canvas.width = Math.round(width * dpr);
+    graph.canvas.height = Math.round(height * dpr);
+    graph.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function nodeMatches(node) {
+    if (state.type !== "all" && node.type !== state.type) return false;
+    if (state.search) {
+      const haystack = `${node.label} ${node.id} ${node.canonical_id}`.toLowerCase();
+      if (!haystack.includes(state.search)) return false;
+    }
+    return true;
+  }
+  function graphColor(node) {
+    if (state.type !== "all") {
+      return node.type === state.type ? css("--series-1") : css("--series-other");
+    }
+    if (state.search) {
+      return nodeMatches(node) ? css("--series-1") : css("--series-other");
+    }
+    const index = graph.topTypes.indexOf(node.type);
+    return index === 0 ? css("--series-1")
+      : index === 1 ? css("--series-2")
+      : index === 2 ? css("--series-3")
+      : css("--series-other");
+  }
+  function css(name) {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name).trim();
+  }
+  function drawGraph() {
+    const ctx = graph.ctx;
+    if (!ctx) return;
+    const canvas = graph.canvas;
+    const width = canvas.width / (window.devicePixelRatio || 1);
+    const height = canvas.height / (window.devicePixelRatio || 1);
+    ctx.clearRect(0, 0, width, height);
+    const surface = css("--surface");
+    const grid = css("--grid");
+    const ink = css("--ink");
+    const x = (node) => node.x * width;
+    const y = (node) => node.y * height;
+    ctx.lineWidth = 1;
+    for (const edge of graph.edges) {
+      const active = graph.hovered &&
+        (edge.sourceNode === graph.hovered || edge.targetNode === graph.hovered);
+      ctx.strokeStyle = active ? css("--series-1") : grid;
+      ctx.globalAlpha = active ? 0.9 : 0.55;
+      ctx.beginPath();
+      ctx.moveTo(x(edge.sourceNode), y(edge.sourceNode));
+      ctx.lineTo(x(edge.targetNode), y(edge.targetNode));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (const node of graph.nodes) {
+      const matched = nodeMatches(node);
+      const radius = 3.2 + Math.min(4.2, Math.sqrt(node.degree) * 0.9);
+      ctx.beginPath();
+      ctx.arc(x(node), y(node), radius, 0, Math.PI * 2);
+      ctx.fillStyle = graphColor(node);
+      ctx.globalAlpha = matched ? 1 : 0.22;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = surface;
+      ctx.stroke();
+      if (node === graph.hovered) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = ink;
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillStyle = css("--muted");
+    for (const label of graph.groupLabels || []) {
+      ctx.fillText(label.text, label.x * width, label.y * height);
+    }
+    if (graph.hovered) {
+      ctx.font = '12px system-ui, -apple-system, "Segoe UI", sans-serif';
+      ctx.fillStyle = ink;
+      ctx.textAlign = "center";
+      ctx.fillText(graph.hovered.label, x(graph.hovered), y(graph.hovered) - 10);
+    }
+  }
+  function nearestNode(event) {
+    const rect = graph.canvas.getBoundingClientRect();
+    const mx = event.clientX - rect.left;
+    const my = event.clientY - rect.top;
+    let best = null;
+    let bestDist = 14 * 14;
+    for (const node of graph.nodes) {
+      const nx = node.x * rect.width;
+      const ny = node.y * rect.height;
+      const dist = (mx - nx) ** 2 + (my - ny) ** 2;
+      if (dist < bestDist) { bestDist = dist; best = node; }
+    }
+    return best;
+  }
+  function onGraphMove(event) {
+    const node = nearestNode(event);
+    if (node !== graph.hovered) {
+      graph.hovered = node;
+      drawGraph();
+    }
+    if (node) {
+      showTip(node.label, [
+        `类型 ${node.type}`,
+        `Canonical ${node.canonical_id}`,
+        `连接度 ${node.degree}`,
+        `状态 ${node.status}`,
+      ], event.clientX, event.clientY);
+    } else {
+      hideTip();
+    }
+  }
+  function renderGraphLegend() {
+    const legend = $("#graph-legend");
+    clear(legend);
+    if (!data.knowledge.available || !graph.nodes.length) return;
+    let items;
+    if (state.type === "all" && !state.search) {
+      items = graph.topTypes.map((type, index) => [
+        type, ["--series-1", "--series-2", "--series-3"][index],
+      ]);
+      items.push(["Other types", "--series-other"]);
+    } else {
+      items = [[state.type === "all" ? "匹配节点" : state.type, "--series-1"]];
+      items.push(["未匹配 / 其他", "--series-other"]);
+    }
+    for (const [label, token] of items) {
+      const row = el("span", "legend-item");
+      const swatch = el("span", "swatch");
+      swatch.style.background = `var(${token})`;
+      row.appendChild(swatch);
+      row.appendChild(document.createTextNode(label));
+      legend.appendChild(row);
+    }
+  }
+  function renderGraph() {
+    if (!graph.canvas) return;
+    drawGraph();
+    renderGraphTables();
+  }
+  function renderGraphTables() {
+    const nodes = graph.nodes.filter(nodeMatches);
+    const nodeBody = $("#node-table");
+    const edgeBody = $("#edge-table");
+    clear(nodeBody);
+    clear(edgeBody);
+    $("#node-count").textContent = fmt(nodes.length);
+    $("#edge-count").textContent = fmt(graph.edges.length);
+    const visible = new Set(nodes.map((node) => node.id));
+    for (const node of nodes) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "", node.type));
+      tr.appendChild(el("td", "truncate", node.label));
+      tr.appendChild(el("td", "truncate mono", node.canonical_id));
+      tr.appendChild(el("td", "", node.status));
+      nodeBody.appendChild(tr);
+    }
+    if (!nodes.length) {
+      const tr = el("tr");
+      const td = el("td", "muted", "没有匹配节点");
+      td.colSpan = 4;
+      tr.appendChild(td);
+      nodeBody.appendChild(tr);
+    }
+    for (const edge of graph.edges) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "truncate mono", edge.source));
+      tr.appendChild(el("td", "", edge.predicate));
+      tr.appendChild(el("td", "truncate mono", edge.target));
+      tr.appendChild(el("td", "", edge.status));
+      edgeBody.appendChild(tr);
+    }
+  }
+
+  /* ── run records ──────────────────────────────────────── */
+  function selectedRun() {
+    return data.runs.find((run) => run.run_id === state.runId) || null;
+  }
+  function renderRuns() {
+    const run = selectedRun();
+    const head = $("#run-status");
+    clear(head);
+    const body = $("#run-body");
+    clear(body);
+    if (!data.runs.length) {
+      body.appendChild(empty("尚无运行记录。运行 full_flow 后会自动写入。"));
+      return;
+    }
+    head.appendChild(statusChip(run ? run.status : "—"));
+    const table = el("table");
+    const thead = el("thead");
+    const htr = el("tr");
+    for (const label of ["run_id", "状态", "all_ok", "仿真时长", "墙钟时长", "开始"]) {
+      htr.appendChild(el("th", "", label));
+    }
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const row of data.runs) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "truncate mono", row.run_id));
+      tr.appendChild(el("td", "", row.status));
+      tr.appendChild(el("td", "", row.all_ok == null ? "—" : String(row.all_ok)));
+      tr.appendChild(el("td", "num", fmtSeconds(row.sim_duration_s)));
+      tr.appendChild(el("td", "num", fmtSeconds(row.wall_duration_s)));
+      tr.appendChild(el("td", "", fmtDate(row.started_at)));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    const details = el("details", "table-view");
+    details.appendChild(el("summary", "", "运行列表表格视图"));
+    const scroll = el("div", "table-scroll");
+    scroll.appendChild(table);
+    details.appendChild(scroll);
+    body.appendChild(details);
+    if (!run) return;
+    if (run.failure_reason) {
+      body.appendChild(el("div", "alert",
+        `失败原因：${run.failure_reason}`));
+    }
+    const result = run.result || {};
+    const acceptance = result.acceptance || {};
+    const finalCount = acceptance.final_count != null
+      ? acceptance.final_count : (run.final_uids || []).length;
+    const runGrid = el("div", "run-grid");
+    for (const [label, value] of [
+      ["FINAL 数", finalCount == null ? "—" : fmt(finalCount)],
+      ["工序实例", run.operations.length],
+      ["失败工序", run.failures.length],
+      ["资源等待条目", run.waits_total || 0],
+    ]) {
+      const tile = el("div", "stat");
+      tile.appendChild(el("div", "value", String(value)));
+      tile.appendChild(el("div", "label", label));
+      runGrid.appendChild(tile);
+    }
+    body.appendChild(runGrid);
+    const cols = el("div", "run-cols");
+    cols.appendChild(renderOperations(run));
+    cols.appendChild(renderWaits(run));
+    body.appendChild(cols);
+    body.appendChild(renderGenealogy(run));
+  }
+  function renderOperations(run) {
+    const card = el("div");
+    card.appendChild(el("h3", "", "工序时间线（Q4）"));
+    if (!run.operations.length) {
+      card.appendChild(empty(run.failure_reason
+        ? "本次运行没有工序快照；请查看失败原因。"
+        : "没有工序实例。"));
+      return card;
+    }
+    const max = Math.max(1, ...run.operations.map(
+      (operation) => Number(operation.duration_s) || 0));
+    const bars = el("div", "bars");
+    for (const operation of run.operations) {
+      const duration = Number(operation.duration_s);
+      const line = el("div", "bar-row");
+      line.tabIndex = 0;
+      line.appendChild(el("div", "bar-label", short(operation.template_id, 22)));
+      const track = el("div", "bar-track");
+      const fill = el("div", "bar-fill");
+      fill.style.width = Number.isFinite(duration)
+        ? `${Math.max(1, duration / max * 100)}%` : "0%";
+      track.appendChild(fill);
+      line.appendChild(track);
+      line.appendChild(el("div", "bar-value",
+        Number.isFinite(duration) ? `${duration.toFixed(2)}s` : "—"));
+      bindTip(line, operation.template_id, [
+        `状态 ${operation.state}`,
+        `设备 ${operation.selected_device_id || "—"}`,
+        `开始 ${fmtSeconds(operation.started_sim_time)}`,
+        `提交 ${fmtSeconds(operation.committed_sim_time)}`,
+      ]);
+      bars.appendChild(line);
+    }
+    card.appendChild(bars);
+    const details = el("details", "table-view");
+    details.appendChild(el("summary", "", "工序时间线表格"));
+    const scroll = el("div", "table-scroll");
+    const table = el("table");
+    const thead = el("thead");
+    const htr = el("tr");
+    for (const label of ["instance_id", "template", "状态", "设备",
+                        "开始(s)", "耗时(s)", "输入 UID", "输出 UID"]) {
+      htr.appendChild(el("th", "", label));
+    }
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const operation of run.operations) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "truncate mono", operation.instance_id));
+      tr.appendChild(el("td", "truncate", operation.template_id));
+      tr.appendChild(el("td", "", operation.state));
+      tr.appendChild(el("td", "", operation.selected_device_id || "—"));
+      tr.appendChild(el("td", "num", fmtSeconds(operation.started_sim_time)));
+      tr.appendChild(el("td", "num", fmtSeconds(operation.duration_s)));
+      tr.appendChild(el("td", "", (operation.input_uids || []).join(", ") || "—"));
+      tr.appendChild(el("td", "", (operation.output_uids || []).join(", ") || "—"));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    details.appendChild(scroll);
+    card.appendChild(details);
+    return card;
+  }
+  function renderWaits(run) {
+    const card = el("div");
+    card.appendChild(el("h3", "", "资源等待（Q3）"));
+    if (!run.resources.length) {
+      card.appendChild(empty("本次运行没有资源等待统计。"));
+      return card;
+    }
+    const max = Math.max(0.0001, ...run.resources.map(
+      (row) => Number(row.total_wait_s) || 0));
+    const bars = el("div", "bars");
+    for (const row of run.resources.slice(0, 10)) {
+      const value = Number(row.total_wait_s) || 0;
+      const line = el("div", "bar-row");
+      line.tabIndex = 0;
+      line.appendChild(el("div", "bar-label", short(row.resource_id, 22)));
+      const track = el("div", "bar-track");
+      const fill = el("div", "bar-fill");
+      fill.style.width = `${Math.max(1, value / max * 100)}%`;
+      track.appendChild(fill);
+      line.appendChild(track);
+      line.appendChild(el("div", "bar-value", `${value.toFixed(2)}s`));
+      bindTip(line, row.resource_id, [
+        `等待 ${row.wait_count} 次`,
+        `最长 ${fmtSeconds(row.max_wait_s)}`,
+        `持有 ${fmtSeconds(row.total_hold_s)}`,
+      ]);
+      bars.appendChild(line);
+    }
+    card.appendChild(bars);
+    const details = el("details", "table-view");
+    details.appendChild(el("summary", "", "等待明细表格"));
+    const scroll = el("div", "table-scroll");
+    const table = el("table");
+    table.appendChild(el("thead"));
+    const htr = el("tr");
+    for (const label of ["资源", "owner", "task", "holder", "等待(s)", "已获取"]) {
+      htr.appendChild(el("th", "", label));
+    }
+    table.querySelector("thead").appendChild(htr);
+    const tbody = el("tbody");
+    for (const wait of run.waits || []) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "", wait.resource_id));
+      tr.appendChild(el("td", "truncate", wait.owner));
+      tr.appendChild(el("td", "truncate", wait.task_id));
+      tr.appendChild(el("td", "truncate", wait.holder));
+      tr.appendChild(el("td", "num", Number(wait.wait_s).toFixed(2)));
+      tr.appendChild(el("td", "", wait.resolved ? "是" : "否"));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    details.appendChild(scroll);
+    card.appendChild(details);
+    return card;
+  }
+  function renderGenealogy(run) {
+    const card = el("div");
+    card.appendChild(el("h3", "", "物料谱系（Q2）"));
+    if (!run.genealogy) {
+      card.appendChild(empty("本次运行没有 FINAL 谱系数据。"));
+      return card;
+    }
+    const list = el("ul", "tree");
+    function walk(node) {
+      const li = el("li");
+      const material = node.material || {};
+      li.appendChild(el("span", "uid",
+        `UID ${material.uid} · ${material.item_type || "—"} · ${material.zone || "—"}`));
+      li.appendChild(document.createTextNode(` ${material.status || ""}`));
+      if (node.parents && node.parents.length) {
+        const parents = el("ul", "tree");
+        for (const parent of node.parents) parents.appendChild(walk(parent));
+        li.appendChild(parents);
+      }
+      return li;
+    }
+    list.appendChild(walk(run.genealogy.tree || {}));
+    card.appendChild(list);
+    return card;
+  }
+
+  /* ── catalog / sources ────────────────────────────────── */
+  function renderCatalog() {
+    const body = $("#catalog-body");
+    clear(body);
+    const catalog = data.catalog;
+    if (!catalog.available) {
+      body.appendChild(empty("数据库中尚无 catalog_release 表。"));
+      return;
+    }
+    if (!catalog.releases.length) {
+      body.appendChild(empty("没有已发布目录。先执行 catalog import / publish。"));
+      return;
+    }
+    if (!catalog.published) {
+      body.appendChild(empty("有 release 记录，但没有 published 版本。"));
+    } else {
+      const pub = catalog.published;
+      const dl = el("dl", "kv");
+      for (const [key, value] of [
+        ["release", pub.release_id],
+        ["catalog_version", pub.catalog_version],
+        ["published_at", fmtDate(pub.published_at)],
+      ]) {
+        dl.appendChild(el("dt", "", key));
+        dl.appendChild(el("dd", "", value || "—"));
+      }
+      body.appendChild(dl);
+      const counts = el("div", "kv");
+      for (const [key, value] of Object.entries(catalog.counts)) {
+        counts.appendChild(el("dt", "", key));
+        counts.appendChild(el("dd", "", fmt(value)));
+      }
+      body.appendChild(counts);
+      if (catalog.operations.length) {
+        const details = el("details", "table-view");
+        details.appendChild(el("summary", "",
+          `工序模板（${catalog.operations.length}）`));
+        const scroll = el("div", "table-scroll");
+        const table = el("table");
+        const thead = el("thead");
+        const htr = el("tr");
+        for (const label of ["operation_id", "kind", "executor", "priority", "policy"]) {
+          htr.appendChild(el("th", "", label));
+        }
+        thead.appendChild(htr);
+        table.appendChild(thead);
+        const tbody = el("tbody");
+        for (const row of catalog.operations) {
+          const tr = el("tr");
+          tr.appendChild(el("td", "truncate", row.operation_id));
+          tr.appendChild(el("td", "", row.kind));
+          tr.appendChild(el("td", "", row.executor_kind));
+          tr.appendChild(el("td", "num", row.priority));
+          tr.appendChild(el("td", "", row.resource_policy));
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        scroll.appendChild(table);
+        details.appendChild(scroll);
+        body.appendChild(details);
+      }
+    }
+    const releases = el("details", "table-view");
+    releases.appendChild(el("summary", "",
+      `全部 releases（${catalog.releases.length}）`));
+    const scroll = el("div", "table-scroll");
+    const table = el("table");
+    const thead = el("thead");
+    const htr = el("tr");
+    for (const label of ["release_id", "status", "catalog_version", "published_at"]) {
+      htr.appendChild(el("th", "", label));
+    }
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const row of catalog.releases) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "truncate mono", row.release_id));
+      tr.appendChild(el("td", "", row.status));
+      tr.appendChild(el("td", "", row.catalog_version));
+      tr.appendChild(el("td", "", fmtDate(row.published_at)));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    releases.appendChild(scroll);
+    body.appendChild(releases);
+  }
+  function renderSources() {
+    const body = $("#source-body");
+    clear(body);
+    const knowledge = data.knowledge;
+    if (!knowledge.available) {
+      body.appendChild(empty("数据库中尚无知识表。"));
+      return;
+    }
+    if (!knowledge.extractions.length) {
+      body.appendChild(empty("尚无知识抽取运行。"));
+      return;
+    }
+    for (const extraction of knowledge.extractions) {
+      const card = el("div");
+      card.style.marginBottom = "14px";
+      const head = el("div");
+      head.appendChild(statusChip(extraction.status));
+      head.appendChild(document.createTextNode(` ${extraction.extraction_id}`));
+      card.appendChild(head);
+      const dl = el("dl", "kv");
+      dl.appendChild(el("dt", "", "source"));
+      dl.appendChild(el("dd", "mono", extraction.source_id));
+      dl.appendChild(el("dt", "", "extractor"));
+      dl.appendChild(el("dd", "", `${extraction.extractor_id} v${extraction.extractor_version}`));
+      dl.appendChild(el("dt", "", "finished_at"));
+      dl.appendChild(el("dd", "", fmtDate(extraction.finished_at)));
+      const counts = extraction.counts || {};
+      dl.appendChild(el("dt", "", "counts"));
+      dl.appendChild(el("dd", "", Object.entries(counts)
+        .map(([key, value]) => `${key}=${value}`).join(" · ") || "—"));
+      card.appendChild(dl);
+      body.appendChild(card);
+    }
+    if (knowledge.sources.length) {
+      const details = el("details", "table-view");
+      details.appendChild(el("summary", "",
+        `来源文件（${knowledge.sources.length}）`));
+      const scroll = el("div", "table-scroll");
+      const table = el("table");
+      const thead = el("thead");
+      const htr = el("tr");
+      for (const label of ["source_id", "path", "sha256", "media_type", "version"]) {
+        htr.appendChild(el("th", "", label));
+      }
+      thead.appendChild(htr);
+      table.appendChild(thead);
+      const tbody = el("tbody");
+      for (const row of knowledge.sources) {
+        const tr = el("tr");
+        tr.appendChild(el("td", "truncate mono", row.source_id));
+        tr.appendChild(el("td", "truncate", row.uri_or_path));
+        tr.appendChild(el("td", "truncate mono", row.sha256));
+        tr.appendChild(el("td", "", row.media_type));
+        tr.appendChild(el("td", "", row.source_version || "—"));
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      scroll.appendChild(table);
+      details.appendChild(scroll);
+      body.appendChild(details);
+    }
+  }
+
+  function renderFooter() {
+    $("#footer").textContent =
+      `只读快照 · 生成于 ${fmtDate(data.generated_at)} · ${data.db_path} · revision ${data.revision || "unknown"} · 数据变化后重新运行 tools/db_dashboard.py`;
+  }
+
+  function debounce(fn, wait) {
+    let timer = null;
+    return function () {
+      clearTimeout(timer);
+      timer = setTimeout(fn, wait);
+    };
+  }
+
+  function storageGet(key) {
+    try { return window.localStorage.getItem(key); } catch (error) { return null; }
+  }
+  function storageSet(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (error) { /* ignore */ }
+  }
+  function setupTheme() {
+    const button = $("#theme-toggle");
+    const stored = storageGet("cop-test-db-theme");
+    if (stored) document.documentElement.dataset.theme = stored;
+    const sync = () => {
+      const dark = document.documentElement.dataset.theme === "dark" ||
+        (!document.documentElement.dataset.theme &&
+         window.matchMedia("(prefers-color-scheme: dark)").matches);
+      button.textContent = dark ? "浅色模式" : "深色模式";
+    };
+    button.addEventListener("click", () => {
+      const dark = document.documentElement.dataset.theme === "dark" ||
+        (!document.documentElement.dataset.theme &&
+         window.matchMedia("(prefers-color-scheme: dark)").matches);
+      const next = dark ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      storageSet("cop-test-db-theme", next);
+      sync();
+      drawGraph();
+    });
+    sync();
+  }
+
+  renderHeader();
+  renderFilters();
+  renderBars($("#entity-bars"), $("#entity-table"),
+    data.knowledge.entity_types, "entity_type", "count");
+  renderBars($("#predicate-bars"), $("#predicate-table"),
+    data.knowledge.predicates, "predicate", "count");
+  initGraph();
+  renderGraphLegend();
+  renderGraphTables();
+  renderRuns();
+  renderCatalog();
+  renderSources();
+  renderFooter();
+  setupTheme();
+})();
+</script>
+</body>
+</html>

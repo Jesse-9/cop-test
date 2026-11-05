@@ -63,6 +63,7 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
     tools/
       neo4j/         本地 Neo4j Compose、官方 dump 载入脚本与说明
       neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
+      db_dashboard.py 从本地 SQLite 生成自包含 HTML 仪表盘
 
 旧阶段包（`src/stage1/` … `src/stage4/`、`src/stage1_1/`、
 `src/reference/`）、`run_stage*.py` 入口、旧报告与旧证据均已删除，不得被

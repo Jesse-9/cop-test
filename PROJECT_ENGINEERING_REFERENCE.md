@@ -37,6 +37,7 @@ src/flexible_factory/
   cli.py             唯一命令入口
   tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
   tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
+  tools/db_dashboard.py 从 SQLite 生成自包含 HTML 仪表盘
 ```
 
 依赖方向：`cli → application → domain / simulation / artifacts / persistence`。

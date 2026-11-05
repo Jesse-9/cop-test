@@ -11,6 +11,10 @@
 - 失败/中止运行同样写终态；写库失败只标记运行报告
   `run_record.ok=false`，不回滚仿真、不自动重放。`run --run-records off`
   可关闭。
+- 新增 `tools/db_dashboard.py`：从本地 SQLite 生成自包含 HTML 仪表盘，
+  展示知识图谱（按类型分组）、实体/谓词计数、运行记录 Q2–Q4、目录发布和
+  来源状态；支持浅色/深色主题、节点筛选/搜索和表格视图。新增
+  `tests/test_v1_db_dashboard.py`（2 passed）。
 - 修复运行记录首次实机运行失败：`OperationRuntime` 增加只读
   `instances()`，`RunRecorder` 可读取真实工序实例；新增真实 runtime 回归
   测试。用户 `full_flow` 仿真本身无误，修复后仍需重跑生成成功运行记录。
