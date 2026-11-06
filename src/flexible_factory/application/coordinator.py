@@ -38,7 +38,6 @@ from ..simulation.material_manager import MaterialState
 from ..simulation.scene_base import alias_of
 
 from ..simulation.agv_route import RouteState
-from ..simulation.unit_controller_dual import Stage3UnitController
 
 from ..simulation import config as cfg
 from ..simulation.agv import AGVRouteController4, make_route_spec, pose_yaw
