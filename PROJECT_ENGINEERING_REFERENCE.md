@@ -26,9 +26,10 @@ src/flexible_factory/
   simulation/        config, scene, layout, physics, conveyor, pioneer,
                      ur5_ik, material_manager, agv, runtime, unit_controller,
                      device_binding
-    motion/          contact, collisions, path_planning, trajectory, safety,
-                     shadow, suction, conveyor_safety, branch, diagnostics,
-                     metrics
+    motion/          contact, collisions, path_planning（兼容导出）,
+                     plan_types, plan_checks, plan_search, plan_postprocess,
+                     trajectory, safety, shadow, suction, conveyor_safety,
+                     branch, diagnostics, metrics
     execution/       base（执行契约）, arm（ArmExecutor）, agv（AgvExecutor）
   artifacts/         store（manifest/仓库/校验）, migration
   persistence/       SQLAlchemy 2.x ORM、SQLite Engine/Session、Alembic 迁移、
@@ -88,11 +89,20 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
 - `simulation` 不导入 `application` 或 `cli`。
 - `artifacts` 负责 manifest/工件；场景对象校验由 `simulation.contract`
   提供。
-- `simulation/unit_controller*.py` 仍保留已验收的继承链
-  （Stage1→Stage2→Stage3→Stage4）；组合化重构未实施，不得声称已完成。
+- `simulation/unit_controller_base.py` → `unit_controller_motion.py` →
+  `unit_controller.py` 仍保留已验收的继承链
+  （Stage1→Stage2→Stage3→Stage4）；Stage3/Stage4 实现同处
+  `unit_controller.py`，`unit_controller_dual.py` 只是旧导入路径兼容层。
+  组合化重构未实施，不得声称已完成。
 - `simulation/runtime_common.py` 只承担单臂会话构建与共享容器；
-  `runtime_dual.py` / `runtime.py` 保留各自场景级障碍策略和公开入口。
-  启动摘要字段与顺序是诊断/验收接口，重排或改名需按契约变更处理。
+  `runtime.py` 同时保留 `build_stage3_runtime()` / `build_v1_runtime()`
+  两个入口及各自场景级障碍策略。启动摘要字段与顺序是诊断/验收接口，
+  重排或改名需按契约变更处理。
+- `simulation/motion/path_planning.py` 是 `plan_types` / `plan_checks` /
+  `plan_search` / `plan_postprocess` 的兼容导出层；拆分不得改变检查顺序、
+  容差、预算或规划算法。
+- `simulation/device_handle_map.py` 已按“无生产消费者”删除；别名唯一性
+  仍由场景解析与 `contract.py` 校验，不引入第二套句柄表。
 - `unit_controller_motion.ConveyorPickContext` 是运动层与 UFLOW 层共享的
   输送带取料参数；停带/稳定测量只在 `motion/conveyor_safety.py` 实现，
   控制器覆盖层不得复制测量算法或放宽容差。
@@ -127,9 +137,13 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 |---|---|
 | `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环 |
 | `config_motion` / `motion/*` / `unit_controller_motion` | 运动层：碰撞、规划、轨迹、安全、吸附 |
-| `config_dual` / `layout_dual` / `scene_dual` / `unit_controller_dual` / `runtime_dual` | 双站层：`L2_MIRROR` 双工位 |
+| `config_dual` / `layout_dual` / `scene_dual` | 双站层：`L2_MIRROR` 双工位 |
 | `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举 |
-| `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW` |
+| `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW`（`runtime.py` 同时含 Stage3 builder） |
+
+`unit_controller_dual.py`、`runtime_dual.py` 和 `motion/path_planning.py`
+只做旧导入路径 re-export，不是独立实现；详细清单见
+[仿真模块清单](docs/implementation/reference/simulation-module-inventory.md)。
 
 `Stage3*`/`Stage4*` 类名、`spec.CONTROLLER_ID`/`COORDINATOR_ID` 和工件
 `source_phase=stage4` 是 v1 契约或迁移溯源的一部分，不能单独改名；改名需要

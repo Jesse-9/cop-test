@@ -16,20 +16,23 @@ scope: src/flexible_factory/simulation
 
 - **P1 已实施**：运动层新增窄的 `ConveyorPickContext`，v1 只覆盖线别名、几何、带速、抓取区、传感器与日志标签；删除 Stage4 中与 Stage2 重复的停带/稳定/传感器实现。阶段一基线的独立停带算法保留。
 - **P2 已实施**：单臂会话运行时构建、共享容器和查询属性辅助函数迁入 `runtime_common.py`；`build_stage3_runtime()` 与 `build_v1_runtime()` 保留各自入口和障碍策略，启动摘要字段与顺序不变。
-- **P3 未实施**：资源回滚、规划器拆包和命名迁移仍为可选维护项。
+- **P3 5.1 已实施**：`Stage3UnitController`/`TrayCheck` 并入 `unit_controller.py`；`build_stage3_runtime()` 并入 `runtime.py`，Stage3 错误类型独立为 `Stage3RuntimeBuildError`。旧模块保留 re-export 兼容层。
+- **P3 5.3 已实施**：`path_planning.py` 拆为 `plan_types`、`plan_checks`、`plan_search`、`plan_postprocess`；原模块保留 re-export，算法、容差和预算未改。
+- **P3 §6 已实施**：补充包级架构说明和模块清单；核实后删除无生产消费者的 `device_handle_map.py`，相关关节模式测试已迁出保留。
+- **P3 5.2 未实施**：运行时异常路径资源回滚仍为可选维护项。
 - 实施记录与验证结果见 [实施报告](../reports/v1-simulation-code-optimization.md)。
 
 ## 1. 目标与结论
 
 本计划依据 `src/flexible_factory/simulation/` 当前调用关系制定，目标是优先减少控制器和运行时装配中有证据的重复实现，再视维护收益整理规划器边界、命名和资源生命周期。
 
-现有代码不是一组可以整体合并的重复模块。`scene_base → scene_dual → scene`、`layout_base → layout_dual → layout`、`unit_controller_base → unit_controller_motion → unit_controller_dual → unit_controller` 反映阶段能力的复用链；其中若干基线实现仍被当前 v1 装配或继承。`motion/` 和 `execution/` 也分别有明确职责并进入 v1 调用路径。故本计划不以“减少文件数”为验收目标。
+现有代码不是一组可以整体合并的重复模块。`scene_base → scene_dual → scene`、`layout_base → layout_dual → layout`、`unit_controller_base → unit_controller_motion → unit_controller_dual → unit_controller` 反映阶段能力的复用链；其中若干基线实现仍被当前 v1 装配或继承。P1/P2 后仍有少数相邻阶段入口文件可评估合并，但验收看导航和维护是否更直接，不以减少文件数本身作为目标。
 
 优先级如下：
 
 1. **P1：梳理控制器中的停带、稳定和取放流程，按真实共性减少重复。**
 2. **P2：评估并收敛 Stage3/v1 的单臂运行时装配公共部分。**
-3. **P3：可选维护项，包括运行时资源回滚完善、规划器模块边界和阶段命名。**
+3. **P3：可选维护项，优先评估控制器/runtime 文件合并，再考虑资源回滚、规划器边界和命名。**
 
 每个阶段单独提交和验证。P1/P2 若不能形成窄而稳定的共享边界，应保留现有实现并记录原因。P3 不作为前置条件，可根据实际维护需求决定是否安排。
 
@@ -44,11 +47,11 @@ v1 启动由 application runner 组装场景、控制器依赖与运行时资源
 | 职责 | 代码落点 | 当前情况 |
 |---|---|---|
 | 基础与运动配置 | `simulation/config_base.py`、`config_motion.py` | 配置摘要参与场景契约校验，不能随意移动或新增常量 |
-| 双工位层配置/布局/场景/运行时 | `config_dual.py`、`layout_dual.py`、`scene_dual.py`、`runtime_dual.py` | Stage3 构建入口仍存在；P2 后单臂运行时公共类型与 builder 已迁入 `runtime_common.py` |
-| v1 五岛配置/布局/场景/运行时 | `config.py`、`layout.py`、`scene.py`、`runtime.py` | v1 正式运行路径 |
-| 控制器阶段链 | `unit_controller_base.py`、`unit_controller_motion.py`、`unit_controller_dual.py`、`unit_controller.py` | 多层继承；Stage4 在早期流程上增加多来源、多目标逻辑 |
+| 双工位层配置/布局/场景/运行时 | `config_dual.py`、`layout_dual.py`、`scene_dual.py`、`runtime_dual.py` | Stage3 构建入口与公共类型已迁入 `runtime.py` / `runtime_common.py`；`runtime_dual.py` 仅为兼容导出 |
+| v1 五岛配置/布局/场景/运行时 | `config.py`、`layout.py`、`scene.py`、`runtime.py` | v1 正式运行路径；`runtime.py` 现同时包含 Stage3/v1 两个 builder |
+| 控制器阶段链 | `unit_controller_base.py`、`unit_controller_motion.py`、`unit_controller_dual.py`、`unit_controller.py` | 多层继承；Stage3/Stage4 实现已并入 `unit_controller.py`，`unit_controller_dual.py` 仅为兼容导出 |
 | 机械臂/AGV 执行适配 | `execution/` | 由 `application/coordinator.py` 调用，负责执行生命周期，不负责业务提交 |
-| 路径规划 | `motion/path_planning.py` 及同包辅助模块 | checker、planner、计划后处理集中于一个较大的文件 |
+| 路径规划 | `motion/path_planning.py`（兼容导出）及 `motion/plan_types.py`、`plan_checks.py`、`plan_search.py`、`plan_postprocess.py` | 5.3 已按职责拆分；检查/规划/后处理分模块，旧路径保留 re-export |
 
 ### 2.2 需要保留的边界
 
@@ -112,7 +115,41 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 ## 5. P3：可选维护项
 
-### 5.1 运行时资源回滚
+### 5.1 合并相邻阶段模块
+
+**实施结果 (2026-11-06)**：A/B 两组均已迁移。`Stage3UnitController`/`TrayCheck` 位于 `unit_controller.py`，`build_stage3_runtime()` 位于 `runtime.py`；旧模块保留只做 re-export 的兼容层，Stage3 错误类型独立为 `Stage3RuntimeBuildError`（错误码仍为 `STAGE3_RUNTIME`），v1 错误类型仍为 `RuntimeBuildError`（`STAGE4_RUNTIME`）。
+
+本项只评估 `unit_controller_dual.py` 与 `unit_controller.py`、`runtime_dual.py` 与 `runtime.py` 两组相邻阶段模块。目标是让继承链和公开入口更容易浏览，减少跳转；不以减少文件数量为验收标准。两组分开实施，任一组收益不足都可保留原文件。
+
+#### A. 合并控制器模块
+
+当前 `Stage4UnitController` 直接继承 `Stage3UnitController`，而 `Stage3UnitController` 只在 `unit_controller.py` 被导入；`application/coordinator.py` 另有一条未见使用的 `Stage3UnitController` 导入。`TrayCheck` 是 Stage3 控制器的局部结果类型。
+
+1. 实施前重新检索全仓库对 `unit_controller_dual`、`Stage3UnitController` 和 `TrayCheck` 的导入与符号引用，确认没有遗漏的动态导入、命令行入口或文档约定；确认 coordinator 中的 Stage3 导入没有其他引用后，随迁移删除该未使用导入。
+2. 将 `TrayCheck` 和 `Stage3UnitController` 移入 `unit_controller.py`，放在 Stage4 控制器之前；保持类名、继承关系、构造参数、状态字段、日志及对外行为不变。不得借迁移合并 Stage2/Stage3/Stage4 的状态机或改写业务流程。
+3. 更新模块文档和导入位置。若全仓库与文档检查确认没有外部路径承诺，可删除 `unit_controller_dual.py`；若需要兼容旧模块路径，则让该文件仅 re-export `Stage3UnitController` 与 `TrayCheck`，不复制实现，并单独记录未来移除条件。
+4. 复用现有 Stage3/Stage4 控制器测试及直接覆盖受影响导入路径的测试。只有现有测试不能证明迁移后的导入或继承仍有效时，补一个最小测试；不新增重复状态组合测试。
+
+#### B. 合并 runtime 入口模块
+
+`runtime.py` 与 `runtime_dual.py` 都是场景级入口，并已共享 `runtime_common.py` 的单臂构建；差异集中于场景类型、障碍物策略、启动摘要及错误类型。应合并入口文件的导航边界，不能把两个 builder 改成由大量模式开关驱动的通用 builder。
+
+1. 实施前完整检索 `runtime_dual`、`build_stage3_runtime`、`RuntimeBuildError` 的导入和动态引用。目前测试直接通过 `runtime_dual` 路径访问 Stage3 builder 和错误类型，因此迁移后需同步迁移测试导入，或保留兼容导出。
+2. 将 Stage3 的场景专属障碍函数和 `build_stage3_runtime()` 移入 `runtime.py`，保留 `build_v1_runtime()`；分别保留 Stage3/v1 的停止态错误语义、场景别名、碰撞集合范围、障碍元数据和启动摘要。
+3. 处理同名 `RuntimeBuildError` 的模块差异：在统一模块内为 Stage3 使用语义明确的独立异常名（例如 `Stage3RuntimeBuildError`），保留 v1 的 `RuntimeBuildError`；迁移时保持 Stage3 的 `STAGE3_RUNTIME` 与 v1 的 `STAGE4_RUNTIME` 错误码及现有异常消息/包装行为。不得仅为共享错误类型而弱化错误归属。
+4. 保持 `runtime_common.py` 作为单臂装配边界。若 `runtime_dual.py` 没有外部兼容承诺，且代码、测试与文档调用方都已迁移，可删除该入口文件；否则将其收敛为从 `runtime.py` 导入 Stage3 builder 和类型，并将统一模块的 `Stage3RuntimeBuildError` 以旧名 `RuntimeBuildError` 导出的兼容 shim，避免重复实现。
+5. 运行现有 Stage3 与 v1 runtime 聚焦测试，验证停止态拒绝、构建错误类型、启动摘要和各自障碍策略。仅当这些测试无法覆盖具体搬迁行为时补最少测试，不扩展到故障注入或资源回滚场景。
+
+#### 明确暂不合并
+
+- `config_base.py`、`config_motion.py`、`config_dual.py` 与 `config.py`：配置按层承载不同摘要/场景契约，不因共享常量而合并。
+- `scene_base.py`、`scene_dual.py` 与 `scene.py`：派生层和场景规模不同，合并会扩大单文件职责并隐藏阶段差异。
+- `layout_base.py`、`layout_dual.py` 与 `layout.py`：schema、消费者和场景布局不同，需维持各自契约边界。
+- `unit_controller_base.py` 与 `unit_controller_motion.py`：分别承载基础业务流程与运动联锁能力，是否提取共性须由具体重复算法证据驱动，不纳入文件合并。
+- `agv_route.py` 与 `agv.py`：前者的直线路段控制器由后者组合使用，职责并非重复。
+- `runtime_common.py` 与场景级 runtime 入口：公共单臂装配和场景障碍策略边界清楚，继续合并会重新造成跨场景条件分支。
+
+### 5.2 运行时资源回滚
 
 `runtime_common.py` 的 `_ensure_queryable()`（P2 前位于 `runtime_dual.py`）为真实的其他机械臂连杆和吸盘记录原始 `collidable`/`measurable` 值，并把属性设置为可查询。Stage3 与 v1 的 runtime builder 将这些记录保存在 `query_restore` 中；正常销毁时由 `Stage3Runtime.destroy()` 尝试恢复原值。
 
@@ -120,7 +157,9 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 触发实施时，复用已有快照恢复逻辑，在两个 builder 的清理路径恢复已记录属性，并保留原始构建异常。测试只需一个聚焦用例验证属性恢复，再运行相关 runtime 测试；如两个 builder 的行为确实不同，再拆分测试。
 
-### 5.2 规划器模块边界与性能优化
+### 5.3 规划器模块边界与性能优化
+
+**实施结果 (2026-11-06)**：已按职责拆分为 `motion/plan_types.py`（计划状态/预算/结果）、`motion/plan_checks.py`（`ConfigurationChecker`）、`motion/plan_search.py`（`LocalPlanner`）、`motion/plan_postprocess.py`（平滑/压缩）。`path_planning.py` 保留 re-export；检查顺序、容差、预算和算法未改。性能优化未实施，本次没有性能证据支持调整采样或缓存。
 
 `motion/path_planning.py` 集中保存计划数据结构、`ConfigurationChecker`、`LocalPlanner` 和路径点平滑/压缩等逻辑，文件较大。当前已有明确的类和函数边界，但文件大小本身不足以证明需要重写。
 
@@ -134,6 +173,8 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 ### 6.1 命名和归类
 
+**实施结果 (2026-11-06)**：已补充包级架构说明（`simulation/__init__.py`）和 [仿真模块清单](../reference/simulation-module-inventory.md)。本阶段不重命名 v1 模块；清单记录了公开入口、v1 生产调用、阶段基础复用、兼容层及未引用模块的判定。
+
 当前 `scene.py`、`layout.py`、`unit_controller.py` 实际为 v1 五岛实现；`scene_base.py`、`scene_dual.py` 等名称记录了实现来源或继承层级。目录已将 `motion/` 和 `execution/` 单独分包，职责清晰；没有证据要求继续按每个文件新建子目录。
 
 整理步骤：
@@ -145,7 +186,9 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 ### 6.2 过时模块判定
 
-`device_handle_map.py` 在当前生产导入扫描中未见调用，引用主要来自该模块测试；其能力是动态句柄表，与 `device_binding.py` 的静态设备/alias 绑定不同，不能直接合并。删除前应完成以下核实：
+**实施结果 (2026-11-06)**：`device_handle_map.py` 经全仓库导入扫描确认无 `src/`、`tools/` 或应用层消费者，也无外部 API/文档承诺；已删除该模块及仅覆盖它的用例。同测试文件中的 `scene_base.arm_joint_modes_ok` 契约测试已迁至 `tests/test_v1_base_arm_joint_modes.py`，覆盖保留。模块清单记录了删除依据。
+
+`device_handle_map.py` 在本计划制定时未见生产调用，引用主要来自该模块测试；其能力是动态句柄表，与 `device_binding.py` 的静态设备/alias 绑定不同，不能直接合并。本次删除前的核实项：
 
 1. 检查公开 API、历史调用和文档承诺，确认是否仍供外部工具或工件脚本使用。
 2. 确认其测试是否只验证独立旧工具，还是保护当前场景契约。
@@ -177,4 +220,4 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 ## 9. 执行完成标准
 
-计划可按阶段推进，不要求一次完成所有 P3 项目。P1/P2 只有在共享边界明确且对应测试证明无回归时才实施；否则记录对照结论并保留原结构。P3 项目均为可选维护事项，不作为 P1/P2 的前置条件；其中资源回滚完善暂不优先安排，待出现相关维护需求时再处理。
+计划可按阶段推进，不要求一次完成所有 P3 项目。P1/P2 只有在共享边界明确且对应测试证明无回归时才实施；否则记录对照结论并保留原结构。P3 项目均为可选维护事项，不作为 P1/P2 的前置条件；文件合并应逐组评估导航和维护收益，其中资源回滚完善暂不优先安排，待出现相关维护需求时再处理。

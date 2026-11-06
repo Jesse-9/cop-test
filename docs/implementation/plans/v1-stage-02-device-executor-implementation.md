@@ -48,7 +48,7 @@ scope: v1 UFLOW / 阶段 2
 | 现有实现 | 位置 | 阶段 2 处置 |
 |---|---|---|
 | 静态设备/能力/区域目录 | `domain/process_model.py`、`domain/default_process.py` | **不动**（不递增 `PROCESS_MODEL_VERSION`） |
-| 场景 alias/handle 解析 | `simulation/scene.py`、`simulation/contract.py`、`simulation/device_handle_map.py` | **不动**；绑定表只引用 alias 字符串 |
+| 场景 alias/handle 解析 | `simulation/scene.py`、`simulation/contract.py` | **不动**；绑定表只引用 alias 字符串。`device_handle_map.py` 已在后续模块盘点中按无生产者删除 |
 | 臂控制器构造（15+ 参数内联） | `coordinator._start_unit_task()` L350–407 | 迁入 `ArmExecutor.start()` |
 | 臂逐 tick 推进 | `coordinator.step()` L157–166 直调 `controller.pre_tick/post_tick` | 改为 `executor.pre_tick/post_tick` |
 | 臂完成/失败判定 | `coordinator._after_step()` L678–741 | 改为读 `executor.poll()`，验证与提交留在协调器 |

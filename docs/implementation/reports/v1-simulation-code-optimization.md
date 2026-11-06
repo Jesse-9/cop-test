@@ -7,18 +7,19 @@ updated: 2026-11-06
 scope: src/flexible_factory/simulation
 ---
 
-# 仿真模块代码优化实施报告：控制器取料与运行时装配
+# 仿真模块代码优化实施报告：控制器、运行时与规划模块
 
 本报告记录
 [仿真模块代码优化实施计划](../plans/simulation-code-optimization-plan.md)
-P1/P2 的实施结果。目标是减少控制器与运行时装配中有证据的重复实现，
-不改变场景工件、配置/布局摘要、控制器 ID、碰撞与运动安全判据。
+P1、P2、P3 5.1/5.3 与第 6 节的实施结果。目标是减少控制器与运行时装配中
+有证据的重复实现、收敛相邻阶段入口、按职责拆分规划模块并清理无消费者
+代码；不改变场景工件、配置/布局摘要、控制器 ID、碰撞与运动安全判据。
 
-结论：P1 与 P2 已实施，新增 11 个离线用例，全量
-`python -m pytest -q` 为 **542 passed / 3 skipped**。3 个跳过用例是
+结论：P1、P2、P3 5.1/5.3 与第 6 节已实施，新增/迁移 6 个离线用例，
+全量 `python -m pytest -q` 为 **536 passed / 3 skipped**。3 个跳过用例是
 需要 CoppeliaSim 4.10 + ZMQ 23000 的 Stage2/Stage4 实机测试；本次环境
 未启动仿真器，因此**未执行**实机验收，不能据此宣称 `full_flow` 通过。
-P3 未实施。
+P3 5.2（运行时异常路径资源回滚）未实施；5.3 的性能优化未实施。
 
 ## 1. P1：控制器输送带取料收敛
 
@@ -122,13 +123,84 @@ v1 `RuntimeBuildError`（旧实现继承 Stage3 异常类），会话资源前�
 `collidable`/`measurable` 原值仍只在正常 `destroy()` 时恢复；构建异常
 路径的属性恢复仍属 P3 未实施项，本次未扩大处理范围。
 
-## 3. 测试与验证
+## 3. P3：模块合并、规划器拆分与模块盘点
+
+### 3.1 5.1-A：控制器模块合并
+
+- `Stage3UnitController` 与 `TrayCheck` 从 `unit_controller_dual.py` 移入
+  `unit_controller.py`，位于 `Stage4UnitController` 之前；
+  类名、继承关系、构造参数、状态字段、日志和对外行为未改。
+- 删除 `application/coordinator.py` 中未使用的
+  `Stage3UnitController` 导入。
+- `unit_controller_dual.py` 收敛为只 re-export
+  `Stage3UnitController`/`TrayCheck` 的兼容层；删除条件写入模块文档和
+  模块清单。
+- 新增 `tests/test_v1_controller_module_layout.py`（2 个用例），锁定
+  旧路径与新路径指向同一实现，以及 Stage4 仍继承 Stage3。
+
+### 3.2 5.1-B：runtime 入口合并
+
+- `_other_unit_obstacles()` 与 `build_stage3_runtime()` 移入 `runtime.py`；
+  `build_v1_runtime()` 保持原位置和职责。
+- Stage3 错误类型改为语义明确的 `Stage3RuntimeBuildError`，错误码仍为
+  `STAGE3_RUNTIME`；v1 的 `RuntimeBuildError` 和 `STAGE4_RUNTIME` 不变。
+  停止态检查、异常消息与 `raise ... from exc` 包装保持原样。
+- `runtime_dual.py` 收敛为兼容层：re-export Stage3 builder、共享类型，
+  并以旧名 `RuntimeBuildError` 导出 `Stage3RuntimeBuildError`。
+- 两个 builder 的场景别名、障碍策略、碰撞集合范围、启动摘要字段与顺序
+  未改；`tests/test_v1_runtime_common.py` 增加兼容层与错误码断言。
+
+### 3.3 5.3：规划器模块拆分
+
+`motion/path_planning.py` 按职责拆为：
+
+| 模块 | 职责 |
+|---|---|
+| `motion/plan_types.py` | `PlanStatus`、`PlanBudget`、`MotionContext`、`Goal`、`MotionPlan` 等状态/结果类型 |
+| `motion/plan_checks.py` | `ConfigurationChecker`（单构型与路径段检查） |
+| `motion/plan_search.py` | `LocalPlanner` 与候选/策略辅助函数 |
+| `motion/plan_postprocess.py` | `smooth_plan_waypoints()`、`compact_plan_waypoints()` |
+
+- `path_planning.py` 保留公共符号 re-export，旧调用方无需一次性迁移；
+  新增 `tests/test_v1_motion_module_layout.py` 锁定导出身份。
+- 代码块按原行范围迁移，检查顺序、容差、预算、候选策略、平滑/压缩
+  算法均未改；`_wrap_pi` 随 `LocalPlanner` 迁到 `plan_search`，仍由同一
+  规划路径使用。
+- 性能优化未实施：本次没有新的规划统计或 `motion/metrics.py` 证据支持
+  调整采样、缓存、碰撞查询或仿真 API 调用；未改变任何性能相关阈值。
+
+### 3.4 第 6 节：模块清单与遗留代码
+
+- `simulation/__init__.py` 增加包级架构说明，明确
+  `_base`/`_motion`/`_dual` 表示能力来源，不表示废弃。
+- 新增 [仿真模块清单](../reference/simulation-module-inventory.md)，
+  按公开入口、v1 生产调用、阶段基础复用、兼容层、测试专用/未引用分类，
+  并记录兼容层删除条件。
+- 本阶段不重命名 v1 模块：`scene.py`、`layout.py`、`unit_controller.py`、
+  `runtime.py` 被应用层、工件层、执行层、测试和文档广泛引用，当前没有
+  “名称持续误导且调用方可一次迁移”的证据。未来改名必须单独实施并同步
+  更新所有导入、文档和契约字符串；类名/控制器 ID/manifest 字段不得随
+  文件改名改变。
+- `device_handle_map.py` 经全仓库导入扫描确认无生产消费者、无外部 API/
+  文档承诺；已删除该模块及仅覆盖它的 10 个用例。同文件中的
+  `scene_base.arm_joint_modes_ok` 契约测试迁至
+  `tests/test_v1_base_arm_joint_modes.py`（3 个用例），覆盖保留。
+- 删除后 `simulation/` 内没有仅测试导入的模块，也没有已知未引用模块。
+
+`Stage3UnitController` 与 `PlanStatus` 等类的 `__module__` 会随实现迁移
+变化，但旧路径 re-export 返回同一类对象；枚举值、类名、控制器 ID 和
+工件字段未改，不构成契约变更。
+
+## 4. 测试与验证
 
 | 测试 | 用例数 | 覆盖 |
 |---|---|---|
 | `tests/test_v1_unit_controller_conveyor_pick.py`（新增） | 5 | 运动层默认单线上下文；v1 线级上下文；只读本线传感器；忽略其他线命中；本线错料不触发停带 |
-| `tests/test_v1_runtime_common.py`（新增） | 6 | 两个 builder 拒绝运行态仿真；层专属错误类型；启动摘要顺序与字段；层专属摘要追加；构建失败清理本臂；语义自检失败清理碰撞集合与探针 |
-| 既有离线用例 | — | 全量 `python -m pytest -q`：**542 passed / 3 skipped** |
+| `tests/test_v1_runtime_common.py`（新增/更新） | 7 | 两个 builder 拒绝运行态仿真；层专属错误类型；兼容层与错误码；启动摘要顺序与字段；层专属摘要追加；构建失败清理本臂；语义自检失败清理碰撞集合与探针 |
+| `tests/test_v1_controller_module_layout.py`（新增） | 2 | Stage3/Stage4 同模块；旧 `unit_controller_dual` 路径指向同一实现 |
+| `tests/test_v1_motion_module_layout.py`（新增） | 1 | `path_planning` re-export 与拆分模块为同一对象 |
+| `tests/test_v1_base_arm_joint_modes.py`（迁入） | 3 | `scene_base.arm_joint_modes_ok` 的关节模式契约，原在 device_handle_map 测试文件中 |
+| 既有离线用例 | — | 全量 `python -m pytest -q`：**536 passed / 3 skipped** |
 
 未执行项：
 
@@ -138,7 +210,7 @@ v1 `RuntimeBuildError`（旧实现继承 Stage3 异常类），会话资源前�
 - Stage3/v1 构建的启动摘要、碰撞集合范围与销毁报告需要在仿真器上复核；
   离线用例只锁定 builder 的摘要结构与清理行为。
 
-## 4. 版本与契约处置
+## 5. 版本与契约处置
 
 | 项 | 结果 |
 |---|---|
@@ -149,14 +221,22 @@ v1 `RuntimeBuildError`（旧实现继承 Stage3 异常类），会话资源前�
 | 场景工件、`scene.ttt`、manifest | 未改 |
 | `sim.step()` 所有权 | 未改，仍只有协调器推进仿真 |
 
-## 5. 文档同步
+## 6. 文档同步
 
-- 计划状态改为 `partially-implemented`，补充 P1/P2 实施状态和 P3 未实施说明；
-- 工程参考补充 `runtime_common.py` 的职责边界；
-- `implementation/README.md` 与项目文档登记表加入本方案与报告。
+- 计划状态保持 `partially-implemented`，补充 P3 5.1/5.3/第 6 节实施状态和
+  5.2 未实施说明；
+- 工程参考更新 Stage3/Stage4 模块合并、`runtime_common.py`、规划器拆分和
+  已删除的 `device_handle_map.py` 边界；
+- 新增 [仿真模块清单](../reference/simulation-module-inventory.md)与包级
+  架构说明；
+- `implementation/README.md` 与项目文档登记表加入本方案、报告与模块清单。
 
-## 6. 未覆盖与后续
+## 7. 未覆盖与后续
 
-- P3 的运行时异常路径资源恢复、`path_planning.py` 拆包和命名迁移未实施；
+- P3 5.2 的运行时异常路径属性恢复未实施；正常 `destroy()` 路径保持原行为；
+- 5.3 的性能优化未实施：没有新的耗时/采样/碰撞查询证据，未调整缓存、
+  采样密度或时间预算；
+- v1 模块重命名未实施：当前没有足够证据表明名称造成持续误导，且需要与
+  契约文档、测试和调用方一起迁移；
 - 若后续需要实机结论，应在启动 CoppeliaSim 后运行受影响的 Stage2/Stage4
   实机用例，并按正式 evidence 流程记录；本报告不预设这些用例通过。
