@@ -31,6 +31,12 @@ related:
 一个模块可以同时被多层使用；下表按**主要职责**归类，并在备注中列出
 跨层复用。
 
+`docs/implementation/governance/v1-baseline-m0.md` 与
+`v1-scope-and-migration-plan.md` 中的 `stage2.*`/`stage3.*`/`stage4.*`
+条目记录 M0 迁移映射，属于冻结历史资料，不随当前模块合并改写；当前模块
+位置和消费者以本清单与 [工程参考](../../../PROJECT_ENGINEERING_REFERENCE.md)
+为准。
+
 ## 2. 模块清单
 
 ### 2.1 公开入口
