@@ -110,22 +110,34 @@ def _knowledge(connection: sqlite3.Connection,
 
 def _catalog(connection: sqlite3.Connection,
              tables: set[str]) -> dict:
+    empty = {"available": True, "releases": [], "published": None,
+             "counts": {}, "recipes": [], "materials": [], "resources": [],
+             "zones": [], "capabilities": [], "devices": [],
+             "scene_bindings": [], "operations": [], "routes": [],
+             "entries": [], "dependencies": []}
     if "catalog_release" not in tables:
-        return {"available": False, "releases": [], "published": None,
-                "counts": {}, "operations": [], "routes": []}
+        empty["available"] = False
+        return empty
     releases = [dict(row) for row in connection.execute(
         "SELECT release_id, catalog_version, status, created_at, "
         "published_at FROM catalog_release ORDER BY created_at, release_id")]
     published = next((row for row in releases
                       if row["status"] == "published"), None)
     if published is None:
-        return {"available": True, "releases": releases, "published": None,
-                "counts": {}, "operations": [], "routes": []}
+        return {**empty, "releases": releases}
     release_id = published["release_id"]
+
+    def rows(sql: str) -> list[dict]:
+        return [dict(row) for row in connection.execute(sql, (release_id,))]
+
     count_tables = (
-        "material_type", "resource", "zone", "capability", "device",
-        "recipe", "operation_template", "route_variant", "order_entry",
-        "scene_binding",
+        "material_type", "resource", "zone", "zone_material_type",
+        "capability", "device", "device_capability", "device_resource",
+        "scene_binding", "recipe", "operation_template",
+        "operation_dependency", "operation_input", "operation_output",
+        "operation_candidate_device", "operation_resource_request",
+        "operation_work_step", "route_variant", "route_operation",
+        "order_entry",
     )
     counts = {}
     for table in count_tables:
@@ -133,21 +145,176 @@ def _catalog(connection: sqlite3.Connection,
             counts[table] = int(connection.execute(
                 f"SELECT COUNT(*) FROM {table} WHERE release_id = ?",
                 (release_id,)).fetchone()[0])
-    operations = [dict(row) for row in connection.execute(
-        "SELECT operation_id, kind, executor_kind, priority, "
-        "resource_policy, semantics FROM operation_template "
-        "WHERE release_id = ? ORDER BY recipe_id, ordinal", (release_id,))]
-    routes = [dict(row) for row in connection.execute(
-        "SELECT route_id, route_group, entry_zone_id, exit_zone_id "
-        "FROM route_variant WHERE release_id = ? "
-        "ORDER BY recipe_id, ordinal", (release_id,))]
+
+    materials = rows(
+        "SELECT material_type_id, ordinal, description, color_json "
+        "FROM material_type WHERE release_id = ? ORDER BY ordinal")
+    for material in materials:
+        color = material.get("color_json")
+        if isinstance(color, str):
+            try:
+                color = json.loads(color)
+            except json.JSONDecodeError:
+                color = None
+        material["color_json"] = color
+    resources = rows(
+        "SELECT resource_id, kind, role, capacity, acquire_order, policy "
+        "FROM resource WHERE release_id = ? ORDER BY acquire_order")
+    zones = rows(
+        "SELECT zone_id, ordinal, capacity, description FROM zone "
+        "WHERE release_id = ? ORDER BY ordinal")
+    capabilities = rows(
+        "SELECT capability_id, ordinal, description FROM capability "
+        "WHERE release_id = ? ORDER BY ordinal")
+    device_caps: dict[str, list[str]] = {}
+    for row in rows(
+            "SELECT device_id, capability_id FROM device_capability "
+            "WHERE release_id = ? ORDER BY device_id, ordinal"):
+        device_caps.setdefault(row["device_id"], []).append(
+            row["capability_id"])
+    device_resources: dict[str, list[str]] = {}
+    for row in rows(
+            "SELECT device_id, resource_id FROM device_resource "
+            "WHERE release_id = ? ORDER BY device_id, ordinal"):
+        device_resources.setdefault(row["device_id"], []).append(
+            row["resource_id"])
+    devices = []
+    for row in rows(
+            "SELECT device_id, kind, physical, default_line_id, ordinal "
+            "FROM device WHERE release_id = ? ORDER BY ordinal"):
+        item = dict(row)
+        item["physical"] = bool(item["physical"])
+        item["capabilities"] = device_caps.get(item["device_id"], [])
+        item["resources"] = device_resources.get(item["device_id"], [])
+        devices.append(item)
+    scene_bindings = rows(
+        "SELECT binding_id, device_id, scene_id, contract_version, role, alias "
+        "FROM scene_binding WHERE release_id = ? ORDER BY ordinal")
+    recipes = rows(
+        "SELECT recipe_id, version, product_type, join_operation_id, ordinal "
+        "FROM recipe WHERE release_id = ? ORDER BY ordinal")
+
+    route_rows = rows(
+        "SELECT recipe_id, route_id, ordinal, route_group, semantics, "
+        "entry_zone_id, exit_zone_id FROM route_variant "
+        "WHERE release_id = ? ORDER BY recipe_id, ordinal")
+    route_operations: dict[tuple[str, str], list[str]] = {}
+    for row in rows(
+            "SELECT recipe_id, route_id, ordinal, operation_id "
+            "FROM route_operation WHERE release_id = ? "
+            "ORDER BY recipe_id, route_id, ordinal"):
+        route_operations.setdefault(
+            (row["recipe_id"], row["route_id"]), []).append(
+            row["operation_id"])
+    routes = []
+    for row in route_rows:
+        item = dict(row)
+        item["operation_ids"] = route_operations.get(
+            (item["recipe_id"], item["route_id"]), [])
+        routes.append(item)
+
+    operation_rows = rows(
+        "SELECT operation_id, recipe_id, ordinal, kind, semantics, "
+        "executor_kind, capability_id, priority, resource_policy, "
+        "predecessor_policy, completion_verifier, source_kind, sink_kind, "
+        "dock, route_origin_dock, route_destination_dock "
+        "FROM operation_template WHERE release_id = ? "
+        "ORDER BY recipe_id, ordinal")
+    inputs: dict[str, list[dict]] = {}
+    for row in rows(
+            "SELECT operation_id, ordinal, zone_id, material_type_id "
+            "FROM operation_input WHERE release_id = ? "
+            "ORDER BY operation_id, ordinal"):
+        inputs.setdefault(row["operation_id"], []).append({
+            "ordinal": row["ordinal"], "zone": row["zone_id"],
+            "item_type": row["material_type_id"]})
+    outputs = {}
+    for row in rows(
+            "SELECT operation_id, zone_id, material_type_id "
+            "FROM operation_output WHERE release_id = ?"):
+        outputs[row["operation_id"]] = {
+            "zone": row["zone_id"], "item_type": row["material_type_id"]}
+    candidates: dict[str, list[dict]] = {}
+    for row in rows(
+            "SELECT operation_id, ordinal, device_id "
+            "FROM operation_candidate_device WHERE release_id = ? "
+            "ORDER BY operation_id, ordinal"):
+        candidates.setdefault(row["operation_id"], []).append({
+            "ordinal": row["ordinal"], "device_id": row["device_id"]})
+    requests: dict[str, list[dict]] = {}
+    for row in rows(
+            "SELECT operation_id, ordinal, resource_id, quantity "
+            "FROM operation_resource_request WHERE release_id = ? "
+            "ORDER BY operation_id, ordinal"):
+        requests.setdefault(row["operation_id"], []).append({
+            "ordinal": row["ordinal"], "resource_id": row["resource_id"],
+            "quantity": row["quantity"]})
+    work_steps: dict[str, list[dict]] = {}
+    for row in rows(
+            "SELECT operation_id, ordinal, template_id "
+            "FROM operation_work_step WHERE release_id = ? "
+            "ORDER BY operation_id, ordinal"):
+        work_steps.setdefault(row["operation_id"], []).append({
+            "ordinal": row["ordinal"], "template_id": row["template_id"]})
+    dependencies = rows(
+        "SELECT operation_id, predecessor_operation_id, ordinal, "
+        "successor_ordinal FROM operation_dependency WHERE release_id = ? "
+        "ORDER BY operation_id, ordinal")
+    predecessors: dict[str, list[dict]] = {}
+    successors: dict[str, list[dict]] = {}
+    for row in dependencies:
+        predecessors.setdefault(row["operation_id"], []).append({
+            "ordinal": row["ordinal"],
+            "operation_id": row["predecessor_operation_id"]})
+        successors.setdefault(
+            row["predecessor_operation_id"], []).append({
+                "ordinal": row["successor_ordinal"],
+                "operation_id": row["operation_id"]})
+    route_membership: dict[str, list[dict]] = {}
+    for row in rows(
+            "SELECT recipe_id, route_id, ordinal, operation_id "
+            "FROM route_operation WHERE release_id = ? "
+            "ORDER BY recipe_id, route_id, ordinal"):
+        route_membership.setdefault(row["operation_id"], []).append({
+            "recipe_id": row["recipe_id"], "route_id": row["route_id"],
+            "ordinal": row["ordinal"]})
+    entries = rows(
+        "SELECT recipe_id, entry_id, ordinal, operation_id, line_id, "
+        "material_type_id, route_group, route_id FROM order_entry "
+        "WHERE release_id = ? ORDER BY recipe_id, ordinal")
+    entries_by_operation: dict[str, list[dict]] = {}
+    for entry in entries:
+        entries_by_operation.setdefault(entry["operation_id"], []).append(
+            entry)
+    operations = []
+    for row in operation_rows:
+        item = dict(row)
+        item["inputs"] = inputs.get(item["operation_id"], [])
+        item["output"] = outputs.get(item["operation_id"])
+        item["candidates"] = candidates.get(item["operation_id"], [])
+        item["resources"] = requests.get(item["operation_id"], [])
+        item["work_steps"] = work_steps.get(item["operation_id"], [])
+        item["predecessors"] = predecessors.get(item["operation_id"], [])
+        item["successors"] = successors.get(item["operation_id"], [])
+        item["routes"] = route_membership.get(item["operation_id"], [])
+        item["entries"] = entries_by_operation.get(item["operation_id"], [])
+        operations.append(item)
     return {
         "available": True,
         "releases": releases,
         "published": dict(published),
         "counts": counts,
+        "recipes": recipes,
+        "materials": materials,
+        "resources": resources,
+        "zones": zones,
+        "capabilities": capabilities,
+        "devices": devices,
+        "scene_bindings": scene_bindings,
         "operations": operations,
         "routes": routes,
+        "entries": entries,
+        "dependencies": dependencies,
     }
 
 

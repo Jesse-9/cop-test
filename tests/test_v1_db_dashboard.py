@@ -9,9 +9,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import db_dashboard  # noqa: E402
+from flexible_factory.application.catalog import (  # noqa: E402
+    stage_default_catalog)
 from flexible_factory.persistence.db import (CatalogDatabase,  # noqa: E402
                                               initialize_database)
 from flexible_factory.persistence.runs import RunRecorder  # noqa: E402
+from flexible_factory.persistence.service import publish_release  # noqa: E402
 
 
 def _empty_payload() -> dict:
@@ -45,9 +48,11 @@ def test_render_html_embeds_payload_and_escapes_script_close():
     assert "工厂数据仪表盘" in html
 
 
-def test_build_payload_reads_revision_and_run(tmp_path):
+def test_build_payload_reads_revision_run_and_process_catalog(tmp_path):
     database = CatalogDatabase(tmp_path / "dashboard.db")
     initialize_database(database)
+    stage_default_catalog(database, release_id="dash_catalog")
+    publish_release(database, "dash_catalog")
     recorder = RunRecorder(database, run_id="dash_run",
                            scenario="full_flow")
     assert recorder.start(sim_time=0.0)["ok"]
@@ -59,5 +64,21 @@ def test_build_payload_reads_revision_and_run(tmp_path):
     assert payload["runs"][0]["run_id"] == "dash_run"
     assert payload["runs"][0]["status"] == "DONE"
     assert payload["knowledge"]["available"] is True
+    catalog = payload["catalog"]
+    assert catalog["published"]["release_id"] == "dash_catalog"
+    assert len(catalog["operations"]) == 10
+    assert len(catalog["routes"]) == 3
+    assert len(catalog["resources"]) == 21
+    assert len(catalog["devices"]) == 7
+    assert len(catalog["zones"]) == 9
+    assert len(catalog["entries"]) == 3
+    ops = {row["operation_id"]: row for row in catalog["operations"]}
+    assert ops["kit_join"]["inputs"][0]["zone"] == "buffer_e_c"
+    assert ops["housing_direct_A"]["successors"][0]["operation_id"] == \
+        "housing_finish"
+    routes = {row["route_id"]: row for row in catalog["routes"]}
+    assert routes["housing_direct"]["operation_ids"][0] == \
+        "housing_direct_A"
     html = db_dashboard.render_html(payload)
     assert '"dash_run"' in html
+    assert '"housing_direct_A"' in html

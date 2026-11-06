@@ -172,7 +172,17 @@ uv run python .\tools\db_dashboard.py `
 - 知识图谱（SQLite 知识表的按类型分组视图、节点/关系表格）；
 - 实体类型与关系谓词计数；
 - 运行记录列表、Q4 工序时间线、Q3 资源等待、Q2 物料谱系；
+- **工艺目录**：工序依赖 DAG（点击工序查看端口/资源/候选设备/工步）、
+  路线卡片、互斥资源申请顺序、设备与能力、区域容量、物料类型、订单入口、
+  场景绑定；
 - 目录发布版本、知识来源与抽取状态。
+
+工艺目录来自已发布 release；如果数据库还没有工艺数据，先执行：
+
+```powershell
+uv run flexible-factory catalog import --db .\var\catalog\catalog.db
+uv run flexible-factory catalog publish --db .\var\catalog\catalog.db --release-id <release_id>
+```
 
 页面是只读快照，数据变化后重新运行生成命令。图谱也可直接在 Neo4j
 Browser（`http://localhost:7474`）查看，例如：

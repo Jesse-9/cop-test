@@ -143,6 +143,9 @@
   }
   .bar-row:focus-visible { outline: 2px solid var(--series-1);
                            outline-offset: 2px; border-radius: 4px; }
+  .timeline-bars .bar-row {
+    grid-template-columns: minmax(150px, 190px) 1fr 58px;
+  }
   .bar-label { color: var(--ink-2); font-size: 12px; text-align: right;
                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar-track { height: 18px; display: flex; align-items: center; }
@@ -201,6 +204,68 @@
         font-size: 12px; }
   .kv dt { color: var(--muted); }
   .kv dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+  .process-card { margin-bottom: 14px; }
+  .process-kpis { display: grid; grid-template-columns: repeat(7, 1fr);
+                  gap: 8px; margin-bottom: 14px; }
+  .process-kpis .stat { background: var(--page); border: 1px solid var(--border);
+                        border-radius: 8px; padding: 8px 10px; }
+  .process-kpis .value { font-size: 20px; }
+  .process-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 14px; }
+  .subcard { border: 1px solid var(--border); border-radius: 10px;
+             padding: 12px; background: var(--page); }
+  .subcard h3 { margin: 0 0 8px; font-size: 13px; font-weight: 650; }
+  .dag-wrap { width: 100%; overflow-x: auto; }
+  #process-dag { width: 100%; height: auto; min-height: 340px; display: block; }
+  .dag-node { cursor: pointer; }
+  .dag-node:hover .dag-box, .dag-node:focus .dag-box,
+  .dag-node.selected .dag-box {
+    stroke: var(--series-1);
+    stroke-width: 2;
+  }
+  .dag-arrow { fill: var(--axis); }
+  .dag-box { fill: var(--surface); stroke: var(--border); stroke-width: 1; }
+  .dag-title { fill: var(--ink); font-size: 12px; font-weight: 600; }
+  .dag-sub { fill: var(--muted); font-size: 9px; }
+  .dag-edge { fill: none; stroke: var(--axis); stroke-width: 1; }
+  .dag-edge.active { stroke: var(--series-1); stroke-width: 2; }
+  .dag-label { fill: var(--muted); font-size: 10px; }
+  .route-cards { display: grid; grid-template-columns: repeat(3, 1fr);
+                 gap: 12px; margin-top: 14px; }
+  .route-card { border: 1px solid var(--border); border-radius: 10px;
+                padding: 12px; background: var(--page); }
+  .route-card h3 { margin: 0; font-size: 13px; }
+  .route-card .meta { color: var(--muted); font-size: 11px; margin: 3px 0 8px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .flow-chip { display: inline-flex; align-items: center; gap: 5px;
+               border: 1px solid var(--border); border-radius: 999px;
+               padding: 4px 8px; background: var(--surface);
+               cursor: pointer; font-size: 11px; text-align: left; }
+  .flow-chip:hover { border-color: var(--axis); }
+  .flow-chip.selected { border-color: var(--series-1); }
+  .flow-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .flow-arrow { color: var(--muted); font-size: 11px; }
+  .process-tables { display: grid; grid-template-columns: 1fr 1fr;
+                    gap: 14px; margin-top: 14px; }
+  .process-tables .subcard { overflow: hidden; }
+  .op-detail { margin: 0; }
+  .op-detail .kv { grid-template-columns: 116px 1fr; }
+  .op-section { margin-top: 10px; }
+  .op-section h4 { margin: 0 0 4px; font-size: 12px; font-weight: 650;
+                   color: var(--ink-2); }
+  .op-list { margin: 0; padding-left: 16px; color: var(--ink-2);
+             font-size: 12px; }
+  .op-list li { margin: 2px 0; }
+  .swatch-material { width: 12px; height: 12px; border-radius: 3px;
+                     border: 1px solid var(--border); display: inline-block;
+                     vertical-align: -2px; }
+  @media (max-width: 1100px) {
+    .process-grid, .process-tables { grid-template-columns: 1fr; }
+    .route-cards { grid-template-columns: 1fr; }
+    .process-kpis { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .process-kpis { grid-template-columns: repeat(2, 1fr); }
+  }
   footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
   @media (max-width: 1100px) {
     .hero-row, .grid, .grid.two, .run-cols { grid-template-columns: 1fr; }
@@ -326,11 +391,22 @@
       <div id="run-body"></div>
     </section>
 
+    <section class="card process-card">
+      <div class="card-head">
+        <div>
+          <h2>工艺目录</h2>
+          <p class="sub">已发布 release 的配方、工序依赖、路线、资源、设备与区域</p>
+        </div>
+        <div id="catalog-release"></div>
+      </div>
+      <div id="catalog-body"></div>
+    </section>
+
     <section class="grid two">
       <article class="card">
-        <h2>目录发布</h2>
-        <p class="sub">静态资源/工艺目录 release</p>
-        <div id="catalog-body"></div>
+        <h2>目录发布记录</h2>
+        <p class="sub">catalog_release 历史</p>
+        <div id="catalog-releases"></div>
       </article>
       <article class="card">
         <h2>来源与抽取</h2>
@@ -373,6 +449,7 @@
     type: "all",
     search: "",
     runId: data.runs.length ? data.runs[0].run_id : "",
+    operationId: "",
   };
 
   const tooltip = el("div", "tip");
@@ -448,6 +525,7 @@
 
   const statusMeta = {
     DONE: { cls: "good", icon: "✓" },
+    PUBLISHED: { cls: "good", icon: "✓" },
     FAILED: { cls: "critical", icon: "✕" },
     ABORTED: { cls: "warning", icon: "!" },
     RUNNING: { cls: "serious", icon: "…" },
@@ -889,12 +967,13 @@
     }
     const max = Math.max(1, ...run.operations.map(
       (operation) => Number(operation.duration_s) || 0));
-    const bars = el("div", "bars");
+    const bars = el("div", "bars timeline-bars");
     for (const operation of run.operations) {
       const duration = Number(operation.duration_s);
       const line = el("div", "bar-row");
       line.tabIndex = 0;
-      line.appendChild(el("div", "bar-label", short(operation.template_id, 22)));
+      line.appendChild(el("div", "bar-label",
+        short(`${operation.template_id} · uid ${operation.uid}`, 26)));
       const track = el("div", "bar-track");
       const fill = el("div", "bar-fill");
       fill.style.width = Number.isFinite(duration)
@@ -1026,7 +1105,67 @@
   }
 
   /* ── catalog / sources ────────────────────────────────── */
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function svgEl(tag, attrs) {
+    const node = document.createElementNS(SVG_NS, tag);
+    for (const [key, value] of Object.entries(attrs || {})) {
+      node.setAttribute(key, String(value));
+    }
+    return node;
+  }
+  function executorColor(kind) {
+    return kind === "arm" ? "var(--series-1)"
+      : kind === "agv" ? "var(--series-2)"
+      : kind === "logic" ? "var(--series-3)"
+      : "var(--series-other)";
+  }
+  function operationById(operationId) {
+    return (data.catalog.operations || []).find(
+      (operation) => operation.operation_id === operationId) || null;
+  }
+  function cellRow(values, numericIndexes) {
+    const tr = el("tr");
+    values.forEach((value, index) => {
+      tr.appendChild(el("td",
+        numericIndexes.has(index) ? "num" : "", value == null ? "—" : String(value)));
+    });
+    return tr;
+  }
+  function simpleTable(headers, rows, numericIndexes) {
+    const scroll = el("div", "table-scroll");
+    const table = el("table");
+    const thead = el("thead");
+    const htr = el("tr");
+    headers.forEach((header, index) => {
+      htr.appendChild(el("th", numericIndexes.has(index) ? "num" : "", header));
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const row of rows) tbody.appendChild(row);
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    return scroll;
+  }
+  function renderCatalogReleases() {
+    const box = $("#catalog-releases");
+    clear(box);
+    const releases = data.catalog.releases || [];
+    if (!releases.length) {
+      box.appendChild(empty("尚无 catalog_release 记录。"));
+      return;
+    }
+    const rows = releases.map((row) => cellRow(
+      [row.release_id, row.status, row.catalog_version,
+       fmtDate(row.published_at), fmtDate(row.created_at)], new Set()));
+    box.appendChild(simpleTable(
+      ["release_id", "状态", "catalog_version", "published_at", "created_at"],
+      rows, new Set()));
+  }
   function renderCatalog() {
+    renderCatalogReleases();
+    const chip = $("#catalog-release");
+    clear(chip);
     const body = $("#catalog-body");
     clear(body);
     const catalog = data.catalog;
@@ -1035,83 +1174,415 @@
       return;
     }
     if (!catalog.releases.length) {
+      chip.appendChild(statusChip("—"));
       body.appendChild(empty("没有已发布目录。先执行 catalog import / publish。"));
       return;
     }
     if (!catalog.published) {
+      chip.appendChild(statusChip("—"));
       body.appendChild(empty("有 release 记录，但没有 published 版本。"));
-    } else {
-      const pub = catalog.published;
-      const dl = el("dl", "kv");
-      for (const [key, value] of [
-        ["release", pub.release_id],
-        ["catalog_version", pub.catalog_version],
-        ["published_at", fmtDate(pub.published_at)],
-      ]) {
-        dl.appendChild(el("dt", "", key));
-        dl.appendChild(el("dd", "", value || "—"));
-      }
-      body.appendChild(dl);
-      const counts = el("div", "kv");
-      for (const [key, value] of Object.entries(catalog.counts)) {
-        counts.appendChild(el("dt", "", key));
-        counts.appendChild(el("dd", "", fmt(value)));
-      }
-      body.appendChild(counts);
-      if (catalog.operations.length) {
-        const details = el("details", "table-view");
-        details.appendChild(el("summary", "",
-          `工序模板（${catalog.operations.length}）`));
-        const scroll = el("div", "table-scroll");
-        const table = el("table");
-        const thead = el("thead");
-        const htr = el("tr");
-        for (const label of ["operation_id", "kind", "executor", "priority", "policy"]) {
-          htr.appendChild(el("th", "", label));
-        }
-        thead.appendChild(htr);
-        table.appendChild(thead);
-        const tbody = el("tbody");
-        for (const row of catalog.operations) {
-          const tr = el("tr");
-          tr.appendChild(el("td", "truncate", row.operation_id));
-          tr.appendChild(el("td", "", row.kind));
-          tr.appendChild(el("td", "", row.executor_kind));
-          tr.appendChild(el("td", "num", row.priority));
-          tr.appendChild(el("td", "", row.resource_policy));
-          tbody.appendChild(tr);
-        }
-        table.appendChild(tbody);
-        scroll.appendChild(table);
-        details.appendChild(scroll);
-        body.appendChild(details);
+      return;
+    }
+    const pub = catalog.published;
+    chip.appendChild(statusChip("PUBLISHED"));
+    chip.appendChild(document.createTextNode(
+      ` ${pub.release_id} · ${pub.catalog_version}`));
+    const kpis = el("div", "process-kpis");
+    const counts = catalog.counts || {};
+    for (const [label, value] of [
+      ["工序", counts.operation_template || 0],
+      ["路线", counts.route_variant || 0],
+      ["设备", counts.device || 0],
+      ["资源", counts.resource || 0],
+      ["区域", counts.zone || 0],
+      ["物料类型", counts.material_type || 0],
+      ["订单入口", counts.order_entry || 0],
+    ]) {
+      const tile = el("div", "stat");
+      tile.appendChild(el("div", "value", fmt(value)));
+      tile.appendChild(el("div", "label", label));
+      kpis.appendChild(tile);
+    }
+    body.appendChild(kpis);
+
+    if (!catalog.operations.length) {
+      body.appendChild(empty("已发布 release 没有工序模板。"));
+      return;
+    }
+    if (!state.operationId) {
+      state.operationId = catalog.operations[0].operation_id;
+    }
+    if (!operationById(state.operationId)) {
+      state.operationId = catalog.operations[0].operation_id;
+    }
+    const processGrid = el("div", "process-grid");
+    const dagCard = el("div", "subcard");
+    const dagHead = el("div", "card-head");
+    dagHead.style.marginBottom = "6px";
+    dagHead.appendChild(el("h3", "", "工序依赖 DAG"));
+    const dagLegend = el("div", "legend");
+    for (const kind of ["arm", "agv", "logic"]) {
+      const item = el("span", "legend-item");
+      const swatch = el("span", "swatch");
+      swatch.style.background = executorColor(kind);
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(kind));
+      dagLegend.appendChild(item);
+    }
+    dagHead.appendChild(dagLegend);
+    dagCard.appendChild(dagHead);
+    const dagWrap = el("div", "dag-wrap");
+    const svg = svgEl("svg", {
+      id: "process-dag", viewBox: "0 0 900 560",
+      role: "img", "aria-label": "Operation dependency DAG",
+    });
+    dagWrap.appendChild(svg);
+    dagCard.appendChild(dagWrap);
+    dagCard.appendChild(el("p", "hint",
+      "点击工序查看端口、资源、候选设备和工步；箭头表示前置 → 后继。"));
+    processGrid.appendChild(dagCard);
+    const detailCard = el("div", "subcard");
+    detailCard.appendChild(el("h3", "", "工序详情"));
+    const detailBox = el("div");
+    detailBox.id = "operation-detail";
+    detailCard.appendChild(detailBox);
+    processGrid.appendChild(detailCard);
+    body.appendChild(processGrid);
+    renderProcessDag();
+    renderOperationDetail();
+
+    const routeCards = el("div", "route-cards");
+    routeCards.id = "route-cards";
+    body.appendChild(routeCards);
+    renderRouteCards();
+
+    const tables = el("div", "process-tables");
+    tables.id = "process-tables";
+    body.appendChild(tables);
+    renderProcessTables();
+  }
+  function computeLevels(operations) {
+    const byId = new Map(operations.map((op) => [op.operation_id, op]));
+    const levels = new Map();
+    const visiting = new Set();
+    function level(id) {
+      if (levels.has(id)) return levels.get(id);
+      if (visiting.has(id)) return 0;
+      visiting.add(id);
+      const op = byId.get(id);
+      const predecessors = op ? op.predecessors : [];
+      const value = predecessors.length
+        ? Math.max(...predecessors.map(
+            (row) => level(row.operation_id))) + 1
+        : 0;
+      visiting.delete(id);
+      levels.set(id, value);
+      return value;
+    }
+    operations.forEach((op) => level(op.operation_id));
+    return { levels, byId };
+  }
+  function renderProcessDag() {
+    const svg = $("#process-dag");
+    if (!svg) return;
+    clear(svg);
+    const operations = data.catalog.operations || [];
+    if (!operations.length) return;
+    const { levels } = computeLevels(operations);
+    const maxLevel = Math.max(...levels.values());
+    const byLevel = new Map();
+    for (const op of operations) {
+      const level = levels.get(op.operation_id) || 0;
+      if (!byLevel.has(level)) byLevel.set(level, []);
+      byLevel.get(level).push(op);
+    }
+    for (const rows of byLevel.values()) {
+      rows.sort((a, b) => a.operation_id.localeCompare(b.operation_id));
+    }
+    const defs = svgEl("defs");
+    const marker = svgEl("marker", {
+      id: "dag-arrow", viewBox: "0 0 10 10", refX: "9", refY: "5",
+      markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse",
+    });
+    const markerPath = svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z" });
+    markerPath.setAttribute("class", "dag-arrow");
+    marker.appendChild(markerPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    const nodeW = 142;
+    const nodeH = 50;
+    const marginX = 38;
+    const top = 70;
+    const bottom = 470;
+    const levelGap = maxLevel ? (900 - 2 * marginX - nodeW) / maxLevel : 0;
+    const positions = new Map();
+    for (const [level, rows] of byLevel) {
+      const gap = rows.length > 1
+        ? (bottom - top) / (rows.length - 1) : 0;
+      rows.forEach((op, index) => {
+        const x = marginX + level * levelGap;
+        const y = rows.length > 1 ? top + index * gap : (top + bottom) / 2;
+        positions.set(op.operation_id, { x, y });
+      });
+    }
+    const selected = state.operationId;
+    for (const op of operations) {
+      const position = positions.get(op.operation_id);
+      const source = position;
+      for (const successor of op.successors || []) {
+        const target = positions.get(successor.operation_id);
+        if (!target) continue;
+        const x1 = source.x + nodeW;
+        const y1 = source.y + nodeH / 2;
+        const x2 = target.x;
+        const y2 = target.y + nodeH / 2;
+        const curve = Math.max(36, Math.abs(x2 - x1) * 0.45);
+        const path = svgEl("path", {
+          d: `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`,
+          "marker-end": "url(#dag-arrow)",
+          "class": "dag-edge" + (
+            selected === op.operation_id || selected === successor.operation_id
+              ? " active" : ""),
+        });
+        svg.appendChild(path);
       }
     }
-    const releases = el("details", "table-view");
-    releases.appendChild(el("summary", "",
-      `全部 releases（${catalog.releases.length}）`));
-    const scroll = el("div", "table-scroll");
-    const table = el("table");
-    const thead = el("thead");
-    const htr = el("tr");
-    for (const label of ["release_id", "status", "catalog_version", "published_at"]) {
-      htr.appendChild(el("th", "", label));
+    for (const op of operations) {
+      const position = positions.get(op.operation_id);
+      const group = svgEl("g", {
+        "class": "dag-node" + (selected === op.operation_id ? " selected" : ""),
+        tabindex: "0", role: "button",
+        "aria-label": `${op.operation_id}, ${op.executor_kind}, ${op.kind}`,
+      });
+      const box = svgEl("rect", {
+        "class": "dag-box", x: position.x, y: position.y,
+        width: nodeW, height: nodeH, rx: 8,
+      });
+      group.appendChild(box);
+      const accent = svgEl("rect", {
+        x: position.x, y: position.y, width: 4, height: nodeH, rx: 2,
+      });
+      accent.style.fill = executorColor(op.executor_kind);
+      group.appendChild(accent);
+      const title = svgEl("text", {
+        "class": "dag-title", x: position.x + 12, y: position.y + 20,
+      });
+      title.textContent = short(op.operation_id, 20);
+      group.appendChild(title);
+      const subtitle = svgEl("text", {
+        "class": "dag-sub", x: position.x + 12, y: position.y + 37,
+      });
+      subtitle.textContent = `${op.executor_kind} · ${op.kind}`;
+      group.appendChild(subtitle);
+      const activate = () => {
+        state.operationId = op.operation_id;
+        renderProcessDag();
+        renderOperationDetail();
+        renderRouteCards();
+      };
+      group.addEventListener("click", activate);
+      group.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          activate();
+        }
+      });
+      bindTip(group, op.operation_id, [
+        `执行器 ${op.executor_kind} · ${op.kind}`,
+        `优先级 ${op.priority} · ${op.resource_policy}`,
+        op.semantics,
+      ]);
+      svg.appendChild(group);
     }
-    thead.appendChild(htr);
-    table.appendChild(thead);
-    const tbody = el("tbody");
-    for (const row of catalog.releases) {
+  }
+  function portText(port) {
+    return port ? `${port.zone}: ${port.item_type}` : "—";
+  }
+  function renderOperationDetail() {
+    const box = $("#operation-detail");
+    if (!box) return;
+    clear(box);
+    const op = operationById(state.operationId);
+    if (!op) {
+      box.appendChild(empty("选择 DAG 节点查看工序详情。"));
+      return;
+    }
+    const dl = el("dl", "kv op-detail");
+    const add = (key, value) => {
+      dl.appendChild(el("dt", "", key));
+      dl.appendChild(el("dd", "", value == null || value === "" ? "—" : String(value)));
+    };
+    add("operation_id", op.operation_id);
+    add("recipe", op.recipe_id);
+    add("语义", op.semantics);
+    add("executor / kind", `${op.executor_kind} · ${op.kind}`);
+    add("capability", op.capability_id);
+    add("priority", op.priority);
+    add("resource policy", op.resource_policy);
+    add("predecessor policy", op.predecessor_policy);
+    add("completion verifier", op.completion_verifier);
+    add("source / sink", `${op.source_kind} → ${op.sink_kind}`);
+    if (op.dock) add("dock", op.dock);
+    if (op.route_origin_dock || op.route_destination_dock) {
+      add("route docks", `${op.route_origin_dock || "—"} → ${op.route_destination_dock || "—"}`);
+    }
+    box.appendChild(dl);
+    const section = (title, lines) => {
+      const wrapper = el("div", "op-section");
+      wrapper.appendChild(el("h4", "", title));
+      const list = el("ul", "op-list");
+      for (const line of lines) list.appendChild(el("li", "", line));
+      wrapper.appendChild(list);
+      box.appendChild(wrapper);
+    };
+    section("输入端口", (op.inputs || []).map(portText));
+    section("输出端口", op.output ? [portText(op.output)] : ["无"]);
+    section("资源请求", (op.resources || []).map(
+      (row) => `${row.resource_id} × ${row.quantity}`));
+    section("候选设备", (op.candidates || []).map(
+      (row) => `${row.device_id} (ordinal ${row.ordinal})`));
+    section("工步", (op.work_steps || []).map(
+      (row) => row.template_id));
+    section("前置", (op.predecessors || []).map(
+      (row) => row.operation_id));
+    section("后继", (op.successors || []).map(
+      (row) => row.operation_id));
+    section("所属路线", (op.routes || []).map(
+      (row) => `${row.route_id} / ${row.recipe_id}`));
+    section("订单入口", (op.entries || []).map(
+      (row) => `${row.entry_id} · ${row.line_id} · ${row.material_type_id}`));
+  }
+  function renderRouteCards() {
+    const box = $("#route-cards");
+    if (!box) return;
+    clear(box);
+    const routes = data.catalog.routes || [];
+    if (!routes.length) {
+      box.appendChild(empty("没有路线定义。"));
+      return;
+    }
+    for (const route of routes) {
+      const card = el("div", "route-card");
+      card.appendChild(el("h3", "", `${route.route_group} / ${route.route_id}`));
+      card.appendChild(el("p", "meta",
+        `${route.entry_zone_id} → ${route.exit_zone_id} · ${route.semantics}`));
+      const flow = el("div", "flow");
+      route.operation_ids.forEach((operationId, index) => {
+        if (index) flow.appendChild(el("span", "flow-arrow", "→"));
+        const op = operationById(operationId);
+        const chip = el("button",
+          "flow-chip" + (state.operationId === operationId ? " selected" : ""));
+        chip.type = "button";
+        chip.title = op ? op.semantics : operationId;
+        const dot = el("span", "flow-dot");
+        dot.style.background = executorColor(op ? op.executor_kind : "");
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(operationId));
+        chip.addEventListener("click", () => {
+          state.operationId = operationId;
+          renderProcessDag();
+          renderOperationDetail();
+          renderRouteCards();
+        });
+        flow.appendChild(chip);
+      });
+      card.appendChild(flow);
+      box.appendChild(card);
+    }
+  }
+  function renderProcessTables() {
+    const box = $("#process-tables");
+    if (!box) return;
+    clear(box);
+    const catalog = data.catalog;
+    const card = (title, content, hint) => {
+      const wrapper = el("div", "subcard");
+      wrapper.appendChild(el("h3", "", title));
+      if (hint) wrapper.appendChild(el("p", "sub", hint));
+      wrapper.appendChild(content);
+      return wrapper;
+    };
+    const rows = [];
+    for (const op of catalog.operations) {
+      rows.push(cellRow([
+        op.operation_id, op.kind, op.executor_kind, op.priority,
+        (op.inputs || []).map((row) => `${row.zone}:${row.item_type}`).join(" + "),
+        op.output ? `${op.output.zone}:${op.output.item_type}` : "—",
+        (op.resources || []).map((row) => row.resource_id).join(", "),
+      ], new Set([3])));
+    }
+    box.appendChild(card("工序表（DAG 表格视图）",
+      simpleTable(["operation_id", "kind", "executor", "priority", "输入",
+                   "输出", "资源"], rows, new Set([3]))));
+    const dependencyRows = catalog.dependencies.map((row) => cellRow([
+      row.predecessor_operation_id, "→", row.operation_id,
+      row.ordinal, row.successor_ordinal,
+    ], new Set([3, 4])));
+    box.appendChild(card("工序依赖边",
+      simpleTable(["predecessor", "", "operation", "ordinal",
+                   "successor_ordinal"], dependencyRows, new Set([3, 4]))));
+
+    const resourceRows = catalog.resources.map((row) => cellRow([
+      row.acquire_order, row.resource_id, row.kind, row.capacity, row.role,
+    ], new Set([0, 3])));
+    box.appendChild(card("互斥资源（按申请顺序）",
+      simpleTable(["order", "resource_id", "kind", "capacity", "role"],
+                  resourceRows, new Set([0, 3]))));
+
+    const deviceRows = catalog.devices.map((row) => cellRow([
+      row.device_id, row.kind, row.physical ? "physical" : "logical",
+      row.default_line_id || "—", (row.capabilities || []).join(", "),
+      (row.resources || []).join(", "),
+    ], new Set()));
+    box.appendChild(card("设备与能力",
+      simpleTable(["device_id", "kind", "物理", "default_line",
+                   "capabilities", "resources"], deviceRows, new Set())));
+
+    const zoneRows = catalog.zones.map((row) => cellRow([
+      row.zone_id, row.capacity, row.description || "—",
+    ], new Set([1])));
+    box.appendChild(card("物料区域",
+      simpleTable(["zone_id", "capacity", "description"], zoneRows,
+                  new Set([1]))));
+
+    const materialRows = [];
+    for (const row of catalog.materials) {
       const tr = el("tr");
-      tr.appendChild(el("td", "truncate mono", row.release_id));
-      tr.appendChild(el("td", "", row.status));
-      tr.appendChild(el("td", "", row.catalog_version));
-      tr.appendChild(el("td", "", fmtDate(row.published_at)));
-      tbody.appendChild(tr);
+      const swatchCell = el("td");
+      const swatch = el("span", "swatch-material");
+      if (Array.isArray(row.color_json) && row.color_json.length === 3) {
+        swatch.style.background = `rgb(${row.color_json.map(
+          (value) => Math.round(Number(value) * 255)).join(",")})`;
+      }
+      swatchCell.appendChild(swatch);
+      tr.appendChild(swatchCell);
+      tr.appendChild(el("td", "", row.material_type_id));
+      tr.appendChild(el("td", "", row.description || "—"));
+      materialRows.push(tr);
     }
-    table.appendChild(tbody);
-    scroll.appendChild(table);
-    releases.appendChild(scroll);
-    body.appendChild(releases);
+    box.appendChild(card("物料类型",
+      simpleTable(["", "material_type_id", "description"], materialRows,
+                  new Set())));
+
+    const entryRows = catalog.entries.map((row) => cellRow([
+      row.entry_id, row.line_id, row.material_type_id, row.operation_id,
+      row.route_group || "—", row.route_id || "—",
+    ], new Set()));
+    box.appendChild(card("订单入口",
+      simpleTable(["entry_id", "line", "material", "operation",
+                   "route_group", "route"], entryRows, new Set())));
+
+    const bindingRows = catalog.scene_bindings.map((row) => cellRow([
+      row.device_id, row.role, row.alias, row.scene_id, row.contract_version,
+    ], new Set()));
+    const bindingDetails = el("details", "table-view");
+    bindingDetails.appendChild(el("summary", "",
+      `场景绑定（${catalog.scene_bindings.length}）`));
+    bindingDetails.appendChild(simpleTable(
+      ["device_id", "role", "alias", "scene_id", "contract_version"],
+      bindingRows, new Set()));
+    box.appendChild(card("场景绑定", bindingDetails));
   }
   function renderSources() {
     const body = $("#source-body");
