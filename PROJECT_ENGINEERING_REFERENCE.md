@@ -90,6 +90,12 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   提供。
 - `simulation/unit_controller*.py` 仍保留已验收的继承链
   （Stage1→Stage2→Stage3→Stage4）；组合化重构未实施，不得声称已完成。
+- `simulation/runtime_common.py` 只承担单臂会话构建与共享容器；
+  `runtime_dual.py` / `runtime.py` 保留各自场景级障碍策略和公开入口。
+  启动摘要字段与顺序是诊断/验收接口，重排或改名需按契约变更处理。
+- `unit_controller_motion.ConveyorPickContext` 是运动层与 UFLOW 层共享的
+  输送带取料参数；停带/稳定测量只在 `motion/conveyor_safety.py` 实现，
+  控制器覆盖层不得复制测量算法或放宽容差。
 - `simulation/execution/` 是阶段 2 的执行适配层：只包装
   `Stage4UnitController` 与 `AGVRouteController4`，不导入 `application`/
   `cli`、不调用 `sim.step()`；唯一 stepping owner 仍是
@@ -122,6 +128,7 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 | `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环 |
 | `config_motion` / `motion/*` / `unit_controller_motion` | 运动层：碰撞、规划、轨迹、安全、吸附 |
 | `config_dual` / `layout_dual` / `scene_dual` / `unit_controller_dual` / `runtime_dual` | 双站层：`L2_MIRROR` 双工位 |
+| `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举 |
 | `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW` |
 
 `Stage3*`/`Stage4*` 类名、`spec.CONTROLLER_ID`/`COORDINATOR_ID` 和工件

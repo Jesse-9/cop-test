@@ -37,6 +37,7 @@
 - [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)与[实施报告](reports/v1-mixed-production-flexibility-demo.md)：WP1/WP2 已实施并完成实机验收；WP3/WP4 仍为条件包。
 - [资源目录数据库化与知识图谱方案](plans/resource-catalog-database-and-knowledge-graph.md)：阶段 0–6 的总体架构与门槛。
 - [仿真与运动规划性能方案](plans/simulation-motion-planning-performance.md)：路径复用和性能提案。
+- [仿真模块代码优化方案](plans/simulation-code-optimization-plan.md)与[实施报告](reports/v1-simulation-code-optimization.md)：P1 控制器取料与 P2 运行时装配已实施；P3 未实施。
 - [静态目录字段盘点](reference/static-catalog-field-inventory.md)：数据库化方案阶段 0 的输入盘点。
 - [静态目录持久化报告](reports/v1-catalog-persistence.md)：数据库 schema、导入、发布及选库验证。
 - [运行记录持久化报告](reports/v1-run-record-persistence.md)：运行写入及 Q1–Q4 查询。
