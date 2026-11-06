@@ -5,7 +5,7 @@ tags:
   - 类别/项目管理
   - 类别/实施计划
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-06
 status: published
 ---
 
@@ -46,7 +46,7 @@ status: published
 | 技术方案 | 实施记录 | 当前状态 |
 |---|---|---|
 | [资源目录数据库化与知识图谱](../plans/resource-catalog-database-and-knowledge-graph.md) | [字段盘点](../reference/static-catalog-field-inventory.md)、[目录持久化](../reports/v1-catalog-persistence.md)、[运行记录](../reports/v1-run-record-persistence.md)、[知识图谱导入](../reports/v1-knowledge-graph-import.md) | 阶段 0–5 已有实施记录；阶段 6 部分实施 |
-| [混线生产灵活性扩展示范](../plans/v1-mixed-production-flexibility-demo.md) | 暂无 | proposed |
+| [混线生产灵活性扩展示范](../plans/v1-mixed-production-flexibility-demo.md) | [有限批次配比实施报告](../reports/v1-mixed-production-flexibility-demo.md) | WP1/WP2 已实施并实机验收；WP3/WP4 为条件包 |
 | [仿真与运动规划性能](../plans/simulation-motion-planning-performance.md) | 暂无 | proposed |
 
 ## 命名约定

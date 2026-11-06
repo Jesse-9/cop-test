@@ -34,7 +34,7 @@
 
 ## 跨阶段方案与专项报告
 
-- [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)：提案，尚未纳入当前 v1 能力。
+- [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)与[实施报告](reports/v1-mixed-production-flexibility-demo.md)：WP1/WP2 已实施并完成实机验收；WP3/WP4 仍为条件包。
 - [资源目录数据库化与知识图谱方案](plans/resource-catalog-database-and-knowledge-graph.md)：阶段 0–6 的总体架构与门槛。
 - [仿真与运动规划性能方案](plans/simulation-motion-planning-performance.md)：路径复用和性能提案。
 - [静态目录字段盘点](reference/static-catalog-field-inventory.md)：数据库化方案阶段 0 的输入盘点。

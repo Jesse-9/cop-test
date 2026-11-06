@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-05
+updated: 2026-11-06
 status: published
 sim_version: "4.10+"
 ---
@@ -69,6 +69,23 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 
 `--scenario` 的 `full_flow` 是唯一用户运行模式；`no_pair`、`agv_priority`、
 `agv_blocked`、`conveyor_fault`、`staggered_batch` 仅用于内部回归和诊断。
+
+本次运行的原料数量可用命名批次配比调整：
+
+    flexible-factory run --scenario full_flow --batch-profile direct_heavy
+
+- `default`（缺省）严格使用 `SCENARIO_BATCH[scenario]`，保持现有运行。
+- `direct_heavy`：`RAW_A=2, RAW_B=0, RAW_D=2`，壳体直达路线占比提高。
+- `detour_heavy`：`RAW_A=0, RAW_B=1, RAW_D=1`，壳体 100% 走 AGV 绕行。
+  同时投入 2 个 `RAW_B` 可能使后续壳体等待 AGV 空载调机达到 300 s 背压
+  上限；该边界记录在实施报告中。
+- 批次只改变本次运行的 `RAW_A/RAW_B/RAW_D` 数量，不改变工艺路线、设备
+  候选、场景工件或 `config_digest`；非 `default` profile 只用于
+  `full_flow`。运行快照和报告记录实际生效的批次及
+  `BATCH_INPUT_VERSION`。
+- 批次配比只展示路线混批能力，不表示同一 UID 可在运行中动态选路。
+  默认与两个 profile 的实机验收结果见
+  [实施报告](../../implementation/reports/v1-mixed-production-flexibility-demo.md)。
 
 其他查询/控制命令：
 

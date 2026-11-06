@@ -1,18 +1,24 @@
 ---
 title: v1 混线生产灵活性扩展示范实施方案
 type: plan
-status: proposed
+status: implemented
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-06
 scope: v1 UFLOW / L5_UFLOW / full_flow
 related:
   - [[wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明]]
   - [[wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度]]
   - [[wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复]]
   - [[implementation/reports/v1-stage-04-capability-scheduling]]
+  - [[implementation/reports/v1-mixed-production-flexibility-demo]]
 ---
 
 # v1 混线生产灵活性扩展示范实施方案
+
+实施状态：WP1 已实施，WP2 纯逻辑与实机验收均完成（含一组失败边界与
+profile 收窄）；WP3/WP4 仍为条件包。实际改动、测试结果和未覆盖限制见
+[实施报告](../reports/v1-mixed-production-flexibility-demo.md)。本方案
+继续作为工作包、门槛和验收口径的依据。
 
 ## 1. 目标与边界
 
@@ -47,6 +53,15 @@ related:
 ### WP1：增加有限批次输入
 
 **目的：**在保持 `full_flow` 和固定工艺路线语义不变的情况下，用一个受控输入展示不同原料组合及相应路线的交错生产。
+
+**实施注记（2026-11-05）：**WP1 已按本包实施。新增
+`application/batch.py` 负责校验与命名 profile（`default`、`direct_heavy`、
+`detour_heavy`）；`Stage4Coordinator` 增加可选 `batch` 参数；runner 快照
+和运行证据记录实际生效批次；CLI 增加 `--batch-profile`，并在连接仿真前
+校验。批次输入契约版本为 `spec.BATCH_INPUT_VERSION`。WP2 随后完成实机
+验收：默认和两个 profile 通过，初版 `detour_heavy=0/2/2` 触发背压超时
+后收窄为 `0/1/1` 重跑通过。详见
+[实施报告](../reports/v1-mixed-production-flexibility-demo.md)。
 
 **建议接口：**在应用运行边界传入可选的 `batch` 映射，默认 `None`。未提供时严格使用 `SCENARIO_BATCH[scenario]`。配置只作为本次内存中的运行输入，不写入场景、manifest 或冻结 config digest。
 

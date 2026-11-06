@@ -33,7 +33,8 @@ src/flexible_factory/
   artifacts/         store（manifest/仓库/校验）, migration
   persistence/       SQLAlchemy 2.x ORM、SQLite Engine/Session、Alembic 迁移、
                      catalog seed 导入/发布/只读仓储、知识图谱导入、运行记录
-  application/       lifecycle, coordinator, run, catalog, knowledge, report
+  application/       lifecycle, coordinator, run, batch, catalog, knowledge,
+                     report
   cli.py             唯一命令入口
   tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
   tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
@@ -67,6 +68,12 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `DispatchDecision`；不导入 simulation/application、不申请资源、不改工序
   状态。`SCHEDULER_POLICY_VERSION` 在 `spec.py`，不进入
   `simulation/config.py` 的冻结配置摘要。
+- `application/batch.py` 是运行边界的有限批次输入：显式 `batch` 映射或
+  命名 `profile` 只改变本次运行的 `RAW_A/RAW_B/RAW_D` 数量，不改变
+  scenario、固定 route variant、设备候选或物料提交；不写入场景工件、
+  manifest 或 `config_digest`。未知键、负数、非整数、布尔值在创建任务前
+  以 `BatchError` 拒绝；非默认 profile 只允许用于 `full_flow`。
+  `BATCH_INPUT_VERSION` 在 `spec.py`。
 - recipe-backed `Stage4Task` 的生命周期字段只能经 `OperationRuntime` 窄接口
   （`claim_instance`/`select_device`/`mark_waiting`/`mark_blocked`/
   `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
@@ -206,6 +213,11 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   （不需要 CoppeliaSim）；真实 dump 的载入/导出需要 Docker Desktop 和
   Neo4j；操作步骤见 [tools/neo4j/README.md](tools/neo4j/README.md)，实测结果以
   [知识图谱实施报告](docs/implementation/reports/v1-knowledge-graph-import.md)为准。
+- 批次输入验证：`python -m pytest -q tests/test_v1_batch_profiles.py`
+  （不需要 CoppeliaSim）；`--batch-profile` 实机验收结果、`detour_heavy`
+  初版 `0/2/2` 的背压超时边界和证据见
+  [混线灵活性实施报告](docs/implementation/reports/v1-mixed-production-flexibility-demo.md)。
+  非默认 profile 的实机验收不得用纯逻辑结果代替。
 - 设备级 focused 验收与阶段 4 `full_flow`（需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，
 

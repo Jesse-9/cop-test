@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- 混线生产灵活性 WP1（有限批次配比）：新增
+  `application/batch.py`，校验运行边界传入的 `batch` 映射并解析命名
+  profile（`default`、`direct_heavy=2/0/2`、`detour_heavy=0/1/1`）；
+  未知键、负数、非整数、布尔值在创建任务前以 `BatchError` 拒绝。非默认
+  profile 只用于 `full_flow`，不改变 scenario、固定路线、设备候选或场景
+  工件。
+- `Stage4Coordinator` 新增可选 `batch` 参数；`COORDINATOR_START`、
+  `summary()`、`acceptance()`、运行快照和运行证据统一记录实际生效批次；
+  `acceptance()` 的 FINAL/未配对数量改由批次推导，默认 `full_flow`
+  结果不变。
+- CLI 新增 `run --batch-profile`，在连接仿真和取得运行锁之前校验。
+- `spec.py` 新增 `BATCH_INPUT_VERSION = v1_batch_20261105`；未修改
+  `simulation/config.py`，`config_digest` 与受保护工件不变。
+- 新增 `tests/test_v1_batch_profiles.py`（24 passed），扩展协调器批次
+  测试；纯逻辑回归 531 passed / 3 skipped（3 个 pytest 实机用例未执行，
+  实机验收改由 CLI 执行）。
+- WP2 实机验收：`default`、`direct_heavy`、`detour_heavy` 三组
+  `all_ok=true`；FINAL 分别为 1/2/1，资源均清零，运行记录 `DONE`。
+  证据见 `docs/implementation/evidence/v1_full_flow_*_2026110*.json`。
+- 初版 `detour_heavy=0/2/2` 在第 2 个 `RAW_B` 等待 AGV 空载调机达到
+  300 s 时触发 `BACKPRESSURE_TIMEOUT`（仿真 414.35 s），保留为失败边界
+  证据；profile 收窄为 `0/1/1` 后重跑通过。未放宽背压超时或调度策略。
+- 同一 CoppeliaSim 会话第 4 次连续运行时进程以 `0xC0000409` 退出；重启
+  全新进程后完成 `detour_heavy` 验收。正式验收建议每次使用新进程。
+- WP3（设备替代）/WP4（同一 UID 动态选路）未实施。详见
+  `docs/implementation/reports/v1-mixed-production-flexibility-demo.md`。
 - 运行记录（阶段 4）：新增 Alembic revision `0003_run_records` 与
   `RunRecorder`，只在运行开始/结束两个边界批量写入 `production_run`、
   工序实例、物料实例、谱系、资源事件和运行事件；`sim.step()` 热路径不写库。
