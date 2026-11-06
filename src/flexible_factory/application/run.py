@@ -21,6 +21,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Mapping, Optional
 
 from ..simulation import config_base as base
 from ..simulation import physics as phys
@@ -34,6 +35,8 @@ from ..simulation.motion.suction import Stage2SuctionController
 
 from ..simulation import config as cfg
 from .. import spec
+from .batch import (BatchError, DEFAULT_BATCH_PROFILE, resolve_batch,
+                    validate_batch)
 from .coordinator import Stage4Coordinator
 from ..persistence.db import CatalogDatabase
 from ..persistence.runs import RunRecorder
@@ -170,6 +173,21 @@ def collect_scene_snapshot(scene, comp) -> dict:
     }
 
 
+def snapshot_config(scenario: str, *, max_sim_time: float, scene,
+                    batch: Mapping[str, int],
+                    batch_profile: str = DEFAULT_BATCH_PROFILE) -> dict:
+    """运行快照中的配置段; batch 必须是本次实际生效并通过校验的值."""
+    return {
+        "scenario": scenario,
+        "max_sim_time": max_sim_time,
+        "sim_step": base.SIM_STEP,
+        "layout": scene.stage4_layout.name,
+        "batch": dict(batch),
+        "batch_profile": str(batch_profile or DEFAULT_BATCH_PROFILE),
+        "batch_input_version": spec.BATCH_INPUT_VERSION,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════
 # 场景执行
 # ═══════════════════════════════════════════════════════════════
@@ -177,25 +195,37 @@ def collect_scene_snapshot(scene, comp) -> dict:
 def run_scenario_v1(sim, scene, comp, *, scenario: str,
                         max_sim_time: float, logger,
                         fault: str = cfg.FAULT_NONE,
+                        batch: Optional[Mapping[str, int]] = None,
+                        batch_profile: str = DEFAULT_BATCH_PROFILE,
                         catalog=None, run_recorder=None,
                         stop_event=None, pause_event=None,
                         pause_ack_event=None, on_start=None) -> dict:
     """在已加载/已建组件的 v1 场景上运行一个验收场景."""
     if scenario not in cfg.STAGE4_SCENARIOS:
         raise ValueError(f"未知 scenario: {scenario!r}")
+    if batch is None:
+        effective_batch = resolve_batch(scenario, profile=batch_profile)
+    else:
+        effective_batch = validate_batch(batch)
+        if (batch_profile or DEFAULT_BATCH_PROFILE) != DEFAULT_BATCH_PROFILE:
+            declared = resolve_batch(scenario, profile=batch_profile)
+            if effective_batch != declared:
+                raise BatchError(
+                    f"batch profile {batch_profile!r} 与显式 batch 不一致: "
+                    f"{effective_batch} != {declared}")
     effective_fault = (fault if fault in cfg.STAGE4_FAULT_CHOICES
                        and fault != cfg.FAULT_NONE
                        else cfg.SCENARIO_FAULT[scenario])
     logger.info("=" * 70)
-    logger.info("[TASK][v1] scenario=%s fault=%s batch=%s",
-                scenario, effective_fault, cfg.SCENARIO_BATCH[scenario])
+    logger.info("[TASK][v1] scenario=%s fault=%s batch=%s profile=%s",
+                scenario, effective_fault, effective_batch, batch_profile)
 
     coordinator = None
     summary = None
     try:
         coordinator = Stage4Coordinator(
             sim, scene, comp, scenario=scenario, fault=effective_fault,
-            logger=logger, catalog=catalog,
+            logger=logger, catalog=catalog, batch=effective_batch,
             on_controller=(lambda unit_id, controller: on_start(
                 coordinator) if on_start else None) if on_start else None)
         coordinator.start(float(sim.getSimulationTime()))
@@ -235,6 +265,9 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
         evidence = {
             "scenario": scenario,
             "fault": effective_fault,
+            "batch": dict(effective_batch),
+            "batch_profile": str(batch_profile or DEFAULT_BATCH_PROFILE),
+            "batch_input_version": spec.BATCH_INPUT_VERSION,
             "steps": steps,
             "sim_time": round(float(sim.getSimulationTime()), 4),
             "coordinator": summary,
@@ -264,6 +297,8 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             scenario: str = cfg.SCENARIO_FULL_FLOW,
                             target: str = "full_flow",
                             fault: str = cfg.FAULT_NONE,
+                            batch_profile: str = DEFAULT_BATCH_PROFILE,
+                            batch: Optional[Mapping[str, int]] = None,
                             max_sim_time: float = cfg.DEFAULT_MAX_SIM_TIME,
                             repeat: int = 1,
                             out_dir=REPORT_DIR, logger,
@@ -289,6 +324,12 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         raise ValueError(f"未知 fault: {fault!r}")
     effective_fault = (fault if fault != cfg.FAULT_NONE
                        else cfg.SCENARIO_FAULT[scenario])
+    # 批次在连接/构建组件之前解析并校验; 运行报告只记录实际生效的值.
+    effective_batch = resolve_batch(scenario, profile=batch_profile,
+                                    batch=batch)
+    profile_name = str(batch_profile or DEFAULT_BATCH_PROFILE)
+    logger.info("[TASK][v1] batch 解析: scenario=%s profile=%s batch=%s",
+                scenario, profile_name, effective_batch)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(out_dir)
@@ -322,13 +363,9 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             "phase": "v1",
             "lifecycle_state": "SIMULATION_RUNNING",
             "scenario": scenario,
-            "config": {
-                "scenario": scenario,
-                "max_sim_time": max_sim_time,
-                "sim_step": base.SIM_STEP,
-                "layout": scene.stage4_layout.name,
-                "batch": cfg.SCENARIO_BATCH[scenario],
-            },
+            "config": snapshot_config(
+                scenario, max_sim_time=max_sim_time, scene=scene,
+                batch=effective_batch, batch_profile=profile_name),
             "scene": collect_scene_snapshot(scene, comp),
             "contract": {
                 "validated_by": "lifecycle.prepare_start",
@@ -356,6 +393,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         evidence = run_scenario_v1(
             sim, scene, comp, scenario=scenario,
             max_sim_time=max_sim_time, logger=logger, fault=effective_fault,
+            batch=effective_batch, batch_profile=profile_name,
             catalog=catalog, run_recorder=recorder,
             stop_event=stop_event, pause_event=pause_event,
             pause_ack_event=pause_ack_event, on_start=on_start)
@@ -384,6 +422,9 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "phase": "v1",
         "scenario": scenario,
         "fault": effective_fault,
+        "batch": dict(effective_batch),
+        "batch_profile": profile_name,
+        "batch_input_version": spec.BATCH_INPUT_VERSION,
         "layout": scene.stage4_layout.name,
         "catalog_source": "database" if catalog is not None else "code",
         "catalog_version": None if catalog is None else catalog.version,

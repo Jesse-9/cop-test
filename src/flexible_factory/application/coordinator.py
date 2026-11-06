@@ -28,7 +28,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Mapping, Optional
+
+from .. import spec
 
 from ..simulation import config_base as base
 from ..simulation import physics as phys
@@ -60,6 +62,7 @@ from ..domain.tasks import (Stage4Task, TaskQueue, TaskStatus,
 from ..simulation.device_binding import DeviceBindingError, binding_for
 from ..simulation.unit_controller import (SinkSpec, Stage4UnitController,
                                       agv_material_position)
+from .batch import expected_flow_counts, validate_batch
 
 
 class CoordinatorError(RuntimeError):
@@ -91,9 +94,14 @@ class Stage4Coordinator:
                  scenario: str = cfg.SCENARIO_FULL_FLOW,
                  fault: str = cfg.FAULT_NONE,
                  logger=None, on_controller=None,
-                 catalog: Optional[ProcessCatalog] = None) -> None:
+                 catalog: Optional[ProcessCatalog] = None,
+                 batch: Optional[Mapping[str, int]] = None) -> None:
         if scenario not in cfg.STAGE4_SCENARIOS:
             raise CoordinatorError(f"未知 scenario: {scenario!r}")
+        # 批次只影响本次运行的来源数量; 显式输入在创建任何任务前校验,
+        # 缺省时严格沿用 scenario 默认批次.
+        self._batch = (dict(cfg.SCENARIO_BATCH[scenario])
+                       if batch is None else validate_batch(batch))
         self.catalog = catalog if catalog is not None else default_catalog()
         # 启动前完整校验: 未知设备/zone/资源、重复 ID、缺失端口、无效后继、
         # 循环依赖均在此拒绝, 错误信息带 recipe/operation 定位.
@@ -158,7 +166,6 @@ class Stage4Coordinator:
         self._line_faulted = False
         self._unstable_steps = 0
         self._next_uid = 1
-        self._batch = dict(cfg.SCENARIO_BATCH[scenario])
         self._source_entries = {entry.id: entry
                                 for entry in self.recipe.entries}
         self._source_keys = tuple(self._source_entries)
@@ -184,7 +191,8 @@ class Stage4Coordinator:
         self.started_at = float(sim_time)
         self._event("COORDINATOR_START", detail={
             "scenario": self.scenario, "fault": self.fault,
-            "batch": dict(self._batch)})
+            "batch": dict(self._batch),
+            "batch_input_version": spec.BATCH_INPUT_VERSION})
 
     # ═══════════════════════════════════════════════════════
     # 单步
@@ -1800,6 +1808,9 @@ class Stage4Coordinator:
         priority_ok, priority_detail = self._priority_acceptance()
         scheduler_ok, scheduler_detail = self._scheduler_acceptance()
         graph_instances = self.op_runtime.graph.instances()
+        batch_expectation = expected_flow_counts(self._batch)
+        expected_final = int(batch_expectation["final"])
+        expected_unpaired = int(batch_expectation["unpaired_semi_ce"])
         acceptance = {
             "scenario": self.scenario,
             "fault": self.fault,
@@ -1828,12 +1839,10 @@ class Stage4Coordinator:
             "scheduler_detail": scheduler_detail,
             "injected": list(self.injected),
             "batch": dict(self._batch),
+            "batch_input_version": spec.BATCH_INPUT_VERSION,
+            "batch_expectation": batch_expectation,
             "spawned": list(self.spawned),
         }
-        expected_final = 2 if self.scenario == cfg.SCENARIO_STAGGERED else (
-            1 if self.scenario in (
-                cfg.SCENARIO_FULL_FLOW, cfg.SCENARIO_NO_PAIR,
-                cfg.SCENARIO_AGV_PRIORITY, cfg.SCENARIO_AGV_BLOCKED) else 0)
         common = (not any_latch and resources_released and route_ok
                   and priority_ok and scheduler_ok
                   and acceptance["graph_complete"])
@@ -1841,7 +1850,7 @@ class Stage4Coordinator:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
                 and len(finals) == expected_final
-                and len(semi_wip) == 1
+                and len(semi_wip) == expected_unpaired
                 and all(rec.parents for rec in finals))
         elif self.scenario == cfg.SCENARIO_STAGGERED:
             acceptance["max_concurrent_tasks"] = self._max_concurrent_tasks()
@@ -1851,7 +1860,7 @@ class Stage4Coordinator:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
                 and len(finals) == expected_final
-                and len(semi_wip) == 1
+                and len(semi_wip) == expected_unpaired
                 and all(rec.parents for rec in finals)
                 and acceptance["interleaved"])
         elif self.scenario == cfg.SCENARIO_NO_PAIR:
@@ -2024,6 +2033,7 @@ class Stage4Coordinator:
             "frozen": self.frozen,
             "stop_reason": self.stop_reason,
             "batch": dict(self._batch),
+            "batch_input_version": spec.BATCH_INPUT_VERSION,
             "source_counts": dict(self._source_count),
             "agv_at_dock": self.agv_at_dock,
             "process_model": {

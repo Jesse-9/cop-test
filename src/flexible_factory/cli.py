@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from . import spec
+from .application.batch import (BatchError, DEFAULT_BATCH_PROFILE,
+                                batch_profile_names, resolve_batch)
 from .application.catalog import (catalog_status, catalog_verify,
                                   publish_release, runtime_catalog,
                                   shadow_compare, stage_default_catalog)
@@ -246,6 +248,8 @@ def cmd_report_timeline(ns) -> int:
 
 
 def cmd_run(ns) -> int:
+    # 批次输入在连接仿真/取得运行锁之前校验; 非法值不进入生命周期.
+    resolve_batch(ns.scenario, profile=ns.batch_profile)
     catalog = None
     if ns.catalog_source == "db":
         # 显式选库: 必须与当前代码目录完全等价, 否则在连接仿真前拒绝.
@@ -270,7 +274,9 @@ def cmd_run(ns) -> int:
     try:
         summary = run_loaded_scene_v1(
             sim, simIK, manager.scene, scenario=ns.scenario,
-            target=ns.scenario, fault=ns.fault, max_sim_time=ns.time,
+            target=ns.scenario, fault=ns.fault,
+            batch_profile=ns.batch_profile,
+            max_sim_time=ns.time,
             out_dir=Path(ns.out_dir), logger=logger,
             catalog=catalog, run_record_db=run_record_db,
             run_record_source=ns.catalog_source,
@@ -471,6 +477,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="full_flow 为正式入口; 其余为内部回归/诊断场景")
     p.add_argument("--fault", default="none",
                    choices=["none", "agv_blocked", "conveyor_stop"])
+    p.add_argument(
+        "--batch-profile", default=DEFAULT_BATCH_PROFILE,
+        choices=list(batch_profile_names()),
+        help="命名批次配比: 只改变 RAW_A/RAW_B/RAW_D 数量, 不改变工艺"
+             "路线或设备候选; 非 default profile 仅用于 full_flow")
     p.add_argument("--time", type=float, default=1200.0)
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
@@ -495,7 +506,7 @@ def main(argv=None) -> int:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 3
     except (LifecycleError, sa.ArtifactError, migration.MigrationError,
-            CatalogPersistenceError) as exc:
+            CatalogPersistenceError, BatchError) as exc:
         print(f"[ERROR] {getattr(exc, 'code', type(exc).__name__)}: {exc}",
               file=sys.stderr)
         return 2

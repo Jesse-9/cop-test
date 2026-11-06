@@ -10,9 +10,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from flexible_factory import spec
 from flexible_factory.application.coordinator import Stage4Coordinator
 from flexible_factory.domain.default_process import default_catalog
-from flexible_factory.domain.materials import ItemType, MaterialRegistry, RecordState
+from flexible_factory.domain.materials import (ItemType, MaterialRegistry,
+                                               RecordState)
+from flexible_factory.simulation import config as cfg
 from flexible_factory.simulation.execution import (ExecutionReport,
                                                    ExecutionState)
 from flexible_factory.simulation.layout import default_layout
@@ -102,6 +105,7 @@ class _Materials:
 class _RuntimeStub:
     def __init__(self) -> None:
         self.forgotten: list[int] = []
+        self.arms: dict = {}
 
     def forget_material(self, handle) -> None:
         self.forgotten.append(int(handle))
@@ -181,7 +185,8 @@ class _StubAgvExecutor:
     route = None
 
 
-def _coordinator(scenario: str = "full_flow") -> Stage4Coordinator:
+def _coordinator(scenario: str = "full_flow",
+                 batch: dict[str, int] | None = None) -> Stage4Coordinator:
     sim = _Sim()
     scene = _Scene()
     materials = _Materials()
@@ -194,7 +199,8 @@ def _coordinator(scenario: str = "full_flow") -> Stage4Coordinator:
         "suction": {unit_id: _Suction() for unit_id in "ABCDE"},
         "conveyor": None,
     }
-    coordinator = Stage4Coordinator(sim, scene, comp, scenario=scenario)
+    coordinator = Stage4Coordinator(sim, scene, comp, scenario=scenario,
+                                   batch=batch)
     coordinator.arm_executors = {
         f"arm_{unit_id}": _StubArm(unit_id) for unit_id in "ABCDE"}
     coordinator.agv_executor = _StubAgvExecutor()
@@ -205,12 +211,63 @@ def _coordinator(scenario: str = "full_flow") -> Stage4Coordinator:
 
 
 # ═══════════════════════════════════════════════════════════════
+# 有限批次输入
+# ═══════════════════════════════════════════════════════════════
+
+def test_default_coordinator_uses_scenario_batch():
+    coordinator = _coordinator()
+    assert coordinator._batch == cfg.SCENARIO_BATCH[cfg.SCENARIO_FULL_FLOW]
+
+
+def test_configured_batch_spawns_declared_entries_with_fixed_routes():
+    coordinator = _coordinator(batch={"RAW_A": 2, "RAW_B": 0, "RAW_D": 1})
+    coordinator.start(0.0)
+    coordinator._poll_sources(0.0)
+
+    assert [(row["source"], row["item_type"], row["uid"])
+            for row in coordinator.spawned] == [
+        ("s1a", "RAW_A", 1), ("s2d", "RAW_D", 2)]
+    graphs = [row for row in coordinator.events
+              if row["kind"] == "OPERATION_GRAPH"]
+    assert [(row["uid"], row["detail"]["route"]) for row in graphs] == [
+        (1, "housing_direct"), (2, "bracket_route")]
+    assert coordinator._batch == {"RAW_A": 2, "RAW_B": 0, "RAW_D": 1}
+
+
+def test_mixed_batch_instantiates_one_fixed_route_per_entry():
+    coordinator = _coordinator(batch={"RAW_A": 2, "RAW_B": 1, "RAW_D": 2})
+    coordinator.start(0.0)
+    coordinator._poll_sources(0.0)
+
+    graphs = {row["uid"]: row["detail"]["route"]
+              for row in coordinator.events
+              if row["kind"] == "OPERATION_GRAPH"}
+    assert graphs == {
+        1: "housing_direct", 2: "housing_alt", 3: "bracket_route"}
+    assert [row["item_type"] for row in coordinator.spawned] == [
+        "RAW_A", "RAW_B", "RAW_D"]
+
+
+def test_summary_and_acceptance_report_effective_batch():
+    coordinator = _coordinator(batch={"RAW_A": 2, "RAW_B": 0, "RAW_D": 2})
+    coordinator.start(0.0)
+    summary = coordinator.summary()
+
+    assert summary["batch"] == {"RAW_A": 2, "RAW_B": 0, "RAW_D": 2}
+    assert summary["batch_input_version"] == spec.BATCH_INPUT_VERSION
+    assert summary["acceptance"]["batch"] == summary["batch"]
+    assert summary["acceptance"]["batch_expectation"]["final"] == 2
+    start = next(row for row in coordinator.events
+                 if row["kind"] == "COORDINATOR_START")
+    assert start["detail"]["batch"] == summary["batch"]
+
+
+# ═══════════════════════════════════════════════════════════════
 # 单 UID 直达支路: S1→A→C→E
 # ═══════════════════════════════════════════════════════════════
 
 def test_direct_route_is_driven_by_ready_set_end_to_end():
-    coordinator = _coordinator()
-    coordinator._batch = {"RAW_A": 1}
+    coordinator = _coordinator(batch={"RAW_A": 1})
     coordinator.start(0.0)
 
     steps = 0
@@ -248,8 +305,7 @@ def test_direct_route_is_driven_by_ready_set_end_to_end():
 
 
 def test_no_task_is_queued_for_unselected_route():
-    coordinator = _coordinator()
-    coordinator._batch = {"RAW_A": 1}
+    coordinator = _coordinator(batch={"RAW_A": 1})
     coordinator.start(0.0)
     for _ in range(4):
         coordinator.step()
@@ -262,8 +318,7 @@ def test_no_task_is_queued_for_unselected_route():
 
 
 def test_verification_failure_freezes_without_unlocking_successor():
-    coordinator = _coordinator()
-    coordinator._batch = {"RAW_A": 1}
+    coordinator = _coordinator(batch={"RAW_A": 1})
     coordinator._verify_unit_task = \
         lambda task, controller, unit_id: (False, "PLACE_ERROR: 0.5", {})
     coordinator.start(0.0)

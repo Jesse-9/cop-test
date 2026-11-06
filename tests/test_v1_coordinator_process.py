@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
+from flexible_factory.application.batch import BatchError
 from flexible_factory.application.coordinator import Stage4Coordinator
 from flexible_factory.domain.default_process import default_catalog
 from flexible_factory.domain.materials import ItemType, MaterialRegistry
@@ -27,12 +30,19 @@ def _register_source(coordinator: Stage4Coordinator, uid: int) -> None:
         zone="line_s1a", sim_time=0.0)
 
 
-def _coordinator() -> Stage4Coordinator:
+def _coordinator(batch=None) -> Stage4Coordinator:
     comp = {key: None for key in (
         "materials", "flow", "agv", "runtime", "ik", "suction",
         "conveyor")}
     comp["flow"] = MaterialRegistry()
-    return Stage4Coordinator(None, _Scene(), comp)
+    return Stage4Coordinator(None, _Scene(), comp, batch=batch)
+
+
+def test_coordinator_rejects_invalid_batch_before_any_action():
+    with pytest.raises(BatchError):
+        _coordinator(batch={"RAW_A": -1})
+    with pytest.raises(BatchError):
+        _coordinator(batch={"RAW_X": 1})
 
 
 def test_coordinator_reads_operation_fields_from_catalog():
