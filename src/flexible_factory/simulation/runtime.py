@@ -15,26 +15,25 @@ UFLOW 层相对双站层的变化:
   - 5 个工位而不是 2 个;
   - 工作区碰撞集合包含四条线的 pad 和其余 4 台真实臂;
   - 其余真实臂的 `collidable`/`measurable` 只在会话期启用, 销毁时恢复.
+
+单臂构建和共享运行时容器位于
+:mod:`flexible_factory.simulation.runtime_common`; 本模块只保留五岛层
+的障碍/物流线策略和公开入口.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from . import config_base as base
-from .scene_base import alias_of, all_objects
-from . import config_motion as s2cfg
-from .motion.collisions import (CollisionRuntime, CollisionError,
-                               discover_pad_body, discover_ur5_links)
-from .motion.path_planning import ConfigurationChecker, LocalPlanner
-from .motion.safety import Stage2Safety
-from .motion.shadow import ShadowProbe, build_shadow_arm
-from .runtime_dual import (Stage3ArmRuntime, Stage3Runtime, UnitSceneView,
-                            _ensure_queryable, _measure_cup_radius)
+from .motion.collisions import discover_pad_body, discover_ur5_links
+from .runtime_common import (Stage3ArmRuntime, Stage3Runtime, UnitSceneView,
+                             _ensure_queryable, build_arm_runtime)
 
 from . import config as cfg
-from .scene import Stage4Scene, Stage4Unit
+from .scene import Stage4Scene
+
+__all__ = ["RuntimeBuildError", "Stage4Runtime", "build_v1_runtime"]
 
 
 class RuntimeBuildError(RuntimeError):
@@ -115,7 +114,7 @@ def _unit_obstacles(sim, scene: Stage4Scene,
 
 
 def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
-                         logger=None) -> Stage4Runtime:
+                     logger=None) -> Stage4Runtime:
     """构建五台影子臂/碰撞集合/规划器/锁存; 仿真必须处于停止态."""
     try:
         state = int(sim.getSimulationState())
@@ -137,83 +136,35 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
         unit = scene.unit(unit_id)
         conveyor_aliases = _arm_conveyor_aliases(scene, unit_id)
         view = UnitSceneView(unit_id=unit_id, scene=scene, unit=unit)
-        current_probe = None
-        current_collisions = None
         try:
-            shadow = build_shadow_arm(
-                sim, view, arm_base=unit.spec.arm_base,
-                aliases=cfg.SHADOW_ALIASES[unit_id])
-            probe = ShadowProbe(sim, shadow)
-            current_probe = probe
-            actual_q = [float(sim.getJointPosition(j))
-                        for j in unit.robot_joints]
-            probe.set_configuration(actual_q)
-            fk = probe.verify_fk(view)
-            if not fk["ok"]:
-                raise RuntimeBuildError(
-                    f"{unit_id} 真实/影子 FK 不一致: {fk}")
-
-            cup_radius = _measure_cup_radius(sim, shadow.pad_body)
-            if abs(cup_radius - s2cfg.CUP_RADIUS_DESIGN) > \
-                    s2cfg.CUP_RADIUS_TOL:
-                raise RuntimeBuildError(
-                    f"{unit_id} 杯口半径实测 {cup_radius:.6f} 与设计 "
-                    f"{s2cfg.CUP_RADIUS_DESIGN:.6f} 不一致")
-
             extra, other_info = _unit_obstacles(sim, scene, unit_id)
             query_restore.extend(other_info.get("query_properties") or [])
-            collisions = CollisionRuntime.build(
-                sim, view, link_handles=shadow.links,
-                link_aliases=shadow.link_aliases,
-                pad_body=shadow.pad_body, load_handle=shadow.load,
-                mount_alias=unit.aliases["island"],
+            arm, probed = build_arm_runtime(
+                sim, view=view,
+                shadow_aliases=cfg.SHADOW_ALIASES[unit_id],
                 station_aliases=station_aliases,
+                obstacles=extra, obstacle_info=other_info,
+                obstacle_key="other_units",
+                ik=ik_by_unit[unit_id],
                 conveyor_aliases=conveyor_aliases,
-                extra_obstacles=extra)
-            current_collisions = collisions
-            if not semantics:
-                semantics = collisions.query_semantics_probe()
-                if not semantics.get("ok"):
-                    raise RuntimeBuildError(
-                        f"碰撞查询语义自检失败: {semantics}")
-
-            checker = ConfigurationChecker(sim, probe, collisions,
-                                           cup_radius=cup_radius)
-            planner = LocalPlanner(checker, ik_by_unit[unit_id])
-            safety = Stage2Safety(logger=logger)
-            startup = {
-                "fk": fk,
-                "cup_radius_measured": round(cup_radius, 6),
-                "cup_radius_design": s2cfg.CUP_RADIUS_DESIGN,
-                "other_units": other_info,
-                "self_pairs": len(collisions._self_pairs),
-                "collections": {
-                    name: len(spec.items)
-                    for name, spec in zip(collisions.collections,
-                                          collisions.specs)},
-                "excluded": collisions.geometry.excluded,
-                "workcell_aliases": collisions.geometry.workcell_aliases,
-                "shadow_hidden": shadow.visibility_applied,
-                "station_aliases": list(station_aliases),
-                "conveyor_aliases": list(conveyor_aliases),
-            }
-            arms[unit_id] = Stage3ArmRuntime(
-                unit_id=unit_id, view=view, shadow=shadow, probe=probe,
-                collisions=collisions, checker=checker, planner=planner,
-                safety=safety, cup_radius=cup_radius, startup=startup)
-            if logger:
-                logger.info("[V1] %s 运行时完成 (%d collections, "
-                            "%d workcell)", unit_id,
-                            len(collisions.specs),
-                            len(collisions.geometry.workcell))
+                probe_semantics=not semantics,
+                extra_startup={
+                    "conveyor_aliases": list(conveyor_aliases),
+                },
+                error_cls=RuntimeBuildError,
+                logger=logger)
         except Exception:
-            if current_collisions is not None:
-                current_collisions.destroy()
-            if current_probe is not None:
-                current_probe.destroy()
             for built in arms.values():
                 built.destroy()
             raise
+        arms[unit_id] = arm
+        if probed is not None:
+            semantics = probed
+        if logger:
+            logger.info("[V1] %s 运行时完成 (%d collections, "
+                        "%d workcell)", unit_id,
+                        len(arm.collisions.specs),
+                        len(arm.collisions.geometry.workcell))
 
     runtime = Stage4Runtime(
         sim=sim, scene=scene, arms=arms, semantics=semantics,
@@ -224,16 +175,12 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
             "inter_arm_policy": "all_other_units_in_workcell",
             "adjacency_zones": cfg.ARM_ADJACENCY_ZONES,
         },
-        query_restore=query_restore)
+        query_restore=query_restore,
+        session_prefix=cfg.SESSION_RESOURCE_PREFIX,
+        build_error=RuntimeBuildError)
     if logger:
         logger.info(
             "[V1] 运行时构建完成: units=%s, cup_r=%.6f, "
             "adjacency=%s", list(cfg.UNIT_IDS), arms["A"].cup_radius,
             cfg.ARM_ADJACENCY_ZONES)
     return runtime
-
-
-def _shadow_aliases(sim) -> list[int]:
-    return [int(h) for h in all_objects(sim)
-            if (alias_of(sim, h) or "").startswith(
-                cfg.SESSION_RESOURCE_PREFIX)]
