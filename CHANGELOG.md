@@ -37,6 +37,8 @@
 - 失败/中止运行同样写终态；写库失败只标记运行报告
   `run_record.ok=false`，不回滚仿真、不自动重放。`run --run-records off`
   可关闭。
+- 新增 [本地数据库查看指南](docs/implementation/reference/database-inspection-guide.md)：
+  汇总 CLI、HTML 仪表盘、原始 SQLite 和 Neo4j Browser 的数据库查看入口。
 - 扩展 `tools/db_dashboard.py`：展示已发布工艺目录的工序依赖 DAG、路线
   卡片、工序详情、资源申请顺序、设备/能力、区域、物料、订单入口和场景
   绑定；DAG 与路线可点击联动工序详情。工艺目录需先 `catalog import` /

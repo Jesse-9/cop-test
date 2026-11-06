@@ -99,6 +99,8 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 静态资源/工艺目录可持久化到本地 SQLite；默认路径
 `var/catalog/catalog.db`（不写入受保护的场景工件目录）。该功能不影响默认
 运行：`run` 仍读取代码内默认目录，只有显式 `--catalog-source db` 才切换。
+数据库查看方式汇总见
+[本地数据库查看指南](../../implementation/reference/database-inspection-guide.md)。
 
     # 初始化或升级 schema（幂等）
     flexible-factory catalog init
