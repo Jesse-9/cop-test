@@ -155,8 +155,8 @@ def _build(monkeypatch, *, fail_build=False, semantics=None, **overrides):
 
 def test_builders_reject_running_simulation():
     sim = _Sim()
-    with pytest.raises(runtime_dual.RuntimeBuildError):
-        runtime_dual.build_stage3_runtime(sim, scene=None, ik_by_unit={})
+    with pytest.raises(runtime.Stage3RuntimeBuildError):
+        runtime.build_stage3_runtime(sim, scene=None, ik_by_unit={})
     with pytest.raises(runtime.RuntimeBuildError):
         runtime.build_v1_runtime(sim, scene=None, ik_by_unit={})
 
@@ -164,8 +164,8 @@ def test_builders_reject_running_simulation():
 def test_runtime_arm_reports_layer_specific_error():
     stage3 = runtime_common.Stage3Runtime(
         sim=None, scene=None, arms={},
-        build_error=runtime_dual.RuntimeBuildError)
-    with pytest.raises(runtime_dual.RuntimeBuildError):
+        build_error=runtime.Stage3RuntimeBuildError)
+    with pytest.raises(runtime.Stage3RuntimeBuildError):
         stage3.arm("X")
 
     stage4 = runtime.Stage4Runtime(
@@ -173,6 +173,13 @@ def test_runtime_arm_reports_layer_specific_error():
         build_error=runtime.RuntimeBuildError)
     with pytest.raises(runtime.RuntimeBuildError):
         stage4.arm("X")
+
+
+def test_runtime_dual_is_a_compatibility_shim():
+    assert runtime_dual.build_stage3_runtime is runtime.build_stage3_runtime
+    assert runtime_dual.RuntimeBuildError is runtime.Stage3RuntimeBuildError
+    assert runtime.Stage3RuntimeBuildError.code == "STAGE3_RUNTIME"
+    assert runtime.RuntimeBuildError.code == "STAGE4_RUNTIME"
 
 
 def test_startup_summary_keeps_contract_order(monkeypatch):
