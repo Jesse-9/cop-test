@@ -27,19 +27,15 @@ from dataclasses import dataclass
 from typing import Optional
 
 from . import config_base as base
-from .conveyor import compensation_allowed, TransportFault
 from .material_manager import MaterialState
-from .unit_controller_base import (MismatchReason, PickMismatch,
-                                    Stage1UnitController, UnitTaskState,
-                                    quat_tilt)
+from .unit_controller_base import UnitTaskState, quat_tilt
 from . import config_motion as s2cfg
 from .motion.contact import contact_pose
-from .motion.conveyor_safety import (ConveyorStopMonitor, StopStatus,
-                                    bounded_transport_step,
-                                    read_conveyor_speed)
+from .motion.conveyor_safety import read_conveyor_speed
 from .motion.path_planning import Goal, MotionContext, PlanStatus
 from .motion.trajectory import joint_distance
-from .unit_controller_motion import (Stage2TaskState, _motion_params,
+from .unit_controller_motion import (ConveyorPickContext, Stage2TaskState,
+                                    _motion_params,
                                     horizontal_transfer_check, lift_pose,
                                     pre_place_pose)
 from .unit_controller_dual import Stage3UnitController
@@ -185,238 +181,24 @@ class Stage4UnitController(Stage3UnitController):
     # ── 传送带取料: 本岛线别名 ──────────────────────────────
 
     def _update_conveyor(self) -> None:
-        if self.source != "conveyor":
-            return
         if self.line_fault:
             return
-        rec = self.materials.by_uid(self.uid)
-        if rec is None:
-            self._fail("UID_NOT_REGISTERED")
-            return
-        if self.state not in (UnitTaskState.IDLE,
-                              UnitTaskState.WAITING_FOR_ITEM):
-            return
-        if rec.state not in (MaterialState.SPAWNED,
-                             MaterialState.ON_CONVEYOR):
-            return
-        self.conveyor.set_speed(self.line.conveyor, cfg.LINE_SPEED)
-        if rec.sim_handle is None:
-            self._fail("MATERIAL_HAS_NO_HANDLE")
-            return
-        try:
-            pose = list(self.sim.getObjectPose(rec.sim_handle,
-                                               self.sim.handle_world))
-        except Exception as exc:
-            self._fail(f"MATERIAL_POSE_UNREADABLE: {exc}")
-            return
-        geometry = self.line.geometry
-        try:
-            compensation_allowed(pose[:3], base.CONVEYOR_SURFACE_Z,
-                                 geometry=geometry)
-        except TransportFault as exc:
-            rec.transition_to(MaterialState.FAULT, self.sim_time,
-                              f"CONVEYOR_FAULT: {exc}")
-            self._fail(f"CONVEYOR_FAULT: {exc}")
-            return
-        previous = self._material_prev_pos or pose
-        step = bounded_transport_step(
-            pose[:3], previous, geometry, cfg.LINE_SPEED, base.SIM_STEP)
-        if step.delta > 0.0:
-            self.sim.setObjectPosition(rec.sim_handle, step.new_position,
-                                       self.sim.handle_world)
-            self.compensation_count += 1
-            self._compensation_steps += 1
-            self._compensation_consecutive += 1
-            if self._compensation_consecutive > \
-                    s2cfg.COMPENSATION_MAX_CONSECUTIVE:
-                self._long_compensation = True
-            self._event(
-                f"HYBRID_DYNAMIC compensation Δ={step.delta:.4f} "
-                f"(physical={step.physical_delta:.4f}, "
-                f"shortfall={step.shortfall:.4f})")
-            self._material_prev_pos = list(step.new_position)
-        else:
-            self._compensation_consecutive = 0
-            self._material_prev_pos = list(pose[:3])
-        if step.overspeed:
-            self._overspeed_steps += 1
-        if rec.state is MaterialState.SPAWNED:
-            rec.transition_to(MaterialState.ON_CONVEYOR, self.sim_time,
-                              f"entered {self.line.line_id} effective zone")
-        if step.at_stop:
-            self._fail("NO_SENSOR_TRIGGER_AT_STOP: "
-                       f"{self.line.line_id} 物料到达停止区但传感器未命中")
+        super()._update_conveyor()
 
-    def _read_pick_sensor(self) -> None:
-        if self.source != "conveyor":
-            return
-        if self.state is not UnitTaskState.WAITING_FOR_ITEM:
-            return
-        rec = self.materials.by_uid(self.uid)
-        if rec is None or rec.sim_handle is None:
-            return
-        expected = int(rec.sim_handle)
-        hits = [h for h in self.materials.handles()
-                if self.scene.check_sensor(self.line.sensor_alias, h)
-                is not None]
-        if expected in hits:
-            self.last_mismatch = None
-            self._mismatch_logged = False
-            self._mismatch_since = None
-            self._command_pick_stop("sensor_hit")
-            return
-        if hits and expected not in hits:
-            wrong = int(hits[0])
-            self.last_mismatch = PickMismatch(
-                self.sim_time, MismatchReason.UID_MISMATCH, wrong, expected)
-            if self._mismatch_since is None:
-                self._mismatch_since = self.sim_time
-            if not self._mismatch_logged and self.logger:
-                self.logger.warning(
-                    "[MISMATCH] %s 传感器命中 %s, 任务 uid=%s; 不吸附",
-                    self.line.line_id, wrong, self.uid)
-                self._mismatch_logged = True
-            return
-        if self.last_mismatch is None or \
-                self.last_mismatch.reason is MismatchReason.UID_MISMATCH:
-            self.last_mismatch = PickMismatch(
-                self.sim_time, MismatchReason.NO_HIT, -1, expected)
-        self._mismatch_since = None
+    def _conveyor_pick_alias(self) -> str:
+        return self.line.conveyor
 
-    def _command_pick_stop(self, reason: str) -> None:
-        if self._stop_command_time is not None:
-            return
-        rec = self.materials.by_uid(self.uid)
-        position = None
-        if rec is not None and rec.sim_handle is not None:
-            try:
-                position = list(self.sim.getObjectPosition(
-                    rec.sim_handle, self.sim.handle_world))
-            except Exception:
-                position = None
-        if position is None:
-            self._safety_fail("STOP_POSE_UNREADABLE: 停带前无法读取物料位姿")
-            return
-        speed = read_conveyor_speed(
-            self.sim, self.scene.handle(self.line.conveyor),
-            base.CONVEYOR_STATE_KEY)
-        self.conveyor.stop(self.line.conveyor)
-        self._stop_command_time = self.sim_time
-        self._stop_monitor = ConveyorStopMonitor(self.line.geometry)
-        self._stop_monitor.on_stop_command(
-            self.sim_time, position,
-            speed.value if speed.valid else cfg.LINE_SPEED)
-        self._pad_pos_at_stop = self._pad_position()
-        self._pad_prev_pos = self._pad_pos_at_stop
-        self._enter(UnitTaskState.STOPPING,
-                    f"{self.line.line_id} conveyor stop ({reason})")
+    def _pick_context(self) -> ConveyorPickContext:
+        return ConveyorPickContext(
+            conveyor_alias=self._conveyor_pick_alias(),
+            belt_geometry=self.line.geometry,
+            belt_speed=cfg.LINE_SPEED,
+            pick_region=self.line.pick_region,
+            sensor_alias=self.line.sensor_alias,
+            label=f"{self.line.line_id} ")
 
-    def _advance_stopping(self) -> None:
-        if self._stop_command_time is None:
-            self._command_pick_stop("unspecified")
-            return
-        if self._stop_monitor is None:
-            self._safety_fail("STOP_MONITOR_MISSING")
-            return
-        if self.sim_time - self._stop_command_time > \
-                s2cfg.CONVEYOR_STOP_TIMEOUT:
-            self._fail("PAD_STOP_TIMEOUT: 带面未在限时内停止")
-            return
-        rec = self.materials.by_uid(self.uid)
-        position = None
-        if rec is not None and rec.sim_handle is not None:
-            try:
-                position = list(self.sim.getObjectPosition(
-                    rec.sim_handle, self.sim.handle_world))
-            except Exception:
-                position = None
-        if position is None:
-            self._safety_fail("STOP_POSITION_UNKNOWN: 停带观测缺失物料位姿")
-            return
-        speed = read_conveyor_speed(
-            self.sim, self.scene.handle(self.line.conveyor),
-            base.CONVEYOR_STATE_KEY)
-        status = self._stop_monitor.observe(
-            self.sim_time, speed, position,
-            pad_position=self._pad_position())
-        if status is StopStatus.PENDING:
-            return
-        measurement = self._stop_monitor.measurement
-        if status is StopStatus.OK:
-            self._event(f"CONVEYOR_STOP OK: {measurement.as_dict()}")
-            self._stability = None
-            self._stable_prev_pos = list(position)
-            self._stable_count = 0
-            self._settle_started_at = self.sim_time
-            self._enter(UnitTaskState.MATERIAL_SETTLING,
-                        "conveyor stopped, waiting material stable")
-            return
-        if status is StopStatus.STOP_UNCONFIRMED:
-            self._safety_fail(
-                f"STOP_UNCONFIRMED: {measurement.message}",
-                measurement.as_dict())
-            return
-        if rec is not None:
-            rec.transition_to(MaterialState.FAULT, self.sim_time,
-                              f"CONVEYOR_STOP_{status.value}")
-        self._fail(f"CONVEYOR_STOP_{status.value}: {measurement.message}")
-
-    def _advance_material_settling(self) -> None:
-        rec = self.materials.by_uid(self.uid)
-        if rec is None or rec.sim_handle is None:
-            self._fail("UID_NOT_REGISTERED")
-            return
-        speed = self._read_material_speed(rec.sim_handle)
-        position = self._read_material_position(rec.sim_handle)
-        if speed is None or position is None:
-            self._safety_fail("MATERIAL_STATE_UNREADABLE: "
-                              "无法读取物料速度/位姿")
-            return
-        from .motion.conveyor_safety import MaterialStabilityTracker
-        if self._stability is None:
-            self._stability = MaterialStabilityTracker(
-                self.sim_time, position)
-        state = self._stability.update(self.sim_time, position, speed)
-        if state.timed_out:
-            self._fail(
-                "MATERIAL_SETTLE_TIMEOUT: 物料未在限时内稳定 "
-                f"(speed={speed:.3f} m/s, step={state.step_moved:.4f} m)")
-            return
-        if not state.stable:
-            return
-        try:
-            pose = [float(v) for v in self.sim.getObjectPose(
-                rec.sim_handle, self.sim.handle_world)]
-            box = self.suction.material_box(rec.sim_handle)
-        except Exception as exc:
-            self._fail(f"MATERIAL_GEOMETRY_UNREADABLE: {exc}")
-            return
-        tilt = quat_tilt(pose[3:7])
-        self._assert_expected_type()
-        if self.failure_reason:
-            return
-        if not self.line.pick_region.contains(pose):
-            self._fail(
-                "OUT_OF_ALLOWED_REGION: 物料停稳后不在允许抓取区 "
-                f"(x={pose[0]:.4f}, y={pose[1]:.4f}, z={pose[2]:.4f})")
-            return
-        if tilt > base.MATERIAL_MAX_TILT:
-            self._fail(f"MATERIAL_TILT: 物料倾斜 {tilt:.3f} rad")
-            return
-        self._pick_pose = pose
-        self._pick_box = box
-        self._pick_tcp = contact_pose(pose, box, 0.0)
-        if rec.state is MaterialState.SPAWNED:
-            rec.transition_to(MaterialState.ON_CONVEYOR, self.sim_time,
-                              "settled on conveyor")
-        if rec.state is MaterialState.ON_CONVEYOR:
-            rec.transition_to(MaterialState.READY_FOR_PICK, self.sim_time,
-                              "stopped and stable, measured pose")
-        self._event(
-            f"material stable at ({pose[0]:.4f},{pose[1]:.4f},"
-            f"{pose[2]:.4f}) tilt={tilt:.3f}; surface target fixed")
-        self._begin_motion(UnitTaskState.APPROACHING,
-                           "measured pose after active stop")
+    def _check_pick_candidate(self, rec, pose) -> bool:
+        return self._assert_expected_type()
 
     # ── 固定交接台取料 ──────────────────────────────────────
 
@@ -991,44 +773,6 @@ class Stage4UnitController(Stage3UnitController):
     def _update_agv(self) -> None:
         """阶段四 AGV 由协调器航线独占, 单岛控制器绝不 set_cmd/stop."""
         return None
-
-    def _pad_velocity(self) -> float:
-        try:
-            return float(self.conveyor.read_actual_velocity(
-                self.line.conveyor))
-        except Exception:
-            return 0.0
-
-    def _pad_position(self) -> Optional[list[float]]:
-        if self._pad_handle is None:
-            self._pad_handle = self._find_pad()
-        if self._pad_handle < 0:
-            return None
-        try:
-            belt = self.scene.handle(self.line.conveyor)
-            return [float(v) for v in
-                    self.sim.getObjectPosition(self._pad_handle, belt)]
-        except Exception:
-            self._pad_handle = -1
-            return None
-
-    def _find_pad(self) -> int:
-        from .scene_base import alias_of, subtree
-        try:
-            belt = self.scene.handle(self.line.conveyor)
-        except Exception:
-            return -1
-        if belt < 0:
-            return -1
-        for handle in subtree(self.sim, belt):
-            try:
-                if (self.sim.getObjectType(handle)
-                        == self.sim.object_shape_type
-                        and alias_of(self.sim, handle) == "pad"):
-                    return int(handle)
-            except Exception:
-                continue
-        return -1
 
     def summary(self) -> dict:
         data = super().summary()

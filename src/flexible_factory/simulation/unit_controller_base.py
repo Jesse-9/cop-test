@@ -735,10 +735,18 @@ class Stage1UnitController:
         except Exception:
             return [0.0, 0.0, 0.0]
 
+    def _conveyor_pick_alias(self) -> str:
+        """本控制器取料/停带所针对的传送带别名.
+
+        基础层只有一条线; 双站/五岛层按实际物流线覆盖, 使 pad 读数与
+        停带监视读取同一条带.
+        """
+        return cfg.ALIASES["conveyor"]
+
     def _pad_velocity(self) -> float:
         try:
             return float(self.conveyor.read_actual_velocity(
-                cfg.ALIASES["conveyor"]))
+                self._conveyor_pick_alias()))
         except Exception:
             return 0.0
 
@@ -752,7 +760,7 @@ class Stage1UnitController:
         if self._pad_handle < 0:
             return None
         try:
-            belt = self.scene.handle(cfg.ALIASES["conveyor"])
+            belt = self.scene.handle(self._conveyor_pick_alias())
             return [float(v) for v in
                     self.sim.getObjectPosition(self._pad_handle, belt)]
         except Exception:
@@ -761,7 +769,7 @@ class Stage1UnitController:
 
     def _find_pad(self) -> int:
         try:
-            belt = self.scene.handle(cfg.ALIASES["conveyor"])
+            belt = self.scene.handle(self._conveyor_pick_alias())
         except Exception:
             return -1
         if belt < 0:

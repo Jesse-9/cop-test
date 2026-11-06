@@ -19,14 +19,16 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
 from . import config_base as base
-from .conveyor import (TransportFault,
+from .conveyor import (BeltGeometry, TransportFault,
                                         compensation_allowed)
 from .material_manager import MaterialState
-from .unit_controller_base import (Stage1UnitController, UnitTaskState,
+from .unit_controller_base import (MismatchReason, PickMismatch,
+                                    Stage1UnitController, UnitTaskState,
                                     quat_tilt)
 
 from . import config_motion as cfg
@@ -45,6 +47,23 @@ from .motion.trajectory import ExecutorStatus, JointStreamExecutor, joint_distan
 
 class Stage2TaskState(Enum):
     RETREATING = auto()
+
+
+@dataclass(frozen=True)
+class ConveyorPickContext:
+    """一次输送带取料的线级参数.
+
+    运动层默认沿用基础层单线配置; 双站层保持默认, v1 按实际物流线覆盖
+    别名、几何、带速、抓取区与传感器. 停带/稳定测量仍由
+    :mod:`motion.conveyor_safety` 的监视器完成.
+    """
+
+    conveyor_alias: str
+    belt_geometry: BeltGeometry
+    belt_speed: float
+    pick_region: base.PickRegion
+    sensor_alias: Optional[str] = None
+    label: str = ""
 
 
 class Stage2UnitController(Stage1UnitController):
@@ -757,7 +776,34 @@ class Stage2UnitController(Stage1UnitController):
     # 传送带 / 停带 / 物料稳定
     # ═══════════════════════════════════════════════════════
 
+    def _pick_context(self) -> ConveyorPickContext:
+        """输送带取料的线级参数; 双站层沿用基础层单线配置."""
+        return ConveyorPickContext(
+            conveyor_alias=self._conveyor_pick_alias(),
+            belt_geometry=self.belt_geometry,
+            belt_speed=base.CONVEYOR_SPEED,
+            pick_region=base.ALLOWED_PICK_REGION)
+
+    def _pick_sensor_hits(self) -> list[int]:
+        """当前取料传感器命中的物料句柄.
+
+        默认使用基础层共享取料传感器; 有独立线传感器的层按别名过滤.
+        """
+        ctx = self._pick_context()
+        if ctx.sensor_alias is None:
+            return list(self.scene.pick_sensor_hits(self.materials.handles()))
+        return [h for h in self.materials.handles()
+                if self.scene.check_sensor(ctx.sensor_alias, h) is not None]
+
+    def _check_pick_candidate(self, rec, pose) -> bool:
+        """停稳物料的阶段额外准入校验; 返回 True 表示已记录失败.
+
+        默认无额外校验; v1 在放置/取料区判定前检查物料类型.
+        """
+        return False
+
     def _update_conveyor(self) -> None:
+        ctx = self._pick_context()
         rec = self.materials.by_uid(self.uid)
         if rec is None:
             self._fail("UID_NOT_REGISTERED")
@@ -769,11 +815,10 @@ class Stage2UnitController(Stage1UnitController):
                              MaterialState.ON_CONVEYOR):
             return
         if self.fault in (base.FAULT_NO_TARGET, base.FAULT_UID_MISMATCH):
-            self.conveyor.set_speed(base.ALIASES["conveyor"], 0.0)
+            self.conveyor.set_speed(ctx.conveyor_alias, 0.0)
             return
 
-        self.conveyor.set_speed(base.ALIASES["conveyor"],
-                                base.CONVEYOR_SPEED)
+        self.conveyor.set_speed(ctx.conveyor_alias, ctx.belt_speed)
         if rec.sim_handle is None:
             self._fail("MATERIAL_HAS_NO_HANDLE")
             return
@@ -785,7 +830,7 @@ class Stage2UnitController(Stage1UnitController):
             return
         try:
             compensation_allowed(pose[:3], base.CONVEYOR_SURFACE_Z,
-                                 geometry=self.belt_geometry)
+                                 geometry=ctx.belt_geometry)
         except TransportFault as exc:
             rec.transition_to(MaterialState.FAULT, self.sim_time,
                               f"CONVEYOR_FAULT: {exc}")
@@ -794,7 +839,7 @@ class Stage2UnitController(Stage1UnitController):
 
         previous = self._material_prev_pos or pose
         step = bounded_transport_step(
-            pose[:3], previous, self.belt_geometry, base.CONVEYOR_SPEED,
+            pose[:3], previous, ctx.belt_geometry, ctx.belt_speed,
             base.SIM_STEP)
         if step.delta > 0.0:
             self.sim.setObjectPosition(rec.sim_handle, step.new_position,
@@ -818,18 +863,53 @@ class Stage2UnitController(Stage1UnitController):
             if self._overspeed_steps <= 3:
                 self._event(
                     f"TRANSPORT_OVERSPEED: physical={step.physical_delta:.4f} "
-                    f"> expected={base.CONVEYOR_SPEED * base.SIM_STEP:.4f}")
+                    f"> expected={ctx.belt_speed * base.SIM_STEP:.4f}")
 
         if rec.state is MaterialState.SPAWNED:
             rec.transition_to(MaterialState.ON_CONVEYOR, self.sim_time,
-                              "entered conveyor effective zone")
+                              f"entered {ctx.label}conveyor effective zone")
         if step.at_stop:
             self._fail("NO_SENSOR_TRIGGER_AT_STOP: "
-                       "物料到达停止区但传感器未命中目标")
+                       f"{ctx.label}物料到达停止区但传感器未命中目标")
+
+    def _read_pick_sensor(self) -> None:
+        if self.state is not UnitTaskState.WAITING_FOR_ITEM:
+            return
+        rec = self.materials.by_uid(self.uid)
+        if rec is None or rec.sim_handle is None:
+            return
+        expected = int(rec.sim_handle)
+        hits = self._pick_sensor_hits()
+        if expected in hits:
+            # 步骤 1.1 B 组: 传感器命中目标 UID 即下发零速, 不等行程进度。
+            self.last_mismatch = None
+            self._mismatch_logged = False
+            self._mismatch_since = None
+            self._command_pick_stop("sensor_hit")
+            return
+        if hits and expected not in hits:
+            wrong = int(hits[0])
+            self.last_mismatch = PickMismatch(
+                self.sim_time, MismatchReason.UID_MISMATCH, wrong, expected)
+            if self._mismatch_since is None:
+                self._mismatch_since = self.sim_time
+            if not self._mismatch_logged and self.logger:
+                self.logger.warning(
+                    "[MISMATCH] PICK_MISMATCH: %s传感器命中 %s, "
+                    "当前任务 uid=%s handle=%s; 不吸附",
+                    self._pick_context().label, wrong, self.uid, expected)
+                self._mismatch_logged = True
+            return
+        if self.last_mismatch is None or \
+                self.last_mismatch.reason is MismatchReason.UID_MISMATCH:
+            self.last_mismatch = PickMismatch(
+                self.sim_time, MismatchReason.NO_HIT, -1, expected)
+        self._mismatch_since = None
 
     def _command_pick_stop(self, reason: str) -> None:
         if self._stop_command_time is not None:
             return
+        ctx = self._pick_context()
         rec = self.materials.by_uid(self.uid)
         position = None
         if rec is not None and rec.sim_handle is not None:
@@ -842,18 +922,18 @@ class Stage2UnitController(Stage1UnitController):
             self._safety_fail("STOP_POSE_UNREADABLE: 停带命令前无法读取物料位姿")
             return
         speed = read_conveyor_speed(
-            self.sim, self.scene.handle(base.ALIASES["conveyor"]),
+            self.sim, self.scene.handle(ctx.conveyor_alias),
             base.CONVEYOR_STATE_KEY)
-        self.conveyor.stop(base.ALIASES["conveyor"])
+        self.conveyor.stop(ctx.conveyor_alias)
         self._stop_command_time = self.sim_time
-        self._stop_monitor = ConveyorStopMonitor(self.belt_geometry)
+        self._stop_monitor = ConveyorStopMonitor(ctx.belt_geometry)
         self._stop_monitor.on_stop_command(
             self.sim_time, position,
-            speed.value if speed.valid else base.CONVEYOR_SPEED)
+            speed.value if speed.valid else ctx.belt_speed)
         self._pad_pos_at_stop = self._pad_position()
         self._pad_prev_pos = self._pad_pos_at_stop
         self._enter(UnitTaskState.STOPPING,
-                    f"conveyor stop commanded ({reason})")
+                    f"{ctx.label}conveyor stop commanded ({reason})")
 
     def _advance_stopping(self) -> None:
         if self._stop_command_time is None:
@@ -866,6 +946,7 @@ class Stage2UnitController(Stage1UnitController):
                 cfg.CONVEYOR_STOP_TIMEOUT:
             self._fail("PAD_STOP_TIMEOUT: 带面未在限时内停止")
             return
+        ctx = self._pick_context()
         rec = self.materials.by_uid(self.uid)
         position = None
         if rec is not None and rec.sim_handle is not None:
@@ -878,7 +959,7 @@ class Stage2UnitController(Stage1UnitController):
             self._safety_fail("STOP_POSITION_UNKNOWN: 停带观测缺失物料位姿")
             return
         speed = read_conveyor_speed(
-            self.sim, self.scene.handle(base.ALIASES["conveyor"]),
+            self.sim, self.scene.handle(ctx.conveyor_alias),
             base.CONVEYOR_STATE_KEY)
         status = self._stop_monitor.observe(
             self.sim_time, speed, position,
@@ -934,7 +1015,9 @@ class Stage2UnitController(Stage1UnitController):
             self._fail(f"MATERIAL_GEOMETRY_UNREADABLE: {exc}")
             return
         tilt = quat_tilt(pose[3:7])
-        if not base.ALLOWED_PICK_REGION.contains(pose):
+        if self._check_pick_candidate(rec, pose):
+            return
+        if not self._pick_context().pick_region.contains(pose):
             self._fail(
                 "OUT_OF_ALLOWED_REGION: 物料停稳后不在允许抓取区 "
                 f"(x={pose[0]:.4f}, y={pose[1]:.4f}, z={pose[2]:.4f})")
