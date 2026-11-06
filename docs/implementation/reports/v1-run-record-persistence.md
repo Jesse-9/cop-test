@@ -3,7 +3,7 @@ title: v1 运行记录实施报告 — Q1–Q4 查询与批量写入
 type: report
 status: review
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-06
 scope: 资源目录数据库化方案阶段 4 / production_run / 运行查询
 related:
   - docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md
@@ -106,7 +106,7 @@ Q2 返回递归父树、节点、边和 UID 相关事件；Q3 返回每个资源
 | `alembic check` | `No new upgrade operations detected.` |
 | 新增运行记录测试 | 14 passed |
 | 目录/知识/运行/边界组合测试 | 47 passed |
-| 相关聚焦回归 | 157 passed |
+| 相关聚焦回归 | 164 passed |
 | Q1 | 终态、FINAL UID、工序/物料/资源/事件计数 |
 | Q2 | FINAL 3 → 父 UID 1/2，2 条 JOIN 边，事件可追溯 |
 | Q3 | `arm_A` WAIT 1.0 s，holder/owner/task/instance 可追溯 |
@@ -120,10 +120,24 @@ Q2 返回递归父树、节点、边和 UID 相关事件；Q3 返回每个资源
 `sim_time=337.15`。运行记录写入失败，`production_run` 状态为 `FAILED`，
 原因为 `OperationRuntime` 缺少 `instances()` 方法。该 API 已补为只读查询
 接口（返回 `graph.instances()`），并新增真实 `OperationRuntime` 回归测试。
-**修复后尚未重跑真实 `full_flow` 生成成功运行记录**；因此不声明实机运行
-记录已完成验收。
+
+**修复后成功记录（2026-11-06）**：数据库已有三条 `DONE` 运行记录：
+
+| run_id | status | all_ok | sim_duration_s |
+|---|---|---|---|
+| `run_20261105_225800_ecacba` | DONE | true | 337.7 |
+| `run_20261105_233143_c988b8` | DONE | true | 290.5 |
+| `run_20261106_003815_565dcb` | DONE | true | 275.95 |
+
+以 `run_20261106_003815_565dcb` 为例：FINAL UID 3，父 UID `[1,2]`，
+9 个工序实例全部 DONE，Q4 `failures=[]`；Q2 树 3 节点/2 条 JOIN 边/77 条
+UID 事件；Q3 20 个资源统计、0 次等待、资源全部释放。另有两条 `ABORTED`
+记录（`RELEASE_CORRECTION_EXCEEDED`、`BACKPRESSURE_TIMEOUT`），证明失败/
+中止运行同样写入终态和事件。修复前的失败记录保留为历史证据。
 
 证据摘要：
+[evidence/v1_run_records_acceptance_20261106.json](../evidence/v1_run_records_acceptance_20261106.json)
+与
 [evidence/v1_run_record_persistence_failure_20261105.json](../evidence/v1_run_record_persistence_failure_20261105.json)。
 
 ## 6. 与方案的差异

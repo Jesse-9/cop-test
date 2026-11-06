@@ -1,0 +1,45 @@
+{
+  "source_report": "docs/implementation/reports/v1-run-record-persistence.md",
+  "note": "真实 full_flow 运行记录验收摘要；修复前的失败记录另见 v1_run_record_persistence_failure_20261105.json。",
+  "database": "var/catalog/catalog.db",
+  "revision": "0003_run_records",
+  "checked_at": "2026-11-06",
+  "runs": [
+    {"run_id": "run_20261106_143336_e068bf", "status": "ABORTED", "all_ok": false, "sim_duration_s": 142.5, "failure_reason": "RELEASE_FAILED: RELEASE_CORRECTION_EXCEEDED"},
+    {"run_id": "run_20261106_003815_565dcb", "status": "DONE", "all_ok": true, "sim_duration_s": 275.95, "final_uids": [3], "operation_instances": 9, "operations_failed": 0},
+    {"run_id": "run_20261106_000356_92f5df", "status": "ABORTED", "all_ok": false, "sim_duration_s": 414.35, "failure_reason": "BACKPRESSURE_TIMEOUT"},
+    {"run_id": "run_20261105_233143_c988b8", "status": "DONE", "all_ok": true, "sim_duration_s": 290.5},
+    {"run_id": "run_20261105_225800_ecacba", "status": "DONE", "all_ok": true, "sim_duration_s": 337.7},
+    {"run_id": "run_20261105_160845_346206", "status": "FAILED", "all_ok": null, "sim_duration_s": null, "failure_reason": "运行记录写入失败: AttributeError: 'OperationRuntime' object has no attribute 'instances'"}
+  ],
+  "q1_q4_example": {
+    "run_id": "run_20261106_003815_565dcb",
+    "q1": {
+      "status": "DONE",
+      "all_ok": true,
+      "final_uids": [3],
+      "operation_states": {"DONE": 9},
+      "material_states": {"CONSUMED": 2, "DELIVERED": 1},
+      "resource_actions": {"ACQUIRE": 44, "RELEASE": 44}
+    },
+    "q2": {
+      "final_uid": 3,
+      "final_item_type": "FINAL",
+      "parents": [[1, "SEMI_CE"], [2, "PART_DE"]],
+      "nodes": 3,
+      "join_edges": 2,
+      "uid_events": 77
+    },
+    "q3": {
+      "resources": 20,
+      "waits": 0,
+      "resources_released": true
+    },
+    "q4": {
+      "instances": 9,
+      "failures": 0,
+      "states": ["DONE"]
+    }
+  },
+  "conclusion": "修复后真实 full_flow 已生成成功 DONE 运行记录；Q1-Q4 查询可重建运行、谱系、资源等待和工序时间线；失败/中止运行也写入终态。"
+}
