@@ -24,8 +24,8 @@ src/flexible_factory/
                      process_model, default_process, operation_runtime,
                      scheduling（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
-                     ur5_ik, material_manager, agv, runtime, unit_controller,
-                     device_binding
+                     ur5_ik, material_manager, agv, runtime,
+                     runtime_common, unit_controller, device_binding
     motion/          contact, collisions, path_planning（兼容导出）,
                      plan_types, plan_checks, plan_search, plan_postprocess,
                      trajectory, safety, shadow, suction, conveyor_safety,

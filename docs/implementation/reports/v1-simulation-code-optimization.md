@@ -88,7 +88,8 @@ P3 5.2（运行时异常路径资源回滚）未实施；5.3 的性能优化未�
 - 场景差异仍通过入参传入：工位视图、影子别名、station/conveyor aliases、
   障碍句柄、障碍诊断键、IK 控制器、日志和层专属启动摘要字段。
 
-`runtime_dual.py` 与 `runtime.py`：
+P2 时的 `runtime_dual.py` 与 `runtime.py`（P3 5.1-B 后 Stage3 builder 已并入
+`runtime.py`，`runtime_dual.py` 为兼容层）：
 
 - `build_stage3_runtime()` 保留双臂、另一台真实臂障碍、A/B station aliases；
 - `build_v1_runtime()` 保留五岛、其余四台真实臂、按包络筛选的物流线；

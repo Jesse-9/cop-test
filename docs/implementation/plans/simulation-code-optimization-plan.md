@@ -26,7 +26,7 @@ scope: src/flexible_factory/simulation
 
 本计划依据 `src/flexible_factory/simulation/` 当前调用关系制定，目标是优先减少控制器和运行时装配中有证据的重复实现，再视维护收益整理规划器边界、命名和资源生命周期。
 
-现有代码不是一组可以整体合并的重复模块。`scene_base → scene_dual → scene`、`layout_base → layout_dual → layout`、`unit_controller_base → unit_controller_motion → unit_controller_dual → unit_controller` 反映阶段能力的复用链；其中若干基线实现仍被当前 v1 装配或继承。P1/P2 后仍有少数相邻阶段入口文件可评估合并，但验收看导航和维护是否更直接，不以减少文件数本身作为目标。
+现有代码不是一组可以整体合并的重复模块。`scene_base → scene_dual → scene`、`layout_base → layout_dual → layout`、`unit_controller_base → unit_controller_motion → unit_controller`（原 Stage3/Stage4 已并入，`unit_controller_dual` 仅为兼容层）反映阶段能力的复用链；其中若干基线实现仍被当前 v1 装配或继承。P1/P2 后仍有少数相邻阶段入口文件可评估合并，但验收看导航和维护是否更直接，不以减少文件数本身作为目标。
 
 优先级如下：
 
@@ -123,7 +123,7 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 #### A. 合并控制器模块
 
-当前 `Stage4UnitController` 直接继承 `Stage3UnitController`，而 `Stage3UnitController` 只在 `unit_controller.py` 被导入；`application/coordinator.py` 另有一条未见使用的 `Stage3UnitController` 导入。`TrayCheck` 是 Stage3 控制器的局部结果类型。
+迁移前 `Stage3UnitController` 位于 `unit_controller_dual.py`，只有 `unit_controller.py` 导入它；`application/coordinator.py` 另有一条未使用的导入（本次已删除）。`TrayCheck` 是 Stage3 控制器的局部结果类型。
 
 1. 实施前重新检索全仓库对 `unit_controller_dual`、`Stage3UnitController` 和 `TrayCheck` 的导入与符号引用，确认没有遗漏的动态导入、命令行入口或文档约定；确认 coordinator 中的 Stage3 导入没有其他引用后，随迁移删除该未使用导入。
 2. 将 `TrayCheck` 和 `Stage3UnitController` 移入 `unit_controller.py`，放在 Stage4 控制器之前；保持类名、继承关系、构造参数、状态字段、日志及对外行为不变。不得借迁移合并 Stage2/Stage3/Stage4 的状态机或改写业务流程。
@@ -132,9 +132,9 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 #### B. 合并 runtime 入口模块
 
-`runtime.py` 与 `runtime_dual.py` 都是场景级入口，并已共享 `runtime_common.py` 的单臂构建；差异集中于场景类型、障碍物策略、启动摘要及错误类型。应合并入口文件的导航边界，不能把两个 builder 改成由大量模式开关驱动的通用 builder。
+迁移前 `runtime.py` 与 `runtime_dual.py` 都是场景级入口，并已共享 `runtime_common.py` 的单臂构建；差异集中于场景类型、障碍物策略、启动摘要及错误类型。本次已合并入口文件的导航边界，两个 builder 仍分别保留，没有改成由大量模式开关驱动的通用 builder。
 
-1. 实施前完整检索 `runtime_dual`、`build_stage3_runtime`、`RuntimeBuildError` 的导入和动态引用。目前测试直接通过 `runtime_dual` 路径访问 Stage3 builder 和错误类型，因此迁移后需同步迁移测试导入，或保留兼容导出。
+1. 实施前完整检索 `runtime_dual`、`build_stage3_runtime`、`RuntimeBuildError` 的导入和动态引用。检索时测试直接通过 `runtime_dual` 路径访问 Stage3 builder 和错误类型；本次已同步迁移测试导入，并保留兼容导出。
 2. 将 Stage3 的场景专属障碍函数和 `build_stage3_runtime()` 移入 `runtime.py`，保留 `build_v1_runtime()`；分别保留 Stage3/v1 的停止态错误语义、场景别名、碰撞集合范围、障碍元数据和启动摘要。
 3. 处理同名 `RuntimeBuildError` 的模块差异：在统一模块内为 Stage3 使用语义明确的独立异常名（例如 `Stage3RuntimeBuildError`），保留 v1 的 `RuntimeBuildError`；迁移时保持 Stage3 的 `STAGE3_RUNTIME` 与 v1 的 `STAGE4_RUNTIME` 错误码及现有异常消息/包装行为。不得仅为共享错误类型而弱化错误归属。
 4. 保持 `runtime_common.py` 作为单臂装配边界。若 `runtime_dual.py` 没有外部兼容承诺，且代码、测试与文档调用方都已迁移，可删除该入口文件；否则将其收敛为从 `runtime.py` 导入 Stage3 builder 和类型，并将统一模块的 `Stage3RuntimeBuildError` 以旧名 `RuntimeBuildError` 导出的兼容 shim，避免重复实现。
@@ -161,7 +161,7 @@ v1 原先复用 `runtime_dual.py` 中的 `Stage3ArmRuntime`、`Stage3Runtime`、
 
 **实施结果 (2026-11-06)**：已按职责拆分为 `motion/plan_types.py`（计划状态/预算/结果）、`motion/plan_checks.py`（`ConfigurationChecker`）、`motion/plan_search.py`（`LocalPlanner`）、`motion/plan_postprocess.py`（平滑/压缩）。`path_planning.py` 保留 re-export；检查顺序、容差、预算和算法未改。性能优化未实施，本次没有性能证据支持调整采样或缓存。
 
-`motion/path_planning.py` 集中保存计划数据结构、`ConfigurationChecker`、`LocalPlanner` 和路径点平滑/压缩等逻辑，文件较大。当前已有明确的类和函数边界，但文件大小本身不足以证明需要重写。
+拆分前 `motion/path_planning.py` 集中保存计划数据结构、`ConfigurationChecker`、`LocalPlanner` 和路径点平滑/压缩等逻辑，文件较大。当前已有明确的类和函数边界，但文件大小本身不足以证明需要重写。
 
 实施前先用导入关系和测试确定模块公共接口。若拆分可行，可按以下职责迁移：计划类型/状态、配置与路径检查、候选路径搜索、成功计划后处理。原 `path_planning` 模块暂时保留 re-export，降低调用方迁移风险。一次只迁移一个职责，不同时改变算法和模块路径。
 
