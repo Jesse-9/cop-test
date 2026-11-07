@@ -5,7 +5,7 @@ tags:
   - 类别/项目管理
   - 类别/实施计划
 created: 2026-11-05
-updated: 2026-11-06
+updated: 2026-11-07
 status: published
 ---
 
@@ -40,6 +40,12 @@ status: published
 | `06-22` 阶段 4 产品变体与能力匹配调度 | [阶段 4 实施方案](../plans/v1-stage-04-capability-scheduling-implementation.md)、[阶段 4 报告](../reports/v1-stage-04-capability-scheduling.md) | 已实施；默认工艺仍使用固定设备候选 |
 | `06-23` 阶段 5 调度优化与有限恢复 | 暂无实施报告 | 暂缓；仍按业务规划中的门槛重新立项 |
 | `06-24` 术语与对象模型、`06-25` 工艺流程映射 | [混线生产业务与代码运行说明](../../wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明.md)、相关阶段报告 | 参考资料，不单独作为验收证据 |
+
+## 后续产品能力提案
+
+| 主题 | 实施方案 | 状态说明 |
+|---|---|---|
+| 自建订单与工序 DAG 自主编排 | [路线图](../plans/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](../plans/v1-order-dag-phase-05-frontend.md)、[阶段 6](../plans/v1-order-dag-phase-06-simulation-acceptance.md) | 阶段 1–4 已实施并通过纯逻辑/API/记录型执行测试，见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)与[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md)；阶段 5–6 仍为 proposed；真实 CoppeliaSim 订单/故障验收未执行 |
 
 ## 跨阶段技术主题
 
