@@ -77,3 +77,43 @@ class RunNotFoundError(RunRecordError):
     """指定 run_id 不存在, 或与记录内容不一致."""
 
     code = "RUN_NOT_FOUND"
+
+
+class OrderError(CatalogPersistenceError):
+    """订单持久化边界的基础异常."""
+
+    code = "ORDER_PERSISTENCE"
+
+
+class OrderNotFoundError(OrderError):
+    code = "ORDER_NOT_FOUND"
+
+
+class OrderVersionNotFoundError(OrderError):
+    code = "ORDER_VERSION_NOT_FOUND"
+
+
+class OrderVersionConflictError(OrderError):
+    """订单版本已存在或当前版本指针与请求不一致."""
+
+    code = "ORDER_VERSION_CONFLICT"
+
+
+class OrderIntegrityError(OrderError):
+    """存储的订单 spec 与 digest/身份不一致."""
+
+    code = "ORDER_INTEGRITY"
+
+
+class OrderRunNotFoundError(OrderError):
+    code = "ORDER_RUN_NOT_FOUND"
+
+
+class OrderRunConflictError(OrderError):
+    """实例已有活动订单运行, 或运行状态不允许当前操作."""
+
+    code = "ORDER_RUN_CONFLICT"
+
+
+class OrderStateError(OrderError):
+    code = "ORDER_STATE"

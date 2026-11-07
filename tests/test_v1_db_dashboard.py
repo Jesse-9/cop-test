@@ -59,7 +59,7 @@ def test_build_payload_reads_revision_run_and_process_catalog(tmp_path):
     assert recorder.finish(
         None, {"acceptance": {"ok": True}}, status="DONE")["ok"]
     payload = db_dashboard.build_payload(database.path, runs_limit=5)
-    assert payload["revision"] == "0003_run_records"
+    assert payload["revision"] == "0006_order_planner_metadata"
     assert payload["counts"]["runs"] == 1
     assert payload["runs"][0]["run_id"] == "dash_run"
     assert payload["runs"][0]["status"] == "DONE"

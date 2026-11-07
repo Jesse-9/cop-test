@@ -47,6 +47,9 @@ RUN_TABLES = {
     "material_genealogy", "resource_event", "run_event",
     "operation_instance_input", "operation_instance_output",
 }
+ORDER_TABLES = {
+    "order_header", "order_version", "order_run", "order_node_run",
+}
 
 
 @pytest.fixture()
@@ -75,7 +78,7 @@ def test_migration_creates_all_tables_and_is_idempotent(database):
         alembic_config(database)).get_current_head()
     assert revision == head
     names = set(table_names(database))
-    all_tables = EXPECTED_TABLES | KNOWLEDGE_TABLES | RUN_TABLES
+    all_tables = EXPECTED_TABLES | KNOWLEDGE_TABLES | RUN_TABLES | ORDER_TABLES
     assert names == all_tables | {"alembic_version"}
     assert set(Base.metadata.tables) == all_tables
 
@@ -93,7 +96,8 @@ def test_migration_downgrade_to_base_and_upgrade_again(database):
     assert set(table_names(database)) == {"alembic_version"}
     command.upgrade(config, "head")
     assert set(table_names(database)) == (
-        EXPECTED_TABLES | KNOWLEDGE_TABLES | RUN_TABLES | {"alembic_version"})
+        EXPECTED_TABLES | KNOWLEDGE_TABLES | RUN_TABLES | ORDER_TABLES
+        | {"alembic_version"})
 
 
 def test_foreign_keys_enabled_on_every_connection(database):
@@ -105,16 +109,20 @@ def test_foreign_keys_enabled_on_every_connection(database):
 
 def test_schema_contains_no_runtime_handle_or_queue_columns(database):
     inspector = inspect(database.create_engine())
-    banned = ("handle", "owner", "waiting", "sim_time")
+    banned = ("owner", "waiting", "sim_time")
     for table in inspector.get_table_names():
         if table in RUN_TABLES:
             # 运行记录表按设计保存 owner/sim_time; 仍禁止场景句柄.
-            banned_columns = ("handle",)
+            banned_columns = ()
         else:
             banned_columns = banned
         for column in inspector.get_columns(table):
             name = column["name"].lower()
             assert not any(token in name for token in banned_columns), \
+                (table, name)
+            # 句柄是精确的运行时对象列名; join_handler_id 是稳定的处理器
+            # 注册 ID, 不是 CoppeliaSim handle.
+            assert not (name == "handle" or name.endswith("_handle")), \
                 (table, name)
 
 
@@ -202,7 +210,7 @@ def test_single_published_release_index(database):
 def test_staging_is_not_published_and_can_be_read(database):
     result = _stage(database)
     assert result["status"] == "staging"
-    assert result["catalog_version"] == "v1_process_20261103b"
+    assert result["catalog_version"] == "v1_process_20261106a"
     assert result["counts"]["operations"] == 10
     with pytest.raises(NoPublishedReleaseError):
         load_catalog(database)

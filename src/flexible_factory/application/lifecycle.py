@@ -870,14 +870,19 @@ class LifecycleManager:
 
     # ── 动作: start 前置 ────────────────────────────────────
 
-    def prepare_start(self, target: str = "full_flow") -> dict:
-        """取得运行锁并执行启动点校验, 通过后进入 SIMULATION_RUNNING."""
+    def prepare_start(self, target: str = "full_flow",
+                      run_id: Optional[str] = None) -> dict:
+        """取得运行锁并执行启动点校验, 通过后进入 SIMULATION_RUNNING.
+
+        ``run_id`` 可由上层订单服务预先分配, 使订单运行关联与生命周期
+        运行锁/运行记录使用同一 ID; 留空时自动生成.
+        """
         self.refresh()
         self._guard("start")
         self._ensure_stopped("start")
         self._require_no_live_lock("start")
 
-        run_id = _new_run_id()
+        run_id = str(run_id or "").strip() or _new_run_id()
         if not self.run_lock.acquire(run_id, {
                 "artifact_id": self.session.artifact_id,
                 "host": self.host, "port": self.port,

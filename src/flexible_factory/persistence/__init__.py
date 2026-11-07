@@ -10,6 +10,7 @@
   - :mod:`repository`  已发布 release → 领域 ``ProcessCatalog``;
   - :mod:`knowledge`   Neo4j 导出 JSON → staging knowledge extraction;
   - :mod:`runs`        运行记录批量写入与 Q1–Q4 查询;
+  - :mod:`orders`      版本化订单定义与订单运行关联;
   - :mod:`service`     初始化/导入/发布/读取的应用无关服务函数;
   - :mod:`diff`        代码目录与数据库目录的稳定序列化差异.
 
@@ -32,6 +33,14 @@ from .errors import (
     ReleaseStateError,
     RunNotFoundError,
     RunRecordError,
+    OrderError,
+    OrderIntegrityError,
+    OrderNotFoundError,
+    OrderRunConflictError,
+    OrderRunNotFoundError,
+    OrderStateError,
+    OrderVersionConflictError,
+    OrderVersionNotFoundError,
 )
 from .importer import CatalogImporter, ImportResult
 from .knowledge import (EXPORT_FORMAT, EXTRACTOR_ID, EXTRACTOR_VERSION,
@@ -44,6 +53,7 @@ from .repository import CatalogRepository
 from .runs import (RUN_RECORD_VERSION, RunRecorder, list_runs,
                    material_genealogy, operation_timeline, resource_waits,
                    run_summary)
+from .orders import OrderRepository
 from .service import (load_catalog, publish_release, release_status,
                       stage_catalog)
 
@@ -58,9 +68,13 @@ __all__ = [
     "publish_extraction", "knowledge_status", "knowledge_verify",
     "RUN_RECORD_VERSION", "RunRecorder", "list_runs", "run_summary",
     "material_genealogy", "resource_waits", "operation_timeline",
+    "OrderRepository",
     "CatalogPersistenceError", "CatalogIntegrityError", "MigrationError",
     "KnowledgeError", "KnowledgeImportError", "KnowledgeStateError",
     "RunRecordError", "RunNotFoundError",
+    "OrderError", "OrderIntegrityError", "OrderNotFoundError",
+    "OrderRunConflictError", "OrderRunNotFoundError", "OrderStateError",
+    "OrderVersionConflictError", "OrderVersionNotFoundError",
     "NoPublishedReleaseError", "ReleaseExistsError", "ReleaseNotFoundError",
     "ReleaseStateError",
 ]

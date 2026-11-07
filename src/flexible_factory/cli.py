@@ -31,9 +31,14 @@ from .application.report import (report_genealogy, report_run, report_runs,
                                  report_timeline, report_waits)
 from .application.lifecycle import (LifecycleError, LifecycleManager,
                                     ValidationFailedError)
+from .application.orders import OrderService
 from .application.run import REPORT_DIR, run_loaded_scene_v1, setup_logger
+from .api.server import OrderApiServer
 from .artifacts import migration
 from .artifacts import store as sa
+from .domain.default_process import default_catalog
+from .domain.orders import OrderCompileError, OrderSpecError, \
+    OrderValidationError
 from .persistence.db import CatalogDatabase, initialize_database
 from .persistence.errors import CatalogPersistenceError
 from .simulation.component_builder import connect
@@ -247,6 +252,161 @@ def cmd_report_timeline(ns) -> int:
     return 0
 
 
+# ═══════════════════════════════════════════════════════════════
+# 订单 DAG 命令 (阶段 1–3)
+# ═══════════════════════════════════════════════════════════════
+
+def _read_spec(ns) -> dict:
+    if ns.file == "-":
+        return json.load(sys.stdin)
+    return json.loads(Path(ns.file).read_text(encoding="utf-8"))
+
+
+def _order_catalog(ns):
+    if getattr(ns, "catalog_source", "code") == "db":
+        return runtime_catalog(_catalog_db(ns))
+    return default_catalog()
+
+
+def _order_service(ns, *, runner=None) -> OrderService:
+    database = _catalog_db(ns)
+    initialize_database(database)
+    catalog = _order_catalog(ns)
+    resolver = None
+    if hasattr(ns, "artifact_root"):
+        store = _store(ns)
+        resolver = lambda ref: store.find(ref).artifact_id
+    return OrderService(
+        database, catalog=catalog,
+        artifact_id=getattr(ns, "artifact_id", "") or "current",
+        runner=runner, artifact_resolver=resolver)
+
+
+def _order_runner(ns):
+    from .application.order_runner import (OrderRunnerConfig,
+                                           make_order_runner)
+    record_db = Path(ns.db) if ns.run_records == "on" else None
+    return make_order_runner(OrderRunnerConfig(
+        host=ns.host, port=ns.port,
+        artifact_root=(Path(ns.artifact_root) if ns.artifact_root else None),
+        record_db=record_db, run_records=(ns.run_records == "on"),
+        log=ns.log, out_dir=Path(ns.out_dir)), catalog=_order_catalog(ns))
+
+
+def cmd_order_validate(ns) -> int:
+    service = _order_service(ns)
+    preview = service.preview(_read_spec(ns))
+    _print(preview.as_dict())
+    return 0 if preview.ok else 1
+
+
+def cmd_order_create(ns) -> int:
+    service = _order_service(ns)
+    _print({"order": service.create_order(
+        _read_spec(ns), source=ns.source, note=ns.note)})
+    return 0
+
+
+def cmd_order_version(ns) -> int:
+    service = _order_service(ns)
+    _print({"order": service.create_version(
+        ns.order_id, _read_spec(ns), note=ns.note)})
+    return 0
+
+
+def cmd_order_list(ns) -> int:
+    service = _order_service(ns)
+    _print({"orders": service.list_orders(limit=ns.limit)})
+    return 0
+
+
+def cmd_order_show(ns) -> int:
+    service = _order_service(ns)
+    if ns.version:
+        _print({"version": service.get_version(ns.order_id, ns.version)})
+    else:
+        _print({"order": service.get_order(ns.order_id)})
+    return 0
+
+
+def cmd_order_preview(ns) -> int:
+    service = _order_service(ns)
+    preview = service.preview_spec(
+        service.repository.get_spec(ns.order_id, ns.version))
+    _print(preview.as_dict())
+    return 0 if preview.ok else 1
+
+
+def cmd_order_plan(ns) -> int:
+    service = _order_service(ns)
+    payload = _read_spec(ns)
+    if ns.save:
+        result = service.plan_and_save(payload, note=ns.note)
+        _print(result)
+        return 0 if result.get("ok") else 1
+    result = service.plan(payload)
+    _print(result.as_dict())
+    return 0 if result.ok else 1
+
+
+def cmd_order_start(ns) -> int:
+    service = _order_service(ns)
+    result = service.run_sync(
+        ns.order_id, ns.version, _order_runner(ns),
+        artifact_id=ns.artifact_id, max_sim_time=ns.max_time)
+    _print(result)
+    return 0 if result.get("status") == "SUCCEEDED" else 1
+
+
+def cmd_order_status(ns) -> int:
+    service = _order_service(ns)
+    _print({"run": service.status(ns.run_id)})
+    return 0
+
+
+def cmd_order_nodes(ns) -> int:
+    service = _order_service(ns)
+    _print({"nodes": service.nodes(ns.run_id)})
+    return 0
+
+
+def cmd_order_events(ns) -> int:
+    service = _order_service(ns)
+    _print({"events": service.events(ns.run_id, limit=ns.limit)})
+    return 0
+
+
+def cmd_order_runs(ns) -> int:
+    service = _order_service(ns)
+    _print({"runs": service.list_runs(order_id=ns.order_id,
+                                      limit=ns.limit)})
+    return 0
+
+
+def cmd_order_stop(ns) -> int:
+    service = _order_service(ns)
+    _print({"run": service.stop(ns.run_id)})
+    return 0
+
+
+def cmd_api_serve(ns) -> int:
+    service = _order_service(ns, runner=_order_runner(ns))
+    server = OrderApiServer(service, host=ns.host, port=ns.port)
+    logger = setup_logger(ns.log)
+    logger.info("[API] order service listening on %s", server.base_url)
+    print(json.dumps({"ok": True, "base_url": server.base_url},
+                     ensure_ascii=False))
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if service.worker is not None:
+            service.worker.shutdown()
+        server.shutdown()
+    return 0
+
+
 def cmd_run(ns) -> int:
     # 批次输入在连接仿真/取得运行锁之前校验; 非法值不进入生命周期.
     resolve_batch(ns.scenario, profile=ns.batch_profile)
@@ -448,6 +608,109 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--instance-id", default="")
     p.set_defaults(func=cmd_report_timeline)
 
+    order_parser = sub.add_parser(
+        "order", help="订单 DAG: 校验/版本/预览/运行 (阶段 1–3)")
+    order_sub = order_parser.add_subparsers(
+        dest="order_command", required=True)
+
+    def _order_command(name: str, help_text: str) -> argparse.ArgumentParser:
+        child = order_sub.add_parser(name, help=help_text)
+        child.add_argument("--db", default=str(spec.CATALOG_DB),
+                           help="SQLite 数据库路径")
+        child.add_argument("--catalog-source", choices=["code", "db"],
+                           default="code",
+                           help="订单模板来源; db 必须与代码目录等价")
+        return child
+
+    p = _order_command("validate", "校验并预览订单 JSON")
+    p.add_argument("--file", required=True,
+                   help="订单 JSON 文件, 或 '-' 从 stdin 读取")
+    p.set_defaults(func=cmd_order_validate)
+
+    p = _order_command("create", "创建订单首版本")
+    p.add_argument("--file", required=True)
+    p.add_argument("--source", default="manual",
+                   choices=["manual", "planner", "fixture"])
+    p.add_argument("--note", default="")
+    p.set_defaults(func=cmd_order_create)
+
+    p = _order_command("version", "为订单创建新版本")
+    p.add_argument("--order-id", required=True)
+    p.add_argument("--file", required=True)
+    p.add_argument("--note", default="")
+    p.set_defaults(func=cmd_order_version)
+
+    p = _order_command("list", "列出订单")
+    p.add_argument("--limit", type=int, default=50)
+    p.set_defaults(func=cmd_order_list)
+
+    p = _order_command("show", "查看订单或指定版本")
+    p.add_argument("--order-id", required=True)
+    p.add_argument("--version", type=int, default=0)
+    p.set_defaults(func=cmd_order_show)
+
+    p = _order_command("preview", "预览已保存版本的编译结果")
+    p.add_argument("--order-id", required=True)
+    p.add_argument("--version", type=int, required=True)
+    p.set_defaults(func=cmd_order_preview)
+
+    p = _order_command("plan", "根据目标/投料自主生成订单草稿")
+    p.add_argument("--file", required=True,
+                   help="planner 输入 JSON, 或 '-' 从 stdin 读取")
+    p.add_argument("--save", action="store_true",
+                   help="保存为 source=planner 的订单版本")
+    p.add_argument("--note", default="")
+    p.set_defaults(func=cmd_order_plan)
+
+    p = _order_command("start", "同步运行一个订单版本")
+    p.add_argument("--order-id", required=True)
+    p.add_argument("--version", type=int, required=True)
+    p.add_argument("--artifact-id", default="current")
+    p.add_argument("--time", dest="max_time", type=float, default=1200.0)
+    p.add_argument("--run-records", choices=["on", "off"], default="on")
+    _add_common(p)
+    p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
+    p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
+    p.set_defaults(func=cmd_order_start)
+
+    p = _order_command("status", "查询订单运行状态")
+    p.add_argument("--run-id", required=True)
+    p.set_defaults(func=cmd_order_status)
+
+    p = _order_command("nodes", "查询订单节点快照")
+    p.add_argument("--run-id", required=True)
+    p.set_defaults(func=cmd_order_nodes)
+
+    p = _order_command("events", "查询订单运行事件")
+    p.add_argument("--run-id", required=True)
+    p.add_argument("--limit", type=int, default=2000)
+    p.set_defaults(func=cmd_order_events)
+
+    p = _order_command("stop", "停止活动订单运行")
+    p.add_argument("--run-id", required=True)
+    p.set_defaults(func=cmd_order_stop)
+
+    p = _order_command("runs", "列出订单运行")
+    p.add_argument("--order-id", default="")
+    p.add_argument("--limit", type=int, default=50)
+    p.set_defaults(func=cmd_order_runs)
+
+    api_parser = sub.add_parser(
+        "api", help="订单 HTTP 服务 (阶段 3)")
+    api_sub = api_parser.add_subparsers(dest="api_command", required=True)
+    p = api_sub.add_parser("serve", help="启动本地订单 HTTP 服务")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--db", default=str(spec.CATALOG_DB))
+    p.add_argument("--catalog-source", choices=["code", "db"],
+                   default="code")
+    p.add_argument("--artifact-root", default=None)
+    p.add_argument("--artifact-id", default="current")
+    p.add_argument("--run-records", choices=["on", "off"], default="on")
+    p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
+    p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
+    p.set_defaults(func=cmd_api_serve)
+
     p = sub.add_parser("migrate", help="从 stage4 L5_UFLOW 工件生成 v1 工件")
     _add_common(p)
     p.add_argument("--source", required=True,
@@ -505,11 +768,22 @@ def main(argv=None) -> int:
     except ValidationFailedError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 3
+    except (OrderSpecError, OrderValidationError) as exc:
+        print(f"[ERROR] {getattr(exc, 'code', type(exc).__name__)}: {exc}",
+              file=sys.stderr)
+        return 3
     except (LifecycleError, sa.ArtifactError, migration.MigrationError,
             CatalogPersistenceError, BatchError) as exc:
         print(f"[ERROR] {getattr(exc, 'code', type(exc).__name__)}: {exc}",
               file=sys.stderr)
         return 2
+    except Exception as exc:
+        # planner 模块延迟装配; 不因导入阶段 4 模块而扩大 CLI 导入面.
+        code = str(getattr(exc, "code", ""))
+        if code.startswith("PLANNER"):
+            print(f"[ERROR] {code}: {exc}", file=sys.stderr)
+            return 3
+        raise
 
 
 if __name__ == "__main__":
