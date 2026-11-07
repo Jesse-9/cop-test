@@ -119,7 +119,7 @@ def test_contract_extra_is_stable_and_complete():
     assert first["resources"]["order"] == list(cfg.RESOURCE_ORDER)
     assert first["task_flow"]["kinds"] == list(cfg.TASK_KINDS)
     assert first["task_flow"]["process_model_version"] == \
-        "v1_process_20261103b"
+        "v1_process_20261106a"
     assert first["task_flow"]["recipe_id"] == "mixed_line_v1"
     assert any("housing_direct" in line
                for line in first["task_flow"]["process_routes"])

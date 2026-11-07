@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Iterable, Optional
 
+from .orders import OrderRunContext
 from .process_model import (MaterialPort, OperationTemplate, ProcessCatalog,
                             ProcessModelError, RecipeSpec, RouteVariant)
 
@@ -43,11 +44,12 @@ class TaskStatus(str, Enum):
     DONE = "DONE"
     FAILED = "FAILED"
     REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
 
     @property
     def terminal(self) -> bool:
         return self in (TaskStatus.DONE, TaskStatus.FAILED,
-                        TaskStatus.REJECTED)
+                        TaskStatus.REJECTED, TaskStatus.CANCELLED)
 
     @property
     def active(self) -> bool:
@@ -122,8 +124,17 @@ class OperationInstance:
     entry_id: str = ""
     selected_route: str = ""
     predecessor_instance_ids: list[str] = field(default_factory=list)
+    # 订单模式: 前驱实例 → 实际输入端口 identity; 不由模板推导.
+    predecessor_ports: dict[str, str] = field(default_factory=dict)
     input_uids: list[int] = field(default_factory=list)
     output_uids: list[int] = field(default_factory=list)
+    # ── 订单模式身份 ────────────────────────────────────────
+    node_id: str = ""
+    order_id: str = ""
+    order_version: int = 0
+    # ── 失败传播 ────────────────────────────────────────────
+    failure_code: str = ""
+    blocked_by: list[str] = field(default_factory=list)
     capability: str = ""
     candidate_device_ids: list[str] = field(default_factory=list)
     # 阶段 4: 调度器选定的设备; 必须属于 candidate_device_ids, 启动后不可更换.
@@ -183,8 +194,14 @@ class OperationInstance:
             "entry_id": self.entry_id,
             "selected_route": self.selected_route,
             "predecessor_instance_ids": list(self.predecessor_instance_ids),
+            "predecessor_ports": dict(self.predecessor_ports),
             "input_uids": [int(uid) for uid in self.input_uids],
             "output_uids": [int(uid) for uid in self.output_uids],
+            "node_id": self.node_id,
+            "order_id": self.order_id,
+            "order_version": int(self.order_version),
+            "failure_code": self.failure_code,
+            "blocked_by": list(self.blocked_by),
             "capability": self.capability,
             "candidate_device_ids": list(self.candidate_device_ids),
             "selected_device_id": self.selected_device_id,
@@ -241,16 +258,33 @@ def _port_matches(output: Optional[MaterialPort], port: MaterialPort) -> bool:
 # ═══════════════════════════════════════════════════════════════
 
 class OperationGraph:
-    """一次运行的实例图; 只做索引、ready 判定和结构校验, 不推进执行."""
+    """一次运行的实例图; 只做索引、ready 判定和结构校验, 不推进执行.
 
-    def __init__(self, run: Optional[RecipeRunContext] = None) -> None:
+    ``run`` 是旧配方上下文, ``order`` 是订单 DAG 上下文; 两者互斥. 订单
+    模式不伪造 ``selected_route``, 也不把节点塞入静态 ``RouteVariant``.
+    """
+
+    def __init__(self, run: Optional[RecipeRunContext] = None,
+                 order: Optional[OrderRunContext] = None) -> None:
+        if run is not None and order is not None:
+            raise OperationRuntimeError(
+                "OperationGraph 不能同时使用 recipe 和 order 上下文")
         self.run = run
+        self.order = order
         self._instances: dict[str, OperationInstance] = {}
         self._order: list[str] = []
         self._predecessors: dict[str, tuple[str, ...]] = {}
         self._successors: dict[str, list[str]] = {}
         self._by_task_id: dict[str, str] = {}
         self._sequence = 0
+
+    @property
+    def mode(self) -> str:
+        if self.order is not None:
+            return "order"
+        if self.run is not None:
+            return "recipe"
+        return "ad_hoc"
 
     # ── 构建 ────────────────────────────────────────────────
 
@@ -379,11 +413,17 @@ class OperationGraph:
         return bool(self._instances) and all(
             row.state is TaskStatus.DONE for row in self.instances())
 
+    def settled(self) -> bool:
+        """全部实例已到终态 (DONE/FAILED/REJECTED/CANCELLED)."""
+        return all(row.state.terminal for row in self.instances())
+
     # ── 校验 ────────────────────────────────────────────────
 
     def validate(self, catalog: ProcessCatalog,
                  recipe: RecipeSpec) -> list[str]:
         """图级校验; 返回带 run/recipe/operation/instance 定位的诊断."""
+        if self.order is not None:
+            return self._validate_order(catalog)
         issues: list[str] = []
         run_prefix = (f"run={self.run.run_id} " if self.run is not None else
                       "")
@@ -494,6 +534,86 @@ class OperationGraph:
         return [f"{run_prefix}{recipe_prefix} instance={path[0]}: "
                 f"循环依赖 " + " -> ".join(path) for path in cycles]
 
+    def _validate_order(self, catalog: ProcessCatalog) -> list[str]:
+        """订单模式校验: allowlist/端口/前驱/环, 不检查静态路线."""
+        assert self.order is not None
+        ctx = self.order
+        issues: list[str] = []
+        prefix = f"order={ctx.order_id}@{ctx.order_version} "
+
+        def issue(instance: OperationInstance, message: str) -> None:
+            issues.append(
+                f"{prefix}node={instance.node_id or '<missing>'} "
+                f"instance={instance.instance_id}: {message}")
+
+        for instance in self.instances():
+            if not instance.node_id:
+                issue(instance, "订单实例缺少 node_id")
+            if instance.order_id and instance.order_id != ctx.order_id:
+                issue(instance, f"order_id={instance.order_id!r} 与图上下文"
+                                f" {ctx.order_id!r} 不一致")
+            if int(instance.order_version) not in (0, ctx.order_version):
+                issue(instance, f"order_version={instance.order_version} "
+                                f"与图上下文 {ctx.order_version} 不一致")
+            if instance.selected_route:
+                issue(instance, "订单模式不得伪造 selected_route")
+            try:
+                template = catalog.operation(instance.template_id)
+            except ProcessModelError as exc:
+                issue(instance, str(exc))
+                continue
+            if not template.orchestratable:
+                issue(instance, f"模板 {template.id!r} 不在编排 allowlist")
+            if instance.kind != template.kind:
+                issue(instance, f"kind={instance.kind!r} 与模板 "
+                                f"{template.kind!r} 不一致")
+            pred_ids = self._predecessors.get(instance.instance_id, ())
+            used_ports: set[str] = set()
+            for predecessor_id in pred_ids:
+                predecessor = self._instances.get(predecessor_id)
+                if predecessor is None:
+                    issue(instance, f"前驱实例不在图内: {predecessor_id!r}")
+                    continue
+                port_id = instance.predecessor_ports.get(predecessor_id, "")
+                if not port_id:
+                    issue(instance, f"前驱 {predecessor_id!r} 缺少端口绑定")
+                    continue
+                if port_id in used_ports:
+                    issue(instance, f"多个前驱占用同一输入端口 {port_id!r}")
+                used_ports.add(port_id)
+                port = template.input_port(port_id)
+                if port is None:
+                    issue(instance, f"模板 {template.id!r} 没有输入端口 "
+                                    f"{port_id!r}")
+                    continue
+                try:
+                    predecessor_template = catalog.operation(
+                        predecessor.template_id)
+                except ProcessModelError:
+                    continue
+                output = predecessor_template.output
+                if output is None or output.zone != port.zone \
+                        or output.item_type != port.item_type:
+                    actual = ("无输出" if output is None
+                              else f"{output.zone}/"
+                                   f"{output.item_type.value}")
+                    issue(instance,
+                          f"前驱 {predecessor.template_id!r} 输出 {actual} "
+                          f"不能接入端口 {port_id!r} "
+                          f"({port.zone}/{port.item_type.value})")
+            if template.executor_kind == "logic" \
+                    and len(pred_ids) != len(template.inputs):
+                issue(instance, f"合流前驱 {len(pred_ids)} 个, 模板输入 "
+                                f"{len(template.inputs)} 个")
+        issues.extend(self._check_cycles(
+            f"run={ctx.order_id} ", f"order={ctx.order_id}"))
+        target_ids = set(ctx.target_instance_ids)
+        missing = sorted(target_ids - set(self._instances))
+        if missing:
+            issues.append(
+                f"{prefix}目标实例不在图内: {missing}")
+        return issues
+
     def _check_routes(self, recipe: RecipeSpec, run_prefix: str,
                       recipe_prefix: str) -> list[str]:
         issues: list[str] = []
@@ -546,15 +666,92 @@ class OperationGraph:
                     f"工序 {followers}")
         return issues
 
+    # ── 失败传播与订单收敛 ──────────────────────────────────
+
+    def descendants(self, instance_id: str) -> list[OperationInstance]:
+        """按稳定遍历顺序返回全部传递后继 (不含自身)."""
+        seen: set[str] = set()
+        frontier = list(self._successors.get(str(instance_id), ()))
+        ordered: list[OperationInstance] = []
+        while frontier:
+            key = frontier.pop(0)
+            if key in seen or key not in self._instances:
+                continue
+            seen.add(key)
+            ordered.append(self._instances[key])
+            frontier.extend(self._successors.get(key, ()))
+        return ordered
+
+    def progress_state(self, *, aborted: bool = False) -> str:
+        """返回 RUNNING/SUCCEEDED/PARTIAL_FAILED/FAILED/ABORTED.
+
+        ``PARTIAL_FAILED`` 表示已出现局部失败但目标仍由其他分支满足或仍有
+        有效活动节点; 终态判断不只看是否还有 ready 节点.
+        """
+        if aborted:
+            return "ABORTED"
+        instances = self.instances()
+        if not instances:
+            return "RUNNING"
+        failed = [row for row in instances
+                  if row.state is TaskStatus.FAILED]
+        active = [row for row in instances if row.state.active]
+        if self.order is not None:
+            target_ids = tuple(self.order.target_instance_ids)
+            targets = [self._instances[key] for key in target_ids
+                       if key in self._instances]
+            target_done = bool(targets) and all(
+                row.state is TaskStatus.DONE and row.committed
+                for row in targets)
+        else:
+            target_done = all(row.state is TaskStatus.DONE
+                              for row in instances)
+        if not failed:
+            if target_done:
+                return "SUCCEEDED"
+            return "RUNNING" if active else "FAILED"
+        if target_done:
+            return "PARTIAL_FAILED"
+        return "PARTIAL_FAILED" if active else "FAILED"
+
+    def failure_summary(self) -> dict:
+        """失败节点、被阻断后继和仍独立活跃的分支."""
+        failed = [row for row in self.instances()
+                  if row.state is TaskStatus.FAILED]
+        blocked = [row for row in self.instances()
+                   if row.state in (TaskStatus.BLOCKED, TaskStatus.CANCELLED)
+                   and row.blocked_by]
+        affected: set[str] = set()
+        for row in failed:
+            affected.add(row.instance_id)
+            affected.update(item.instance_id for item in self.descendants(
+                row.instance_id))
+        continued = [row for row in self.instances()
+                     if row.instance_id not in affected
+                     and row.state in (TaskStatus.RUNNING, TaskStatus.WAITING,
+                                       TaskStatus.PENDING, TaskStatus.DONE)]
+        return {
+            "failed": [row.instance_id for row in failed],
+            "failed_nodes": [row.node_id for row in failed],
+            "blocked": [row.instance_id for row in blocked],
+            "blocked_nodes": [row.node_id for row in blocked],
+            "continued": [row.instance_id for row in continued],
+            "continued_nodes": [row.node_id for row in continued],
+        }
+
     # ── 报告 ────────────────────────────────────────────────
 
     def as_dict(self) -> dict:
         return {
+            "mode": self.mode,
             "run": None if self.run is None else self.run.as_dict(),
+            "order": None if self.order is None else self.order.as_dict(),
             "instance_count": len(self._instances),
             "instances": [row.as_dict() for row in self.instances()],
             "ready": [row.instance_id for row in self.ready()],
             "all_done": self.all_done(),
+            "progress_state": self.progress_state(),
+            "failure_summary": self.failure_summary(),
         }
 
 
@@ -579,13 +776,46 @@ class OperationRuntime:
     """
 
     def __init__(self, catalog: ProcessCatalog, recipe: RecipeSpec, *,
-                 run_prefix: str = "run") -> None:
+                 run_prefix: str = "run",
+                 order: Optional[OrderRunContext] = None) -> None:
         self.catalog = catalog
         self.recipe = recipe
-        self.graph = OperationGraph()
+        self.order = order
+        self.graph = OperationGraph(order=order)
         self._run_prefix = str(run_prefix)
         self._run_serial = 0
         self._runs: dict[str, RecipeRunContext] = {}
+
+    @property
+    def order_mode(self) -> bool:
+        return self.order is not None
+
+    def load_order_instances(
+            self, instances: Iterable[OperationInstance]
+            ) -> list[OperationInstance]:
+        """把编译器产出的订单实例装入图; 不推导路线, 不改生命周期."""
+        if self.order is None:
+            raise OperationRuntimeError(
+                "load_order_instances 需要订单运行上下文")
+        rows = list(instances)
+        seen_ids: set[str] = set()
+        seen_tasks: set[str] = set()
+        for instance in rows:
+            if instance.instance_id in seen_ids or \
+                    instance.instance_id in self.graph:
+                raise OperationRuntimeError(
+                    f"重复订单实例 ID: {instance.instance_id!r}")
+            if instance.task_id and (instance.task_id in seen_tasks
+                                    or self.graph.by_task_id(
+                                        instance.task_id) is not None):
+                raise OperationRuntimeError(
+                    f"重复订单任务键: {instance.task_id!r}")
+            seen_ids.add(instance.instance_id)
+            if instance.task_id:
+                seen_tasks.add(instance.task_id)
+        for instance in rows:
+            self.graph.add(instance)
+        return rows
 
     # ── 实例化 ──────────────────────────────────────────────
 
@@ -801,6 +1031,7 @@ class OperationRuntime:
 
     def mark_failed(self, instance_id: str, reason: str,
                     sim_time: float, *,
+                    failure_code: str = "",
                     evidence: Optional[dict] = None) -> OperationInstance:
         """标记失败; 已终态的实例保持原状态与首个失败原因."""
         instance = self.graph.require(instance_id)
@@ -809,10 +1040,89 @@ class OperationRuntime:
         instance.state = TaskStatus.FAILED
         instance.phase = "FAILED"
         instance.failure_reason = str(reason)
+        instance.failure_code = str(failure_code or "")
         instance.finished_sim_time = float(sim_time)
         if evidence:
             instance.evidence.update(evidence)
         return instance
+
+    def propagate_failure(
+            self, instance_id: str, reason: str, sim_time: float, *,
+            failure_code: str = "",
+            evidence: Optional[dict] = None) -> list[OperationInstance]:
+        """标记源节点 FAILED, 并把全部依赖后继置为 BLOCKED.
+
+        只沿真实前驱/后继边传播; 与失败节点无依赖路径的分支保持原状态.
+        """
+        source = self.graph.require(instance_id)
+        if source.state is TaskStatus.DONE:
+            raise OperationRuntimeError(
+                f"instance={instance_id}: 已 DONE, 不能作为失败源")
+        self.mark_failed(instance_id, reason, sim_time,
+                         failure_code=failure_code, evidence=evidence)
+        blocked: list[OperationInstance] = []
+        for descendant in self.graph.descendants(instance_id):
+            if descendant.state.terminal:
+                continue
+            if source.instance_id not in descendant.blocked_by:
+                descendant.blocked_by.append(source.instance_id)
+            if descendant.state is not TaskStatus.BLOCKED:
+                descendant.state = TaskStatus.BLOCKED
+                descendant.blocked_since = float(sim_time)
+                descendant.phase = (
+                    f"BLOCKED: 上游 {source.node_id or source.instance_id} "
+                    f"失败")
+                descendant.evidence.setdefault("blocks", []).append({
+                    "sim_time": round(float(sim_time), 4),
+                    "reason": str(reason),
+                    "blocked_by": source.instance_id,
+                    "failure_code": str(failure_code or ""),
+                })
+            blocked.append(descendant)
+        return blocked
+
+    def cancel_unreachable(self, sim_time: float) -> list[OperationInstance]:
+        """把无法再满足输入的失败阻断节点标为 CANCELLED.
+
+        只处理已记录 ``blocked_by`` 的节点; 普通背压 BLOCKED 不会被取消.
+        """
+        cancelled: list[OperationInstance] = []
+        changed = True
+        while changed:
+            changed = False
+            for instance in self.graph.instances():
+                if instance.state is not TaskStatus.BLOCKED \
+                        or not instance.blocked_by:
+                    continue
+                predecessors = [self.graph.get(predecessor_id)
+                                for predecessor_id in
+                                self.graph.predecessors(
+                                    instance.instance_id)]
+                unreachable = any(
+                    predecessor is not None
+                    and (predecessor.state in (TaskStatus.FAILED,
+                                               TaskStatus.CANCELLED)
+                         or (predecessor.state is TaskStatus.BLOCKED
+                             and predecessor.blocked_by))
+                    for predecessor in predecessors)
+                if not unreachable:
+                    continue
+                instance.state = TaskStatus.CANCELLED
+                instance.phase = "CANCELLED: 上游失败, 输入不可达"
+                instance.finished_sim_time = float(sim_time)
+                instance.evidence.setdefault("cancellations", []).append({
+                    "sim_time": round(float(sim_time), 4),
+                    "blocked_by": list(instance.blocked_by),
+                })
+                cancelled.append(instance)
+                changed = True
+        return cancelled
+
+    def progress_state(self, *, aborted: bool = False) -> str:
+        return self.graph.progress_state(aborted=aborted)
+
+    def failure_summary(self) -> dict:
+        return self.graph.failure_summary()
 
     # ── 查询 ────────────────────────────────────────────────
 
@@ -976,6 +1286,9 @@ class OperationRuntime:
     def all_done(self) -> bool:
         return self.graph.all_done()
 
+    def settled(self) -> bool:
+        return self.graph.settled()
+
     def validate(self) -> list[str]:
         return self.graph.validate(self.catalog, self.recipe)
 
@@ -984,8 +1297,12 @@ class OperationRuntime:
         return {
             "recipe_id": self.recipe.id,
             "recipe_version": self.recipe.version,
+            "mode": self.graph.mode,
+            "order": None if self.order is None else self.order.as_dict(),
             "runs": [run.as_dict() for run in self._runs.values()],
             "graph": self.graph.as_dict(),
+            "progress_state": self.progress_state(),
+            "failure_summary": self.failure_summary(),
             "validation": {"ok": not issues, "errors": issues},
         }
 

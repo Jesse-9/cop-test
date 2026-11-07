@@ -256,7 +256,8 @@ def _add_catalog(session: Session, release_id: str,
         session.add(Zone(
             release_id=release_id, zone_id=zone.id, ordinal=ordinal,
             capacity=int(zone.capacity),
-            description=zone.description or None))
+            description=zone.description or None,
+            spawnable=bool(zone.spawnable)))
     session.flush()
 
     port_types: set[tuple[str, str]] = set()
@@ -331,7 +332,11 @@ def _add_catalog(session: Session, release_id: str,
                 dock=operation.dock or None,
                 route_origin_dock=operation.route_origin_dock or None,
                 route_destination_dock=operation.route_destination_dock
-                or None))
+                or None,
+                orchestratable=bool(operation.orchestratable),
+                scene_id=operation.scene_id or "",
+                output_port_id=operation.output_port_id or "",
+                join_handler_id=operation.join_handler_id or ""))
         session.flush()
 
         for operation in recipe.operations:
@@ -339,7 +344,8 @@ def _add_catalog(session: Session, release_id: str,
                 session.add(OperationInput(
                     release_id=release_id, operation_id=operation.id,
                     ordinal=ordinal, zone_id=port.zone,
-                    material_type_id=port.item_type.value))
+                    material_type_id=port.item_type.value,
+                    port_id=port.port_id or ""))
             if operation.output is not None:
                 session.add(OperationOutput(
                     release_id=release_id, operation_id=operation.id,

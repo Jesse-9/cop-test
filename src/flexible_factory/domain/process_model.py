@@ -51,6 +51,15 @@ COMPLETION_VERIFIERS = {
                            "FINAL (commit_join)",
 }
 
+# 已登记的逻辑合流处理器; 订单 DAG 只能引用这里的稳定 ID, 不允许携带
+# 任意代码. 首期只有 E 岛两父件原子配对.
+JOIN_HANDLERS = {
+    "e_material_pair": "E 岛 SEMI_CE + PART_DE 原子配对 (commit_join)",
+}
+# 当前 coordinator/runtime 已实现的 join handler. 目录可以登记更多处理器,
+# 但订单运行只允许这里列出的实现; 新增处理器必须同时实现运行时路径.
+RUNTIME_JOIN_HANDLERS = ("e_material_pair",)
+
 EXECUTOR_KINDS = ("arm", "agv", "logic")
 SOURCE_KINDS = {
     "arm": ("conveyor", "agv", "station"),
@@ -72,13 +81,19 @@ PREDECESSOR_POLICIES = ("all", "any")
 
 @dataclass(frozen=True)
 class MaterialPort:
-    """工序的输入/输出物料端口: 稳定区域 ID + 物料类型."""
+    """工序的输入/输出物料端口: 稳定区域 ID + 物料类型.
+
+    ``port_id`` 是订单 DAG 引用端口的稳定身份; 留空时由目录按
+    ``input-{ordinal}`` 派生. 它不是运行时 UID 或设备句柄.
+    """
 
     zone: str
     item_type: ItemType
+    port_id: str = ""
 
     def as_dict(self) -> dict:
-        return {"zone": self.zone, "item_type": self.item_type.value}
+        return {"port_id": self.port_id, "zone": self.zone,
+                "item_type": self.item_type.value}
 
 
 @dataclass(frozen=True)
@@ -120,10 +135,31 @@ class OperationTemplate:
     dock: str = ""
     route_origin_dock: str = ""
     route_destination_dock: str = ""
+    # ── 订单 DAG 编排元数据 (阶段 1) ────────────────────────
+    orchestratable: bool = True        # 是否允许作为订单节点
+    scene_id: str = ""                 # 空 = 目录场景通用
+    output_port_id: str = ""           # 空 = output-0
+    join_handler_id: str = ""          # logic 工序必须登记
 
     @property
     def input_types(self) -> tuple[ItemType, ...]:
         return tuple(port.item_type for port in self.inputs)
+
+    @property
+    def input_port_ids(self) -> tuple[str, ...]:
+        """稳定输入端口 ID; 未显式声明时按顺序派生."""
+        return tuple(port.port_id or f"input-{index}"
+                     for index, port in enumerate(self.inputs))
+
+    @property
+    def resolved_output_port_id(self) -> str:
+        return self.output_port_id or "output-0"
+
+    def input_port(self, port_id: str) -> Optional[MaterialPort]:
+        for index, port in enumerate(self.inputs):
+            if (port.port_id or f"input-{index}") == str(port_id):
+                return port
+        return None
 
     def as_dict(self) -> dict:
         return {
@@ -148,6 +184,10 @@ class OperationTemplate:
             "dock": self.dock,
             "route_origin_dock": self.route_origin_dock,
             "route_destination_dock": self.route_destination_dock,
+            "orchestratable": bool(self.orchestratable),
+            "scene_id": self.scene_id,
+            "output_port_id": self.output_port_id,
+            "join_handler_id": self.join_handler_id,
         }
 
 
@@ -268,10 +308,12 @@ class ZoneSpec:
     id: str
     capacity: int = 1
     description: str = ""
+    spawnable: bool = False            # 订单入口可在此区域生成来料
 
     def as_dict(self) -> dict:
         return {"id": self.id, "capacity": int(self.capacity),
-                "description": self.description}
+                "description": self.description,
+                "spawnable": bool(self.spawnable)}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -348,6 +390,15 @@ class ProcessCatalog:
         for recipe in self.recipes:
             for op in recipe.operations:
                 if device_id in op.candidate_devices:
+                    rows.setdefault(op.id, op)
+        return tuple(rows.values())
+
+    def orchestratable_operations(self) -> tuple[OperationTemplate, ...]:
+        """可供订单 DAG 引用的模板; 保持目录顺序且按 ID 去重."""
+        rows: dict[str, OperationTemplate] = {}
+        for recipe in self.recipes:
+            for op in recipe.operations:
+                if op.orchestratable:
                     rows.setdefault(op.id, op)
         return tuple(rows.values())
 
@@ -612,6 +663,7 @@ class ProcessCatalog:
                 err(f"未知工步模板: {step.template_id!r}", rid, oid)
         if op.completion_verifier not in COMPLETION_VERIFIERS:
             err(f"未知完成验证器: {op.completion_verifier!r}", rid, oid)
+        self._check_orchestration_metadata(op, rid, oid, err, check)
         if int(op.priority) < 0:
             err(f"priority 不能为负: {op.priority}", rid, oid)
         if op.predecessor_policy not in PREDECESSOR_POLICIES:
@@ -622,6 +674,34 @@ class ProcessCatalog:
         for successor in op.successors:
             if successor not in operation_index:
                 err(f"无效后继: {successor!r}", rid, oid)
+
+    def _check_orchestration_metadata(self, op: OperationTemplate, rid: str,
+                                      oid: str, err, check) -> None:
+        """订单 DAG 所需的最小目录元数据; 不复制订单结构校验."""
+        port_ids = list(op.input_port_ids)
+        duplicated = sorted({port_id for port_id in port_ids
+                             if port_ids.count(port_id) > 1})
+        ok = (bool(port_ids) and not duplicated
+              and all(str(port_id).strip() for port_id in port_ids)
+              and bool(op.resolved_output_port_id.strip()))
+        check(f"operation:{oid}:port_identity", ok,
+              f"inputs={port_ids} output={op.resolved_output_port_id!r}")
+        if duplicated:
+            err(f"重复输入端口 identity: {duplicated}", rid, oid)
+        if any(not str(port_id).strip() for port_id in port_ids):
+            err("输入端口 identity 不能为空", rid, oid)
+        if not str(op.resolved_output_port_id).strip():
+            err("输出端口 identity 不能为空", rid, oid)
+        if op.join_handler_id and op.join_handler_id not in JOIN_HANDLERS:
+            err(f"未知 join handler: {op.join_handler_id!r}", rid, oid)
+        if op.executor_kind == "logic" and not op.join_handler_id:
+            err("逻辑合流工序缺少 join_handler_id", rid, oid)
+        if op.executor_kind != "logic" and op.join_handler_id:
+            err(f"非逻辑工序不应声明 join_handler_id: "
+                f"{op.join_handler_id!r}", rid, oid)
+        if not isinstance(op.orchestratable, bool):
+            err(f"orchestratable 必须是 bool: {op.orchestratable!r}",
+                rid, oid)
 
     def _check_dependency_graph(self, recipe: RecipeSpec,
                                 operation_index: dict, err, check) -> None:

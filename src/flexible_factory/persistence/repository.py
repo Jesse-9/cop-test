@@ -142,7 +142,8 @@ class CatalogRepository:
             for row in self._rows(Device, Device.ordinal))
         zones = tuple(
             ZoneSpec(id=row.zone_id, capacity=int(row.capacity),
-                     description=_text(row.description))
+                     description=_text(row.description),
+                     spawnable=bool(row.spawnable))
             for row in self._rows(Zone, Zone.ordinal))
 
         operation_rows = self._rows(OperationRow,
@@ -202,7 +203,8 @@ class CatalogRepository:
                         candidate_rows[row.operation_id]),
                     inputs=tuple(
                         MaterialPort(zone=port.zone_id,
-                                    item_type=ItemType(port.material_type_id))
+                                    item_type=ItemType(port.material_type_id),
+                                    port_id=_text(port.port_id))
                         for port in input_rows[row.operation_id]),
                     output=None if output is None else MaterialPort(
                         zone=output.zone_id,
@@ -224,7 +226,11 @@ class CatalogRepository:
                     dock=_text(row.dock),
                     route_origin_dock=_text(row.route_origin_dock),
                     route_destination_dock=_text(
-                        row.route_destination_dock))
+                        row.route_destination_dock),
+                    orchestratable=bool(row.orchestratable),
+                    scene_id=_text(row.scene_id),
+                    output_port_id=_text(row.output_port_id),
+                    join_handler_id=_text(row.join_handler_id))
             except ValueError as exc:
                 raise CatalogIntegrityError(
                     f"工序 {row.operation_id!r} 物料类型非法: {exc}") from exc

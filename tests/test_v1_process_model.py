@@ -24,7 +24,7 @@ def test_default_catalog_validates_and_matches_frozen_config():
     catalog = default_catalog()
     report = catalog.validate()
     assert report["ok"] and not report["errors"]
-    assert catalog.version == "v1_process_20261103b"
+    assert catalog.version == "v1_process_20261106a"
     assert validate_default_against_config(catalog)["ok"]
 
     recipe = catalog.recipe(DEFAULT_RECIPE_ID)
@@ -268,7 +268,7 @@ def test_logical_join_does_not_create_stage4_task():
 def test_queue_report_exposes_catalog_routes_and_legacy_flow():
     queue = TaskQueue(catalog=default_catalog())
     report = queue.as_dict()
-    assert report["process_model_version"] == "v1_process_20261103b"
+    assert report["process_model_version"] == "v1_process_20261106a"
     assert any("housing_direct" in line
                and "housing_finish" in line
                for line in report["process_routes"])

@@ -154,6 +154,8 @@ class Zone(Base):
     ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text)
+    spawnable: Mapped[bool] = mapped_column(Boolean, nullable=False,
+                                            default=False)
 
 
 class ZoneMaterialType(Base):
@@ -372,6 +374,13 @@ class OperationTemplate(Base):
     dock: Mapped[Optional[str]] = mapped_column(Text)
     route_origin_dock: Mapped[Optional[str]] = mapped_column(Text)
     route_destination_dock: Mapped[Optional[str]] = mapped_column(Text)
+    orchestratable: Mapped[bool] = mapped_column(Boolean, nullable=False,
+                                                 default=True)
+    scene_id: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    output_port_id: Mapped[str] = mapped_column(Text, nullable=False,
+                                                default="")
+    join_handler_id: Mapped[str] = mapped_column(Text, nullable=False,
+                                                 default="")
 
 
 class OperationDependency(Base):
@@ -438,6 +447,7 @@ class OperationInput(Base):
     ordinal: Mapped[int] = mapped_column(Integer, primary_key=True)
     zone_id: Mapped[str] = mapped_column(Text, nullable=False)
     material_type_id: Mapped[str] = mapped_column(Text, nullable=False)
+    port_id: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
 
 class OperationOutput(Base):
@@ -635,3 +645,4 @@ class OrderEntry(Base):
 # 定义之后.
 from . import knowledge_models  # noqa: E402,F401
 from . import run_models  # noqa: E402,F401
+from . import order_models  # noqa: E402,F401

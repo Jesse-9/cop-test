@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from .. import spec
 from . import rules as cfg
 from .materials import ItemType
 from .process_model import (CapabilitySpec, DeviceSpec, MaterialPort,
@@ -27,8 +28,9 @@ from .process_model import (CapabilitySpec, DeviceSpec, MaterialPort,
 
 # 修改 recipe/operation/route/设备能力时递增此版本; 它不参与场景工件
 # config digest, 由报告与未来 manifest 记录.
-# 20261103b: 订单入口增加 route_variant_id, 供阶段 3 实例图固定选路.
-PROCESS_MODEL_VERSION = "v1_process_20261103b"
+# 20261106a: 增加订单 DAG 编排元数据 (端口 identity、编排 allowlist、
+# 场景范围、join handler、可生成来料区域).
+PROCESS_MODEL_VERSION = "v1_process_20261106a"
 DEFAULT_RECIPE_ID = "mixed_line_v1"
 DEFAULT_PRODUCT_ID = "assembled_module"
 
@@ -62,7 +64,8 @@ def _arm_operation(*, operation_id: str, kind: str, semantics: str,
         completion_verifier="unit_handoff_verified",
         priority=priority, depends_on=depends_on,
         predecessor_policy=predecessor_policy,
-        successors=successors, dock=dock)
+        successors=successors, dock=dock,
+        orchestratable=True, scene_id=spec.LAYOUT_NAME)
 
 
 def _transport_operation(*, operation_id: str, kind: str, semantics: str,
@@ -82,7 +85,8 @@ def _transport_operation(*, operation_id: str, kind: str, semantics: str,
         completion_verifier="agv_route_verified",
         priority=priority, depends_on=depends_on, successors=successors,
         dock=destination, route_origin_dock=origin,
-        route_destination_dock=destination)
+        route_destination_dock=destination,
+        orchestratable=True, scene_id=spec.LAYOUT_NAME)
 
 
 def _build_operations() -> tuple[OperationTemplate, ...]:
@@ -183,8 +187,10 @@ def _build_operations() -> tuple[OperationTemplate, ...]:
         semantics="E join: buffer_e_c + buffer_e_d → FINAL@output_e",
         executor_kind="logic", capability=_LOGICAL_JOIN,
         candidate_devices=("logic_E",),
-        inputs=(MaterialPort("buffer_e_c", ItemType.SEMI_CE),
-                MaterialPort("buffer_e_d", ItemType.PART_DE)),
+        inputs=(MaterialPort("buffer_e_c", ItemType.SEMI_CE,
+                             port_id="housing-input"),
+                MaterialPort("buffer_e_d", ItemType.PART_DE,
+                             port_id="bracket-input")),
         output=MaterialPort("output_e", ItemType.FINAL),
         source_kind="none", sink_kind="none",
         resources=(), resource_policy="logical_join",
@@ -192,7 +198,10 @@ def _build_operations() -> tuple[OperationTemplate, ...]:
         completion_verifier="join_pair_committed",
         priority=0,
         depends_on=("housing_to_E_buffer", "bracket_to_E"),
-        predecessor_policy="all")
+        predecessor_policy="all",
+        orchestratable=True, scene_id=spec.LAYOUT_NAME,
+        output_port_id="output-0",
+        join_handler_id="e_material_pair")
 
     return (housing_direct_a, housing_alt_b, transport_ba, housing_alt_a,
             housing_finish, housing_to_e, bracket_process, transport_de,
@@ -275,8 +284,10 @@ def _build_zones() -> tuple[ZoneSpec, ...]:
         "agv": "AGV 载台",
         "output_e": "E 岛成品输出",
     }
+    spawnable = {"line_s1a", "line_s1b", "line_s2d"}
     return tuple(ZoneSpec(id=zone_id, capacity=int(capacity),
-                          description=descriptions.get(zone_id, ""))
+                          description=descriptions.get(zone_id, ""),
+                          spawnable=zone_id in spawnable)
                  for zone_id, capacity in cfg.ZONE_CAPACITY.items())
 
 
