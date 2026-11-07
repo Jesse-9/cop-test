@@ -138,7 +138,8 @@ class AgvExecutor:
                 execution_id=active.execution_id, device_id=self.device_id,
                 operation_id=active.operation_id,
                 state=ExecutionState.FAILED, finished=True,
-                failure_reason=failure, detail=detail, evidence=evidence)
+                failure_reason=failure, failure_code="AGV_ROUTE_FAILED",
+                detail=detail, evidence=evidence)
         if route_state is RouteState.DONE:
             return ExecutionReport(
                 execution_id=active.execution_id, device_id=self.device_id,

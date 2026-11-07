@@ -17,6 +17,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .models import Base, _in, _non_empty
 
 RUN_STATUSES = ("RUNNING", "DONE", "FAILED", "ABORTED")
+# 运行记录快照保持 0003 schema 的 7 状态; 订单专用 CANCELLED 记录在
+# order_node_run, RunRecorder 将 operation_instance.state 映射为 BLOCKED 并
+# 在 evidence_json 标注 cancelled_state, 不扩旧表 CHECK.
 TASK_STATES = ("PENDING", "WAITING", "RUNNING", "BLOCKED", "DONE", "FAILED",
                "REJECTED")
 MATERIAL_STATES = ("CREATED", "IN_TRANSIT", "READY", "HELD", "DELIVERED",

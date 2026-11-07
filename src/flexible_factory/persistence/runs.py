@@ -236,6 +236,14 @@ class RunRecorder:
         session.flush()
 
         for instance in instances:
+            state_value = instance.state.value
+            evidence_json = dict(instance.evidence or {})
+            if state_value == "CANCELLED":
+                # 运行记录 schema 的 operation_instance.state 尚未扩为
+                # CANCELLED; 订单专用快照 order_node_run 保存精确状态, 这里
+                # 保留为 BLOCKED 并在证据中标注, 避免写库失败.
+                evidence_json.setdefault("cancelled_state", "CANCELLED")
+                state_value = "BLOCKED"
             session.add(OperationInstanceRecord(
                 run_id=self.run_id,
                 instance_id=instance.instance_id,
@@ -250,7 +258,7 @@ class RunRecorder:
                 uid=int(instance.uid),
                 selected_device_id=(
                     instance.selected_device_id or instance.device or None),
-                state=instance.state.value,
+                state=state_value,
                 phase=instance.phase or "",
                 priority=int(instance.priority),
                 attempts=int(instance.attempts),
@@ -269,7 +277,7 @@ class RunRecorder:
                 blocked_since=(None if instance.blocked_since is None
                                else float(instance.blocked_since)),
                 failure_reason=instance.failure_reason or "",
-                evidence_json=instance.evidence or None))
+                evidence_json=evidence_json or None))
             counts["operation_instances"] += 1
         session.flush()
 

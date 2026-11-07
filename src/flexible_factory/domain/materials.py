@@ -289,6 +289,41 @@ class MaterialRegistry:
             if part is None:
                 missing.append(ItemType.PART_DE.value)
             return JoinResult(False, f"MISSING_INPUT: {missing}")
+        return self.commit_join_uids(
+            final_uid=final_uid, semi_uid=semi.uid, part_uid=part.uid,
+            sim_time=sim_time, final_alias=final_alias,
+            final_handle=final_handle, final_zone=final_zone)
+
+    def commit_join_uids(self, *, final_uid: int, semi_uid: int,
+                         part_uid: int, sim_time: float,
+                         final_alias: str,
+                         final_handle: Optional[int] = None,
+                         final_zone: str = "output_e") -> JoinResult:
+        """按显式父 UID 原子配对; 订单 DAG 使用该入口绑定编译后的物料."""
+        semi = self._by_uid.get(int(semi_uid))
+        part = self._by_uid.get(int(part_uid))
+        if semi is None or part is None:
+            missing = [uid for uid, row in ((semi_uid, semi),
+                                            (part_uid, part))
+                       if row is None]
+            return JoinResult(False, f"MISSING_INPUT: {missing}")
+        if semi.state is RecordState.CONSUMED or \
+                part.state is RecordState.CONSUMED:
+            return JoinResult(False, "ALREADY_CONSUMED",
+                              semi_uid=semi.uid, part_uid=part.uid,
+                              pair_key=f"{semi.uid}+{part.uid}")
+        if semi.item_type is not ItemType.SEMI_CE or \
+                part.item_type is not ItemType.PART_DE:
+            return JoinResult(
+                False,
+                f"TYPE_MISMATCH: {semi.item_type.value}+"
+                f"{part.item_type.value}", semi_uid=semi.uid,
+                part_uid=part.uid, pair_key=f"{semi.uid}+{part.uid}")
+        if semi.zone != "buffer_e_c" or part.zone != "buffer_e_d":
+            return JoinResult(
+                False, f"ZONE_MISMATCH: {semi.zone}+{part.zone}",
+                semi_uid=semi.uid, part_uid=part.uid,
+                pair_key=f"{semi.uid}+{part.uid}")
         pair_key = f"{semi.uid}+{part.uid}"
         if pair_key in self.consumed_pairs:
             return JoinResult(False, "DUPLICATE_PAIR", semi_uid=semi.uid,

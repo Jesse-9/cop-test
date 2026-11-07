@@ -176,6 +176,7 @@ class ArmExecutor:
                 operation_id=active.operation_id,
                 state=ExecutionState.FAILED, finished=True,
                 failure_reason=f"SAFETY_LATCH: {latch_reason}",
+                failure_code="SAFETY_LATCH",
                 detail=detail, evidence=evidence)
         if controller.state is UnitTaskState.FAILED:
             failure = str(controller.failure_reason or "UNIT_FAILED")
@@ -184,7 +185,9 @@ class ArmExecutor:
                 execution_id=active.execution_id, device_id=self.device_id,
                 operation_id=active.operation_id,
                 state=ExecutionState.FAILED, finished=True,
-                failure_reason=failure, detail=detail, evidence=evidence)
+                failure_reason=failure,
+                failure_code="UNIT_CONTROLLER_FAILURE",
+                detail=detail, evidence=evidence)
         state = (ExecutionState.SUCCEEDED if controller.finished
                  else ExecutionState.RUNNING)
         return ExecutionReport(

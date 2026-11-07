@@ -45,11 +45,14 @@ from ..simulation.execution import (AgvExecutor, ArmExecutor,
                                     ExecutionRequest, ExecutionState,
                                     ExecutorError, sink_spec_for)
 from ..domain.default_process import DEFAULT_RECIPE_ID, default_catalog
+from ..domain.failures import (FAILURE_POLICY_VERSION, FailureScope,
+                               classify_failure, make_failure_record)
 from ..simulation.layout import line_specs
 from ..domain.materials import (ItemType, MaterialFlowError, MaterialRegistry,
                                 RecordState)
 from ..domain.operation_runtime import (OperationRuntime,
                                         OperationRuntimeError)
+from ..domain.order_compiler import CompiledOrder
 from ..domain.process_model import OperationTemplate, ProcessCatalog
 from ..domain.resources import ResourceTable
 from ..domain.scheduling import (SCHEDULER_POLICY_VERSION, DeviceView,
@@ -62,6 +65,10 @@ from ..simulation.device_binding import DeviceBindingError, binding_for
 from ..simulation.unit_controller import (SinkSpec, Stage4UnitController,
                                       agv_material_position)
 from .batch import expected_flow_counts, validate_batch
+
+
+_SOURCE_ITEMS_BY_ZONE = {
+    item["line"]: item for item in cfg.SOURCE_ITEMS.values()}
 
 
 class CoordinatorError(RuntimeError):
@@ -94,11 +101,12 @@ class Stage4Coordinator:
                  fault: str = cfg.FAULT_NONE,
                  logger=None, on_controller=None,
                  catalog: Optional[ProcessCatalog] = None,
-                 batch: Optional[Mapping[str, int]] = None) -> None:
+                 batch: Optional[Mapping[str, int]] = None,
+                 order_plan: Optional[CompiledOrder] = None) -> None:
         if scenario not in cfg.STAGE4_SCENARIOS:
             raise CoordinatorError(f"未知 scenario: {scenario!r}")
         # 批次只影响本次运行的来源数量; 显式输入在创建任何任务前校验,
-        # 缺省时严格沿用 scenario 默认批次.
+        # 缺省时严格沿用 scenario 默认批次. 订单模式不使用固定批次.
         self._batch = (dict(cfg.SCENARIO_BATCH[scenario])
                        if batch is None else validate_batch(batch))
         self.catalog = catalog if catalog is not None else default_catalog()
@@ -106,6 +114,10 @@ class Stage4Coordinator:
         # 循环依赖均在此拒绝, 错误信息带 recipe/operation 定位.
         self.process_report = self.catalog.validate()
         self.recipe = self.catalog.recipe(DEFAULT_RECIPE_ID)
+        self.order_plan = order_plan
+        self.order = None if order_plan is None else order_plan.context
+        if order_plan is not None:
+            self._batch = {}
         self.sim = sim
         self.scene = scene
         self.comp = comp
@@ -126,8 +138,21 @@ class Stage4Coordinator:
         self.queue = TaskQueue(catalog=self.catalog)
         self.resources = ResourceTable()
         # 阶段 3: 配方运行图 hold 工序实例与依赖; 任务队列只承接已 ready 的
-        # 实例, 不再由模板 successor 静态推进.
-        self.op_runtime = OperationRuntime(self.catalog, self.recipe)
+        # 实例, 不再由模板 successor 静态推进. 订单模式装载编译后的实例图.
+        self.op_runtime = OperationRuntime(
+            self.catalog, self.recipe, order=self.order)
+        if order_plan is not None:
+            self.op_runtime.load_order_instances(order_plan.instances)
+            self._order_inputs = tuple(
+                plan for plan in order_plan.material_plans
+                if plan.kind == "input")
+            self._order_spawned: set[int] = set()
+            if order_plan.material_plans:
+                self._next_uid = max(
+                    int(plan.uid) for plan in order_plan.material_plans) + 1
+        else:
+            self._order_inputs = ()
+            self._order_spawned = set()
         # 设备执行适配器: 每台臂一个, AGV 一个; 只包装, 不改调度策略.
         self.arm_executors = {
             device.id: ArmExecutor(self.sim, scene, comp, device=device,
@@ -153,10 +178,12 @@ class Stage4Coordinator:
         self.events: list[dict] = []
         self.injected: list[dict] = []
         self.spawned: list[dict] = []
+        self.failures: list[dict] = []
         self.final_count = 0
         self.aborted = False
         self.frozen = False
         self.stop_reason = ""
+        self._sim_failure = ""
         self.started_at: Optional[float] = None
         self._abort_settle_steps = 0
         self._frozen_since: Optional[float] = None
@@ -204,28 +231,46 @@ class Stage4Coordinator:
         if self.aborted or self.frozen:
             self._settle_step()
             return
-        self._poll_sources(sim_time)
-        self._poll_tasks(sim_time)
-        self._maybe_inject_fault(sim_time)
+        try:
+            self._poll_sources(sim_time)
+            self._poll_tasks(sim_time)
+            self._maybe_inject_fault(sim_time)
 
-        for record in list(self.controllers.values()):
-            record.executor.pre_tick(sim_time)
+            for record in list(self.controllers.values()):
+                record.executor.pre_tick(sim_time)
 
-        self._advance_route(sim_time)
+            self._advance_route(sim_time)
 
-        self.sim.step()
+            try:
+                self.sim.step()
+            except Exception as exc:
+                self._sim_failure = f"{type(exc).__name__}: {exc}"
+                self._global_failure(
+                    "SIM_STEP_FAILED",
+                    f"SIM_STEP_FAILED: {self._sim_failure}", sim_time,
+                    evidence={"sim_time": sim_time})
+                return
 
-        for record in list(self.controllers.values()):
-            record.executor.post_tick(sim_time)
+            for record in list(self.controllers.values()):
+                record.executor.post_tick(sim_time)
 
-        self._after_step(sim_time)
-        self._timeout_check(sim_time)
+            self._after_step(sim_time)
+            self._timeout_check(sim_time)
+        except Exception as exc:
+            self._global_failure(
+                "UNKNOWN_FAILURE",
+                f"UNKNOWN_FAILURE: {type(exc).__name__}: {exc}", sim_time,
+                evidence={"phase": "coordinator_step"})
 
     def _settle_step(self) -> None:
         sim_time = self._sim_time()
-        for record in list(self.controllers.values()):
-            record.executor.post_tick(sim_time)
-        self.sim.step()
+        if not self._sim_failure:
+            for record in list(self.controllers.values()):
+                record.executor.post_tick(sim_time)
+            try:
+                self.sim.step()
+            except Exception as exc:
+                self._sim_failure = f"{type(exc).__name__}: {exc}"
         self._abort_settle_steps += 1
 
     # ═══════════════════════════════════════════════════════
@@ -233,6 +278,9 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def _poll_sources(self, sim_time: float) -> None:
+        if self.order is not None:
+            self._poll_order_sources(sim_time)
+            return
         for key in self._source_keys:
             entry = self._source_entries[key]
             planned = int(self._batch.get(entry.item_type.value, 0))
@@ -250,6 +298,58 @@ class Stage4Coordinator:
                                         zone, "区域占用")})
                 continue
             self._spawn_source(key, sim_time)
+
+    def _poll_order_sources(self, sim_time: float) -> None:
+        """按编译器的物料计划生成订单入口来料; UID 已在编译期确定."""
+        for plan in self._order_inputs:
+            if int(plan.uid) in self._order_spawned:
+                continue
+            zone = plan.zone
+            if not self.flow.zone_free(zone):
+                self._event("SOURCE_BACKPRESSURE", zone=zone,
+                            detail={"input_id": plan.input_id,
+                                    "reason": cfg.BACKPRESSURE_REASONS.get(
+                                        zone, "区域占用")})
+                continue
+            source = _SOURCE_ITEMS_BY_ZONE.get(zone)
+            if source is None:
+                self._global_failure(
+                    "SCENE_INTEGRITY_LOST",
+                    f"订单输入区域 {zone!r} 没有已登记生成位置",
+                    sim_time)
+                return
+            item_type = ItemType(plan.item_type)
+            alias = f"Part_{int(plan.uid):04d}"
+            try:
+                handle = self.scene.spawn_material(
+                    plan.uid, alias, position=source["position"])
+            except Exception as exc:
+                self._global_failure(
+                    "SCENE_INTEGRITY_LOST",
+                    f"ORDER_SOURCE_SPAWN_FAILED: {type(exc).__name__}: "
+                    f"{exc}", sim_time)
+                return
+            self._set_material_color(handle, item_type)
+            self.materials.register(plan.uid, alias, sim_handle=handle)
+            self.flow.register(
+                plan.uid, item_type, alias, sim_handle=handle,
+                source=zone, destination="", zone=zone,
+                sim_time=sim_time)
+            self._order_spawned.add(int(plan.uid))
+            self.spawned.append({
+                "sim_time": round(sim_time, 4), "source": plan.input_id,
+                "uid": int(plan.uid), "item_type": item_type.value,
+                "position": list(source["position"]),
+                "handle": int(handle), "node_id": plan.node_id})
+            self._event(
+                "MATERIAL_SPAWN", uid=int(plan.uid),
+                item_type=item_type.value, zone=zone, source=zone,
+                node_id=plan.node_id,
+                detail={"alias": alias, "handle": int(handle),
+                        "input_id": plan.input_id,
+                        "order_id": self.order.order_id
+                        if self.order is not None else "",
+                        "spawn": source["position"]})
 
     def _spawn_source(self, key: str, sim_time: float) -> None:
         entry = self._source_entries[key]
@@ -330,9 +430,8 @@ class Stage4Coordinator:
         :meth:`_start_transport` 全量完成.
         """
         ready = [instance for instance in self.op_runtime.ready()
-                 if self.catalog.operation(
-                     instance.template_id,
-                     self.recipe.id).executor_kind != "logic"]
+                 if self._template(
+                     instance.template_id).executor_kind != "logic"]
         if not ready:
             return
         snapshot = self._scheduling_snapshot(sim_time, ready)
@@ -342,8 +441,7 @@ class Stage4Coordinator:
                 decision.operation_instance_id)
             if instance is None:
                 continue
-            template = self.catalog.operation(instance.template_id,
-                                              self.recipe.id)
+            template = self._template(instance.template_id)
             record = self._decision_record(decision, instance)
             if not decision.selected_device_id:
                 previous = self._schedule_wait_reason.get(
@@ -412,8 +510,7 @@ class Stage4Coordinator:
             agv_dock_settled=self._agv_dock_settled())
 
     def _operation_view(self, instance) -> OperationView:
-        template = self.catalog.operation(instance.template_id,
-                                          self.recipe.id)
+        template = self._template(instance.template_id)
         return OperationView(
             instance_id=instance.instance_id,
             task_id=instance.task_id,
@@ -554,18 +651,26 @@ class Stage4Coordinator:
             self.queue.done(task.task_id, sim_time, evidence)
 
     def _fail_operation(self, task: Stage4Task, sim_time: float, reason: str,
-                        evidence: Optional[dict] = None) -> None:
+                        evidence: Optional[dict] = None, *,
+                        failure_code: str = "") -> None:
         if task.runtime_backed:
             self.op_runtime.mark_failed(
-                task.instance_id, reason, sim_time, evidence=evidence)
+                task.instance_id, reason, sim_time,
+                failure_code=failure_code, evidence=evidence)
         else:
             self.queue.fail(task.task_id, sim_time, reason, evidence)
 
     def _operation(self, task: Stage4Task) -> OperationTemplate:
         """任务 → 默认工艺模板; 调机等动态任务没有模板."""
         if task.operation.template_id:
-            return self.catalog.operation(task.operation.template_id)
+            return self._template(task.operation.template_id)
         return self.catalog.operation_for_kind(task.kind)
+
+    def _template(self, template_id: str) -> OperationTemplate:
+        """模板查找; 订单模式按全局唯一 ID, 配方模式限制在当前 recipe."""
+        if self.order is not None:
+            return self.catalog.operation(template_id)
+        return self.catalog.operation(template_id, self.recipe.id)
 
     def _operation_or_none(
             self, task: Stage4Task) -> Optional[OperationTemplate]:
@@ -1041,33 +1146,23 @@ class Stage4Coordinator:
             task = self.queue.get(record.task_id)
             if task is None:
                 continue
-            report = record.executor.poll(record.execution_id)
+            try:
+                report = record.executor.poll(record.execution_id)
+            except Exception as exc:
+                self._global_failure(
+                    "UNKNOWN_EXECUTOR_FAILURE",
+                    f"UNKNOWN_EXECUTOR_FAILURE: {type(exc).__name__}: {exc}",
+                    sim_time, task=task, device_id=f"arm_{unit_id}",
+                    evidence={"execution_id": record.execution_id})
+                return
             self._set_phase(task, str(report.detail.get("phase",
                                                        task.phase)))
             if report.state is ExecutionState.FAILED:
-                if report.detail.get("safety_engaged"):
-                    latch_reason = str(
-                        report.detail.get("safety_latch_reason", ""))
-                    self._fail_operation(task, sim_time,
-                                         report.failure_reason,
-                                         dict(report.evidence))
-                    self._event("TASK_FAILED", task_id=task.task_id,
-                                uid=task.uid, device=f"arm_{unit_id}",
-                                detail={"reason": "SAFETY_LATCH",
-                                        "latch": latch_reason})
-                    self._freeze(f"{unit_id} 安全锁存: {latch_reason}",
-                                 sim_time, abort=True)
+                self._handle_unit_failure(unit_id, record, task, report,
+                                          sim_time)
+                if self.aborted or self.frozen:
                     return
-                failure = str(report.detail.get("controller_failure", ""))
-                self._fail_operation(task, sim_time,
-                                     report.failure_reason,
-                                     dict(report.evidence))
-                self._event("TASK_FAILED", task_id=task.task_id,
-                            uid=task.uid, device=f"arm_{unit_id}",
-                            detail={"reason": failure})
-                self._freeze(f"{unit_id} 任务失败: {failure}", sim_time,
-                             abort=True)
-                return
+                continue
             if report.state is ExecutionState.SUCCEEDED:
                 controller = record.controller
                 ok, reason, evidence = self._verify_unit_task(task, controller,
@@ -1094,14 +1189,199 @@ class Stage4Coordinator:
                     if self.frozen or self.aborted:
                         return
                 else:
-                    self._fail_operation(task, sim_time, reason, evidence)
+                    self._fail_operation(
+                        task, sim_time, reason, evidence,
+                        failure_code="NODE_VERIFICATION_FAILED")
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid, device=f"arm_{unit_id}",
                                 detail={"reason": reason})
-                    self._freeze(reason, sim_time, abort=True)
+                    self._global_failure(
+                        "NODE_VERIFICATION_FAILED", reason, sim_time,
+                        task=task, device_id=f"arm_{unit_id}",
+                        evidence=evidence, mark_failed=False)
                     return
         self._after_route(sim_time)
-        self._check_join(sim_time)
+        if self.order is None:
+            self._check_join(sim_time)
+        else:
+            self._check_order_joins(sim_time)
+
+    # ── 故障分类与局部隔离 ─────────────────────────────────
+
+    def _handle_unit_failure(self, unit_id: str, record: ControllerRecord,
+                             task: Stage4Task, report, sim_time: float
+                             ) -> None:
+        """按结构化 failure_code 分流 NODE/GLOBAL; 不解析错误字符串."""
+        code = str(report.failure_code or
+                   report.detail.get("failure_code") or "")
+        if report.detail.get("safety_engaged"):
+            code = "SAFETY_LATCH"
+        if not code:
+            code = "UNKNOWN_EXECUTOR_FAILURE"
+        safe_ok, safe_state = self._confirm_node_local_safety(task, report)
+        pre_physical = report.detail.get("physical_action_started") is False
+        scope = classify_failure(
+            code, pre_physical=pre_physical,
+            safe_state_confirmed=safe_ok)
+        reason = str(report.failure_reason or code)
+        device_id = f"arm_{unit_id}"
+        if scope is FailureScope.NODE:
+            self._apply_node_failure(
+                task, record, code, reason, sim_time, device_id,
+                safe_state, dict(report.evidence))
+            return
+        if code == "SAFETY_LATCH":
+            display = (f"{unit_id} 安全锁存: "
+                       f"{report.detail.get('safety_latch_reason', '')}")
+        elif code == "UNIT_CONTROLLER_FAILURE":
+            display = (f"{unit_id} 任务失败: "
+                       f"{report.detail.get('controller_failure', reason)}")
+        else:
+            display = f"{unit_id} 任务失败: {reason}"
+        self._fail_operation(task, sim_time, reason,
+                             dict(report.evidence), failure_code=code)
+        self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
+                    device=device_id, failure_scope="GLOBAL",
+                    node_id=task.operation.node_id,
+                    detail={"reason": code, "failure_code": code,
+                            "message": reason})
+        self._global_failure(
+            code, display, sim_time, task=task, device_id=device_id,
+            evidence=dict(report.evidence), safe_state=safe_state,
+            mark_failed=False)
+        self.controllers.pop(unit_id, None)
+        try:
+            record.executor.release("global failure")
+        except Exception:
+            pass
+
+    def _confirm_node_local_safety(
+            self, task: Stage4Task, report) -> tuple[bool, dict]:
+        """确认节点失败已停止且物料/账本/资源状态可核实."""
+        safe: dict = {
+            "executor_stopped": bool(report.finished),
+            "physical_action_started": (
+                report.detail.get("physical_action_started") is not False),
+            "safety_engaged": bool(report.detail.get("safety_engaged")),
+        }
+        if not report.finished or safe["safety_engaged"]:
+            return False, safe
+        if report.detail.get("physical_action_started") is not False:
+            return False, safe
+        template = self._operation_or_none(task)
+        flow = self.flow.by_uid(task.uid)
+        rec = self.materials.by_uid(task.uid)
+        if template is None or flow is None or rec is None \
+                or rec.sim_handle is None:
+            return False, safe
+        if flow.zone != template.inputs[0].zone:
+            return False, safe
+        if flow.item_type not in template.input_types:
+            return False, safe
+        if flow.state not in (RecordState.CREATED, RecordState.READY):
+            return False, safe
+        safe.update({
+            "material_uid": int(task.uid),
+            "material_zone": flow.zone,
+            "material_type": flow.item_type.value,
+            "material_state": flow.state.value,
+            "ledger_unchanged": True,
+        })
+        return True, safe
+
+    def _apply_node_failure(self, task: Stage4Task, record: ControllerRecord,
+                            code: str, reason: str, sim_time: float,
+                            device_id: str, safe_state: dict,
+                            evidence: dict) -> None:
+        """节点局部失败: 停止本执行、释放资源、阻断依赖后继, 继续其他分支."""
+        if not task.runtime_backed:
+            self._global_failure(
+                "SHARED_RESOURCE_FAILED",
+                f"NODE scope 仅支持运行时订单节点: {reason}", sim_time,
+                task=task, device_id=device_id, safe_state=safe_state)
+            return
+        unit_id = device_id.removeprefix("arm_")
+        self.controllers.pop(unit_id, None)
+        try:
+            record.executor.release("node failure")
+        except Exception:
+            pass
+        self._release_task(task, sim_time, "node failure")
+        owner = self._owner(task)
+        held = self.resources.held_by(owner)
+        safe_state["resources_released"] = not held
+        safe_state["held_resources"] = list(held)
+        if held:
+            self._global_failure(
+                "RESOURCE_RELEASE_DENIED",
+                f"节点 {task.task_id} 资源未释放: {held}", sim_time,
+                task=task, device_id=device_id, safe_state=safe_state,
+                mark_failed=False)
+            return
+        blocked = self.op_runtime.propagate_failure(
+            task.instance_id, reason, sim_time, failure_code=code,
+            evidence={"failure_scope": "NODE", "safe_state": safe_state,
+                      **evidence})
+        summary = self.op_runtime.failure_summary()
+        failure = make_failure_record(
+            code=code, message=reason,
+            node_id=task.operation.node_id or task.operation_template_id,
+            instance_id=task.instance_id, task_id=task.task_id,
+            device_id=device_id, sim_time=sim_time,
+            scope=FailureScope.NODE, safe_state=safe_state,
+            evidence=evidence)
+        record_row = failure.as_dict()
+        record_row["blocked_nodes"] = [
+            row.node_id or row.instance_id for row in blocked]
+        record_row["continued_nodes"] = summary["continued_nodes"]
+        record_row["order_status"] = self.order_status()
+        self.failures.append(record_row)
+        self._event(
+            "TASK_FAILED", task_id=task.task_id, uid=task.uid,
+            device=device_id, failure_scope="NODE",
+            node_id=task.operation.node_id,
+            detail={"reason": reason, "failure_code": code,
+                    "failure": record_row,
+                    "blocked": record_row["blocked_nodes"],
+                    "continued": record_row["continued_nodes"]})
+        self._event(
+            "FAILURE_ISOLATED", failure_scope="NODE",
+            node_id=task.operation.node_id,
+            detail=record_row)
+
+    def _global_failure(self, code: str, reason: str, sim_time: float, *,
+                        task: Optional[Stage4Task] = None,
+                        device_id: str = "",
+                        evidence: Optional[dict] = None,
+                        safe_state: Optional[dict] = None,
+                        mark_failed: bool = True) -> None:
+        """记录结构化全局故障并冻结全场; 幂等."""
+        if self.aborted or self.frozen:
+            return
+        failure = make_failure_record(
+            code=code, message=reason,
+            node_id=(task.operation.node_id
+                     if task is not None else ""),
+            instance_id=(task.instance_id if task is not None else ""),
+            task_id=(task.task_id if task is not None else ""),
+            device_id=device_id, sim_time=sim_time,
+            scope=FailureScope.GLOBAL, safe_state=safe_state or {},
+            evidence=evidence or {})
+        self.failures.append(failure.as_dict())
+        if task is not None and mark_failed:
+            try:
+                self._fail_operation(
+                    task, sim_time, reason, evidence,
+                    failure_code=code)
+            except Exception:
+                pass
+        self._event("FAILURE", failure_scope="GLOBAL",
+                    node_id=(task.operation.node_id
+                             if task is not None else ""),
+                    detail=failure.as_dict())
+        self._freeze(reason, sim_time, abort=True)
+
+    # ── 单任务校验 ──────────────────────────────────────────
 
     def _verify_unit_task(self, task: Stage4Task,
                           controller: Stage4UnitController,
@@ -1183,8 +1463,9 @@ class Stage4Coordinator:
                     self.flow.process(task.uid, unit_id, sim_time,
                                       task_id=task.task_id)
                 except MaterialFlowError as exc:
-                    self._freeze(f"PROCESS_FAILED: {exc}", sim_time,
-                                 abort=True)
+                    self._global_failure(
+                        "PROCESS_FAILED", f"PROCESS_FAILED: {exc}",
+                        sim_time, task=task, device_id=f"arm_{unit_id}")
                     return False
                 flow = self.flow.by_uid(task.uid)
         dest = template.output.zone if template.output else ""
@@ -1196,8 +1477,10 @@ class Stage4Coordinator:
                         MaterialState.ON_CONVEYOR, sim_time,
                         f"placed on {dest}; handoff to conveyor")
                 except Exception as exc:
-                    self._freeze(f"CONVEYOR_STATE: {exc}", sim_time,
-                                 abort=True)
+                    self._global_failure(
+                        "MATERIAL_STATE_UNKNOWN",
+                        f"CONVEYOR_STATE: {exc}", sim_time, task=task,
+                        device_id=f"arm_{unit_id}")
                     return False
         try:
             self.flow.occupy(
@@ -1207,7 +1490,9 @@ class Stage4Coordinator:
                        if template.sink_kind != "conveyor"
                        else RecordState.IN_TRANSIT))
         except MaterialFlowError as exc:
-            self._freeze(f"ZONE_COMMIT_FAILED: {exc}", sim_time, abort=True)
+            self._global_failure(
+                "ZONE_COMMIT_FAILED", f"ZONE_COMMIT_FAILED: {exc}",
+                sim_time, task=task, device_id=f"arm_{unit_id}")
             return False
         self._event("MATERIAL_PLACE", task_id=task.task_id, uid=task.uid,
                     item_type=flow.item_type.value if flow else "",
@@ -1272,11 +1557,15 @@ class Stage4Coordinator:
                                        {"route": route_summary})
             else:
                 self._fail_operation(task, sim_time, reason,
-                                     {"route": route_summary})
+                                     {"route": route_summary},
+                                     failure_code="NODE_VERIFICATION_FAILED")
                 self._event("TASK_FAILED", task_id=task.task_id,
                             uid=task.uid, device="agv",
                             detail={"reason": reason})
-                self._freeze(reason, sim_time, abort=True)
+                self._global_failure(
+                    "NODE_VERIFICATION_FAILED", reason, sim_time,
+                    task=task, device_id="agv",
+                    evidence={"route": route_summary}, mark_failed=False)
             self.agv_history.append(route_summary)
             self._release_task(task, sim_time, "route complete")
             executor.release("route complete")
@@ -1284,9 +1573,10 @@ class Stage4Coordinator:
             self.route_execution_id = ""
             return
         if route_state == RouteState.FAILED.value:
-            self._fail_operation(task, sim_time,
-                                 f"AGV_ROUTE_FAILED: {report.failure_reason}",
-                                 {"route": route_summary})
+            self._fail_operation(
+                task, sim_time,
+                f"AGV_ROUTE_FAILED: {report.failure_reason}",
+                {"route": route_summary}, failure_code="AGV_ROUTE_FAILED")
             self.agv_history.append(route_summary)
             self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
                         device="agv",
@@ -1295,8 +1585,11 @@ class Stage4Coordinator:
             executor.release("route failed")
             self.route_task = None
             self.route_execution_id = ""
-            self._freeze(f"AGV_ROUTE_FAILED: {report.failure_reason}",
-                         sim_time, abort=True)
+            self._global_failure(
+                "AGV_ROUTE_FAILED",
+                f"AGV_ROUTE_FAILED: {report.failure_reason}", sim_time,
+                task=task, device_id="agv",
+                evidence={"route": route_summary}, mark_failed=False)
             return
         if route_state == RouteState.BLOCKED.value:
             if task.status is not TaskStatus.BLOCKED:
@@ -1329,10 +1622,16 @@ class Stage4Coordinator:
                     self._block_since = None
                     return
             if sim_time - self._block_since > cfg.AGV_ROUTE_TIMEOUT:
-                self._fail_operation(task, sim_time,
-                                     "AGV_BLOCKED_TIMEOUT: 清障后仍未续行",
-                                     {"route": route_summary})
-                self._freeze("AGV_BLOCKED_TIMEOUT", sim_time, abort=True)
+                self._fail_operation(
+                    task, sim_time,
+                    "AGV_BLOCKED_TIMEOUT: 清障后仍未续行",
+                    {"route": route_summary},
+                    failure_code="AGV_ROUTE_FAILED")
+                self._global_failure(
+                    "AGV_ROUTE_FAILED", "AGV_BLOCKED_TIMEOUT", sim_time,
+                    task=task, device_id="agv",
+                    evidence={"route": route_summary},
+                    mark_failed=False)
 
     def _verify_route(self, task: Stage4Task,
                       route: AGVRouteController4) -> tuple[bool, str]:
@@ -1476,6 +1775,155 @@ class Stage4Coordinator:
             if port.item_type is item_type:
                 return port
         return None
+
+    # ── 订单逻辑合流 ────────────────────────────────────────
+
+    def _zone_material_pose(self, zone: str):
+        """订单逻辑工序输出区域的物料落点; 未知区域返回 None."""
+        if zone == "output_e":
+            return (cfg.E_OUTPUT["position"][0],
+                    cfg.E_OUTPUT["position"][1],
+                    cfg.E_OUTPUT["material_z"])
+        if zone in cfg.E_BUFFERS:
+            position = cfg.E_BUFFERS[zone]["position"]
+            return (position[0], position[1],
+                    base.ISLAND_TOP_Z + base.MATERIAL_HALF_HEIGHT)
+        if zone == cfg.HANDOFF_AC["id"]:
+            position = cfg.HANDOFF_AC["position"]
+            return (position[0], position[1],
+                    base.STATION_TOP_Z + base.MATERIAL_HALF_HEIGHT)
+        line = self.lines.get(zone)
+        if line is not None:
+            return tuple(line.place_material_pose)
+        return None
+
+    def _check_order_joins(self, sim_time: float) -> None:
+        """执行编译好的订单逻辑合流; 父 UID 由编译器绑定, 不重新配对."""
+        if self.frozen or self.aborted or self.order is None:
+            return
+        for instance in self.op_runtime.graph.instances():
+            template = self._template(instance.template_id)
+            if template.executor_kind != "logic":
+                continue
+            if instance.state not in (TaskStatus.PENDING,
+                                      TaskStatus.WAITING):
+                continue
+            predecessors = [self.op_runtime.instance(pid)
+                            for pid in self.op_runtime.graph.predecessors(
+                                instance.instance_id)]
+            if not predecessors or not all(
+                    row is not None and row.state is TaskStatus.DONE
+                    and row.committed for row in predecessors):
+                continue
+            result = self._execute_order_join(
+                instance, template, sim_time)
+            if not result:
+                return
+
+    def _execute_order_join(self, instance, template: OperationTemplate,
+                            sim_time: float) -> bool:
+        parent_uids = [int(uid) for uid in instance.input_uids]
+        if len(parent_uids) != len(template.inputs):
+            self._global_failure(
+                "LEDGER_INCONSISTENT",
+                f"合流 {instance.node_id} 父 UID {parent_uids} 与输入端口 "
+                f"{len(template.inputs)} 不一致", sim_time)
+            return False
+        for port in template.inputs:
+            matches = [uid for uid in parent_uids
+                       if self.flow.by_uid(uid) is not None
+                       and self.flow.by_uid(uid).item_type == port.item_type
+                       and self.flow.by_uid(uid).zone == port.zone]
+            if len(matches) != 1:
+                self._global_failure(
+                    "LEDGER_INCONSISTENT",
+                    f"合流 {instance.node_id} 端口 {port.zone}/"
+                    f"{port.item_type.value} 父 UID 不唯一: {parent_uids}",
+                    sim_time)
+                return False
+        semi_candidates = [
+            uid for uid in parent_uids
+            if self.flow.by_uid(uid) is not None
+            and self.flow.by_uid(uid).item_type is ItemType.SEMI_CE]
+        part_candidates = [
+            uid for uid in parent_uids
+            if self.flow.by_uid(uid) is not None
+            and self.flow.by_uid(uid).item_type is ItemType.PART_DE]
+        if len(semi_candidates) != 1 or len(part_candidates) != 1:
+            self._global_failure(
+                "LEDGER_INCONSISTENT",
+                f"合流 {instance.node_id} 缺少唯一 SEMI_CE/PART_DE 父 UID: "
+                f"{parent_uids}", sim_time)
+            return False
+        semi_uid, part_uid = semi_candidates[0], part_candidates[0]
+        if template.output is None:
+            self._global_failure(
+                "LEDGER_INCONSISTENT",
+                f"合流 {instance.node_id} 缺少输出端口", sim_time)
+            return False
+        out_uid = int(instance.uid)
+        out_type = template.output.item_type
+        out_zone = template.output.zone
+        pose = self._zone_material_pose(out_zone)
+        if pose is None:
+            self._global_failure(
+                "SCENE_INTEGRITY_LOST",
+                f"合流输出区域 {out_zone!r} 没有落点", sim_time)
+            return False
+        alias = f"Part_{out_uid:04d}"
+        try:
+            handle = self.scene.spawn_material(
+                out_uid, alias, position=tuple(pose))
+        except Exception as exc:
+            self._global_failure(
+                "SCENE_INTEGRITY_LOST",
+                f"JOIN_SPAWN_FAILED: {type(exc).__name__}: {exc}", sim_time)
+            return False
+        self._set_material_color(handle, out_type)
+        self.materials.register(out_uid, alias, sim_handle=handle)
+        result = self.flow.commit_join_uids(
+            final_uid=out_uid, semi_uid=semi_uid, part_uid=part_uid,
+            sim_time=sim_time, final_alias=alias, final_handle=handle,
+            final_zone=out_zone)
+        if not result.ok:
+            self.scene.remove_material(handle)
+            self.materials.remove(out_uid)
+            self._global_failure(
+                "LEDGER_INCONSISTENT",
+                f"JOIN_REJECTED: {result.reason}", sim_time,
+                evidence=result.as_dict())
+            return False
+        for parent in (result.semi_uid, result.part_uid):
+            rec = self.materials.by_uid(parent)
+            if rec is not None and rec.sim_handle is not None:
+                self.runtime.forget_material(rec.sim_handle)
+                self.scene.remove_material(rec.sim_handle)
+            self.materials.detach_sim(parent)
+            parent_flow = self.flow.by_uid(parent)
+            if parent_flow is not None:
+                parent_flow.sim_handle = None
+            for unit_id in cfg.UNIT_IDS:
+                try:
+                    self.comp["suction"][unit_id].forget(parent)
+                except Exception:
+                    pass
+        self.final_count += 1
+        self.op_runtime.commit_success(
+            instance.instance_id, output_uids=[out_uid], sim_time=sim_time,
+            evidence={"pair_key": result.pair_key, "join": template.id,
+                      "parents": [result.semi_uid, result.part_uid],
+                      "order_id": instance.order_id,
+                      "node_id": instance.node_id})
+        self._event(
+            "FINAL_CREATED", uid=out_uid, item_type=out_type.value,
+            zone=out_zone, device="E", evidence_id=result.pair_key,
+            node_id=instance.node_id,
+            detail={"parents": [result.semi_uid, result.part_uid],
+                    "pair_key": result.pair_key,
+                    "operation": template.id,
+                    "instance": instance.instance_id,
+                    "order_id": instance.order_id})
+        return True
 
     # ═══════════════════════════════════════════════════════
     # 故障注入
@@ -1626,7 +2074,9 @@ class Stage4Coordinator:
         self.stop_reason = str(reason)
         self._frozen_since = float(sim_time)
         self._abort_settle_steps = 0
-        self._event("FREEZE", detail={"reason": reason, "abort": abort})
+        self._event("FREEZE", detail={
+            "reason": reason, "abort": abort,
+            "order_status": self.order_status()})
         try:
             self.agv.stop()
         except Exception:
@@ -1665,23 +2115,28 @@ class Stage4Coordinator:
                 if since is None:
                     since = task.created_sim_time
                 if sim_time - since > cfg.BACKPRESSURE_MAX_WAIT_S:
-                    self._fail_task(
+                    self._fail_operation(
                         task, sim_time,
-                        f"BACKPRESSURE_TIMEOUT: {task.phase}")
+                        f"BACKPRESSURE_TIMEOUT: {task.phase}",
+                        failure_code="BACKPRESSURE_TIMEOUT")
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid,
                                 detail={"reason": "BACKPRESSURE_TIMEOUT"})
-                    self._freeze("BACKPRESSURE_TIMEOUT", sim_time,
-                                 abort=True)
+                    self._global_failure(
+                        "BACKPRESSURE_TIMEOUT", "BACKPRESSURE_TIMEOUT",
+                        sim_time, task=task, mark_failed=False)
                     return
             elif task.status is TaskStatus.RUNNING:
                 if sim_time - (task.started_sim_time or sim_time) > \
                         cfg.TASK_TIMEOUT:
-                    self._fail_task(task, sim_time, "TASK_TIMEOUT")
+                    self._fail_operation(task, sim_time, "TASK_TIMEOUT",
+                                         failure_code="TASK_TIMEOUT")
                     self._event("TASK_FAILED", task_id=task.task_id,
                                 uid=task.uid,
                                 detail={"reason": "TASK_TIMEOUT"})
-                    self._freeze("TASK_TIMEOUT", sim_time, abort=True)
+                    self._global_failure(
+                        "TASK_TIMEOUT", "TASK_TIMEOUT", sim_time,
+                        task=task, mark_failed=False)
                     return
 
     @property
@@ -1699,13 +2154,22 @@ class Stage4Coordinator:
             return False
         if not self.queue.finished():
             return False
-        # 已实例化的工序图必须全部 DONE: 队列里没有任务不代表图已走完.
-        if not self.op_runtime.all_done():
+        self.op_runtime.cancel_unreachable(self._sim_time())
+        if not self.op_runtime.settled():
             return False
+        state = self.op_runtime.progress_state(aborted=self.aborted)
+        if state == "RUNNING":
+            return False
+        if self.order is not None:
+            return len(self._order_spawned) >= len(self._order_inputs)
         return all(
             self._source_count[key] >=
             int(self._batch.get(self._source_entries[key].item_type.value, 0))
             for key in self._source_keys)
+
+    def order_status(self) -> str:
+        """当前订单/运行图收敛状态; 不改变仿真生命周期."""
+        return self.op_runtime.progress_state(aborted=self.aborted)
 
     # ═══════════════════════════════════════════════════════
     # 校验辅助
@@ -1796,14 +2260,27 @@ class Stage4Coordinator:
                     if rec.state is not RecordState.CONSUMED]
         loaded_routes = [row for row in self.agv_history
                          if row.get("spec", {}).get("loaded")]
-        route_ok = bool(
-            loaded_routes and all(
-                row.get("metrics", {}).get("stop_error") is not None
-                and row["metrics"]["stop_error"]
-                <= cfg.AGV_ROUTE_ARRIVE_TOL
-                and abs(row["metrics"].get("heading_error") or 0.0)
-                <= cfg.AGV_ROUTE_HEADING_TOL
-                for row in loaded_routes))
+        if self.order is not None:
+            route_required = any(
+                self._template(instance.template_id).executor_kind == "agv"
+                for instance in self.op_runtime.instances())
+            route_ok = (not route_required) or bool(
+                loaded_routes and all(
+                    row.get("metrics", {}).get("stop_error") is not None
+                    and row["metrics"]["stop_error"]
+                    <= cfg.AGV_ROUTE_ARRIVE_TOL
+                    and abs(row["metrics"].get("heading_error") or 0.0)
+                    <= cfg.AGV_ROUTE_HEADING_TOL
+                    for row in loaded_routes))
+        else:
+            route_ok = bool(
+                loaded_routes and all(
+                    row.get("metrics", {}).get("stop_error") is not None
+                    and row["metrics"]["stop_error"]
+                    <= cfg.AGV_ROUTE_ARRIVE_TOL
+                    and abs(row["metrics"].get("heading_error") or 0.0)
+                    <= cfg.AGV_ROUTE_HEADING_TOL
+                    for row in loaded_routes))
         priority_ok, priority_detail = self._priority_acceptance()
         scheduler_ok, scheduler_detail = self._scheduler_acceptance()
         graph_instances = self.op_runtime.graph.instances()
@@ -1830,6 +2307,10 @@ class Stage4Coordinator:
             "aborted": self.aborted,
             "frozen": self.frozen,
             "stop_reason": self.stop_reason,
+            "order_status": self.order_status(),
+            "failure_policy_version": FAILURE_POLICY_VERSION,
+            "failures": list(self.failures),
+            "failure_summary": self.op_runtime.failure_summary(),
             "loaded_routes": len(loaded_routes),
             "route_ok": route_ok,
             "priority_ok": priority_ok,
@@ -1845,6 +2326,14 @@ class Stage4Coordinator:
         common = (not any_latch and resources_released and route_ok
                   and priority_ok and scheduler_ok
                   and acceptance["graph_complete"])
+        if self.order is not None:
+            acceptance["order"] = self.order.as_dict()
+            acceptance["order_target_quantity"] = int(
+                self.order.target_quantity)
+            acceptance["ok"] = bool(
+                self.order_status() == "SUCCEEDED" and common
+                and len(finals) == int(self.order.target_quantity))
+            return acceptance
         if self.scenario == cfg.SCENARIO_FULL_FLOW:
             acceptance["ok"] = bool(
                 self.queue.all_done() and common
@@ -1943,8 +2432,7 @@ class Stage4Coordinator:
             if not instance.run_id:
                 continue
             try:
-                template = self.catalog.operation(instance.template_id,
-                                                  self.recipe.id)
+                template = self._template(instance.template_id)
             except Exception:
                 continue
             if template.executor_kind == "logic" or not instance.dispatched:
@@ -2031,10 +2519,22 @@ class Stage4Coordinator:
             "aborted": self.aborted,
             "frozen": self.frozen,
             "stop_reason": self.stop_reason,
+            "order_status": self.order_status(),
+            "failure_policy_version": FAILURE_POLICY_VERSION,
+            "failures": list(self.failures),
+            "failure_summary": self.op_runtime.failure_summary(),
             "batch": dict(self._batch),
             "batch_input_version": spec.BATCH_INPUT_VERSION,
             "source_counts": dict(self._source_count),
             "agv_at_dock": self.agv_at_dock,
+            "order": None if self.order is None else self.order.as_dict(),
+            "order_plan": (None if self.order_plan is None else {
+                "run_id": self.order_plan.run_id,
+                "digest": self.order_plan.digest,
+                "instance_counts": dict(self.order_plan.instance_counts),
+                "material_plans": [row.as_dict()
+                                   for row in self.order_plan.material_plans],
+            }),
             "process_model": {
                 "version": self.catalog.version,
                 "recipe_id": self.recipe.id,
@@ -2077,8 +2577,14 @@ class Stage4Coordinator:
                uid: Optional[int] = None, item_type: str = "",
                zone: str = "", source: str = "", destination: str = "",
                device: str = "", evidence_id: str = "",
+               failure_scope: str = "", node_id: str = "",
                detail: Optional[dict] = None) -> None:
         self._evidence_seq += 1
+        payload = dict(detail or {})
+        if failure_scope:
+            payload.setdefault("failure_scope", failure_scope)
+        if node_id:
+            payload.setdefault("node_id", node_id)
         self.events.append({
             "sim_time": round(self._sim_time(), 4),
             "kind": str(kind),
@@ -2090,12 +2596,14 @@ class Stage4Coordinator:
             "destination": str(destination),
             "device": str(device),
             "evidence_id": str(evidence_id or f"ev{self._evidence_seq:05d}"),
-            "detail": detail or {},
+            "failure_scope": str(failure_scope),
+            "node_id": str(node_id),
+            "detail": payload,
         })
         if self.logger:
             self.logger.info("[STAGE4 t=%.2f] %s %s uid=%s %s",
                              self._sim_time(), kind, task_id, uid,
-                             detail or {})
+                             payload or {})
 
     def _sim_time(self) -> float:
         try:

@@ -80,6 +80,7 @@ class ExecutionReport:
     state: ExecutionState
     finished: bool
     failure_reason: str = ""
+    failure_code: str = ""
     detail: dict = field(default_factory=dict)
     evidence: dict = field(default_factory=dict)
 
@@ -91,6 +92,7 @@ class ExecutionReport:
             "state": self.state.value,
             "finished": bool(self.finished),
             "failure_reason": self.failure_reason,
+            "failure_code": self.failure_code,
             "detail": jsonable(self.detail),
             "evidence": jsonable(self.evidence),
         }
