@@ -36,12 +36,16 @@ MCP 和自动故障恢复不在当前 v1 能力范围；安全锁存不会自动
 ## 入口与结构
 
     src/flexible_factory/
-      domain/        物料、任务、资源、指标、工艺目录、工序运行图 (纯 Python)
+      domain/        物料、任务、资源、指标、工艺目录、工序运行图、订单 DAG
+                     契约/校验/编译、故障分类 (纯 Python)
       simulation/    场景、布局、物理、运动、AGV、运行时、device_binding
         execution/   设备执行适配层（臂/AGV 包装，不调用 sim.step）
       artifacts/     v1 manifest、工件仓库、迁移
-      persistence/   静态目录/知识表 ORM、SQLite/Alembic 迁移、导入/发布/仓储
-      application/   生命周期、运行用例、多岛协调、目录 seed/知识导入用例
+      persistence/   静态目录/知识表/运行记录/版本化订单 ORM、
+                     SQLite/Alembic 迁移、导入/发布/仓储
+      application/   生命周期、运行用例、多岛协调、目录/知识用例、
+                     订单服务与 worker、自主 planner
+      api/           本地订单 HTTP adapter（仅传输层）
       cli.py         唯一 v1 命令入口
       spec.py        产品/契约/schema 版本
     tools/

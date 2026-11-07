@@ -22,7 +22,8 @@ src/flexible_factory/
   spec.py            产品/契约/schema 版本、模型路径
   domain/            rules, materials, tasks, resources, metrics,
                      process_model, default_process, operation_runtime,
-                     scheduling（纯 Python）
+                     scheduling, orders, order_validation, order_compiler,
+                     failures（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
                      ur5_ik, material_manager, agv, runtime,
                      runtime_common, unit_controller, device_binding
@@ -33,9 +34,11 @@ src/flexible_factory/
     execution/       base（执行契约）, arm（ArmExecutor）, agv（AgvExecutor）
   artifacts/         store（manifest/仓库/校验）, migration
   persistence/       SQLAlchemy 2.x ORM、SQLite Engine/Session、Alembic 迁移、
-                     catalog seed 导入/发布/只读仓储、知识图谱导入、运行记录
+                     catalog seed 导入/发布/只读仓储、知识图谱导入、运行记录、
+                     版本化订单仓储
   application/       lifecycle, coordinator, run, batch, catalog, knowledge,
-                     report
+                     report, orders (service/worker), order_runner, planner
+  api/               本地订单 HTTP adapter（仅传输层）
   cli.py             唯一命令入口
   tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
   tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
@@ -80,6 +83,44 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
   `TaskQueue` 只服务非配方任务（空载调机/兼容路径），直接赋值会抛
   `TaskError`。
+- 自建订单 DAG（阶段 1–3）：
+  - `domain/orders.py` 只保存声明式 `OrderSpec`/节点/边/投料/目标，严格拒绝
+    未知字段、代码字段和运行时句柄；`canonical_json()`/`dag_digest()` 是
+    版本不可变性和运行关联的稳定摘要。
+  - `domain/order_validation.py` 只做订单层结构校验（ID、边、端口供给、
+    多前驱 AND/join、环、入口与目标可达）；目录规则仍由 `ProcessCatalog`
+    负责。诊断使用稳定 code + node/edge/port/input 定位。
+  - `domain/order_compiler.py` 按订单输入数量确定性分配物料 UID，生成
+    `OperationInstance`（`instance_id = run_id:node_id:uid`，join 使用输入
+    UID 元组；`task_id` 含 `node_id`）；不伪造 `selected_route`，不导入
+    CoppeliaSim/application/persistence。
+  - 订单模式与 recipe 模式共用 `OperationGraph`/`OperationRuntime` 的
+    ready/commit 生命周期。`OperationGraph(order=...)` 使用端口绑定校验，
+    recipe/route 校验只保留给旧入口。
+  - `domain/failures.py` 是保守 allowlist：首版只有 `NODE_PRECHECK_REJECTED`
+    在物理动作前、物料/账本可核实、资源已释放时可标记 NODE；安全锁存、
+    仿真基础设施、共享资源、未知异常和未准入 executor 失败一律 GLOBAL。
+    纯逻辑测试通过不等于授权真实 NODE 错误，仍需 focused CoppeliaSim 证据。
+  - 局部失败只阻断依赖后继，独立分支继续；`progress_state()` 区分
+    `RUNNING/SUCCEEDED/PARTIAL_FAILED/FAILED/ABORTED`，收敛前可把不可达
+    BLOCKED 标为 `CANCELLED`。
+  - `application/orders.py` 是订单定义、预览、版本、启动/停止/查询的唯一
+    应用服务；`OrderSimulationWorker` 独占 runner 线程，HTTP handler 不持有
+    sim/scene/controller/handle。订单运行只绑定不可变版本、目录版本和具体
+    artifact ID。
+  - `persistence/order_models.py`/`orders.py` 与静态目录 release 分表；
+    `order_version` 由数据库触发器禁止 UPDATE；读取时重新校验 spec 身份和
+    digest。运行终态/节点快照只在 worker 完成时批量写库。
+  - `application/planner.py` 是阶段 4 的确定性 planner：只把已登记
+    `RouteVariant` 作为 route macro、已登记且位于 `RUNTIME_JOIN_HANDLERS`
+    的 `join_handler_id` 作为 join
+    macro；从目标反向展开，按 `max_candidates/max_depth/max_nodes` 截断，
+    先满足可达/投料/编译，再按路线偏好、工序数和稳定签名选择。planner 不
+    写 ORM/资源/仿真，不静默修补编译失败；`ORDER_PLANNER_POLICY_VERSION`
+    在 `spec.py`，草稿由 `OrderService.plan_and_save()` 保存为普通不可变订单
+    版本，planner 输入/explain/候选数写入 `order_version` 的 planner 元数据列。
+  - `api/server.py` 只是本地传输适配器，默认绑定 `127.0.0.1`；首期没有
+    认证/TLS，不得直接暴露到非本机网络。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -117,8 +158,11 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   目录与当前代码目录逐字段等价时才切换，否则拒绝启动。
 - `persistence/` 采用 SQLAlchemy 2.x ORM + Alembic；revision
   `0001_catalog_core` 是静态目录，`0002_knowledge_graph` 是知识图谱表和
-  来源追溯。数据库默认路径 `var/catalog/catalog.db`（`.gitignore`），不得
-  写入场景工件目录；连接级 `PRAGMA foreign_keys=ON` 失败即拒绝运行。
+  来源追溯，`0003_run_records` 是运行快照/事件，`0004_order_catalog_metadata`
+  增加订单编排所需端口/allowlist/场景字段，`0005_orders` 增加版本化订单与
+  订单运行关联，`0006_order_planner_metadata` 增加 planner 输入/explain/
+  候选数元数据。数据库默认路径 `var/catalog/catalog.db`（`.gitignore`），
+  不得写入场景工件目录；连接级 `PRAGMA foreign_keys=ON` 失败即拒绝运行。
 - 知识图谱导入只消费 `tools/neo4j_export.py` 的 JSON：原始 `fmpmm.dump`
   由官方 `neo4j-admin` 载入/迁移，项目不解析二进制 dump。`knowledge import`
   只创建 staging；未映射标签/谓词、端点缺失或 canonical ID 冲突会阻止
@@ -225,6 +269,15 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   [目录实施报告](docs/implementation/reports/v1-catalog-persistence.md)、
   [知识图谱报告](docs/implementation/reports/v1-knowledge-graph-import.md) 与
   [运行记录报告](docs/implementation/reports/v1-run-record-persistence.md)。
+- 订单 DAG 纯逻辑/API 测试（不需要 CoppeliaSim）：
+  `tests/test_v1_order_foundation.py`（契约/校验/编译/digest）、
+  `tests/test_v1_order_failure_isolation.py`（NODE/GLOBAL 与收敛）、
+  `tests/test_v1_order_execution.py`（记录型 coordinator 端到端）、
+  `tests/test_v1_order_persistence.py`（不可变版本与运行关联）、
+  `tests/test_v1_order_service.py`（service/worker/HTTP API）、
+  `tests/test_v1_order_planner.py`（阶段 4 有界 planner、tie-break、
+  无解/搜索上限、草稿保存与 API）。订单夹具见 `tests/order_fixtures.py`。
+  这些结果不能替代阶段 6 的真实 CoppeliaSim 订单/故障验收。
 - 目录数据库验证：`flexible-factory catalog init/import/publish/verify/diff`
   （不需要 CoppeliaSim）；数据库默认 `var/catalog/catalog.db`。
 - 运行记录验证：`flexible-factory report runs/run/genealogy/waits/timeline`

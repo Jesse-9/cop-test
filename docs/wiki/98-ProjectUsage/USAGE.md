@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-06
+updated: 2026-11-07
 status: published
 sim_version: "4.10+"
 ---
@@ -93,6 +93,112 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
     flexible-factory status --offline
     flexible-factory list
     flexible-factory stop
+
+## 订单 DAG（阶段 1–3）
+
+自建订单把工序模板组合成声明式 DAG，经同一 validator/compiler 编译后在
+`L5_UFLOW` 中执行。阶段 1–3 已实现契约、编译、局部失败隔离、版本化持久化、
+本地 HTTP 服务和记录型端到端执行；后端自主规划器（阶段 4）、前端（阶段 5）
+和真实 CoppeliaSim 订单/故障验收（阶段 6）尚未实现，不能把纯逻辑结果当作
+实机能力。
+
+订单 JSON 只允许 `order_id/version/scene_id/target/inputs/nodes/edges/source`
+字段；节点只引用已登记 `template_id`，边只引用端口 identity，不接受 Python/
+Lua 代码、CoppeliaSim 句柄或未登记执行器。示例见
+`tests/order_fixtures.py` 的 `full_flow_order()`。
+
+CLI（不需要 CoppeliaSim 的校验/预览/版本命令）：
+
+    flexible-factory order validate --file order.json --db var/catalog/catalog.db
+    flexible-factory order create  --file order.json --db var/catalog/catalog.db
+    flexible-factory order preview --order-id <id> --version 1 --db var/catalog/catalog.db
+    flexible-factory order show    --order-id <id> --version 1 --db var/catalog/catalog.db
+    flexible-factory order list    --db var/catalog/catalog.db
+
+运行（需要 CoppeliaSim + ZMQ 23000；`start` 在当前进程同步执行）：
+
+    flexible-factory order start --order-id <id> --version 1 \
+        --artifact-id current --time 700 --run-records on
+    flexible-factory order status --run-id <run_id> --db var/catalog/catalog.db
+    flexible-factory order nodes  --run-id <run_id> --db var/catalog/catalog.db
+    flexible-factory order events --run-id <run_id> --db var/catalog/catalog.db
+    flexible-factory order stop   --run-id <run_id> --db var/catalog/catalog.db
+
+HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）：
+
+    flexible-factory api serve --host 127.0.0.1 --port 8080 \
+        --artifact-id current --run-records on
+
+    GET  /api/health
+    GET  /api/templates
+    GET/POST /api/orders
+    GET  /api/orders/{order_id}
+    GET/POST /api/orders/{order_id}/versions
+    GET  /api/orders/{order_id}/versions/{version}
+    POST /api/planner/plan
+    POST /api/planner/drafts
+    POST /api/orders/preview
+    POST /api/orders/{order_id}/versions/{version}/preview
+    POST /api/orders/{order_id}/versions/{version}/start
+    GET  /api/orders/{order_id}/runs
+    GET  /api/runs/{run_id}
+    GET  /api/runs/{run_id}/nodes
+    GET  /api/runs/{run_id}/events
+    POST /api/runs/{run_id}/stop
+
+- 创建/保存版本只做 JSON 字段校验；DAG 结构在预览和启动时由后端 validator/
+  compiler 拒绝并返回定位诊断。`start` 绑定不可变版本、目录版本和具体
+  artifact；`current` 会在服务端解析为具体 artifact ID。
+- 订单版本只能追加；数据库触发器禁止原地 UPDATE。运行开始后修改编排必须
+  创建新版本。
+- 首版只有 `NODE_PRECHECK_REJECTED` 在物理动作前且安全状态可核实时按 NODE
+  隔离；真实 ArmExecutor/AgvExecutor 目前不产生该 code，纯逻辑测试不构成
+  物理准入。安全锁存、仿真基础设施、共享资源和未知异常一律 GLOBAL。真实
+  运动错误的 NODE 准入需阶段 6 focused 证据，未验证类型保持 GLOBAL。
+- 目录版本已升至 `v1_process_20261106a`。旧目录 release 需重新
+  `catalog import/publish` 后才能作为 `--catalog-source db` 使用；订单表由
+  `0005_orders` 迁移创建。
+- API 首期没有认证/TLS，不得直接暴露到非本机网络。
+
+### 自主规划（阶段 4）
+
+planner 根据目标物料/数量和可用投料，确定性地选择已登记路线与合流，生成
+普通订单草稿。它只读静态目录，不启动仿真、不申请资源；结果仍需预览/确认
+后启动。
+
+```json
+{
+  "target_item_type": "FINAL",
+  "target_quantity": 1,
+  "inputs": [
+    {"item_type": "RAW_A", "quantity": 1},
+    {"item_type": "RAW_D", "quantity": 1}
+  ],
+  "order_id": "planner-draft",
+  "order_version": 1
+}
+```
+
+    # 只规划并输出 explain；无解也返回可读诊断
+    flexible-factory order plan --file planner.json
+
+    # 规划并保存为 source=planner 的普通不可变订单版本
+    flexible-factory order plan --file planner.json --save --note "golden"
+
+可选字段：`scene_id`、`allowed_template_ids`、`allowed_device_ids`、
+`preferred_route_ids`、`allow_high_risk`、`max_candidates`、`max_depth`、
+`max_nodes`、`policy_version`。首期 `allow_high_risk` 没有目录风险元数据，
+不改变候选集合。
+
+HTTP：
+
+    POST /api/planner/plan      只规划，返回 candidate/explain
+    POST /api/planner/drafts    规划并保存草稿；无解返回 422
+
+planner 只建模静态工艺图和投料数量；设备健康、节拍、实时资源、AGV 排队、
+几何可达性、碰撞和运动可行性仍需运行期/阶段 6 验收。无解时
+`first_blocking_category` 给出 policy/scene/target/template/device/join/
+input/search_limit/compile 中最先阻断的类别。
 
 ## 静态目录数据库（维护操作）
 
