@@ -47,6 +47,7 @@ MCP 和自动故障恢复不在当前 v1 能力范围；安全锁存不会自动
                      订单服务与 worker、自主 planner
       api/           本地订单 HTTP adapter（仅传输层）
       cli.py         唯一 v1 命令入口
+    frontend/        独立 React/TypeScript 订单工作台（只消费 /api）
       spec.py        产品/契约/schema 版本
     tools/
       neo4j/         本地 Neo4j Compose、官方 dump 载入脚本与说明

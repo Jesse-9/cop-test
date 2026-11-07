@@ -1,7 +1,7 @@
 ---
 title: 自建订单 DAG 阶段 5 — 前端订单与流程编排
 type: plan
-status: proposed
+status: implemented
 created: 2026-11-06
 updated: 2026-11-07
 scope: v1 UFLOW / order UI

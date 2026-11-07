@@ -47,3 +47,11 @@ docs/.obsidian/
 docs/.claudian/
 docs/.claude/
 docs/raw/
+
+# 前端 workspace 依赖与构建/测试产物 (锁文件入库)
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.vite/
+

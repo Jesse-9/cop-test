@@ -45,7 +45,7 @@ status: published
 
 | 主题 | 实施方案 | 状态说明 |
 |---|---|---|
-| 自建订单与工序 DAG 自主编排 | [路线图](../plans/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](../plans/v1-order-dag-phase-05-frontend.md)、[阶段 6](../plans/v1-order-dag-phase-06-simulation-acceptance.md) | 阶段 1–4 已实施并通过纯逻辑/API/记录型执行测试，见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)与[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md)；阶段 5–6 仍为 proposed；真实 CoppeliaSim 订单/故障验收未执行 |
+| 自建订单与工序 DAG 自主编排 | [路线图](../plans/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 方案](../plans/v1-order-dag-phase-05-frontend.md)、[阶段 5 UI 规格](../plans/v1-order-dag-phase-05-ui-design-spec.md)、[阶段 6](../plans/v1-order-dag-phase-06-simulation-acceptance.md) | 阶段 1–5 已实施并通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md)与[阶段 5 报告](../reports/v1-order-dag-phase-05-frontend.md)；阶段 6 仍为 proposed；真实 CoppeliaSim 订单/故障验收未执行 |
 
 ## 跨阶段技术主题
 

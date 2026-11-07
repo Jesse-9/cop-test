@@ -33,10 +33,11 @@
 | 阶段 4 能力匹配调度 | [实施方案](plans/v1-stage-04-capability-scheduling-implementation.md) | [实施报告](reports/v1-stage-04-capability-scheduling.md) |
 | 自建订单 DAG 阶段 1–3 | [阶段 1](plans/v1-order-dag-phase-01-foundation.md) · [阶段 2](plans/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3](plans/v1-order-dag-phase-03-api-persistence.md) | [阶段 1–3 实施报告](reports/v1-order-dag-phase-01-03.md) |
 | 自建订单 DAG 阶段 4 自主编排 | [阶段 4](plans/v1-order-dag-phase-04-auto-planner.md) | [阶段 4 实施报告](reports/v1-order-dag-phase-04-auto-planner.md) |
+| 自建订单 DAG 阶段 5 前端工作台 | [阶段 5 前端方案](plans/v1-order-dag-phase-05-frontend.md) · [UI 设计规格](plans/v1-order-dag-phase-05-ui-design-spec.md) | [阶段 5 实施报告](reports/v1-order-dag-phase-05-frontend.md) |
 
 ## 跨阶段方案与专项报告
 
-- [自建订单与工序 DAG 自主编排路线图](plans/v1-self-built-order-dag-orchestration.md)：总架构与六阶段依赖顺序；各阶段的详细步骤、代码落点和精简验收分别见[阶段 1](plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](plans/v1-order-dag-phase-05-frontend.md)、[阶段 6](plans/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 1–4 已实施并通过纯逻辑/API/记录型执行测试，见[阶段 1–3 实施报告](reports/v1-order-dag-phase-01-03.md)与[阶段 4 实施报告](reports/v1-order-dag-phase-04-auto-planner.md)；阶段 5–6 未实施，真实 CoppeliaSim 订单/故障验收未执行。
+- [自建订单与工序 DAG 自主编排路线图](plans/v1-self-built-order-dag-orchestration.md)：总架构与六阶段依赖顺序；各阶段的详细步骤、代码落点和精简验收分别见[阶段 1](plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](plans/v1-order-dag-phase-05-frontend.md)、[阶段 6](plans/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 1–5 已实施并通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](reports/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](reports/v1-order-dag-phase-04-auto-planner.md)与[阶段 5 实施报告](reports/v1-order-dag-phase-05-frontend.md)；阶段 6 未实施，真实 CoppeliaSim 订单/故障验收未执行。
 - [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)与[实施报告](reports/v1-mixed-production-flexibility-demo.md)：WP1/WP2 已实施并完成实机验收；WP3/WP4 仍为条件包。
 - [资源目录数据库化与知识图谱方案](plans/resource-catalog-database-and-knowledge-graph.md)：阶段 0–6 的总体架构与门槛。
 - [仿真与运动规划性能方案](plans/simulation-motion-planning-performance.md)：路径复用和性能提案。

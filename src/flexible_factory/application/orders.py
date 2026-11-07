@@ -305,6 +305,18 @@ class OrderService:
             "contract_version": ORDER_CONTRACT_VERSION,
             "scene_id": spec.LAYOUT_NAME,
             "templates": rows,
+            "routes": [
+                {
+                    "route_id": route.id,
+                    "group": route.group,
+                    "semantics": route.semantics,
+                    "operation_ids": list(route.operation_ids),
+                    "entry_zone": route.entry_zone,
+                    "exit_zone": route.exit_zone,
+                }
+                for recipe in self.catalog.recipes
+                for route in recipe.route_variants
+            ],
         }
 
     # ── 校验/预览 ───────────────────────────────────────────

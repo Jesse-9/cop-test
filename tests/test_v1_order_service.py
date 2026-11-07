@@ -234,6 +234,8 @@ def test_http_api_contract_and_run_query(database):
         assert status == 200
         assert any(row["template_id"] == "kit_join"
                    for row in payload["templates"])
+        assert {row["route_id"] for row in payload["routes"]} == {
+            "housing_direct", "housing_alt", "bracket_route"}
 
         status, payload = _request(
             server.base_url, "POST", "/api/orders/preview",

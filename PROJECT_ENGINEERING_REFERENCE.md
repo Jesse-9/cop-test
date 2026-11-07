@@ -40,6 +40,8 @@ src/flexible_factory/
                      report, orders (service/worker), order_runner, planner
   api/               本地订单 HTTP adapter（仅传输层）
   cli.py             唯一命令入口
+frontend/            独立 React/TypeScript 订单工作台 (阶段 5);
+                     只消费 /api，不访问 CoppeliaSim
   tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
   tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
   tools/db_dashboard.py 从 SQLite 生成自包含 HTML 仪表盘
@@ -121,6 +123,13 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
     版本，planner 输入/explain/候选数写入 `order_version` 的 planner 元数据列。
   - `api/server.py` 只是本地传输适配器，默认绑定 `127.0.0.1`；首期没有
     认证/TLS，不得直接暴露到非本机网络。
+  - `frontend/` 是独立 React/TypeScript/Vite workspace，只通过 `/api` 读写
+    订单草稿、preview、版本和运行快照；不导入 Python runtime，不持有
+    sim/scene/controller/handle，不生成运行时 UID 或物料账本。浏览器本地
+    检查只改善编辑体验，服务端 preview/validator 是权威；保存总是创建新的
+    不可变版本。运行页只读轮询状态/事件并发送 stop 请求，不推断安全/成功。
+    开发由 Vite `/api` 代理到本机订单 API；跨源部署必须使用同源反向代理或
+    显式 CORS allowlist，不能用通配来源。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -278,6 +287,15 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   `tests/test_v1_order_planner.py`（阶段 4 有界 planner、tie-break、
   无解/搜索上限、草稿保存与 API）。订单夹具见 `tests/order_fixtures.py`。
   这些结果不能替代阶段 6 的真实 CoppeliaSim 订单/故障验收。
+- 前端测试（需要 Node.js，不需要 CoppeliaSim）：
+  `cd frontend && npm ci && npm test`（Vitest：API client 错误映射、
+  订单草稿模型、状态映射）；`npm run e2e`（Playwright 三条旅程，首次执行
+  `npm run e2e:install`；使用 route mock，不启动仿真）。
+  `npm run build` 验证 TypeScript 与生产构建。
+- 前端真实 API 冒烟（需要本机订单 API，不需要 CoppeliaSim）：
+  `flexible-factory api serve --host 127.0.0.1 --port 8080`，再
+  `cd frontend && npm run dev`；可验证模板目录、订单/版本、preview 和
+  planner。真实订单启动/故障仍属阶段 6。
 - 目录数据库验证：`flexible-factory catalog init/import/publish/verify/diff`
   （不需要 CoppeliaSim）；数据库默认 `var/catalog/catalog.db`。
 - 运行记录验证：`flexible-factory report runs/run/genealogy/waits/timeline`

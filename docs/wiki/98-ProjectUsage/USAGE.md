@@ -200,6 +200,33 @@ planner 只建模静态工艺图和投料数量；设备健康、节拍、实时
 `first_blocking_category` 给出 policy/scene/target/template/device/join/
 input/search_limit/compile 中最先阻断的类别。
 
+### 前端订单工作台（阶段 5）
+
+独立前端位于 `frontend/`（React + TypeScript + Vite + React Flow）。先启动
+本机订单 API，再启动前端；浏览器不直接控制 CoppeliaSim。
+
+    # 终端 1：订单 API（默认 127.0.0.1:8080）
+    flexible-factory api serve --host 127.0.0.1 --port 8080
+
+    # 终端 2：前端开发服务器（默认 127.0.0.1:5173，/api 代理到 8080）
+    cd frontend
+    npm ci
+    npm run dev
+
+打开 `http://127.0.0.1:5173/orders`。页面包括订单列表、订单编辑器、自动规划
+和运行详情；编辑器的“服务端预览”是校验权威，保存总是创建新的不可变版本。
+运行页只读显示服务端节点/事件快照，stop 按钮只发送受控停止请求。
+
+    npm test          # Vitest 单元测试
+    npm run e2e       # Playwright 三条旅程（首次先 npm run e2e:install）
+    npm run build     # 生产静态产物 frontend/dist/
+
+开发 API 目标可用 `VITE_DEV_API_TARGET` 覆盖；生产 API 基址可用
+`VITE_API_BASE_URL` 覆盖（默认 `/api`）。前端与 API 不同源部署时需使用
+同源反向代理或显式 CORS allowlist；首期 API 无认证/TLS，只作为本机工程
+工具使用。详细说明见 [frontend/README.md](../../../frontend/README.md)
+（仓库内路径：`frontend/README.md`）。
+
 ## 静态目录数据库（维护操作）
 
 静态资源/工艺目录可持久化到本地 SQLite；默认路径
