@@ -286,10 +286,13 @@ def _order_runner(ns):
     from .application.order_runner import (OrderRunnerConfig,
                                            make_order_runner)
     record_db = Path(ns.db) if ns.run_records == "on" else None
+    sim_host = getattr(ns, "sim_host", None) or ns.host
+    sim_port = getattr(ns, "sim_port", None) or ns.port
     return make_order_runner(OrderRunnerConfig(
-        host=ns.host, port=ns.port,
+        host=sim_host, port=int(sim_port),
         artifact_root=(Path(ns.artifact_root) if ns.artifact_root else None),
         record_db=record_db, run_records=(ns.run_records == "on"),
+        catalog_source=ns.catalog_source,
         log=ns.log, out_dir=Path(ns.out_dir)), catalog=_order_catalog(ns))
 
 
@@ -701,6 +704,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = api_sub.add_parser("serve", help="启动本地订单 HTTP 服务")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--sim-host", default="localhost",
+                   help="CoppeliaSim ZMQ host (默认 localhost)")
+    p.add_argument("--sim-port", type=int, default=23000,
+                   help="CoppeliaSim ZMQ port (默认 23000)")
     p.add_argument("--db", default=str(spec.CATALOG_DB))
     p.add_argument("--catalog-source", choices=["code", "db"],
                    default="code")

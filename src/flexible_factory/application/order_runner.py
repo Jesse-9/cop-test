@@ -37,6 +37,7 @@ class OrderRunnerConfig:
     artifact_root: Optional[Path] = None
     record_db: Optional[Path] = None
     run_records: bool = True
+    catalog_source: str = "code"
     log: str = spec.DEFAULT_LOG_FILE
     out_dir: Path = spec.REPORT_DIR
 
@@ -62,7 +63,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
     logger.info("[ORDER] start run=%s order=%s@%s artifact=%s",
                 command.run_id, command.order.order_id,
                 command.order.version, command.artifact_id)
-    sim, simIK = connect(config.host, config.port)
+    _client, sim, simIK = connect(config.host, config.port)
     manager = LifecycleManager(
         sim, simIK, host=config.host, port=config.port, actor="order",
         artifact_root=config.artifact_root, report_dir=Path(config.out_dir))
@@ -77,7 +78,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                 CatalogDatabase(Path(config.record_db)),
                 run_id=command.run_id, scenario="order",
                 artifact_id=command.artifact_id,
-                catalog_source="database" if catalog is not None else "code",
+                catalog_source=config.catalog_source or "code",
                 catalog_version=(catalog.version
                                  if catalog is not None else ""))
             started = recorder.start(

@@ -10,6 +10,7 @@
 - `v1_full_flow_direct_heavy_20261105_233212.json` — `direct_heavy` 批次实机验收；详见[混线灵活性报告](../reports/v1-mixed-production-flexibility-demo.md)。
 - `v1_full_flow_detour_heavy_20261106_003836.json` — `detour_heavy` 批次实机验收；详见[混线灵活性报告](../reports/v1-mixed-production-flexibility-demo.md)。
 - `v1_full_flow_detour_heavy_rejected_0_2_2_20261106_000425.json` — 初版 `detour_heavy=0/2/2` 的 `BACKPRESSURE_TIMEOUT` 失败边界；详见[混线灵活性报告](../reports/v1-mixed-production-flexibility-demo.md)。
+- `v1_order_dag_phase6_acceptance_20261108.json` — 阶段 6 订单 DAG 实机验收：full_flow 基线摘要、UI 手工订单、planner 订单、`NODE_PRECHECK_REJECTED` 局部拒绝、安全锁存 GLOBAL 停止、失败 attempt 与未覆盖边界；详见[阶段 6 实施报告](../reports/v1-order-dag-phase-06-simulation-acceptance.md)。
 
 工件级只读校验证据位于
 `docs/scene_artifacts/v1/L5_UFLOW/v001_20261103_004317/validation.json`；校验细节见

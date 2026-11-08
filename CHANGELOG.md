@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- 自建订单 DAG（阶段 1–6）：新增声明式 `OrderSpec`、端口/结构校验器、
+  确定性编译器、NODE/GLOBAL 失败隔离、版本化订单仓储、本地 HTTP API、
+  有界确定性 planner 和 React 订单工作台；订单运行绑定不可变版本、目录版本
+  和具体 artifact，HTTP handler 不持有仿真句柄。
+- 阶段 6 实机验收：在受保护工件 `v1/L5_UFLOW/v001_20261103_004317` 上，
+  UI 手工订单和 planner 订单各完成 1 个 `FINAL`（父 UID `[1,2]`）；
+  `NODE_PRECHECK_REJECTED` 只阻断依赖后继；真实安全锁存使订单 `ABORTED`
+  并保留锁存。证据见
+  `docs/implementation/evidence/v1_order_dag_phase6_acceptance_20261108.json`，
+  报告见
+  `docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md`。
+- 修复订单 runner 的 `connect()` 解包、目录来源记录和订单目标数量判据；
+  `api serve` 新增 `--sim-host`/`--sim-port`，与 HTTP 绑定分离。
+- 阶段 6 全量非仿真回归 598 passed / 7 skipped；前端 Vitest 12 passed、
+  Playwright mock E2E 3 passed、生产构建通过。
+- 未验证的真实 Arm/AGV 运动错误、真实 ZMQ 断开/stepping 故障、任意 DAG/
+  设备替换、自动恢复、多订单并行、MES/ERP 和跨场景调度仍未实现或仍按
+  GLOBAL 处理；`NODE_PRECHECK_REJECTED` 仍是唯一 NODE 准入 code。
 - 混线生产灵活性 WP1（有限批次配比）：新增
   `application/batch.py`，校验运行边界传入的 `batch` 映射并解析命名
   profile（`default`、`direct_heavy=2/0/2`、`detour_heavy=0/1/1`）；

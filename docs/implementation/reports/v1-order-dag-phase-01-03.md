@@ -240,7 +240,8 @@ nodes/events/stop/runs` 和 `api serve`。`order start` 在当前进程同步运
 已有目录/运行记录测试同步更新：目录版本、迁移 head `0005_orders`、新增
 表集合。目录持久化往返测试仍要求代码/DB 目录逐字段相等。
 
-未执行：
+未执行（阶段 1–3 时点；阶段 6 已补充真实仿真验收，见
+[阶段 6 报告](v1-order-dag-phase-06-simulation-acceptance.md)）：
 
 - 真实 CoppeliaSim 订单运行、局部失败 focused case、全局故障 focused case；
 - 阶段 4 planner、阶段 5 前端；

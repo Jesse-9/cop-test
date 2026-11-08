@@ -2256,6 +2256,13 @@ class Stage4Coordinator:
         resources_released = all(
             owner is None for owner in self.resources.owners.values())
         finals = self.flow.final_records()
+        target_uids: set[int] = set()
+        if self.order is not None:
+            for instance_id in self.order.target_instance_ids:
+                instance = self.op_runtime.instance(instance_id)
+                if instance is not None:
+                    target_uids.update(int(uid)
+                                       for uid in instance.output_uids)
         semi_wip = [rec for rec in self.flow.by_type(ItemType.SEMI_CE)
                     if rec.state is not RecordState.CONSUMED]
         loaded_routes = [row for row in self.agv_history
@@ -2300,6 +2307,7 @@ class Stage4Coordinator:
             "any_task_blocked": self.queue.any_blocked(),
             "final_count": len(finals),
             "final_parents": [list(rec.parents) for rec in finals],
+            "order_target_count": len(target_uids),
             "unpaired_semi_ce": len(semi_wip),
             "any_safety_latch": any_latch,
             "safety": safety,
@@ -2332,7 +2340,7 @@ class Stage4Coordinator:
                 self.order.target_quantity)
             acceptance["ok"] = bool(
                 self.order_status() == "SUCCEEDED" and common
-                and len(finals) == int(self.order.target_quantity))
+                and len(target_uids) == int(self.order.target_quantity))
             return acceptance
         if self.scenario == cfg.SCENARIO_FULL_FLOW:
             acceptance["ok"] = bool(

@@ -61,7 +61,22 @@ npm run e2e:install
 
 E2E 使用 Playwright route mock 固定 API 响应，不需要 CoppeliaSim 或真实
 订单服务。真实 API/planner 的集成验证另行用本机 API 执行；真实仿真订单与
-故障准入仍由阶段 6 验收。
+故障准入由阶段 6 验收，结果见
+[阶段 6 实施报告](../docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md)。
+
+阶段 6 的真实 UI 验收脚本（需要 API、Vite、CoppeliaSim）：
+
+```powershell
+$env:ACCEPT_ARTIFACT_ID = "v1/L5_UFLOW/v001_20261103_004317"
+node e2e/real_acceptance.mjs manual   # 通过真实 UI 创建订单并启动
+node e2e/real_acceptance.mjs planner  # 通过 planner UI 保存草稿并启动
+node e2e/real_acceptance.mjs start    # 重新启动 ORDER_ID 指定的订单
+RUN_ID=<run_id> node e2e/real_acceptance.mjs verify  # 刷新前后状态恢复核验
+```
+
+`EXPECT_NODES=7` 可在刷新核验时等待节点表加载完成（不设置则只核对状态徽标）。
+
+脚本不使用 route mock；`NO_START=1` 可只创建/保存订单而不启动仿真。
 
 ## 页面
 

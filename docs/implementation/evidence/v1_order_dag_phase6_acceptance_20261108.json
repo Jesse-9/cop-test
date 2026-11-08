@@ -1,0 +1,1301 @@
+{
+  "environment": {
+    "source_revision": "4ad01ffce6f6da47e336f8197014b2479d951254",
+    "generated_at": "2026-11-08T09:37:25",
+    "coppelia": {
+      "version": "4.10.0.0",
+      "engine": "bullet",
+      "simulation_step": 0.05,
+      "zmq": "localhost:23000"
+    },
+    "artifact": {
+      "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+      "protected": true,
+      "manifest_digest": "1bc46e1bf036578e6da4ae2dec800778781b54855f0771b837cec5076cb7d38e",
+      "scene_sha256": "bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c",
+      "config_digest": "e292c37f6d2a611763a9d76f508ccb219e16c089e3ce6e6e67f9c700495b6c7c",
+      "layout_name": "L5_UFLOW",
+      "layout_sha256_canonical": "0b75e7bfa2ce7dbdf05b4736ba03d6ea64c31b73841a8a569f9d11f154486ae8",
+      "validation_ok": true,
+      "validated_at": "2026-11-03T00:46:23+08:00"
+    },
+    "versions": {
+      "order_contract": "v1_order_20261106",
+      "catalog": "v1_process_20261106a",
+      "planner_policy": "v1_planner_20261107",
+      "failure_policy": "v1_failure_20261106"
+    }
+  },
+  "full_flow_baseline": {
+    "source_report": "tests/test_v1_stage4_scheduler_sim.py",
+    "run_report": "docs/implementation/runs/v1_stage4_full_flow_20261107_130958.json",
+    "scenario": "full_flow",
+    "fault": "none",
+    "all_ok": true,
+    "drive": {
+      "steps": 6717,
+      "wall_s": 1512.26,
+      "sim_time": 335.85,
+      "finished": true,
+      "frozen": false,
+      "aborted": false,
+      "stop_reason": ""
+    },
+    "acceptance": {
+      "ok": true,
+      "final_count": 1,
+      "final_parents": [
+        [
+          1,
+          3
+        ]
+      ],
+      "unpaired_semi_ce": 1,
+      "loaded_routes": 2,
+      "route_ok": true,
+      "any_safety_latch": false,
+      "resources_released": true,
+      "scheduler_ok": true
+    },
+    "scheduler_decisions": 11
+  },
+  "manual_ui": {
+    "order_id": "accept-ui-manual-1794026712760",
+    "order_version": 1,
+    "source": "manual",
+    "dag_digest": "a231a53b9b92bb3aea144f6bee329b589ba11db5342a5b66420ae9e2a00c190f",
+    "run_id": "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91",
+    "status": "SUCCEEDED",
+    "failure_scope": "",
+    "stop_reason": "",
+    "started_at": "2026-11-08T00:51:54+00:00",
+    "finished_at": "2026-11-08T01:06:56+00:00",
+    "sim_time": 163.7,
+    "acceptance": {
+      "ok": true,
+      "order_status": "SUCCEEDED",
+      "order_target_count": 1,
+      "final_count": 1,
+      "final_parents": [
+        [
+          1,
+          2
+        ]
+      ],
+      "unpaired_semi_ce": 0,
+      "resources_released": true,
+      "any_safety_latch": false,
+      "aborted": false,
+      "frozen": false,
+      "stop_reason": "",
+      "route_ok": true,
+      "loaded_routes": 1,
+      "scheduler_ok": true,
+      "scheduler_detail": {
+        "checked_instances": 6,
+        "decisions": 6,
+        "waits": 0,
+        "policy_version": "v1_scheduler_20261104",
+        "errors": []
+      }
+    },
+    "failure_summary": {
+      "failed": [],
+      "failed_nodes": [],
+      "blocked": [],
+      "blocked_nodes": [],
+      "continued": [
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:bracket_process-01:2",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:housing_direct_A-01:1",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:housing_finish-01:1",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:housing_to_E_buffer-01:1",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:transport_DE-01:2",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:bracket_to_E-01:2",
+        "order_accept-ui-manual-1794026712760_20261108_005154_7f2d91:kit_join-01:1+2"
+      ],
+      "continued_nodes": [
+        "bracket_process-01",
+        "housing_direct_A-01",
+        "housing_finish-01",
+        "housing_to_E_buffer-01",
+        "transport_DE-01",
+        "bracket_to_E-01",
+        "kit_join-01"
+      ]
+    },
+    "nodes": [
+      {
+        "node_id": "bracket_process-01",
+        "template_id": "bracket_process",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "bracket_to_E-01",
+        "template_id": "bracket_to_E",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_direct_A-01",
+        "template_id": "housing_direct_A",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_finish-01",
+        "template_id": "housing_finish",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_to_E_buffer-01",
+        "template_id": "housing_to_E_buffer",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "kit_join-01",
+        "template_id": "kit_join",
+        "state": "DONE",
+        "input_uids": [
+          1,
+          2
+        ],
+        "output_uids": [
+          3
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "transport_DE-01",
+        "template_id": "transport_DE",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      }
+    ],
+    "event_count": 57,
+    "event_kinds": [
+      "COORDINATOR_START",
+      "FINAL_CREATED",
+      "JOIN_COMMIT",
+      "MATERIAL_CONSUMED",
+      "MATERIAL_CREATED",
+      "MATERIAL_MOVE",
+      "MATERIAL_PLACE",
+      "MATERIAL_PROCESS",
+      "MATERIAL_SPAWN",
+      "ROUTE_DONE",
+      "ROUTE_START",
+      "RUN_END",
+      "RUN_START",
+      "SCHEDULE_DECISION",
+      "TASK_CREATED",
+      "TASK_DONE",
+      "TASK_START",
+      "TASK_WAIT"
+    ]
+  },
+  "planner_ui": {
+    "order_id": "planner-draft",
+    "order_version": 1,
+    "source": "planner",
+    "dag_digest": "c053e1259692e4ddec14f5f15b149d88a8933290f1f050fa359f3d49d79bc269",
+    "run_id": "order_planner-draft_20261108_010853_cfaf39",
+    "status": "SUCCEEDED",
+    "failure_scope": "",
+    "stop_reason": "",
+    "started_at": "2026-11-08T01:08:53+00:00",
+    "finished_at": "2026-11-08T01:24:11+00:00",
+    "sim_time": 163.8,
+    "acceptance": {
+      "ok": true,
+      "order_status": "SUCCEEDED",
+      "order_target_count": 1,
+      "final_count": 1,
+      "final_parents": [
+        [
+          1,
+          2
+        ]
+      ],
+      "unpaired_semi_ce": 0,
+      "resources_released": true,
+      "any_safety_latch": false,
+      "aborted": false,
+      "frozen": false,
+      "stop_reason": "",
+      "route_ok": true,
+      "loaded_routes": 1,
+      "scheduler_ok": true,
+      "scheduler_detail": {
+        "checked_instances": 6,
+        "decisions": 6,
+        "waits": 0,
+        "policy_version": "v1_scheduler_20261104",
+        "errors": []
+      }
+    },
+    "failure_summary": {
+      "failed": [],
+      "failed_nodes": [],
+      "blocked": [],
+      "blocked_nodes": [],
+      "continued": [
+        "order_planner-draft_20261108_010853_cfaf39:bracket_process-03:2",
+        "order_planner-draft_20261108_010853_cfaf39:housing_direct_A-00:1",
+        "order_planner-draft_20261108_010853_cfaf39:housing_finish-01:1",
+        "order_planner-draft_20261108_010853_cfaf39:housing_to_E_buffer-02:1",
+        "order_planner-draft_20261108_010853_cfaf39:transport_DE-04:2",
+        "order_planner-draft_20261108_010853_cfaf39:bracket_to_E-05:2",
+        "order_planner-draft_20261108_010853_cfaf39:kit_join-06:1+2"
+      ],
+      "continued_nodes": [
+        "bracket_process-03",
+        "housing_direct_A-00",
+        "housing_finish-01",
+        "housing_to_E_buffer-02",
+        "transport_DE-04",
+        "bracket_to_E-05",
+        "kit_join-06"
+      ]
+    },
+    "nodes": [
+      {
+        "node_id": "bracket_process-03",
+        "template_id": "bracket_process",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_direct_A-00",
+        "template_id": "housing_direct_A",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_finish-01",
+        "template_id": "housing_finish",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing_to_E_buffer-02",
+        "template_id": "housing_to_E_buffer",
+        "state": "DONE",
+        "input_uids": [
+          1
+        ],
+        "output_uids": [
+          1
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "transport_DE-04",
+        "template_id": "transport_DE",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "bracket_to_E-05",
+        "template_id": "bracket_to_E",
+        "state": "DONE",
+        "input_uids": [
+          2
+        ],
+        "output_uids": [
+          2
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      },
+      {
+        "node_id": "kit_join-06",
+        "template_id": "kit_join",
+        "state": "DONE",
+        "input_uids": [
+          1,
+          2
+        ],
+        "output_uids": [
+          3
+        ],
+        "failure_scope": "",
+        "failure_code": "",
+        "blocked_by": []
+      }
+    ],
+    "event_count": 57,
+    "event_kinds": [
+      "COORDINATOR_START",
+      "FINAL_CREATED",
+      "JOIN_COMMIT",
+      "MATERIAL_CONSUMED",
+      "MATERIAL_CREATED",
+      "MATERIAL_MOVE",
+      "MATERIAL_PLACE",
+      "MATERIAL_PROCESS",
+      "MATERIAL_SPAWN",
+      "ROUTE_DONE",
+      "ROUTE_START",
+      "RUN_END",
+      "RUN_START",
+      "SCHEDULE_DECISION",
+      "TASK_CREATED",
+      "TASK_DONE",
+      "TASK_START",
+      "TASK_WAIT"
+    ],
+    "planner": {
+      "policy_version": "v1_planner_20261107",
+      "input": {
+        "policy_version": "v1_planner_20261107",
+        "target_item_type": "FINAL",
+        "target_quantity": 1,
+        "inputs": [
+          {
+            "item_type": "RAW_A",
+            "quantity": 1,
+            "zone": ""
+          },
+          {
+            "item_type": "RAW_D",
+            "quantity": 1,
+            "zone": ""
+          }
+        ],
+        "scene_id": "L5_UFLOW",
+        "allowed_template_ids": [],
+        "allowed_device_ids": [],
+        "preferred_route_ids": [],
+        "allow_high_risk": false,
+        "max_candidates": 64,
+        "max_depth": 12,
+        "max_nodes": 64,
+        "order_id": "planner-draft",
+        "order_version": 1
+      },
+      "explain": {
+        "policy_version": "v1_planner_20261107",
+        "input_summary": {
+          "policy_version": "v1_planner_20261107",
+          "target_item_type": "FINAL",
+          "target_quantity": 1,
+          "inputs": [
+            {
+              "item_type": "RAW_A",
+              "quantity": 1,
+              "zone": ""
+            },
+            {
+              "item_type": "RAW_D",
+              "quantity": 1,
+              "zone": ""
+            }
+          ],
+          "scene_id": "L5_UFLOW",
+          "allowed_template_ids": [],
+          "allowed_device_ids": [],
+          "preferred_route_ids": [],
+          "allow_high_risk": false,
+          "max_candidates": 64,
+          "max_depth": 12,
+          "max_nodes": 64,
+          "order_id": "planner-draft",
+          "order_version": 1
+        },
+        "selected_candidate_id": "cand-000",
+        "selected_branch": {
+          "kind": "join",
+          "label": "kit_join",
+          "route_ids": [
+            "housing_direct",
+            "bracket_route"
+          ],
+          "template_ids": [
+            "kit_join",
+            "housing_direct_A",
+            "housing_finish",
+            "housing_to_E_buffer",
+            "bracket_process",
+            "transport_DE",
+            "bracket_to_E"
+          ],
+          "input_requirements": [
+            {
+              "item_type": "RAW_A",
+              "zone": "line_s1a",
+              "quantity": 1
+            },
+            {
+              "item_type": "RAW_D",
+              "zone": "line_s2d",
+              "quantity": 1
+            }
+          ],
+          "output_item_type": "FINAL",
+          "output_zone": "output_e",
+          "operation_count": 7
+        },
+        "selected_order": {
+          "contract_version": "v1_order_20261106",
+          "order_id": "planner-draft",
+          "version": 1,
+          "scene_id": "L5_UFLOW",
+          "source": "planner",
+          "target": {
+            "item_type": "FINAL",
+            "quantity": 1
+          },
+          "inputs": [
+            {
+              "input_id": "in-000",
+              "item_type": "RAW_A",
+              "quantity": 1,
+              "zone": "line_s1a",
+              "node_id": "housing_direct_A-00",
+              "port_id": "input-0"
+            },
+            {
+              "input_id": "in-001",
+              "item_type": "RAW_D",
+              "quantity": 1,
+              "zone": "line_s2d",
+              "node_id": "bracket_process-03",
+              "port_id": "input-0"
+            }
+          ],
+          "nodes": [
+            {
+              "node_id": "housing_direct_A-00",
+              "template_id": "housing_direct_A"
+            },
+            {
+              "node_id": "housing_finish-01",
+              "template_id": "housing_finish"
+            },
+            {
+              "node_id": "housing_to_E_buffer-02",
+              "template_id": "housing_to_E_buffer"
+            },
+            {
+              "node_id": "bracket_process-03",
+              "template_id": "bracket_process"
+            },
+            {
+              "node_id": "transport_DE-04",
+              "template_id": "transport_DE"
+            },
+            {
+              "node_id": "bracket_to_E-05",
+              "template_id": "bracket_to_E"
+            },
+            {
+              "node_id": "kit_join-06",
+              "template_id": "kit_join"
+            }
+          ],
+          "edges": [
+            {
+              "from": "housing_direct_A-00",
+              "to": "housing_finish-01",
+              "to_port": "input-0",
+              "from_port": ""
+            },
+            {
+              "from": "housing_finish-01",
+              "to": "housing_to_E_buffer-02",
+              "to_port": "input-0",
+              "from_port": ""
+            },
+            {
+              "from": "bracket_process-03",
+              "to": "transport_DE-04",
+              "to_port": "input-0",
+              "from_port": ""
+            },
+            {
+              "from": "transport_DE-04",
+              "to": "bracket_to_E-05",
+              "to_port": "input-0",
+              "from_port": ""
+            },
+            {
+              "from": "housing_to_E_buffer-02",
+              "to": "kit_join-06",
+              "to_port": "housing-input",
+              "from_port": ""
+            },
+            {
+              "from": "bracket_to_E-05",
+              "to": "kit_join-06",
+              "to_port": "bracket-input",
+              "from_port": ""
+            }
+          ]
+        },
+        "digest": "c053e1259692e4ddec14f5f15b149d88a8933290f1f050fa359f3d49d79bc269",
+        "target_paths": [
+          {
+            "instance_id": "preview:kit_join-06:1+2",
+            "node_id": "kit_join-06",
+            "uid": 3,
+            "item_type": "FINAL",
+            "zone": "output_e",
+            "path": [
+              "housing_direct_A-00",
+              "housing_finish-01",
+              "housing_to_E_buffer-02",
+              "bracket_process-03",
+              "transport_DE-04",
+              "bracket_to_E-05",
+              "kit_join-06"
+            ]
+          }
+        ],
+        "join_bindings": [
+          {
+            "join_template_id": "kit_join",
+            "inputs": [
+              {
+                "port_id": "housing-input",
+                "item_type": "SEMI_CE",
+                "route_ids": [
+                  "housing_direct"
+                ],
+                "template_ids": [
+                  "housing_direct_A",
+                  "housing_finish",
+                  "housing_to_E_buffer"
+                ]
+              },
+              {
+                "port_id": "bracket-input",
+                "item_type": "PART_DE",
+                "route_ids": [
+                  "bracket_route"
+                ],
+                "template_ids": [
+                  "bracket_process",
+                  "transport_DE",
+                  "bracket_to_E"
+                ]
+              }
+            ]
+          }
+        ],
+        "candidates": [
+          {
+            "candidate_id": "cand-000",
+            "branch": {
+              "kind": "join",
+              "label": "kit_join",
+              "route_ids": [
+                "housing_direct",
+                "bracket_route"
+              ],
+              "template_ids": [
+                "kit_join",
+                "housing_direct_A",
+                "housing_finish",
+                "housing_to_E_buffer",
+                "bracket_process",
+                "transport_DE",
+                "bracket_to_E"
+              ],
+              "input_requirements": [
+                {
+                  "item_type": "RAW_A",
+                  "zone": "line_s1a",
+                  "quantity": 1
+                },
+                {
+                  "item_type": "RAW_D",
+                  "zone": "line_s2d",
+                  "quantity": 1
+                }
+              ],
+              "output_item_type": "FINAL",
+              "output_zone": "output_e",
+              "operation_count": 7
+            },
+            "feasible": true,
+            "rejection_code": "",
+            "rejection_reason": "",
+            "operation_count": 7,
+            "route_ids": [
+              "housing_direct",
+              "bracket_route"
+            ],
+            "template_ids": [
+              "kit_join",
+              "housing_direct_A",
+              "housing_finish",
+              "housing_to_E_buffer",
+              "bracket_process",
+              "transport_DE",
+              "bracket_to_E"
+            ],
+            "digest": "c053e1259692e4ddec14f5f15b149d88a8933290f1f050fa359f3d49d79bc269",
+            "score": [
+              0,
+              7,
+              "join|kit_join|(('route', 'housing_direct', ('housing_direct_A', 'housing_finish', 'housing_to_E_buffer')), ('route', 'bracket_route', ('bracket_process', 'transport_DE', 'bracket_to_E')))"
+            ],
+            "input_usage": [
+              {
+                "item_type": "RAW_A",
+                "zone": "line_s1a",
+                "required": 1,
+                "available": 1
+              },
+              {
+                "item_type": "RAW_D",
+                "zone": "line_s2d",
+                "required": 1,
+                "available": 1
+              }
+            ]
+          },
+          {
+            "candidate_id": "cand-001",
+            "branch": {
+              "kind": "join",
+              "label": "kit_join",
+              "route_ids": [
+                "housing_alt",
+                "bracket_route"
+              ],
+              "template_ids": [
+                "kit_join",
+                "housing_alt_B",
+                "transport_BA",
+                "housing_alt_A",
+                "housing_finish",
+                "housing_to_E_buffer",
+                "bracket_process",
+                "transport_DE",
+                "bracket_to_E"
+              ],
+              "input_requirements": [
+                {
+                  "item_type": "RAW_B",
+                  "zone": "line_s1b",
+                  "quantity": 1
+                },
+                {
+                  "item_type": "RAW_D",
+                  "zone": "line_s2d",
+                  "quantity": 1
+                }
+              ],
+              "output_item_type": "FINAL",
+              "output_zone": "output_e",
+              "operation_count": 9
+            },
+            "feasible": false,
+            "rejection_code": "PLANNER_INPUT_INSUFFICIENT",
+            "rejection_reason": "RAW_B@line_s1b 缺 1",
+            "operation_count": 9,
+            "route_ids": [
+              "housing_alt",
+              "bracket_route"
+            ],
+            "template_ids": [
+              "kit_join",
+              "housing_alt_B",
+              "transport_BA",
+              "housing_alt_A",
+              "housing_finish",
+              "housing_to_E_buffer",
+              "bracket_process",
+              "transport_DE",
+              "bracket_to_E"
+            ],
+            "digest": "",
+            "score": [
+              0,
+              9,
+              "join|kit_join|(('route', 'housing_alt', ('housing_alt_B', 'transport_BA', 'housing_alt_A', 'housing_finish', 'housing_to_E_buffer')), ('route', 'bracket_route', ('bracket_process', 'transport_DE', 'bracket_to_E')))"
+            ],
+            "input_usage": [
+              {
+                "item_type": "RAW_B",
+                "zone": "line_s1b",
+                "required": 1,
+                "available": 0
+              },
+              {
+                "item_type": "RAW_D",
+                "zone": "line_s2d",
+                "required": 1,
+                "available": 1
+              }
+            ]
+          }
+        ],
+        "rejected": [
+          {
+            "candidate_id": "cand-001",
+            "branch": {
+              "kind": "join",
+              "label": "kit_join",
+              "route_ids": [
+                "housing_alt",
+                "bracket_route"
+              ],
+              "template_ids": [
+                "kit_join",
+                "housing_alt_B",
+                "transport_BA",
+                "housing_alt_A",
+                "housing_finish",
+                "housing_to_E_buffer",
+                "bracket_process",
+                "transport_DE",
+                "bracket_to_E"
+              ],
+              "input_requirements": [
+                {
+                  "item_type": "RAW_B",
+                  "zone": "line_s1b",
+                  "quantity": 1
+                },
+                {
+                  "item_type": "RAW_D",
+                  "zone": "line_s2d",
+                  "quantity": 1
+                }
+              ],
+              "output_item_type": "FINAL",
+              "output_zone": "output_e",
+              "operation_count": 9
+            },
+            "feasible": false,
+            "rejection_code": "PLANNER_INPUT_INSUFFICIENT",
+            "rejection_reason": "RAW_B@line_s1b 缺 1",
+            "operation_count": 9,
+            "route_ids": [
+              "housing_alt",
+              "bracket_route"
+            ],
+            "template_ids": [
+              "kit_join",
+              "housing_alt_B",
+              "transport_BA",
+              "housing_alt_A",
+              "housing_finish",
+              "housing_to_E_buffer",
+              "bracket_process",
+              "transport_DE",
+              "bracket_to_E"
+            ],
+            "digest": "",
+            "score": [
+              0,
+              9,
+              "join|kit_join|(('route', 'housing_alt', ('housing_alt_B', 'transport_BA', 'housing_alt_A', 'housing_finish', 'housing_to_E_buffer')), ('route', 'bracket_route', ('bracket_process', 'transport_DE', 'bracket_to_E')))"
+            ],
+            "input_usage": [
+              {
+                "item_type": "RAW_B",
+                "zone": "line_s1b",
+                "required": 1,
+                "available": 0
+              },
+              {
+                "item_type": "RAW_D",
+                "zone": "line_s2d",
+                "required": 1,
+                "available": 1
+              }
+            ]
+          }
+        ],
+        "search": {
+          "expansions": 3,
+          "branches": 5,
+          "truncated": false,
+          "limit_reasons": [],
+          "limits": {
+            "max_candidates": 64,
+            "max_depth": 12,
+            "max_nodes": 64
+          },
+          "candidates": 2,
+          "feasible": 1,
+          "rejected": 1
+        },
+        "unmodeled_dimensions": [
+          "设备健康/故障率/节拍",
+          "实时资源占用与 AGV 排队",
+          "几何可达性、碰撞与运动规划可行性",
+          "局部失败风险和恢复代价",
+          "多订单并行与跨订单优化"
+        ],
+        "first_blocking_category": ""
+      },
+      "candidate_count": 2
+    }
+  },
+  "node_precheck": {
+    "case": "node_precheck",
+    "order_id": "accept-node-precheck",
+    "order_version": 1,
+    "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+    "contract_version": "v1_order_20261106",
+    "catalog_version": "v1_process_20261106a",
+    "failures": [
+      {
+        "failure_code": "NODE_PRECHECK_REJECTED",
+        "scope": "NODE",
+        "message": "NODE_PRECHECK_REJECTED: acceptance injection",
+        "node_id": "housing-start",
+        "instance_id": "sim-node-precheck:housing-start:1",
+        "task_id": "a_conveyor_uid1_housing-start",
+        "device_id": "arm_A",
+        "sim_time": 0.0,
+        "category": "node_precheck",
+        "safe_state": {
+          "executor_stopped": true,
+          "physical_action_started": false,
+          "safety_engaged": false,
+          "material_uid": 1,
+          "material_zone": "line_s1a",
+          "material_type": "RAW_A",
+          "material_state": "CREATED",
+          "ledger_unchanged": true,
+          "resources_released": true,
+          "held_resources": []
+        },
+        "evidence": {
+          "injected": "NODE_PRECHECK_REJECTED"
+        },
+        "blocked_nodes": [
+          "housing-finish",
+          "housing-buffer",
+          "kit-join"
+        ],
+        "continued_nodes": [
+          "bracket-start",
+          "bracket-transport",
+          "bracket-buffer"
+        ],
+        "order_status": "PARTIAL_FAILED"
+      }
+    ],
+    "order_status": "FAILED",
+    "instances": [
+      {
+        "node_id": "bracket-start",
+        "state": "DONE",
+        "blocked_by": []
+      },
+      {
+        "node_id": "bracket-transport",
+        "state": "DONE",
+        "blocked_by": []
+      },
+      {
+        "node_id": "bracket-buffer",
+        "state": "DONE",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing-start",
+        "state": "FAILED",
+        "blocked_by": []
+      },
+      {
+        "node_id": "housing-finish",
+        "state": "CANCELLED",
+        "blocked_by": [
+          "sim-node-precheck:housing-start:1"
+        ]
+      },
+      {
+        "node_id": "housing-buffer",
+        "state": "CANCELLED",
+        "blocked_by": [
+          "sim-node-precheck:housing-start:1"
+        ]
+      },
+      {
+        "node_id": "kit-join",
+        "state": "CANCELLED",
+        "blocked_by": [
+          "sim-node-precheck:housing-start:1"
+        ]
+      }
+    ],
+    "safety_latch": null,
+    "injected": null,
+    "drive": {
+      "steps": 3170,
+      "wall_s": 414.582,
+      "sim_time": 158.5,
+      "finished": true,
+      "frozen": false,
+      "aborted": false,
+      "stop_reason": ""
+    },
+    "acceptance": {
+      "ok": false,
+      "order_status": "FAILED",
+      "order_target_count": 0,
+      "final_count": 0,
+      "final_parents": [],
+      "resources_released": true,
+      "any_safety_latch": false,
+      "aborted": false,
+      "frozen": false,
+      "stop_reason": ""
+    },
+    "steps": null,
+    "source_evidence": "docs\\implementation\\runs\\v1_order_node_precheck_20261108_093342.json"
+  },
+  "global_safety": {
+    "case": "global_safety",
+    "order_id": "accept-global-safety",
+    "order_version": 1,
+    "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+    "contract_version": "v1_order_20261106",
+    "catalog_version": "v1_process_20261106a",
+    "failures": [
+      {
+        "failure_code": "SAFETY_LATCH",
+        "scope": "GLOBAL",
+        "message": "A 安全锁存: ACCEPTANCE_INJECTED_SAFETY",
+        "node_id": "housing-start",
+        "instance_id": "sim-global-safety:housing-start:1",
+        "task_id": "a_conveyor_uid1_housing-start",
+        "device_id": "arm_A",
+        "sim_time": 0.1,
+        "category": "safety",
+        "safe_state": {
+          "executor_stopped": true,
+          "physical_action_started": true,
+          "safety_engaged": true
+        },
+        "evidence": {
+          "controller": {
+            "uid": 1,
+            "target": "station",
+            "layout": "L5_UFLOW/A",
+            "state": "FAILED",
+            "failure_reason": "SAFETY_LATCH: ACCEPTANCE_INJECTED_SAFETY",
+            "material_state": "ON_CONVEYOR",
+            "compensation_count": 2,
+            "pick_pose": null,
+            "pick_tcp": null,
+            "agv_blocked": false,
+            "events": [
+              [
+                0.0,
+                "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+              ],
+              [
+                0.0,
+                "WAITING_FOR_ITEM: task started"
+              ],
+              [
+                0.05,
+                "HYBRID_DYNAMIC compensation Δ=0.0100 m (physical=0.0000, shortfall=0.0100)"
+              ],
+              [
+                0.05,
+                "SAFETY_HOLD: 已取消剩余轨迹并保持最后实测构型"
+              ],
+              [
+                0.05,
+                "FAILED: SAFETY_LATCH: ACCEPTANCE_INJECTED_SAFETY"
+              ]
+            ],
+            "controller_id": "flexible_factory.simulation.unit_controller.Stage4UnitController",
+            "stage2": true,
+            "motion_opt_version": "2.01",
+            "transfer_trajectory_version": "06-15",
+            "transfer_height": 0.65,
+            "transfer_check": null,
+            "safety": {
+              "engaged": true,
+              "code": "SAFETY_LATCH",
+              "reason": "ACCEPTANCE_INJECTED_SAFETY",
+              "sim_time": 0.05,
+              "details": {},
+              "stop_commanded": true,
+              "stop_command_ok": true,
+              "stop_confirmed": false,
+              "stop_checks": 1,
+              "stop_speed": 0.09998,
+              "stop_source": "model_state"
+            },
+            "plan": null,
+            "motion": [],
+            "motion_totals": {
+              "motions": 0,
+              "executed": 0,
+              "failed": 0,
+              "tv_total": 0,
+              "max_step": 0.0,
+              "sim_duration": 0,
+              "steps": 0,
+              "commands": 0
+            },
+            "branch_anchor": null,
+            "stop": null,
+            "stability": null,
+            "compensation": {
+              "count": 2,
+              "long_compensation": false,
+              "overspeed_steps": 0
+            },
+            "contact": null,
+            "fk": null,
+            "attach_transform": null,
+            "release": {
+              "pose": null
+            },
+            "pick_box": null,
+            "unit_id": "A",
+            "source": "conveyor",
+            "sink": "station",
+            "dock_id": "A",
+            "task_id": "a_conveyor_uid1_housing-start",
+            "release_attempted": false,
+            "tray_check": null,
+            "layout_view": "L5_UFLOW/A",
+            "phase": "v1",
+            "line": "line_s1a",
+            "line_fault": false,
+            "expected_types": [
+              "RAW_A"
+            ],
+            "sink_kind": "station",
+            "sink_zone": "handoff_ac",
+            "flow": {
+              "uid": 1,
+              "alias": "Part_0001",
+              "item_type": "RAW_A",
+              "state": "CREATED",
+              "zone": "line_s1a",
+              "parents": [],
+              "source": "line_s1a",
+              "destination": "",
+              "sim_handle": 705,
+              "process_stage": "",
+              "history": [
+                {
+                  "sim_time": 0.0,
+                  "kind": "MATERIAL_CREATED",
+                  "uid": 1,
+                  "item_type": "RAW_A",
+                  "zone": "line_s1a",
+                  "task_id": "",
+                  "source": "line_s1a",
+                  "destination": "",
+                  "device": "",
+                  "evidence_id": "",
+                  "detail": {
+                    "source": "line_s1a",
+                    "destination": ""
+                  }
+                }
+              ]
+            }
+          },
+          "safety": {
+            "engaged": true,
+            "code": "SAFETY_LATCH",
+            "reason": "ACCEPTANCE_INJECTED_SAFETY",
+            "sim_time": 0.05,
+            "details": {},
+            "stop_commanded": true,
+            "stop_command_ok": true,
+            "stop_confirmed": false,
+            "stop_checks": 1,
+            "stop_speed": 0.09998,
+            "stop_source": "model_state"
+          }
+        }
+      }
+    ],
+    "order_status": "ABORTED",
+    "instances": [
+      {
+        "node_id": "housing-start",
+        "state": "FAILED"
+      },
+      {
+        "node_id": "housing-finish",
+        "state": "PENDING"
+      },
+      {
+        "node_id": "housing-buffer",
+        "state": "PENDING"
+      }
+    ],
+    "safety_latch": {
+      "engaged": true,
+      "code": "SAFETY_LATCH",
+      "reason": "ACCEPTANCE_INJECTED_SAFETY",
+      "sim_time": 0.05,
+      "details": {},
+      "stop_commanded": true,
+      "stop_command_ok": true,
+      "stop_confirmed": false,
+      "stop_checks": 1,
+      "stop_speed": 0.09998,
+      "stop_source": "model_state"
+    },
+    "injected": true,
+    "drive": null,
+    "acceptance": {
+      "ok": false,
+      "order_status": "ABORTED",
+      "order_target_count": 0,
+      "final_count": 0,
+      "final_parents": [],
+      "resources_released": true,
+      "any_safety_latch": true,
+      "aborted": true,
+      "frozen": true,
+      "stop_reason": "A 安全锁存: ACCEPTANCE_INJECTED_SAFETY"
+    },
+    "steps": 22,
+    "source_evidence": "docs\\implementation\\runs\\v1_order_global_safety_20261108_093607.json"
+  },
+  "sim_step_harness": {
+    "test": "tests/test_v1_order_failure_isolation.py::test_coordinator_sim_step_failure_stops_all_and_marks_global",
+    "note": "记录型 coordinator harness; 未切断真实 ZMQ 连接",
+    "real_zmq_disconnect_executed": false
+  },
+  "consistency": {
+    "manual_ui_refresh_status": "成功",
+    "manual_ui_refresh_node_rows": 7,
+    "planner_ui_refresh": "见 frontend/e2e/real_acceptance.mjs 输出",
+    "api_db_ui_fields": [
+      "run_id",
+      "order_id",
+      "order_version",
+      "dag_digest",
+      "artifact_id",
+      "status",
+      "failure_scope",
+      "stop_reason",
+      "nodes",
+      "events"
+    ],
+    "note": "API/DB/UI 以同一 ui.db 和 run_id 交叉核对; 刷新后节点表恢复",
+    "planner_ui_refresh_status": "成功",
+    "planner_ui_refresh_node_rows": 7,
+    "post_acceptance_lifecycle": {
+      "zmq_sim_state": 0,
+      "lifecycle_state": "SCENE_LOADED",
+      "run_id": null,
+      "lock_owner": null,
+      "lock_alive": false,
+      "note": "direct ZMQ probe after fault tests; simulation stopped, no run lock"
+    }
+  },
+  "failed_attempts": [
+    {
+      "run_id": "order_accept-ui-manual-1794026712760_20261108_004819_2c8038",
+      "status": "ABORTED",
+      "stop_reason": "NO_ACTIVE_WORKER",
+      "cause": "API worker 将 HTTP 8080 误作 ZMQ 端口",
+      "fix": "api serve --sim-host/--sim-port; _order_runner 分离端点"
+    }
+  ],
+  "not_executed": [
+    "tests/test_v1_order_sim.py::test_manual_order_service_run_succeeds",
+    "tests/test_v1_order_sim.py::test_planner_order_service_run_succeeds",
+    "真实 ZMQ 断开/stepping 故障"
+  ]
+}

@@ -121,7 +121,7 @@ related:
 
 阶段 1–2 的稳定契约和失败语义是 API/UI 的前置条件；阶段 3 是 planner 和前端共用的服务边界；阶段 4、5 可在 API 冻结后并行实现，但发布验收必须覆盖两者。测试保持聚焦：每阶段运行受影响测试；新增测试只覆盖关键正例、核心负例和新失败边界；最后跑一次全量纯测试及上述有限的实机验收矩阵，不重复生成同义测试。
 
-实施状态（2026-11-07）：阶段 1–5 已实施并通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../reports/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../reports/v1-order-dag-phase-05-frontend.md)；阶段 6 仍未实施，真实 CoppeliaSim 订单/故障验收未执行。本文其余部分保留原始总体设计，不表示六阶段全部完成。
+实施状态（2026-11-08）：阶段 1–6 均已实施。阶段 1–5 通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../reports/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../reports/v1-order-dag-phase-05-frontend.md)；阶段 6 已在受保护 `L5_UFLOW` 工件上完成手工/planner UI 订单、NODE 前置拒绝和安全锁存全局停止验收，见[阶段 6 实施报告](../reports/v1-order-dag-phase-06-simulation-acceptance.md)。未验证的真实运动/连接故障仍为 GLOBAL；本文其余部分保留原始总体设计。
 
 ## 7. 首期验收场景
 
@@ -161,4 +161,4 @@ related:
 | `MaterialRegistry` 与 E join handler | 复用 UID、区域、类型和原子合流账本；关联输入/输出工序实例 |
 | `persistence/runs.py` / run records | 关联订单版本与运行终态；订单版本仓储独立于静态 catalog release |
 
-此方案是总体计划，不表示订单 API、前端、自建 DAG 或自主规划器已经全部完成。阶段 1–5 已实施（见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 报告](../reports/v1-order-dag-phase-05-frontend.md)），阶段 6 待实施。各工作包应独立实施，并在报告中记录纯逻辑测试、仿真证据和未覆盖限制。
+此方案是总体计划，不表示所有边界已经完成。阶段 1–6 已实施（见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 报告](../reports/v1-order-dag-phase-05-frontend.md)与[阶段 6 报告](../reports/v1-order-dag-phase-06-simulation-acceptance.md)）；未验证的真实 Arm/AGV 运动错误、连接故障和其他场景仍保持 GLOBAL/未覆盖。各工作包应独立实施，并在报告中记录纯逻辑测试、仿真证据和未覆盖限制。

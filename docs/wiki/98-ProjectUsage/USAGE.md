@@ -94,13 +94,16 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
     flexible-factory list
     flexible-factory stop
 
-## 订单 DAG（阶段 1–3）
+## 订单 DAG（阶段 1–6）
 
 自建订单把工序模板组合成声明式 DAG，经同一 validator/compiler 编译后在
-`L5_UFLOW` 中执行。阶段 1–3 已实现契约、编译、局部失败隔离、版本化持久化、
-本地 HTTP 服务和记录型端到端执行；后端自主规划器（阶段 4）、前端（阶段 5）
-和真实 CoppeliaSim 订单/故障验收（阶段 6）尚未实现，不能把纯逻辑结果当作
-实机能力。
+`L5_UFLOW` 中执行。阶段 1–5 已实现契约、编译、局部失败隔离、版本化持久化、
+本地 HTTP 服务、后端自主规划器和前端工作台；阶段 6 已在受保护 v1 工件上
+完成手工 UI 订单、planner UI 订单、物理动作前 NODE 拒绝和真实安全锁存
+GLOBAL 停止验收，见
+[阶段 6 实施报告](../../implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md)。
+本轮只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开等
+未验证类型仍是 GLOBAL，不能把纯逻辑或本报告范围外结果当作实机能力。
 
 订单 JSON 只允许 `order_id/version/scene_id/target/inputs/nodes/edges/source`
 字段；节点只引用已登记 `template_id`，边只引用端口 identity，不接受 Python/
@@ -127,6 +130,7 @@ CLI（不需要 CoppeliaSim 的校验/预览/版本命令）：
 HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）：
 
     flexible-factory api serve --host 127.0.0.1 --port 8080 \
+        --sim-host localhost --sim-port 23000 \
         --artifact-id current --run-records on
 
     GET  /api/health
@@ -151,10 +155,16 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
   artifact；`current` 会在服务端解析为具体 artifact ID。
 - 订单版本只能追加；数据库触发器禁止原地 UPDATE。运行开始后修改编排必须
   创建新版本。
-- 首版只有 `NODE_PRECHECK_REJECTED` 在物理动作前且安全状态可核实时按 NODE
+- `api serve --host/--port` 只绑定本地 HTTP API；仿真 worker 通过
+  `--sim-host/--sim-port` 连接 ZMQ（默认 `localhost:23000`），两者不要混用。
+- 阶段 6 已验证：手工订单和 planner 订单各生成 1 个 `FINAL`，父 UID 对应
+  本次两个输入；NODE 前置拒绝只阻断依赖后继；真实安全锁存使运行 `ABORTED`
+  并保留锁存。证据和未覆盖边界见阶段 6 实施报告；真实连接断开、Arm/AGV
+  运动类故障仍未获 NODE 准入。
+- 首期只有 `NODE_PRECHECK_REJECTED` 在物理动作前且安全状态可核实时按 NODE
   隔离；真实 ArmExecutor/AgvExecutor 目前不产生该 code，纯逻辑测试不构成
   物理准入。安全锁存、仿真基础设施、共享资源和未知异常一律 GLOBAL。真实
-  运动错误的 NODE 准入需阶段 6 focused 证据，未验证类型保持 GLOBAL。
+  运动错误的 NODE 准入需 focused 证据，未验证类型保持 GLOBAL。
 - 目录版本已升至 `v1_process_20261106a`。旧目录 release 需重新
   `catalog import/publish` 后才能作为 `--catalog-source db` 使用；订单表由
   `0005_orders` 迁移创建。
@@ -220,6 +230,11 @@ input/search_limit/compile 中最先阻断的类别。
     npm test          # Vitest 单元测试
     npm run e2e       # Playwright 三条旅程（首次先 npm run e2e:install）
     npm run build     # 生产静态产物 frontend/dist/
+
+真实 CoppeliaSim 的 UI 验收入口见
+[frontend/README.md](../../../frontend/README.md) 的
+`e2e/real_acceptance.mjs`（`manual`/`planner`/`start`/`verify`）；该脚本不使用
+route mock，会实际启动订单运行。
 
 开发 API 目标可用 `VITE_DEV_API_TARGET` 覆盖；生产 API 基址可用
 `VITE_API_BASE_URL` 覆盖（默认 `/api`）。前端与 API 不同源部署时需使用
