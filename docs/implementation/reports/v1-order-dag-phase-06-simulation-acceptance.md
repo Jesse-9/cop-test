@@ -32,7 +32,7 @@ Arm/AGV 真实运动故障已获 NODE 准入。
 | 项 | 值 |
 |---|---|
 | 时间 | 2026-11-08（本地时间 UTC+08:00） |
-| 源代码 | `4ad01ffce6f6da47e336f8197014b2479d951254` + 阶段 6 未提交改动 |
+| 源代码 | `4ad01ffce6f6da47e336f8197014b2479d951254` + 阶段 6 改动；验收后提交为 `7702f03`（代码内容相同） |
 | 操作系统 | Windows 11 Home 10.0.26200 |
 | Python / 工具 | Python 3.11，`uv`；pytest 9.1.1 |
 | CoppeliaSim | 4.10.0.0，Bullet，`simulation_step=0.05` |

@@ -24,7 +24,9 @@
       "catalog": "v1_process_20261106a",
       "planner_policy": "v1_planner_20261107",
       "failure_policy": "v1_failure_20261106"
-    }
+    },
+    "phase6_commit": "7702f03",
+    "phase6_commit_note": "acceptance ran on 4ad01ff + uncommitted phase 6 changes; code content committed as 7702f03"
   },
   "full_flow_baseline": {
     "source_report": "tests/test_v1_stage4_scheduler_sim.py",
