@@ -99,7 +99,7 @@ docker compose -f .\tools\neo4j\docker-compose.yml down
 ## 验收记录
 
 本地 dump 的载入、导出和知识导入验收结果由
-[知识图谱实施报告](../../docs/implementation/reports/v1-knowledge-graph-import.md)
+[知识图谱实施报告](../../docs/implementation/reports/data-platform/v1-knowledge-graph-import.md)
 记录。换用 dump 或修改映射后，应按本指南重新执行并更新报告；本文件只维护操作步骤。
 
 ## 限制

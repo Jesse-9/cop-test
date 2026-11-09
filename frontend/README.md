@@ -62,7 +62,7 @@ npm run e2e:install
 E2E 使用 Playwright route mock 固定 API 响应，不需要 CoppeliaSim 或真实
 订单服务。真实 API/planner 的集成验证另行用本机 API 执行；真实仿真订单与
 故障准入由阶段 6 验收，结果见
-[阶段 6 实施报告](../docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md)。
+[阶段 6 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。
 
 阶段 6 的真实 UI 验收脚本（需要 API、Vite、CoppeliaSim）：
 

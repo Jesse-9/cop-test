@@ -4,7 +4,7 @@ Revision ID: 0004_order_catalog_metadata
 Revises: 0003_run_records
 Create Date: 2026-11-06
 
-Scope: docs/implementation/plans/v1-order-dag-phase-01-foundation.md step 4.
+Scope: docs/implementation/plans/order-orchestration/v1-order-dag-phase-01-foundation.md step 4.
 The columns extend the existing static catalog with information the order
 compiler needs. They do not change runtime behavior of the recipe entry.
 

@@ -16,9 +16,9 @@
   UI 手工订单和 planner 订单各完成 1 个 `FINAL`（父 UID `[1,2]`）；
   `NODE_PRECHECK_REJECTED` 只阻断依赖后继；真实安全锁存使订单 `ABORTED`
   并保留锁存。证据见
-  `docs/implementation/evidence/v1_order_dag_phase6_acceptance_20261108.json`，
+  `docs/implementation/evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json`，
   报告见
-  `docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md`。
+  `docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md`。
 - 修复订单 runner 的 `connect()` 解包、目录来源记录和订单目标数量判据；
   `api serve` 新增 `--sim-host`/`--sim-port`，与 HTTP 绑定分离。
 - 阶段 6 全量非仿真回归 598 passed / 7 skipped；前端 Vitest 12 passed、
@@ -51,7 +51,7 @@
 - 同一 CoppeliaSim 会话第 4 次连续运行时进程以 `0xC0000409` 退出；重启
   全新进程后完成 `detour_heavy` 验收。正式验收建议每次使用新进程。
 - WP3（设备替代）/WP4（同一 UID 动态选路）未实施。详见
-  `docs/implementation/reports/v1-mixed-production-flexibility-demo.md`。
+  `docs/implementation/reports/production-flow/v1-mixed-production-flexibility-demo.md`。
 - 运行记录（阶段 4）：新增 Alembic revision `0003_run_records` 与
   `RunRecorder`，只在运行开始/结束两个边界批量写入 `production_run`、
   工序实例、物料实例、谱系、资源事件和运行事件；`sim.step()` 热路径不写库。
@@ -61,7 +61,7 @@
 - 失败/中止运行同样写终态；写库失败只标记运行报告
   `run_record.ok=false`，不回滚仿真、不自动重放。`run --run-records off`
   可关闭。
-- 新增 [本地数据库查看指南](docs/implementation/reference/database-inspection-guide.md)：
+- 新增 [本地数据库查看指南](docs/implementation/reference/data-platform/database-inspection-guide.md)：
   汇总 CLI、HTML 仪表盘、原始 SQLite 和 Neo4j Browser 的数据库查看入口。
 - 扩展 `tools/db_dashboard.py`：展示已发布工艺目录的工序依赖 DAG、路线
   卡片、工序详情、资源申请顺序、设备/能力、区域、物料、订单入口和场景
@@ -77,7 +77,7 @@
   Q2–Q4 可查询），另有 2 条 `ABORTED` 记录验证失败/中止路径。
 - 新增 `tests/test_v1_run_records.py`（14 passed）；目录/知识/运行/边界
   组合测试 47 passed，相关聚焦回归 164 passed。运行记录实机验收证据见
-  `docs/implementation/evidence/v1_run_records_acceptance_20261106.json`。
+  `docs/implementation/evidence/data-platform/v1_run_records_acceptance_20261106.json`。
 - 知识图谱导入（阶段 5）：确认 `fmpmm.dump` 为 Neo4j 数据库 dump，新增
   Alembic revision `0002_knowledge_graph`（来源、抽取运行、实体/关系、
   来源追溯），新增 `tools/neo4j_export.py` 与 `tools/neo4j/` 官方
@@ -131,7 +131,7 @@
   与 `tests/test_v1_stage4_scheduler_sim.py`；纯逻辑测试 450 passed / 3 skipped。
 - 阶段 4 `full_flow` 实机验收通过：FINAL 1 件（父 UID `[1,3]`）、13 个任务
   全部完成、12 个工序实例、11 条调度决策全部可解释、资源清零；证据见
-  `docs/implementation/evidence/v1_stage4_full_flow_20261104_210605.json`。
+  `docs/implementation/evidence/production-flow/v1_stage4_full_flow_20261104_210605.json`。
   WP5（等价候选扩展）未实施，WP6（运动余量复核）未执行。
 - 新增配方运行图：`domain/operation_runtime.py` 增加 `RecipeRunContext`、
   `OperationGraph` 与 `OperationRuntime`；`OperationInstance` 扩展

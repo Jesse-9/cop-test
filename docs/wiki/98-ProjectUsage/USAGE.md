@@ -15,7 +15,7 @@ sim_version: "4.10+"
 
 本指南说明 CoppeliaSim、ZMQ 连接、v1 工件操作和 `full_flow` 运行。命令以
 Windows PowerShell、仓库根目录为例。v1 不支持历史阶段入口；历史实现、报告
-与证据已清理，结论见 [V1 实施报告](../../implementation/reports/v1-product-implementation.md)。
+与证据已清理，结论见 [V1 实施报告](../../implementation/reports/product/v1-product-implementation.md)。
 
 ## 启动仿真软件
 
@@ -85,7 +85,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
   `BATCH_INPUT_VERSION`。
 - 批次配比只展示路线混批能力，不表示同一 UID 可在运行中动态选路。
   默认与两个 profile 的实机验收结果见
-  [实施报告](../../implementation/reports/v1-mixed-production-flexibility-demo.md)。
+  [实施报告](../../implementation/reports/production-flow/v1-mixed-production-flexibility-demo.md)。
 
 其他查询/控制命令：
 
@@ -101,7 +101,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 本地 HTTP 服务、后端自主规划器和前端工作台；阶段 6 已在受保护 v1 工件上
 完成手工 UI 订单、planner UI 订单、物理动作前 NODE 拒绝和真实安全锁存
 GLOBAL 停止验收，见
-[阶段 6 实施报告](../../implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md)。
+[阶段 6 实施报告](../../implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。
 本轮只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开等
 未验证类型仍是 GLOBAL，不能把纯逻辑或本报告范围外结果当作实机能力。
 
@@ -248,7 +248,7 @@ route mock，会实际启动订单运行。
 `var/catalog/catalog.db`（不写入受保护的场景工件目录）。该功能不影响默认
 运行：`run` 仍读取代码内默认目录，只有显式 `--catalog-source db` 才切换。
 数据库查看方式汇总见
-[本地数据库查看指南](../../implementation/reference/database-inspection-guide.md)。
+[本地数据库查看指南](../../implementation/reference/data-platform/database-inspection-guide.md)。
 
     # 初始化或升级 schema（幂等）
     flexible-factory catalog init
@@ -281,7 +281,7 @@ CoppeliaSim 的 `full_flow` 验收不在目录数据库维护命令范围内。
 
 真实 Neo4j dump 的载入、只读导出、staging、审核和发布流程统一维护在
 [本地 Neo4j 工具说明](../../../tools/neo4j/README.md)。导入验收结果以
-[知识图谱实施报告](../../implementation/reports/v1-knowledge-graph-import.md)
+[知识图谱实施报告](../../implementation/reports/data-platform/v1-knowledge-graph-import.md)
 为准。`knowledge import` 只写 staging；校验失败时不得发布。
 
 ## 运行记录与查询（维护操作）
@@ -390,6 +390,6 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 CLI 参数、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
 场景工件说明与实现保持一致。新增可运行模式时，补充其前置工件、加载步骤、
 运行命令和输出位置。新增目录数据库、知识图谱或运行记录命令时，同步更新
-本节、[资源目录数据库化实施报告](../../implementation/reports/v1-catalog-persistence.md)、
-[知识图谱导入实施报告](../../implementation/reports/v1-knowledge-graph-import.md)
-与[运行记录实施报告](../../implementation/reports/v1-run-record-persistence.md)。
+本节、[资源目录数据库化实施报告](../../implementation/reports/data-platform/v1-catalog-persistence.md)、
+[知识图谱导入实施报告](../../implementation/reports/data-platform/v1-knowledge-graph-import.md)
+与[运行记录实施报告](../../implementation/reports/data-platform/v1-run-record-persistence.md)。

@@ -1,54 +1,74 @@
-# 实施资料
+# 实施资料归档
 
-本目录按项目管理职责归档 v1 的方案、基线、实施报告和证据。业务目标、工艺路线
-与领域对象见 [柔性车间资料导航](../wiki/06-工业案例/柔性车间/README.md)。
-两边的职责和阶段对应见
-[项目文档登记表](governance/project-document-register.md)。
+本目录保存项目治理、主题方案、实施报告、技术参考和正式验收证据。柔性车间业务目标、工艺路线与领域模型见[业务资料导航](../wiki/06-工业案例/柔性车间/README.md)；v1 实现状态、未完成项和 v2 风险以[启动准备度盘点](governance/v2-readiness-assessment.md)为当前总表。
 
-## 目录
+## 目录边界
 
-| 目录 | 内容 |
+| 目录 | 职责 |
 |---|---|
-| [governance/](governance/) | 项目登记规则、v1 范围/迁移方案和 M0 基线 |
-| [plans/](plans/) | 阶段实施方案及跨阶段技术提案 |
-| [reports/](reports/) | 产品、阶段和技术专题实施报告，记录实际结果与限制 |
-| [reference/](reference/) | 实施方案的输入盘点及技术参考 |
-| [evidence/](evidence/) | 报告引用的正式、精简验收证据 |
-| [runs/](runs/) | 被 Git 忽略的临时运行输出；不作为正式证据 |
+| [governance/](governance/) | 范围、基线、文档规则和当前阶段总表 |
+| [plans/](plans/) | 按业务主题归档实施方案及技术提案 |
+| [reports/](reports/) | 按业务主题归档实施事实、测试结果和未覆盖边界 |
+| [reference/](reference/) | 方案输入、字段盘点和技术操作参考，不单独作为验收结论 |
+| [evidence/](evidence/) | 随版本维护、由报告引用的精简正式证据 |
+| [runs/](runs/) | Git 忽略的临时运行输出，不作为正式归档证据 |
 
-## 项目治理与基线
+## 治理与产品基线
 
-- [v1 范围与迁移方案](governance/v1-scope-and-migration-plan.md)：产品边界、迁移映射、工件策略和实施门槛。
-- [v1 M0 基线](governance/v1-baseline-m0.md)：冻结范围、决策、代码与工件基线。
-- [项目文档登记表](governance/project-document-register.md)：业务规划与实施资料的分层、对应和命名。
+| 文档 | 用途 |
+|---|---|
+| [v2 启动准备度与 v1 阶段盘点](governance/v2-readiness-assessment.md) | 当前唯一的跨主题状态总表、风险与 v2 进入门槛 |
+| [项目文档登记表](governance/project-document-register.md) | 业务规划、方案、报告与证据的职责及阶段映射 |
+| [v1 M0 基线](governance/v1-baseline-m0.md) | v1 初始范围、工件、环境和测试冻结记录 |
+| [v1 范围与迁移方案](governance/v1-scope-and-migration-plan.md) | v1 收敛目标、迁移决策和退出条件 |
+| [v1 产品实施报告](reports/product/v1-product-implementation.md) | v1 产品迁移交付事实；后续阶段以专题报告为准 |
 
-## 阶段实施
+## 主题档案
 
-| 阶段/主题 | 实施方案 | 实施报告 |
-|---|---|---|
-| v1 产品收敛 | [范围与迁移方案](governance/v1-scope-and-migration-plan.md) | [产品实施报告](reports/v1-product-implementation.md) |
-| 阶段 0–1 静态工艺目录 | [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-19-混线生产阶段0-1基线与静态工艺目录.md) | [工艺目录移植报告](reports/v1-stage-00-01-static-process-catalog.md) |
-| 阶段 2 设备执行适配 | [实施方案](plans/v1-stage-02-device-executor-implementation.md) | [实施报告](reports/v1-stage-02-device-executor.md) |
-| 阶段 3 工序 DAG | [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-21-混线生产阶段3配方实例化与工序DAG.md) | [实施报告](reports/v1-stage-03-operation-dag.md) |
-| 阶段 4 能力匹配调度 | [实施方案](plans/v1-stage-04-capability-scheduling-implementation.md) | [实施报告](reports/v1-stage-04-capability-scheduling.md) |
-| 自建订单 DAG 阶段 1–3 | [阶段 1](plans/v1-order-dag-phase-01-foundation.md) · [阶段 2](plans/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3](plans/v1-order-dag-phase-03-api-persistence.md) | [阶段 1–3 实施报告](reports/v1-order-dag-phase-01-03.md) |
-| 自建订单 DAG 阶段 4 自主编排 | [阶段 4](plans/v1-order-dag-phase-04-auto-planner.md) | [阶段 4 实施报告](reports/v1-order-dag-phase-04-auto-planner.md) |
-| 自建订单 DAG 阶段 5 前端工作台 | [阶段 5 前端方案](plans/v1-order-dag-phase-05-frontend.md) · [UI 设计规格](plans/v1-order-dag-phase-05-ui-design-spec.md) | [阶段 5 实施报告](reports/v1-order-dag-phase-05-frontend.md) |
-| 自建订单 DAG 阶段 6 仿真验收 | [阶段 6 方案](plans/v1-order-dag-phase-06-simulation-acceptance.md) | [阶段 6 实施报告](reports/v1-order-dag-phase-06-simulation-acceptance.md) |
+### 生产流程
 
-## 跨阶段方案与专项报告
+业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 的调度优化与恢复仍暂缓，见[阶段 5 业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
 
-- [自建订单与工序 DAG 自主编排路线图](plans/v1-self-built-order-dag-orchestration.md)：总架构与六阶段依赖顺序；各阶段的详细步骤、代码落点和精简验收分别见[阶段 1](plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](plans/v1-order-dag-phase-05-frontend.md)、[阶段 6](plans/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 1–6 已实施：阶段 1–5 见[阶段 1–3 实施报告](reports/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](reports/v1-order-dag-phase-04-auto-planner.md)与[阶段 5 实施报告](reports/v1-order-dag-phase-05-frontend.md)；阶段 6 已完成受保护工件的订单/故障实机验收，见[阶段 6 实施报告](reports/v1-order-dag-phase-06-simulation-acceptance.md)。未验证的真实运动/连接故障仍为 GLOBAL。
-- [混线生产灵活性扩展示范方案](plans/v1-mixed-production-flexibility-demo.md)与[实施报告](reports/v1-mixed-production-flexibility-demo.md)：WP1/WP2 已实施并完成实机验收；WP3/WP4 仍为条件包。
-- [资源目录数据库化与知识图谱方案](plans/resource-catalog-database-and-knowledge-graph.md)：阶段 0–6 的总体架构与门槛。
-- [仿真与运动规划性能方案](plans/simulation-motion-planning-performance.md)：路径复用和性能提案。
-- [仿真模块代码优化方案](plans/simulation-code-optimization-plan.md)与[实施报告](reports/v1-simulation-code-optimization.md)：P1/P2、P3 5.1/5.3 与第 6 节已实施；P3 5.2 未实施。
-- [仿真模块清单](reference/simulation-module-inventory.md)：仿真包模块职责、兼容层与遗留代码处置。
-- [静态目录字段盘点](reference/static-catalog-field-inventory.md)：数据库化方案阶段 0 的输入盘点。
-- [本地数据库查看指南](reference/database-inspection-guide.md)：CLI、HTML 仪表盘和原始 SQLite 的查看入口。
-- [本地数据库仪表盘前端优化方案](plans/db-dashboard-frontend-optimization.md)与[UI 蓝图](plans/db-dashboard-ui-blueprint.md)：保留离线只读单文件交付的实施步骤、页面分区和交互状态。
-- [静态目录持久化报告](reports/v1-catalog-persistence.md)：数据库 schema、导入、发布及选库验证。
-- [运行记录持久化报告](reports/v1-run-record-persistence.md)：运行写入及 Q1–Q4 查询。
-- [知识图谱导入报告](reports/v1-knowledge-graph-import.md)：Neo4j dump 导出、staging 和审核发布。
+| 类型 | 文档 |
+|---|---|
+| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) |
+| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) |
+| 证据 | [生产流程验收证据目录](evidence/README.md) |
 
-提案状态不表示已实现。能力完成情况以对应实施报告和 `evidence/` 为准；旧阶段运行输出留在 `runs/`，不要当成验收证据。
+### 订单编排
+
+订单契约、失败隔离、API/持久化、确定性 planner、前端和限定范围的仿真实机验收。阶段 1–6 的限制和未准入故障以各阶段报告为准。
+
+| 类型 | 文档 |
+|---|---|
+| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
+| 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
+| 证据 | [订单编排阶段 6 验收证据](evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json) |
+
+### 数据平台
+
+静态目录、运行记录、知识图谱导入和离线数据库查看工具。
+
+| 类型 | 文档 |
+|---|---|
+| 方案 | [资源目录数据库化与知识图谱](plans/data-platform/resource-catalog-database-and-knowledge-graph.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
+| 报告 | [目录持久化](reports/data-platform/v1-catalog-persistence.md) · [运行记录持久化](reports/data-platform/v1-run-record-persistence.md) · [知识图谱导入](reports/data-platform/v1-knowledge-graph-import.md) |
+| 参考 | [静态目录字段盘点](reference/data-platform/static-catalog-field-inventory.md) · [数据库查看指南](reference/data-platform/database-inspection-guide.md) |
+| 证据 | [数据平台验收证据目录](evidence/README.md) |
+
+### 仿真工程
+
+仿真模块职责、代码拆分与运动规划性能提案。
+
+| 类型 | 文档 |
+|---|---|
+| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能提案](plans/simulation/simulation-motion-planning-performance.md) |
+| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) |
+| 参考 | [仿真模块清单](reference/simulation/simulation-module-inventory.md) |
+
+## 归档与维护规则
+
+- 业务规划回答“建设什么”；实施方案回答“准备如何实现”；报告回答“实际完成什么”；证据保存可核验的验收摘要。各类文件按主题放入对应目录。
+- 文件状态以 frontmatter 为准；跨主题当前状态只在 v2 准备度盘点维护。报告保留其执行时点的测试和验收事实，不把旧计数解释为当前测试结果。
+- 方案与报告有不同职责，不因内容引用相同而视为重复。只有内容、用途和证据来源均被另一个权威文档完整取代时，才合并或移除旧文档。
+- 新增或迁移文档时，更新本索引、[文档登记表](governance/project-document-register.md)和所有受影响的相对链接；正式证据同时更新[evidence 目录](evidence/README.md)。

@@ -1,6 +1,6 @@
 """persistence.knowledge — Neo4j 导出的知识图谱事实导入与发布.
 
-流程遵循 ``docs/implementation/plans/resource-catalog-database-and-knowledge-graph.md`` §4/§5:
+流程遵循 ``docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md`` §4/§5:
 
   1. 原始 ``fmpmm.dump`` 由官方 ``neo4j-admin`` 载入 Neo4j;
   2. ``tools/neo4j_export.py`` 通过官方 Bolt 驱动只读导出节点/关系 JSON;

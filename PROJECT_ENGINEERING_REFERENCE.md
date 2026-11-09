@@ -3,7 +3,7 @@
 本文件记录 v1 产品的工程约束、模块职责和仿真实测陷阱。项目状态见
 [README.md](README.md)，运行命令见
 [docs/wiki/98-ProjectUsage/USAGE.md](docs/wiki/98-ProjectUsage/USAGE.md)，
-实施与验收见 [v1 产品实施报告](docs/implementation/reports/v1-product-implementation.md)。
+实施与验收见 [v1 产品实施报告](docs/implementation/reports/product/v1-product-implementation.md)。
 
 ## 1. 产品边界
 
@@ -133,8 +133,8 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   - 阶段 6 实机验收（2026-11-08）：在 `v1/L5_UFLOW/v001_20261103_004317`
     上完成手工/planner UI 订单（各 1 个 `FINAL`，父 UID `[1,2]`）、
     `NODE_PRECHECK_REJECTED` 局部拒绝和真实安全锁存 GLOBAL `ABORTED`；
-    证据在 `docs/implementation/evidence/v1_order_dag_phase6_acceptance_20261108.json`，
-    报告见 `docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md`。
+    证据在 `docs/implementation/evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json`，
+    报告见 `docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md`。
     `OrderRunnerConfig.catalog_source` 记录实际目录来源；`api serve` 的
     `--sim-host/--sim-port` 只供 worker 连接 ZMQ，与 HTTP `--host/--port` 分离。
     验收只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开和
@@ -205,7 +205,7 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 `unit_controller_dual.py`、`runtime_dual.py` 和 `motion/path_planning.py`
 只做旧导入路径 re-export，不是独立实现；详细清单见
-[仿真模块清单](docs/implementation/reference/simulation-module-inventory.md)。
+[仿真模块清单](docs/implementation/reference/simulation/simulation-module-inventory.md)。
 
 `Stage3*`/`Stage4*` 类名、`spec.CONTROLLER_ID`/`COORDINATOR_ID` 和工件
 `source_phase=stage4` 是 v1 契约或迁移溯源的一部分，不能单独改名；改名需要
@@ -284,9 +284,9 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   测试 `tests/test_v1_catalog_persistence.py`、知识图谱测试
   `tests/test_v1_knowledge_graph.py` 和运行记录测试
   `tests/test_v1_run_records.py`；完整回归计数未在这些实施轮刷新，见
-  [目录实施报告](docs/implementation/reports/v1-catalog-persistence.md)、
-  [知识图谱报告](docs/implementation/reports/v1-knowledge-graph-import.md) 与
-  [运行记录报告](docs/implementation/reports/v1-run-record-persistence.md)。
+  [目录实施报告](docs/implementation/reports/data-platform/v1-catalog-persistence.md)、
+  [知识图谱报告](docs/implementation/reports/data-platform/v1-knowledge-graph-import.md) 与
+  [运行记录报告](docs/implementation/reports/data-platform/v1-run-record-persistence.md)。
 - 订单 DAG 纯逻辑/API 测试（不需要 CoppeliaSim）：
   `tests/test_v1_order_foundation.py`（契约/校验/编译/digest）、
   `tests/test_v1_order_failure_isolation.py`（NODE/GLOBAL 与收敛）、
@@ -297,7 +297,7 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   无解/搜索上限、草稿保存与 API）。订单夹具见 `tests/order_fixtures.py`。
   这些结果不能替代真实 CoppeliaSim 订单/故障验收；阶段 6 已执行的部分和
   未覆盖边界见
-  [阶段 6 报告](docs/implementation/reports/v1-order-dag-phase-06-simulation-acceptance.md)。
+  [阶段 6 报告](docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。
 - 订单 DAG 实机测试（需要 `FLEXIBLE_FACTORY_SIM=1`、CoppeliaSim 4.10 和
   ZMQ 23000）：
   `tests/test_v1_order_sim.py`（手工/planner service 运行、NODE 前置拒绝、
@@ -322,11 +322,11 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 - 知识图谱验证：`flexible-factory knowledge import/status/verify/publish`
   （不需要 CoppeliaSim）；真实 dump 的载入/导出需要 Docker Desktop 和
   Neo4j；操作步骤见 [tools/neo4j/README.md](tools/neo4j/README.md)，实测结果以
-  [知识图谱实施报告](docs/implementation/reports/v1-knowledge-graph-import.md)为准。
+  [知识图谱实施报告](docs/implementation/reports/data-platform/v1-knowledge-graph-import.md)为准。
 - 批次输入验证：`python -m pytest -q tests/test_v1_batch_profiles.py`
   （不需要 CoppeliaSim）；`--batch-profile` 实机验收结果、`detour_heavy`
   初版 `0/2/2` 的背压超时边界和证据见
-  [混线灵活性实施报告](docs/implementation/reports/v1-mixed-production-flexibility-demo.md)。
+  [混线灵活性实施报告](docs/implementation/reports/production-flow/v1-mixed-production-flexibility-demo.md)。
   非默认 profile 的实机验收不得用纯逻辑结果代替。
 - 设备级 focused 验收与阶段 4 `full_flow`（需要运行中的 CoppeliaSim 4.10 +
   ZMQ 23000）：每个文件单独一次进程，

@@ -4,7 +4,7 @@ Revision ID: 0005_orders
 Revises: 0004_order_catalog_metadata
 Create Date: 2026-11-06
 
-Scope: docs/implementation/plans/v1-order-dag-phase-03-api-persistence.md.
+Scope: docs/implementation/plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md.
 Order definitions are separate from static catalog releases. ``order_version``
 is append-only; a trigger rejects UPDATE so a running/recorded version cannot
 be overwritten in place. ``order_run`` links a run to an immutable version and

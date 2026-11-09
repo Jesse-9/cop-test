@@ -15,5 +15,5 @@
   - ``motion/path_planning.py`` 是 ``motion/plan_*`` 模块的兼容导出层.
 
 模块职责、消费者和遗留代码处置见
-``docs/implementation/reference/simulation-module-inventory.md``.
+``docs/implementation/reference/simulation/simulation-module-inventory.md``.
 """

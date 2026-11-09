@@ -95,7 +95,7 @@ sim_version: "4.10"
 - [[06-工业案例/柔性车间/当前规划/06-25-混线生产工艺流程与设备映射]] — 逐工序流程与场景设备 alias 映射
 
 > v1 产品实现与验收见
-> [V1 实施报告](../implementation/reports/v1-product-implementation.md)；v1 场景为五岛
+> [V1 实施报告](../implementation/reports/product/v1-product-implementation.md)；v1 场景为五岛
 > `L5_UFLOW`，运行 `full_flow`。
 
 ### 07 API 脚本示例

@@ -4,7 +4,7 @@ Revision ID: 0006_order_planner_metadata
 Revises: 0005_orders
 Create Date: 2026-11-07
 
-Scope: docs/implementation/plans/v1-order-dag-phase-04-auto-planner.md.
+Scope: docs/implementation/plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md.
 Planner drafts remain ordinary immutable order versions; these nullable columns
 record the policy version, frozen input summary, explain result and candidate
 count for audit/replay. They are not part of the runtime order graph.

@@ -1,6 +1,6 @@
 """阶段 4: 纯调度策略的候选筛选、排序与确定性 (不需要 CoppeliaSim).
 
-覆盖 06-22 §能力匹配模型与 `docs/implementation/plans/v1-stage-04-capability-scheduling-implementation.md` WP1/WP2:
+覆盖 06-22 §能力匹配模型与 `docs/implementation/plans/production-flow/v1-stage-04-capability-scheduling-implementation.md` WP1/WP2:
 - recipe allowlist、静态能力/绑定、物料/区域前提与未验收几何组合的拒绝原因;
 - 业务优先级 → 等待时间 → ready 时间 → 稳定实例 ID 的排序;
 - 输入顺序变化不改变决策; 决策只含可 JSON 序列化数据;

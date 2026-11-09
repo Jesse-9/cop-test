@@ -57,7 +57,7 @@ MCP 和自动故障恢复不在当前 v1 能力范围；安全锁存不会自动
 旧阶段包（`src/stage1/` … `src/stage4/`、`src/stage1_1/`、
 `src/reference/`）、`run_stage*.py` 入口、旧报告与旧证据均已删除，不得被
 v1 运行路径导入。v1 行为与验收结论以
-[V1 实施报告](docs/implementation/reports/v1-product-implementation.md) 为准；运行方式以
+[V1 实施报告](docs/implementation/reports/product/v1-product-implementation.md) 为准；运行方式以
 [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md) 与实际 `--help` 为准。
 
 安全锁存在失败/停止后冻结原任务，不自动恢复；统一故障恢复仍未实现。
