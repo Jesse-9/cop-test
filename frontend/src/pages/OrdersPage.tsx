@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { OrderHeader, OrderTarget } from "../api/types";
+import type { OrderSummary, OrderTarget } from "../api/types";
 import {
   ORDER_STATUS_LABELS,
   SOURCE_LABELS,
@@ -12,8 +12,9 @@ import {
 import { Badge, EmptyState, InlineError, LoadingState, SectionTitle } from "../components/ui";
 
 interface OrderRow {
-  order: OrderHeader;
+  order: OrderSummary;
   target: OrderTarget | null;
+  digest: string;
 }
 
 export function OrdersPage() {
@@ -37,9 +38,13 @@ export function OrdersPage() {
               order.order_id,
               order.current_version,
             );
-            return { order, target: version.version.spec.target };
+            return {
+              order,
+              target: version.version.spec.target,
+              digest: version.version.dag_digest,
+            };
           } catch {
-            return { order, target: null };
+            return { order, target: null, digest: "" };
           }
         }),
       );
@@ -163,7 +168,7 @@ export function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(({ order, target }) => {
+              {filtered.map(({ order, target, digest }) => {
                 const run = order.latest_run;
                 return (
                   <tr key={order.order_id}>
@@ -172,10 +177,7 @@ export function OrdersPage() {
                         {order.order_id}
                       </Link>
                       <span className="muted mono cell-sub">
-                        {shortDigest(
-                          order.versions.at(-1)?.dag_digest ?? "",
-                          16,
-                        )}
+                        {shortDigest(digest, 16)}
                       </span>
                     </td>
                     <td>

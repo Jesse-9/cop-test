@@ -5,6 +5,14 @@ test.beforeEach(async ({ page }) => {
   await installMocks(page);
 });
 
+test("订单列表：加载真实摘要响应（不含 versions）", async ({ page }) => {
+  await page.goto("/orders");
+  await expect(page.getByRole("heading", { name: "订单" })).toBeVisible();
+  await expect(page.getByText("order-1").first()).toBeVisible();
+  await expect(page.getByText("planner-order").first()).toBeVisible();
+  await expect(page.getByText("2 / 2 个订单").first()).toBeVisible();
+});
+
 test("手工订单：添加节点、连接、预览并保存", async ({ page }) => {
   await page.goto("/orders/new");
   await expect(page.getByRole("heading", { name: "新建订单" })).toBeVisible();

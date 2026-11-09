@@ -3,6 +3,7 @@ import type {
   Diagnostic,
   OrderHeader,
   OrderSpec,
+  OrderSummary,
   OrderVersionDetail,
   PlannerDraftResponse,
   PlannerInputPayload,
@@ -157,7 +158,7 @@ export const api = {
   templates: () => request<TemplateCatalog>("/templates"),
 
   listOrders: (limit = 50) =>
-    request<{ orders: OrderHeader[] }>(`/orders?limit=${limit}`),
+    request<{ orders: OrderSummary[] }>(`/orders?limit=${limit}`),
   getOrder: (orderId: string) =>
     request<{ order: OrderHeader }>(`/orders/${encodeURIComponent(orderId)}`),
   listVersions: (orderId: string) =>

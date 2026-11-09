@@ -137,15 +137,18 @@ export interface RunMeta {
   result: Record<string, unknown> | null;
 }
 
-export interface OrderHeader {
+export interface OrderSummary {
   order_id: string;
   current_version: number;
   source: OrderSource;
   created_at: string;
   updated_at: string;
+  latest_run: RunMeta | null;
+}
+
+export interface OrderHeader extends OrderSummary {
   note: string;
   versions: VersionMeta[];
-  latest_run: RunMeta | null;
 }
 
 export interface StoredPlanner {

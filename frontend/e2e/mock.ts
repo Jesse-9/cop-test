@@ -3,6 +3,7 @@ import type {
   CompilePreview,
   OrderHeader,
   OrderSpec,
+  OrderSummary,
   OrderVersionDetail,
   PlannerResult,
   RunDetail,
@@ -129,6 +130,22 @@ export function orderHeader(
     note: "",
     versions: [versionMeta(orderId, version, source)],
     latest_run: null,
+  };
+}
+
+export function orderSummary(
+  orderId: string,
+  version = 1,
+  source: OrderSpec["source"] = "manual",
+): OrderSummary {
+  const header = orderHeader(orderId, version, source);
+  return {
+    order_id: header.order_id,
+    current_version: header.current_version,
+    source: header.source,
+    created_at: header.created_at,
+    updated_at: header.updated_at,
+    latest_run: header.latest_run,
   };
 }
 
@@ -358,7 +375,7 @@ export const runEvents: Record<string, unknown[]> = {
 
 export async function installMocks(page: Page): Promise<void> {
   await page.route(
-    /\/api\/(?:health|templates|orders|planner|runs)(?:\/|$)/,
+    /\/api\/(?:health|templates|orders|planner|runs)(?:\/|\?|$)/,
     async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -406,7 +423,10 @@ export async function installMocks(page: Page): Promise<void> {
     if (path === "/api/orders" && method === "GET") {
       return fulfill({
         ok: true,
-        orders: [orderHeader("order-1"), orderHeader("planner-order", 1, "planner")],
+        orders: [
+          orderSummary("order-1"),
+          orderSummary("planner-order", 1, "planner"),
+        ],
       });
     }
     if (path === "/api/orders" && method === "POST") {

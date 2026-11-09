@@ -24,8 +24,8 @@ npm ci
 npm run dev
 ```
 
-Vite 开发服务器默认 `http://127.0.0.1:5173`，将 `/api` 代理到
-`http://127.0.0.1:8080`。可通过环境变量覆盖：
+Vite 开发服务器绑定 `127.0.0.1:5173`，将 `/api` 代理到
+`http://127.0.0.1:8080`。可通过环境变量覆盖 API 目标：
 
 ```powershell
 $env:VITE_DEV_API_TARGET = "http://127.0.0.1:8081"

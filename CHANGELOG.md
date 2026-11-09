@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- 修复订单工作台列表页在真实 `GET /api/orders` 摘要响应上崩溃的问题：
+  列表接口返回 `OrderSummary`（不含 `versions`），页面改为从版本详情读取
+  `dag_digest`，不再假设列表包含版本数组。补充订单列表 Playwright 旅程，
+  并将 mock 路由匹配扩展到带查询串的 API 请求。
+- Vite 开发服务器显式绑定 `127.0.0.1`（与文档、代理目标和 Playwright
+  baseURL 一致）；`npm run dev` 后 `http://127.0.0.1:5173` 可直接访问。
 - 自建订单 DAG（阶段 1–6）：新增声明式 `OrderSpec`、端口/结构校验器、
   确定性编译器、NODE/GLOBAL 失败隔离、版本化订单仓储、本地 HTTP API、
   有界确定性 planner 和 React 订单工作台；订单运行绑定不可变版本、目录版本
