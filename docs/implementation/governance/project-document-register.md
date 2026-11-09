@@ -46,6 +46,7 @@ status: published
 | 主题 | 实施方案 | 状态说明 |
 |---|---|---|
 | 自建订单与工序 DAG 自主编排 | [路线图](../plans/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 方案](../plans/v1-order-dag-phase-05-frontend.md)、[阶段 5 UI 规格](../plans/v1-order-dag-phase-05-ui-design-spec.md)、[阶段 6](../plans/v1-order-dag-phase-06-simulation-acceptance.md) | 阶段 1–6 已实施；阶段 1–5 见[阶段 1–3 报告](../reports/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../reports/v1-order-dag-phase-04-auto-planner.md)与[阶段 5 报告](../reports/v1-order-dag-phase-05-frontend.md)；阶段 6 已完成受保护工件的订单/故障实机验收，见[阶段 6 报告](../reports/v1-order-dag-phase-06-simulation-acceptance.md)。未验证的真实 Arm/AGV 运动故障和连接故障仍为 GLOBAL |
+| 本地数据库仪表盘优化 | [前端优化方案](../plans/db-dashboard-frontend-optimization.md)、[UI 蓝图](../plans/db-dashboard-ui-blueprint.md)、[数据库查看指南](../reference/database-inspection-guide.md) | 保持只读离线 HTML；方案尚未实施 |
 
 ## 跨阶段技术主题
 

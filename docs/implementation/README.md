@@ -46,6 +46,7 @@
 - [仿真模块清单](reference/simulation-module-inventory.md)：仿真包模块职责、兼容层与遗留代码处置。
 - [静态目录字段盘点](reference/static-catalog-field-inventory.md)：数据库化方案阶段 0 的输入盘点。
 - [本地数据库查看指南](reference/database-inspection-guide.md)：CLI、HTML 仪表盘和原始 SQLite 的查看入口。
+- [本地数据库仪表盘前端优化方案](plans/db-dashboard-frontend-optimization.md)与[UI 蓝图](plans/db-dashboard-ui-blueprint.md)：保留离线只读单文件交付的实施步骤、页面分区和交互状态。
 - [静态目录持久化报告](reports/v1-catalog-persistence.md)：数据库 schema、导入、发布及选库验证。
 - [运行记录持久化报告](reports/v1-run-record-persistence.md)：运行写入及 Q1–Q4 查询。
 - [知识图谱导入报告](reports/v1-knowledge-graph-import.md)：Neo4j dump 导出、staging 和审核发布。
