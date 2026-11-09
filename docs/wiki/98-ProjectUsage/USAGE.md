@@ -13,7 +13,8 @@ sim_version: "4.10+"
 
 # 柔性工业车间 v1 使用指南
 
-本指南说明 CoppeliaSim、ZMQ 连接、v1 工件操作和 `full_flow` 运行。命令以
+本指南说明 CoppeliaSim、ZMQ 连接、v1 工件操作和 `full_flow` 运行。完整命令、
+参数、默认值和可选项见 [CLI 参数手册](CLI_REFERENCE.md)。命令以
 Windows PowerShell、仓库根目录为例。v1 不支持历史阶段入口；历史实现、报告
 与证据已清理，结论见 [V1 实施报告](../../implementation/reports/product/v1-product-implementation.md)。
 
@@ -387,8 +388,10 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 ## 维护约定
 
 本文件是 v1 启动、工件生命周期和运行方法的操作手册。改动启动/连接方式、
-CLI 参数、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
-场景工件说明与实现保持一致。新增可运行模式时，补充其前置工件、加载步骤、
+常见 CLI 操作、运行模式或工件派生规则时，必须同步更新本文件，并核对 README、
+场景工件说明与实现保持一致。新增、删除或修改 CLI 命令/参数时，还必须同步更新
+[CLI 参数手册](CLI_REFERENCE.md)，并用受影响命令的 `--help` 核对参数表。新增
+可运行模式时，补充其前置工件、加载步骤、
 运行命令和输出位置。新增目录数据库、知识图谱或运行记录命令时，同步更新
 本节、[资源目录数据库化实施报告](../../implementation/reports/data-platform/v1-catalog-persistence.md)、
 [知识图谱导入实施报告](../../implementation/reports/data-platform/v1-knowledge-graph-import.md)

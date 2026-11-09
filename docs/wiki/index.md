@@ -103,6 +103,7 @@ sim_version: "4.10"
 
 ### 98 项目使用
 - [[98-ProjectUsage/USAGE]] — v1 项目使用指南
+- [[98-ProjectUsage/CLI_REFERENCE]] — CLI 命令、参数、默认值与示例
 
 ### 99 附录
 - [[99-附录/99-01-术语表]] — 术语表

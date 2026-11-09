@@ -8,7 +8,8 @@
 
 | 想做什么 | 权威入口 | 范围 |
 |---|---|---|
-| 安装并运行项目 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) | CoppeliaSim、ZMQ、工件操作与 CLI 命令 |
+| 安装并运行项目 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) | CoppeliaSim、ZMQ、工件操作与常见运行流程 |
+| 查 CLI 命令参数 | [CLI 参数手册](wiki/98-ProjectUsage/CLI_REFERENCE.md) | 全部子命令、选项、默认值、取值和示例 |
 | 查 CoppeliaSim 知识 | [知识库索引](wiki/index.md) | 平台概念、API、建模、运动、视觉、协同仿真与附录 |
 | 查柔性车间业务规划 | [柔性车间资料导航](wiki/06-工业案例/柔性车间/README.md) | 案例、领域对象、工艺路线与阶段目标 |
 | 查 v1 方案、报告与证据 | [实施资料索引](implementation/README.md) | 产品治理、阶段实施、专项报告和证据目录 |

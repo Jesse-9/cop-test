@@ -8,7 +8,8 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 
 ## 从哪里开始
 
-- 安装、ZMQ 连接、工件操作与 v1 运行命令：[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)
+- 安装、ZMQ 连接、工件操作与 v1 运行流程：[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)
+- CLI 全部命令、参数、默认值和示例：[CLI 参数手册](docs/wiki/98-ProjectUsage/CLI_REFERENCE.md)
 - 实施方案、基线、报告与证据：[实施资料索引](docs/implementation/README.md)
 - 工件 schema、保护策略、current 指针和迁移规则：[场景工件说明](docs/scene_artifacts/README.md)
 - 工程不变量、模块职责和实测陷阱：[工程参考](PROJECT_ENGINEERING_REFERENCE.md)
