@@ -28,14 +28,14 @@ ready 工序、静态 capability/device 目录、资源表和执行适配器接�
 
 ## 1. 代码落点
 
-| 模块 | 内容 |
-|---|---|
-| `domain/scheduling.py`（新增） | `DeviceView`/`MaterialView`/`OperationView`/`SchedulingSnapshot`、`CandidateDecision`/`DispatchDecision`/`SchedulingResult`、`plan_ready()`；纯函数，不导入 simulation/application，不申请资源、不改工序状态 |
+| 模块                                | 内容                                                                                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/scheduling.py`（新增）        | `DeviceView`/`MaterialView`/`OperationView`/`SchedulingSnapshot`、`CandidateDecision`/`DispatchDecision`/`SchedulingResult`、`plan_ready()`；纯函数，不导入 simulation/application，不申请资源、不改工序状态                                   |
 | `domain/operation_runtime.py`（扩展） | `OperationInstance.selected_device_id`；`OperationRuntime` 新增 `claim_instance`/`select_device`/`record_phase`/`record_resources`/`record_upgraded`/`mark_waiting`/`mark_blocked`/`mark_resumed`，作为 coordinator 唯一生命周期写入口 |
-| `domain/tasks.py`（修改） | recipe-backed `Stage4Task` 的生命周期 setter 抛 `TaskError`；`TaskQueue.start/wait/set_phase/block/unblock/done/fail` 拒绝 runtime-backed 任务；`as_dict()` 追加只读 `selected_device_id` |
-| `application/coordinator.py`（修改） | `_dispatch_ready()` 构造快照、调用 `plan_ready()`、记录 `SCHEDULE_DECISION`/`SCHEDULE_WAIT`、认领实例并登记选定设备；`_poll_unit()` 只启动本单元被选中的任务；资源申请仍用 `ResourceTable.acquire_all()`；所有运行时状态写入改走 runtime 窄接口 |
-| `spec.py`（版本） | 新增 `SCHEDULER_POLICY_VERSION = "v1_scheduler_20261104"`；不修改 `simulation/config.py`，`config_digest` 与受保护工件不变 |
-| `tests/`（新增/扩展） | `test_v1_scheduling.py`（纯策略）、`test_v1_coordinator_scheduler.py`（接线/资源/全批次 dry-run）、`test_v1_stage4_scheduler_sim.py`（`full_flow` 实机）、既有 runtime/task/process/import 测试扩展 |
+| `domain/tasks.py`（修改）             | recipe-backed `Stage4Task` 的生命周期 setter 抛 `TaskError`；`TaskQueue.start/wait/set_phase/block/unblock/done/fail` 拒绝 runtime-backed 任务；`as_dict()` 追加只读 `selected_device_id`                                               |
+| `application/coordinator.py`（修改）  | `_dispatch_ready()` 构造快照、调用 `plan_ready()`、记录 `SCHEDULE_DECISION`/`SCHEDULE_WAIT`、认领实例并登记选定设备；`_poll_unit()` 只启动本单元被选中的任务；资源申请仍用 `ResourceTable.acquire_all()`；所有运行时状态写入改走 runtime 窄接口                                  |
+| `spec.py`（版本）                     | 新增 `SCHEDULER_POLICY_VERSION = "v1_scheduler_20261104"`；不修改 `simulation/config.py`，`config_digest` 与受保护工件不变                                                                                                             |
+| `tests/`（新增/扩展）                   | `test_v1_scheduling.py`（纯策略）、`test_v1_coordinator_scheduler.py`（接线/资源/全批次 dry-run）、`test_v1_stage4_scheduler_sim.py`（`full_flow` 实机）、既有 runtime/task/process/import 测试扩展                                                |
 
 未新增：订单/MES 实体、用户可编辑 recipe、表达式/DSL、全局优化求解、
 运行中抢占、故障重派、自动重试、第二个仿真 scenario 或 MCP 能力。
