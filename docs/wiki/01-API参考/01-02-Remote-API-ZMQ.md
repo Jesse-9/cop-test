@@ -139,7 +139,7 @@ simOMPL = client.require('simOMPL')    # 运动规划插件
 
 ## 远程控制仿真器本身
 
-ZMQ Remote API 不仅能控制仿真内容，还能控制仿真器进程：远程 `loadScene`、`startSimulation`、`pause`、`stopSimulation` 等。本仓库 v1 由 `flexible-factory` 启动后远程加载工件并启停仿真。
+ZMQ Remote API 不仅能控制仿真内容，还能控制仿真器进程：远程 `loadScene`、`startSimulation`、`pause`、`stopSimulation` 等。本仓库 v1 由 `flexible-factory` 从场景包加载 `scene.ttt`，再远程启停仿真。
 
 ## asyncio 客户端
 

@@ -1,19 +1,19 @@
 # 文档导航
 
 `docs/` 只服务 v1 产品：通用 CoppeliaSim 知识、v1 操作指南、v1 实施/验收
-记录、场景工件和维护规范。运行命令以项目使用指南为准，工程约束以工程参考
+记录、场景版本包和维护规范。运行命令以项目使用指南为准，工程约束以工程参考
 为准，验收事实以 v1 报告和证据为准。
 
 ## 按用途查找
 
 | 想做什么 | 权威入口 | 范围 |
 |---|---|---|
-| 安装并运行项目 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) | CoppeliaSim、ZMQ、工件操作与常见运行流程 |
+| 安装并运行项目 | [项目使用指南](wiki/98-ProjectUsage/USAGE.md) | CoppeliaSim、ZMQ、场景包操作与常见运行流程 |
 | 查 CLI 命令参数 | [CLI 参数手册](wiki/98-ProjectUsage/CLI_REFERENCE.md) | 全部子命令、选项、默认值、取值和示例 |
 | 查 CoppeliaSim 知识 | [知识库索引](wiki/index.md) | 平台概念、API、建模、运动、视觉、协同仿真与附录 |
 | 查柔性车间业务规划 | [柔性车间资料导航](wiki/06-工业案例/柔性车间/README.md) | 案例、领域对象、工艺路线与阶段目标 |
 | 查 v1 方案、报告与证据 | [实施资料索引](implementation/README.md) | 产品治理、阶段实施、专项报告和证据目录 |
-| 查场景工件版本与保护规则 | [场景工件说明](scene_artifacts/README.md) | current 指针、迁移来源、派生及覆盖规则 |
+| 查场景包版本与保护规则 | [场景包说明](scene_artifacts/README.md) | current 指针、迁移来源、派生及覆盖规则 |
 | 查工程实现约束 | [工程参考](../PROJECT_ENGINEERING_REFERENCE.md) | 模块职责、工程不变量和实测陷阱 |
 | 维护 wiki 内容 | [知识库规范](CLAUDE.md) | 分类、元数据、来源和内容质量 |
 | 查官方手册原始资料 | `raw/`（本地资料，不纳入版本控制） | 原始来源；整理后的结论放在 `wiki/` |
@@ -23,8 +23,8 @@
 - `wiki/` 是按主题编排的知识库，不作为运行证据或原始测量数据的存放处。
 - `implementation/` 只保存 v1 方案、基线、报告和被引用的证据摘要；
   `implementation/runs/` 是忽略跟踪的临时运行输出。
-- `scene_artifacts/v1/` 保存 v1 场景工件与生命周期数据；stage3/stage4
-  来源工件只作为迁移追溯保留。
+- `scene_artifacts/v1/` 保存 v1 场景包与生命周期数据；stage3/stage4
+  来源场景包只作为迁移追溯保留。
 - 历史阶段报告、测量脚本和旧证据已清理，不再维护。
 
 代码、配置或运行入口变更后，更新其唯一权威说明及相应索引；不要在多个入口

@@ -25,7 +25,7 @@ docs/
 │   ├── reference/             # 字段盘点等实施参考资料
 │   ├── evidence/              # 报告引用的正式精简证据
 │   └── runs/                  # 被 Git 忽略的临时运行输出
-├── scene_artifacts/           # v1 场景工件、manifest、校验与生命周期数据
+├── scene_artifacts/           # v1 场景包、manifest、校验与生命周期数据（内部历史目录名）
 └── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
 

@@ -19,7 +19,7 @@
 |---|---|
 | [v2 启动准备度与 v1 阶段盘点](governance/v2-readiness-assessment.md) | 当前唯一的跨主题状态总表、风险与 v2 进入门槛 |
 | [项目文档登记表](governance/project-document-register.md) | 业务规划、方案、报告与证据的职责及阶段映射 |
-| [v1 M0 基线](governance/v1-baseline-m0.md) | v1 初始范围、工件、环境和测试冻结记录 |
+| [v1 M0 基线](governance/v1-baseline-m0.md) | v1 初始范围、场景包、环境和测试冻结记录 |
 | [v1 范围与迁移方案](governance/v1-scope-and-migration-plan.md) | v1 收敛目标、迁移决策和退出条件 |
 | [v1 产品实施报告](reports/product/v1-product-implementation.md) | v1 产品迁移交付事实；后续阶段以专题报告为准 |
 
