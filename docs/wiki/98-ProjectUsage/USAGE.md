@@ -78,7 +78,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 - `default`（缺省）严格使用 `SCENARIO_BATCH[scenario]`，保持现有运行。
 - `direct_heavy`：`RAW_A=2, RAW_B=0, RAW_D=2`，壳体直达路线占比提高。
 - `detour_heavy`：`RAW_A=0, RAW_B=1, RAW_D=1`，壳体 100% 走 AGV 绕行。
-  同时投入 2 个 `RAW_B` 可能使后续壳体等待 AGV 空载调机达到 300 s 背压
+  同时投入 2 个 `RAW_B` 可能使后续壳体等待 AGV 空载移位达到 300 s 背压
   上限；该边界记录在实施报告中。
 - 批次只改变本次运行的 `RAW_A/RAW_B/RAW_D` 数量，不改变工艺路线、设备
   候选、场景包或 `config_digest`；非 `default` profile 只用于
@@ -245,8 +245,9 @@ route mock，会实际启动订单运行。
 
 ## 静态工艺与资源定义的数据库存储（维护操作）
 
-配方、工序模板、路线、设备、能力和区域等静态工艺与资源定义（代码/API 名称为
-`ProcessCatalog`/`catalog`，下文简称“目录”）可持久化到本地 SQLite；默认路径
+产品工艺定义（代码对象 `RecipeSpec`）、工序模板、路线、设备、能力和区域等静态
+工艺与资源定义（代码/API 名称为 `ProcessCatalog`/`catalog`，下文简称“目录”）
+可持久化到本地 SQLite；默认路径
 `var/catalog/catalog.db`（不写入受保护的场景包目录）。该功能不影响默认
 运行：`run` 仍读取代码内定义，只有显式 `--catalog-source db` 才读取已发布的
 数据库版本。目录是可复用的静态定义，不是文件夹，也不是 UID、实时物料位置、
