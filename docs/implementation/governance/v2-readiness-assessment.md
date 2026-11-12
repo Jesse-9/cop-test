@@ -2,14 +2,14 @@
 title: v2 启动准备度与 v1 阶段盘点
 type: assessment
 created: 2026-11-09
-updated: 2026-11-09
+updated: 2026-11-12
 status: current
 scope: flexible-factory v1 -> v2
 ---
 
 # v2 启动准备度与 v1 阶段盘点
 
-本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-09 已归档资料，未在本次重新运行仿真或完整测试套件。
+本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-12 已归档资料，未在本次重新运行完整测试套件；启动性能部分只有计时记录，功能验收仍未执行。
 
 ## 总体判断
 
@@ -33,6 +33,7 @@ v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件�
 | 订单 DAG 阶段 6：仿真实机验收 | 已完成限定矩阵 | 手工/planner 订单、NODE 前置拒绝、GLOBAL 安全锁存通过；见报告列出的未执行项 | [阶段 6 报告](../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
 | 目录/运行记录/知识图谱持久化 | 部分实现 | SQLite 目录、运行记录、Neo4j dump 导入链均有实现记录；真实 dump 的 Docker 端到端、备份恢复演练、记录保留策略及 Q5/Q6 查询仍有缺口 | [目录持久化报告](../reports/data-platform/v1-catalog-persistence.md)、[运行记录报告](../reports/data-platform/v1-run-record-persistence.md)、[知识图谱报告](../reports/data-platform/v1-knowledge-graph-import.md) |
 | 本地数据库仪表盘前端优化 | 提案，未实施 | 现有 CLI/HTML 可查看数据；仪表盘改版方案与 UI 蓝图尚未形成实施报告 | [优化方案](../plans/data-platform/db-dashboard-frontend-optimization.md)、[UI 蓝图](../plans/data-platform/db-dashboard-ui-blueprint.md) |
+| v1 启动性能优化 | 部分实施，性能已计时 | P1/P2 代码落地；正常 load 路径 `prepare_start` 25→12.1–12.2 s、五台影子运行时 47.9→20.3–21.4 s；pytest 607 passed / 7 skipped；`full_flow` 验收未执行；P3/P4 未实施 | [方案](../plans/simulation/v1-startup-performance-optimization.md)、[报告](../reports/simulation/v1-startup-performance-optimization.md) |
 
 ## v2 前需管理的风险
 

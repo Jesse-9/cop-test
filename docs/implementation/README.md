@@ -58,13 +58,14 @@
 
 ### 仿真工程
 
-仿真模块职责、代码拆分与运动规划性能提案。
+仿真模块职责、代码拆分、运动规划性能提案和启动性能计时。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能提案](plans/simulation/simulation-motion-planning-performance.md) |
-| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) |
+| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能提案](plans/simulation/simulation-motion-planning-performance.md) · [启动性能优化](plans/simulation/v1-startup-performance-optimization.md) |
+| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
 | 参考 | [仿真模块清单](reference/simulation/simulation-module-inventory.md) |
+| 证据 | [启动阶段计时证据](evidence/simulation/) |
 
 ## 归档与维护规则
 

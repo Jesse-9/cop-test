@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-11
+updated: 2026-11-12
 status: published
 sim_version: "4.10+"
 ---
@@ -370,6 +370,42 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 `build` 加载父场景并增加 C/D/E 与物流线；`--save` 保存新 v1 版本。
 每次保存创建新版本，不覆盖已验收场景包。
 
+## 启动阶段计时（性能诊断）
+
+`run` 从 ZMQ 连接、加载工件、启动点校验、组件构建到 `start_stepping` 的耗时
+可用仓库内脚本单独测量。脚本复现 `run` 的启动路径，在仿真刚启动时立即
+停止，不执行场景循环：
+
+    uv run python tools/measure_startup_stages.py
+
+常用选项：
+
+    # 使用当前已加载场景, 不重新 load
+    uv run python tools/measure_startup_stages.py --no-load
+
+    # 不写运行记录, 避免在 catalog.db 留下 ABORTED 记录
+    uv run python tools/measure_startup_stages.py --run-records off
+
+    # 启动后额外运行传送带驱动探测 (会步进仿真约 35 次)
+    uv run python tools/measure_startup_stages.py --probe
+
+- 计时阶段：`process_import`、`batch_resolve`、`catalog_resolve`（仅
+  `--catalog-source db`）、`logger_setup`、`zmq_connect`、`lifecycle_init`、
+  `artifact_load`、`prepare_start_validation`、`run_record_init`、
+  `build_components`、`snapshot_write`、`simulation_start`；`build_components`
+  另给出 `build.base_components`、`build.ik_initialize_total`、
+  `build.shadow_runtime`、`build.suction_controllers` 子项（与主项重叠）。
+  `--probe` 时追加 `post_start.conveyor_drive_probe`。
+- 结果输出到 stdout 表格和
+  `docs/implementation/runs/startup_timing_<stamp>.json`。停仿真、销毁影子臂、
+  结束运行记录/生命周期等清理动作单独计时，不计入“进程开始 → 仿真启动”总计。
+- 脚本与 `run` 一样会加载 `v1/current.json` 指向的工件（除非 `--no-load`），
+  会替换 CoppeliaSim 当前场景；先确认没有未保存的 GUI 改动。
+- 默认 `--run-records on` 会写一条 RUNNING 记录，并在清理时标记为 `ABORTED`；
+  不需要该记录时使用 `--run-records off`。
+- 脚本不是 pytest 钩子，也不会被 `flexible-factory` 自动调用；运行前需启动
+  CoppeliaSim 和 ZMQ 23000，并先从仓库根目录执行 `uv sync`。
+
 ## 产物与日志
 
 - 场景包：`docs/scene_artifacts/v1/L5_UFLOW/vNNN_<stamp>/`
@@ -377,6 +413,8 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 - 运行报告：`docs/implementation/runs/v1_run_<scenario>_<stamp>.json`
 - 默认日志：仓库根目录 `flexible_factory.log`（`--log` 可覆盖）
 - 校验报告：`docs/implementation/runs/scene_validation_<artifact>_<stamp>.json`
+- 启动计时报告：`docs/implementation/runs/startup_timing_<stamp>.json`
+  （由 `tools/measure_startup_stages.py` 生成）
 
 ## 排查
 
@@ -400,3 +438,5 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 本节、[资源目录数据库化实施报告](../../implementation/reports/data-platform/v1-catalog-persistence.md)、
 [知识图谱导入实施报告](../../implementation/reports/data-platform/v1-knowledge-graph-import.md)
 与[运行记录实施报告](../../implementation/reports/data-platform/v1-run-record-persistence.md)。
+修改 `tools/measure_startup_stages.py` 的启动路径、计时阶段名或输出字段时，
+同步更新本文件的“启动阶段计时”一节。

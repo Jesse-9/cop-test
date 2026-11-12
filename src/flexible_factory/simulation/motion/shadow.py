@@ -347,13 +347,14 @@ class ShadowProbe:
         """在真实臂**当前**构型比较真实/影子连杆与 TCP 世界位姿."""
         errors = []
         ok = True
+        real_index: dict[str, int] = {}
+        for h in [scene.robot_root, *subtree(self.sim, scene.robot_root)]:
+            alias = alias_of(self.sim, h)
+            if alias and alias not in real_index:
+                real_index[alias] = int(h)
         for alias, shadow_link in zip(self.shadow.link_aliases,
                                       self.shadow.links):
-            real = -1
-            for h in [scene.robot_root] + subtree(self.sim, scene.robot_root):
-                if alias_of(self.sim, h) == alias:
-                    real = int(h)
-                    break
+            real = real_index.get(alias, -1)
             if real < 0:
                 errors.append({"link": alias, "error": "real_missing"})
                 ok = False

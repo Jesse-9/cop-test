@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- 新增 `tools/measure_startup_stages.py`：复用 `run` 启动路径，测量连接、
+  工件加载、启动点校验、组件构建到 `start_stepping` 的各阶段耗时，并在
+  仿真刚启动时截断，不执行场景循环；方法见
+  [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)的“启动阶段计时”一节。
+  优化步骤、验收与回退条件见
+  [v1 启动性能优化方案](docs/implementation/plans/simulation/v1-startup-performance-optimization.md)。
+- 启动性能优化 P1/P2 代码落地并完成 3 次启动计时：新增只读校验上下文，
+  复用全场景 alias 索引与一次 `scene.verify()`；删除碰撞构建死代码
+  `inventory`；集合成员优先批量加入并带成员校验/逐项回退；共享传送带与
+  真实臂发现结果及 `collidable`/`measurable` 原值；`verify_fk` 一次建立
+  真实臂索引。实测（正常 load 路径）`prepare_start` 25 s → 12.1–12.2 s、
+  五台影子运行时 47.9 s → 20.3–21.4 s、加载完成 → 仿真启动
+  74.65 s → 33.7–35.4 s。
+  pytest 607 passed / 7 skipped；集合成员核对和 `full_flow` 验收仍未执行，见
+  [实施报告](docs/implementation/reports/simulation/v1-startup-performance-optimization.md)。
 - 修复订单工作台列表页在真实 `GET /api/orders` 摘要响应上崩溃的问题：
   列表接口返回 `OrderSummary`（不含 `versions`），页面改为从版本详情读取
   `dag_digest`，不再假设列表包含版本数组。补充订单列表 Playwright 旅程，

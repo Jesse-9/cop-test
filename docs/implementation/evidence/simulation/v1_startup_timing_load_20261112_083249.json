@@ -1,0 +1,225 @@
+{
+  "timestamp": "20261112_083249",
+  "host": "localhost",
+  "port": 23000,
+  "artifact": "current",
+  "no_load": false,
+  "scenario": "full_flow",
+  "batch_profile": "default",
+  "catalog_source": "code",
+  "run_records": "off",
+  "stages": [
+    {
+      "stage": "process_import",
+      "seconds": 2.4961,
+      "note": "解释器启动至项目模块导入完成"
+    },
+    {
+      "stage": "batch_resolve",
+      "seconds": 0.0,
+      "note": "运行前批次校验"
+    },
+    {
+      "stage": "logger_setup",
+      "seconds": 0.0004,
+      "note": "flexible_factory.log"
+    },
+    {
+      "stage": "zmq_connect",
+      "seconds": 0.3318,
+      "note": "RemoteAPIClient + sim/simIK"
+    },
+    {
+      "stage": "lifecycle_init",
+      "seconds": 0.0177,
+      "note": "会话状态/锁/工件仓库"
+    },
+    {
+      "stage": "artifact_load",
+      "seconds": 53.7806,
+      "note": "loadScene + 句柄解析"
+    },
+    {
+      "stage": "prepare_start_validation",
+      "seconds": 12.2425,
+      "note": "运行锁 + 启动点全量只读校验"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.1034,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.base_components",
+      "seconds": 0.1055,
+      "note": "物料/传送带/AGV/A 臂基座组件"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0159,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0133,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.1014,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0125,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.shadow_runtime",
+      "seconds": 20.3163,
+      "note": "五台影子臂/碰撞集合"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build_components",
+      "seconds": 20.5676,
+      "note": "含 build.* 子项, 子项与主项重叠"
+    },
+    {
+      "stage": "snapshot_write",
+      "seconds": 0.6134,
+      "note": "v1_scene_snapshot_*.json"
+    },
+    {
+      "stage": "simulation_start",
+      "seconds": 0.2151,
+      "note": "setStepping+startSimulation"
+    }
+  ],
+  "run_id": "run_20261112_083344_97e0a8",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "sim_time_at_start": 0.0,
+  "sim_started_stamp": "2026-11-12T08:34:17.713",
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 80,
+      "failed": []
+    },
+    "leftover": []
+  },
+  "lifecycle": {
+    "lifecycle_state": "SCENE_VALIDATED",
+    "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+    "scene_origin": "ARTIFACT",
+    "manifest_digest": "ed4c86421ef872b74de47c6c70efb514f1631ea50e0acd48042c984ba15c88ff",
+    "validated_at": "2026-11-12T08:33:56+08:00",
+    "run_id": null,
+    "pid": null,
+    "host": "localhost",
+    "port": 23000,
+    "last_error": null,
+    "background": false,
+    "sim_state": 0,
+    "allowed_actions": [
+      "build",
+      "save",
+      "load",
+      "validate",
+      "start"
+    ]
+  },
+  "startup_total_wall_s": 90.2658,
+  "cleanup": [
+    {
+      "stage": "cleanup.stop_simulation",
+      "seconds": 0.9565,
+      "note": ""
+    },
+    {
+      "stage": "cleanup.runtime_destroy",
+      "seconds": 37.2745,
+      "note": "影子臂/碰撞集合"
+    },
+    {
+      "stage": "cleanup.lifecycle_finish",
+      "seconds": 0.097,
+      "note": ""
+    }
+  ]
+}

@@ -54,6 +54,7 @@ MCP 和自动故障恢复不在当前 v1 能力范围；安全锁存不会自动
       neo4j/         本地 Neo4j Compose、官方 dump 载入脚本与说明
       neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
       db_dashboard.py 从本地 SQLite 生成自包含 HTML 仪表盘
+      measure_startup_stages.py 测量连接→仿真启动各阶段耗时 (不运行场景)
 
 旧阶段包（`src/stage1/` … `src/stage4/`、`src/stage1_1/`、
 `src/reference/`）、`run_stage*.py` 入口、旧报告与旧证据均已删除，不得被

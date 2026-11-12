@@ -194,7 +194,6 @@ class SceneGeometry:
     workcell: list[int] = field(default_factory=list)
     workcell_aliases: list[str] = field(default_factory=list)
     excluded: list[dict] = field(default_factory=list)
-    inventory: list[dict] = field(default_factory=list)
 
 
 def _is_shape(sim, handle: int) -> bool:
@@ -285,18 +284,19 @@ def discover_conveyor_parts(sim, belt: int) -> tuple[list[int], list[int]]:
 
 
 def discover_workcell(sim, scene, *, station_aliases=None,
-                      conveyor_aliases=None,
+                      conveyor_aliases=None, conveyor_pads=None,
                       extra_obstacles=()) -> list[int]:
     """工位/仓库/地面/AGV 车体与载台; 不含安装平台与 conveyor 粗代理.
 
-    阶段三用 ``station_aliases`` 同时纳入 A/B 两个置物台, 用
-    ``extra_obstacles`` 纳入另一台真实机械臂的连杆/吸盘与岛体. 传入的
-    ``scene`` 可以是 `Stage3Scene` 或单工位视图, 只要实现 ``handle``.
-    阶段四用 ``conveyor_aliases`` 把所有物流线的承载 pad 纳入工作区.
+    ``conveyor_pads`` 可由调用方传入已发现的 ``alias -> pads`` 映射,
+    避免对同一物流线重复遍历子树. 未提供时按 ``conveyor_aliases`` 现场发现.
     """
     aliases = tuple(conveyor_aliases or (base.ALIASES["conveyor"],))
     handles: list[int] = []
     for alias in aliases:
+        if conveyor_pads is not None and alias in conveyor_pads:
+            handles.extend(conveyor_pads[alias])
+            continue
         belt = scene.handle(alias)
         if belt < 0:
             continue
@@ -336,8 +336,51 @@ def _dedupe(handles: Iterable[int]) -> list[int]:
     return out
 
 
+def _add_items_to_collection(sim, collection: int,
+                             handles: Iterable[int]) -> None:
+    """把一批单对象加入集合; 优先批量 API, 并校验实际成员.
+
+    CoppeliaSim 4.10 的 ``addItemsToCollection`` 本项目尚未使用过。这里
+    先读取集合成员, 批量加入后再读一次; 若批量调用不可用、抛错或未完整
+    加入, 只对缺失句柄回退到 ``addItemToCollection``, 避免重复成员。
+    """
+    items = _dedupe(int(h) for h in handles
+                    if h is not None and int(h) >= 0)
+    if not items:
+        return
+    what = _what_constant(sim, WHAT_SINGLE)
+    try:
+        getter = getattr(sim, "getCollectionObjects", None)
+        batch = getattr(sim, "addItemsToCollection", None)
+    except Exception:
+        getter = batch = None
+
+    if getter is not None and batch is not None:
+        try:
+            batch(collection, what, list(items), 0)
+            after = {int(h) for h in (getter(collection) or [])}
+            missing = [h for h in items if h not in after]
+            if not missing:
+                return
+        except Exception:
+            try:
+                after = {int(h) for h in (getter(collection) or [])}
+                missing = [h for h in items if h not in after]
+            except Exception:
+                missing = items
+    else:
+        missing = items
+
+    for handle in missing:
+        sim.addItemToCollection(collection, what, int(handle), 0)
+
+
 def describe_object(sim, handle: int) -> dict:
-    """稳定对象描述 (alias/父级/类型/包围盒/查询属性), 供报告与契约使用."""
+    """稳定对象描述 (alias/父级/类型/包围盒/查询属性), 供诊断使用.
+
+    启动路径不再批量调用本函数; 它只保留给临时诊断/脚本, 避免把逐对象
+    远程属性读取重新带回运行时构建热路径.
+    """
     try:
         parent = int(sim.getObjectParent(handle))
     except Exception:
@@ -416,17 +459,23 @@ class CollisionRuntime:
               mount_alias: Optional[str] = None,
               station_aliases=None,
               conveyor_aliases=None,
-              extra_obstacles=()) -> "CollisionRuntime":
+              extra_obstacles=(), discovery=None) -> "CollisionRuntime":
         aliases = tuple(conveyor_aliases or (base.ALIASES["conveyor"],))
         pads: list[int] = []
         coarse: list[int] = []
+        pads_by_alias: dict[str, list[int]] = {}
         for alias in aliases:
-            belt = scene.handle(alias)
-            if belt < 0:
-                continue
-            belt_pads, belt_coarse = discover_conveyor_parts(sim, belt)
+            if discovery is not None:
+                belt_pads, belt_coarse = discovery.conveyor(
+                    sim, scene, alias)
+            else:
+                belt = scene.handle(alias)
+                if belt < 0:
+                    continue
+                belt_pads, belt_coarse = discover_conveyor_parts(sim, belt)
             pads.extend(belt_pads)
             coarse.extend(belt_coarse)
+            pads_by_alias[alias] = list(belt_pads)
         mount_alias = mount_alias or base.ALIASES["island"]
         mount = scene.handle(mount_alias)
         if mount < 0:
@@ -441,6 +490,7 @@ class CollisionRuntime:
             workcell=discover_workcell(
                 sim, scene, station_aliases=station_aliases,
                 conveyor_aliases=aliases,
+                conveyor_pads=pads_by_alias,
                 extra_obstacles=extra_obstacles),
         )
         geometry.workcell_aliases = [alias_of(sim, h)
@@ -451,13 +501,6 @@ class CollisionRuntime:
                        "真实承载面由 pad 提供"}
             for h in coarse
         ]
-        for role, handles in (("mount", [mount]),
-                              ("workcell", geometry.workcell),
-                              ("robot_link", link_handles),
-                              ("pad_body", [pad_body])):
-            for h in handles:
-                geometry.inventory.append(
-                    {**describe_object(sim, h), "role": role})
         runtime = cls(sim, geometry)
         runtime._create_collections(load_handle)
         # 载荷副本保持 collidable=False, 只在 set_attach_transform 时启用;
@@ -511,15 +554,16 @@ class CollisionRuntime:
                         items: Iterable[dict] = ()) -> int:
         handle = int(self.sim.createCollection(0))
         spec = CollectionSpec(name=name, roles=roles)
+        handles: list[int] = []
         for item in items:
             h = int(item["handle"])
             if h < 0:
                 continue
-            self.sim.addItemToCollection(
-                handle, _what_constant(self.sim, WHAT_SINGLE), h, 0)
+            handles.append(h)
             spec.items.append({"alias": item.get("alias", ""),
                                "role": item.get("role", ""),
                                "what": WHAT_SINGLE})
+        _add_items_to_collection(self.sim, handle, handles)
         self.collections[name] = handle
         self.specs.append(spec)
         return handle

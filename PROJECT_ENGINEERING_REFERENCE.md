@@ -45,6 +45,7 @@ frontend/            独立 React/TypeScript 订单工作台 (阶段 5);
   tools/neo4j/       本地 Neo4j Compose 与官方 dump 载入脚本
   tools/neo4j_export.py 只读导出 Neo4j 图为知识导入 JSON
   tools/db_dashboard.py 从 SQLite 生成自包含 HTML 仪表盘
+  tools/measure_startup_stages.py 启动阶段耗时测量（复用 run 启动路径, 不执行场景）
 ```
 
 依赖方向：`cli → application → domain / simulation / artifacts / persistence`。
@@ -197,10 +198,10 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 | 文件族 | 现行语义 |
 |---|---|
-| `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环 |
-| `config_motion` / `motion/*` / `unit_controller_motion` | 运动层：碰撞、规划、轨迹、安全、吸附 |
+| `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环；`scene_base` 提供只读校验上下文 |
+| `config_motion` / `motion/*` / `unit_controller_motion` | 运动层：碰撞、规划、轨迹、安全、吸附；碰撞集合构建含只读发现缓存 |
 | `config_dual` / `layout_dual` / `scene_dual` | 双站层：`L2_MIRROR` 双工位 |
-| `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举 |
+| `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举；`DiscoveryCache` 只在一次停止态构建内复用发现结果 |
 | `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW`（`runtime.py` 同时含 Stage3 builder） |
 
 `unit_controller_dual.py`、`runtime_dual.py` 和 `motion/path_planning.py`
@@ -275,11 +276,19 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   不作为运行时句柄来源。
 - 规划/碰撞查询在仿真停止态与运行态的句柄行为不同；影子对象只在停止态
   创建/销毁。
+- 启动点校验上下文（`ValidationContext`）只在一次停止态校验内有效；全场景
+  alias 索引和 `scene.verify()` 结果不得跨运行、跨 load 复用，也不得用于
+  影子对象创建后的新 alias 查询。
 - 运行结束必须 `stopSimulation()` 后销毁影子臂/碰撞集合；保存工件前不得
   残留 `Shadow_*`。
 
 ## 9. 测试与证据
 
+- 启动阶段性能计时：`tools/measure_startup_stages.py` 复现 `run` 启动路径，
+  在 `start_stepping` 后截断。2026-11-12 两次 `load` 和一次 `--no-load`
+  结果见[启动性能优化报告](docs/implementation/reports/simulation/v1-startup-performance-optimization.md)
+  与[计时证据](docs/implementation/evidence/simulation/)；这些是性能测量，
+  不是功能验收结论。
 - 纯逻辑测试：`python -m pytest -q`（无仿真环境）。本轮新增目录持久化
   测试 `tests/test_v1_catalog_persistence.py`、知识图谱测试
   `tests/test_v1_knowledge_graph.py` 和运行记录测试
