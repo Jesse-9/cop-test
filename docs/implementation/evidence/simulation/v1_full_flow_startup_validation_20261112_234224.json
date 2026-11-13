@@ -1,0 +1,37 @@
+{
+  "source_run_report": "docs\\implementation\\runs\\v1_run_full_flow_20261112_234224.json",
+  "scenario": "full_flow",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "all_ok": true,
+  "active_unit_ids": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "sim_time": 343.85,
+  "steps": 6860,
+  "acceptance": {
+    "ok": true,
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "order_target_count": 0,
+    "graph_complete": true,
+    "tasks_done": true,
+    "aborted": false,
+    "frozen": false,
+    "loaded_routes": 2,
+    "route_ok": true,
+    "priority_ok": true,
+    "scheduler_ok": true
+  },
+  "failure_count": 0,
+  "runtime_destroy": null,
+  "note": "Functional full_flow pass. This run used the pre-fix ShadowProbe.destroy fast path and left 15 Shadow_* aliases; cleanup was fixed afterwards and verified in v1_startup_timing_after_alias_destroy_20261113_001019.json with leftover=[]."
+}

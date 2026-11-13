@@ -3,11 +3,13 @@ title: 仿真模块清单与命名边界
 type: reference
 status: review
 created: 2026-11-06
-updated: 2026-11-06
+updated: 2026-11-12
 scope: src/flexible_factory/simulation
 related:
   - docs/implementation/plans/simulation/simulation-code-optimization-plan.md
+  - docs/implementation/plans/simulation/v1-startup-performance-optimization.md
   - docs/implementation/reports/simulation/v1-simulation-code-optimization.md
+  - docs/implementation/reports/simulation/v1-startup-performance-optimization.md
 ---
 
 # 仿真模块清单与命名边界
@@ -43,7 +45,7 @@ related:
 
 | 模块 | 主要职责 | 备注 |
 |---|---|---|
-| `simulation/runtime.py` | `build_stage3_runtime()`（双站双臂）与 `build_v1_runtime()`（五岛五臂） | 应用层唯一运行时构建入口；两个 builder 和错误类型分开保留 |
+| `simulation/runtime.py` | `build_stage3_runtime()`（双站双臂）与 `build_v1_runtime()`（五岛五臂；`unit_ids` 支持订单子集） | 应用层唯一运行时构建入口；两个 builder 和错误类型分开保留 |
 | `simulation/scene.py` | v1 `Stage4Scene` / `Stage4Unit` 场景解析与契约断言 | `application/coordinator.py`、`artifacts/migration.py` 使用 |
 | `simulation/layout.py` | v1 `L5_UFLOW` 布局、物流线与 `UnitView4` | `application/*`、`execution/arm.py` 使用 |
 | `simulation/unit_controller.py` | `Stage3UnitController` 与 `Stage4UnitController` | UFLOW 执行适配器通过本模块使用控制器类 |
@@ -63,15 +65,15 @@ related:
 | `physics.py` / `ur5_ik.py` | 物理属性快照、UR5 simIK 适配 | 只读/执行适配，不承担业务提交 |
 | `agv.py` / `agv_route.py` | AGV 车体与航线控制 | 协调器独占 AGV 驱动 |
 | `device_binding.py` | 设备 ID → 场景 alias/资源/区域静态绑定 | 不持有句柄；与已删除的 `device_handle_map.py` 职责不同 |
-| `runtime_common.py` | 单臂影子臂/碰撞集合/规划器/锁存构建与共享容器 | Stage3/v1 共用；场景障碍策略仍在 `runtime.py` |
+| `runtime_common.py` | 单臂影子臂/碰撞集合/规划器/锁存构建与共享容器 | Stage3/v1 共用；场景障碍策略仍在 `runtime.py`；`DiscoveryCache` 只在一次停止态构建内复用发现结果 |
 | `motion/plan_types.py` | 计划状态、预算、上下文与结果类型 | `path_planning` 重导出 |
 | `motion/plan_checks.py` | `ConfigurationChecker` 构型/段检查 | 不改变检查序列与容差 |
 | `motion/plan_search.py` | `LocalPlanner` 有限局部搜索 | 候选顺序、预算与安全检查不变 |
 | `motion/plan_postprocess.py` | 成功计划的平滑/压缩 | 开关、容差与恢复语义不变 |
-| `motion/branch.py` / `collisions.py` / `contact.py` | 腕部分支、碰撞查询、接触几何 | 运动层安全判据 |
+| `motion/branch.py` / `collisions.py` / `contact.py` | 腕部分支、碰撞查询与集合构建（含只读发现缓存）、接触几何 | 运动层安全判据 |
 | `motion/conveyor_safety.py` | 停带监视、受限补偿、物料稳定 | 控制器不得复制测量算法 |
 | `motion/diagnostics.py` / `metrics.py` / `trajectory.py` | 计划诊断、指标、轨迹执行 | 证据与执行统计 |
-| `motion/safety.py` / `shadow.py` / `suction.py` | 安全锁存、影子探针、吸附 | 会话资源/执行期检查 |
+| `motion/safety.py` / `shadow.py` / `suction.py` | 安全锁存、影子探针/快速销毁、吸附 | 会话资源/执行期检查 |
 
 ### 2.3 阶段基础复用
 
@@ -80,7 +82,7 @@ related:
 | `config_base.py` / `config_motion.py` | 基础/运动层 | v1 常量和容差来源 |
 | `config_dual.py` | 双站层 | Stage3 配置与 v1 共享的会话资源前缀 |
 | `layout_base.py` / `layout_dual.py` | 基础/双站层 | v1 布局派生与双站视图 |
-| `scene_base.py` / `scene_dual.py` | 基础/双站层 | 场景建立原语、Stage3 场景/单元类型 |
+| `scene_base.py` / `scene_dual.py` | 基础/双站层 | 场景建立原语、Stage3 场景/单元类型、只读校验上下文 (`ValidationContext`)；`adopt_stage4_scene` 缓存 alias 索引 |
 | `unit_controller_base.py` / `unit_controller_motion.py` | 基础/运动层 | v1 控制器继承链 |
 | `suction_base.py` / `pioneer.py` | 基础层 | 吸盘与差速车基础行为，仍被 v1 组件使用 |
 

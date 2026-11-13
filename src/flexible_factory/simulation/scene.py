@@ -28,7 +28,8 @@ from .scene_base import (SceneBuildError, Stage1Scene, _chain_joints,
                           _end_link_max_z, _find_scripts, _load_model,
                           _measure_top_run, _model_bbox, _quat_equivalent,
                           _shape_size, _world_axis, _dot, alias_index,
-                          alias_of, all_objects, resolve_alias, subtree)
+                          alias_index_from, alias_of, all_objects,
+                          resolve_alias, subtree)
 from .scene_dual import (Stage3Scene, Stage3Unit, _create_dummy,
                           _create_unit_robot, _verify_unit)
 
@@ -888,7 +889,10 @@ def adopt_stage4_scene(sim, layout: Optional[Stage4Layout] = None
     """把当前已加载的 stage4 .ttt 重新解析为 Stage4Scene (只读)."""
     layout = default_layout() if layout is None else layout
     scene = Stage4Scene(sim=sim, layout=layout, stage4_layout=layout)
-    index = alias_index(sim)
+    objects = tuple(all_objects(sim))
+    index = alias_index_from(sim, objects)
+    scene._validation_objects = objects
+    scene._validation_alias_index = index
 
     for name in base.ALIASES["roots"]:
         scene.handles[name] = resolve_alias(sim, name, index=index)

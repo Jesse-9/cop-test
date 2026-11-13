@@ -30,6 +30,8 @@ from ..simulation import config as cfg
 from ..simulation import contract
 from ..simulation.layout import layout_from_dict
 from ..simulation.scene import adopt_stage4_scene
+from ..simulation.scene_base import (build_validation_context,
+                                     clear_scene_index)
 from ..util import (append_jsonl, jsonable, read_json,
                     repo_root, utc_now, write_json_atomic)
 
@@ -673,13 +675,16 @@ class LifecycleManager:
         if self.artifact is None:
             raise InvalidTransitionError(
                 "当前场景由 build 生成, 没有 manifest; 先 save 或 load 工件")
+        context = build_validation_context(self.sim, self.scene)
         result = sa.validate_artifact(
             self.sim, self.artifact, scene=self.scene,
             config=contract.config_summary(),
             config_digest=contract.config_digest(),
-            required_aliases=cfg.REQUIRED_ALIASES)
+            required_aliases=cfg.REQUIRED_ALIASES,
+            context=context)
         extra = contract.validate_contract(self.sim, self.artifact,
-                                           scene=self.scene)
+                                           scene=self.scene,
+                                           context=context)
         result["checks"].extend(extra.get("checks", []))
         result["differences"].extend(extra.get("differences", []))
         result["contract"] = {"ok": bool(extra.get("ok")),
@@ -793,7 +798,9 @@ class LifecycleManager:
             loaded_scene = adopt_stage4_scene(
                 self.sim,
                 layout=layout_from_dict(manifest.get("layout") or {}))
-            loaded_scene.verify()
+            context = build_validation_context(self.sim, loaded_scene)
+            if context.scene_error:
+                raise RuntimeError(context.scene_error)
             validation_manifest = json.loads(json.dumps(manifest))
             validation_manifest["artifact"]["scene_file"] = partial.name
             artifact = sa.Artifact(artifact_id=draft.artifact_id,
@@ -803,9 +810,10 @@ class LifecycleManager:
                 self.sim, artifact, scene=loaded_scene,
                 config=config_summary,
                 config_digest=contract.config_digest(),
-                required_aliases=cfg.REQUIRED_ALIASES)
+                required_aliases=cfg.REQUIRED_ALIASES,
+                context=context)
             extra_result = contract.validate_contract(
-                self.sim, artifact, scene=loaded_scene)
+                self.sim, artifact, scene=loaded_scene, context=context)
             result["checks"].extend(extra_result.get("checks", []))
             result["differences"].extend(extra_result.get("differences", []))
             result["contract"] = {
@@ -943,6 +951,8 @@ class LifecycleManager:
         self.run_lock.release()
         self.has_run_since_build = True
         self.session.has_run_since_build = True
+        if self.scene is not None:
+            clear_scene_index(self.scene)
         if error is not None:
             self.session.last_error = error
         self.session_store.save(self.session)

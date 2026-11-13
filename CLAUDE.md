@@ -28,6 +28,7 @@
 | 静态目录数据库：schema、导入/发布、影子对比与选库 | [实施报告](docs/implementation/reports/data-platform/v1-catalog-persistence.md) · [字段盘点](docs/implementation/reference/data-platform/static-catalog-field-inventory.md) · [方案](docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 知识图谱导入：Neo4j dump 载入/导出、staging 与发布 | [实施报告](docs/implementation/reports/data-platform/v1-knowledge-graph-import.md) · [Neo4j 工具](tools/neo4j/README.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 运行记录：批量写入与 Q1–Q4 查询 | [实施报告](docs/implementation/reports/data-platform/v1-run-record-persistence.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
+| 启动阶段耗时测量与性能诊断 | [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) · [计时脚本](tools/measure_startup_stages.py) · [优化方案](docs/implementation/plans/simulation/v1-startup-performance-optimization.md) · [实施报告](docs/implementation/reports/simulation/v1-startup-performance-optimization.md) |
 | 本地数据库可视化 | [仪表盘工具](tools/db_dashboard.py) · [查看指南](docs/implementation/reference/data-platform/database-inspection-guide.md) · [使用指南](docs/wiki/98-ProjectUsage/USAGE.md) |
 | 项目状态与代码结构 | [README.md](README.md) |
 | 历史阶段结论与未来边界 | [V1 实施报告](docs/implementation/reports/product/v1-product-implementation.md) |

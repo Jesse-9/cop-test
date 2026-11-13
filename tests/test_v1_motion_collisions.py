@@ -2,9 +2,9 @@
 
 import pytest
 
-from flexible_factory.simulation.motion.collisions import (CollisionRuntime, QueryState,
-                               parse_collision_result,
-                               parse_distance_result)
+from flexible_factory.simulation.motion.collisions import (
+    CollisionRuntime, QueryState, _add_items_to_collection,
+    parse_collision_result, parse_distance_result)
 
 
 def test_parse_collision_overlap():
@@ -61,3 +61,59 @@ def test_distance_margin_zero_means_no_threshold_documented():
     result = parse_distance_result("x", (0, [0.0] * 7, [-1, -1]), 0.005)
     assert result.ok
     assert result.state is QueryState.CLEAR
+
+
+class _CollectionSim:
+    handle_single = 0
+
+    def __init__(self, *, batch=True, silent=False, raise_batch=False):
+        self.items = set()
+        self.batch_calls = 0
+        self.item_calls = 0
+        self.silent = silent
+        self.raise_batch = raise_batch
+        if not batch:
+            self.addItemsToCollection = None
+
+    def getCollectionObjects(self, collection):
+        return list(self.items)
+
+    def addItemsToCollection(self, collection, what, handles, options):
+        self.batch_calls += 1
+        if self.raise_batch:
+            raise RuntimeError("batch unavailable")
+        if not self.silent:
+            self.items.update(int(h) for h in handles)
+
+    def addItemToCollection(self, collection, what, handle, options):
+        self.item_calls += 1
+        self.items.add(int(handle))
+
+
+def test_add_items_to_collection_uses_batch_api():
+    sim = _CollectionSim()
+    _add_items_to_collection(sim, 1, [10, 11, 12, 11])
+    assert sim.items == {10, 11, 12}
+    assert sim.batch_calls == 1
+    assert sim.item_calls == 0
+
+
+def test_add_items_to_collection_falls_back_when_batch_raises():
+    sim = _CollectionSim(raise_batch=True)
+    _add_items_to_collection(sim, 1, [10, 11, 12])
+    assert sim.items == {10, 11, 12}
+    assert sim.item_calls == 3
+
+
+def test_add_items_to_collection_repairs_silent_batch():
+    sim = _CollectionSim(silent=True)
+    _add_items_to_collection(sim, 1, [10, 11, 12])
+    assert sim.items == {10, 11, 12}
+    assert sim.item_calls == 3
+
+
+def test_add_items_to_collection_falls_back_without_batch_api():
+    sim = _CollectionSim(batch=False)
+    _add_items_to_collection(sim, 1, [10, 11, 12])
+    assert sim.items == {10, 11, 12}
+    assert sim.item_calls == 3

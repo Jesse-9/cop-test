@@ -487,10 +487,15 @@ _POS_TOL_DYNAMIC = 0.02
 
 
 def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
-                                    required_aliases: Optional[Iterable[str]] = None
+                                    required_aliases: Optional[Iterable[str]] = None,
+                                    context=None
                                     ) -> dict:
-    """只读校验当前已加载场景与 manifest 的对象身份/契约."""
-    from ..simulation.scene_base import all_objects, alias_of
+    """只读校验当前已加载场景与 manifest 的对象身份/契约.
+
+    ``context`` 由 :func:`build_validation_context` 建立; 未传入时本函数
+    自行建立一次, 保持独立调用兼容.
+    """
+    from ..simulation.scene_base import alias_of
 
     checks: list[dict] = []
     differences: list[dict] = []
@@ -503,13 +508,13 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
         _check(checks, "sim_state_readable", False, str(exc))
     _check(checks, "simulation_stopped", stopped, f"state={state}")
 
+    if context is None:
+        from ..simulation.scene_base import build_validation_context
+        context = build_validation_context(sim, scene)
+
     type_names = object_type_names(sim)
     objects = manifest.get("objects") or []
-    by_alias: dict[str, list[int]] = {}
-    for handle in all_objects(sim):
-        alias = alias_of(sim, handle)
-        if alias:
-            by_alias.setdefault(alias, []).append(handle)
+    by_alias: dict[str, list[int]] = context.alias_index
 
     missing = []
     mismatch = []
@@ -526,8 +531,8 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
             continue
         _check(checks, f"alias_unique:{alias}", True, "1 个匹配")
         handle = hits[0]
-        actual_type = type_names.get(int(sim.getObjectType(handle)),
-                                     str(sim.getObjectType(handle)))
+        type_code = int(sim.getObjectType(handle))
+        actual_type = type_names.get(type_code, str(type_code))
         expected_type = obj.get("type")
         type_ok = actual_type == expected_type
         _check(checks, f"object_type:{alias}", type_ok,
@@ -580,7 +585,7 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
                         "actual": [round(float(v), 6) for v in actual_pos],
                     })
 
-    legacy_stopper = [handle for handle in all_objects(sim)
+    legacy_stopper = [handle for handle in context.objects
                       if alias_of(sim, handle) == "Conveyor_In_PickupStopper"]
     _check(checks, "no_legacy_stopper", not legacy_stopper,
            f"found={len(legacy_stopper)}")
@@ -588,8 +593,18 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
     extra = sorted(set(by_alias) - {obj.get("alias") for obj in objects})
 
     if scene is not None:
-        try:
-            report = scene.verify()
+        report = context.scene_report
+        error = context.scene_error
+        if report is None and not error:
+            try:
+                report = scene.verify()
+            except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
+                context.scene_error = error
+        if error:
+            _check(checks, "scene_contract", False, error)
+        else:
+            report = report or {}
             _check(checks, "scene_contract", bool(report.get("ok")),
                    f"{sum(1 for item in report.get('checks', []) if item['ok'])}"
                    f"/{len(report.get('checks', []))} checks")
@@ -598,9 +613,6 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
                     differences.append({"kind": "contract",
                                         "name": item.get("name"),
                                         "detail": item.get("detail")})
-        except Exception as exc:
-            _check(checks, "scene_contract", False,
-                   f"{type(exc).__name__}: {exc}")
 
     return {
         "ok": checks_ok(checks) and not missing and not mismatch,
@@ -616,8 +628,13 @@ def validate_scene_against_manifest(sim, manifest: dict, scene=None, *,
 def validate_artifact(sim, artifact: "Artifact", *, scene=None,
                       config: Optional[dict] = None,
                       config_digest: Optional[str] = None,
-                      required_aliases: Optional[Iterable[str]] = None) -> dict:
-    """完整只读校验: 文件摘要 + 环境 + 当前场景对象契约."""
+                      required_aliases: Optional[Iterable[str]] = None,
+                      context=None) -> dict:
+    """完整只读校验: 文件摘要 + 环境 + 当前场景对象契约.
+
+    ``context`` 可由调用方在同一次启动校验内复用, 避免重复全场景枚举和
+    ``scene.verify()``; 未传入时保持独立调用行为.
+    """
     checks: list[dict] = []
     differences: list[dict] = []
 
@@ -642,7 +659,7 @@ def validate_artifact(sim, artifact: "Artifact", *, scene=None,
 
     scene_result = validate_scene_against_manifest(
         sim, artifact.manifest, scene=scene,
-        required_aliases=required_aliases)
+        required_aliases=required_aliases, context=context)
     checks.extend(scene_result["checks"])
     differences.extend(scene_result["differences"])
 

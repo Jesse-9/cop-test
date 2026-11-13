@@ -7,6 +7,7 @@
 | [生产流程](production-flow/) | v1 与阶段 0–4 的 `full_flow`、故障回归、设备 focused 验收和混线批次证据；对应[生产流程报告](../reports/production-flow/) |
 | [订单编排](order-orchestration/) | 订单 DAG 阶段 6 的基线、手工/planner 订单、NODE 前置拒绝和 GLOBAL 安全锁存验收；对应[阶段 6 报告](../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
 | [数据平台](data-platform/) | 目录/运行记录和知识图谱导入证据；对应[data 平台报告](../reports/data-platform/) |
+| [仿真工程](simulation/) | 2026-11-12 启动阶段计时（两次 load、一次 `--no-load`）、2026-11-13 alias/销毁优化后复测、`full_flow` 功能验收摘要和 4 臂子集订单验收；对应[启动性能优化报告](../reports/simulation/v1-startup-performance-optimization.md)。这些是性能/运行记录，不是完整功能验收结论 |
 
 场景包只读校验证据保存在 `docs/scene_artifacts/v1/L5_UFLOW/v001_20261103_004317/validation.json`，生命周期和校验规则见[场景包说明](../../scene_artifacts/README.md)。
 

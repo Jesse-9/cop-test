@@ -34,9 +34,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import config_base as base
-from .motion.collisions import discover_pad_body, discover_ur5_links
-from .runtime_common import (Stage3ArmRuntime, Stage3Runtime, UnitSceneView,
-                             _ensure_queryable, build_arm_runtime)
+from .runtime_common import (DiscoveryCache, Stage3ArmRuntime, Stage3Runtime,
+                             UnitSceneView, build_arm_runtime)
 
 from . import config as cfg
 from . import config_dual as dualcfg
@@ -60,9 +59,28 @@ class Stage3RuntimeBuildError(RuntimeError):
     code = "STAGE3_RUNTIME"
 
 
+def normalize_unit_ids(unit_ids=None) -> tuple[str, ...]:
+    """规范化 v1 工位子集; None 表示全部 A–E.
+
+    子集只用于订单运行, 不改变场景工件或配置摘要. 空集合和未知工位
+    直接拒绝, 避免静默构建零台臂。
+    """
+    if unit_ids is None:
+        return tuple(cfg.UNIT_IDS)
+    values = tuple(str(item) for item in unit_ids)
+    if not values:
+        raise ValueError("unit_ids 不能为空; 至少构建一台臂")
+    unknown = [item for item in values if item not in cfg.UNIT_IDS]
+    if unknown:
+        raise ValueError(
+            f"未知工位 {unknown}; 允许 {list(cfg.UNIT_IDS)}")
+    wanted = set(values)
+    return tuple(unit_id for unit_id in cfg.UNIT_IDS if unit_id in wanted)
+
+
 @dataclass
 class Stage4Runtime(Stage3Runtime):
-    """五台臂的会话资源集合 (字段语义与阶段三一致)."""
+    """指定工位的会话资源集合 (字段语义与阶段三一致)."""
 
     def as_dict(self) -> dict:
         return {
@@ -75,15 +93,16 @@ class Stage4Runtime(Stage3Runtime):
         }
 
 
-def _other_unit_obstacles(sim, scene: Stage3Scene,
-                          unit_id: str) -> tuple[list[int], dict]:
+def _other_unit_obstacles(sim, scene: Stage3Scene, unit_id: str,
+                          discovery: DiscoveryCache
+                          ) -> tuple[list[int], dict]:
     """另一台真实臂的可见连杆、吸盘 Body 与岛体 (作为本臂障碍)."""
     other_id = "B" if unit_id == "A" else "A"
     other = scene.unit(other_id)
-    links, link_aliases = discover_ur5_links(sim, other.robot_root)
-    pad_body = discover_pad_body(sim, other.suction_root)
+    links, link_aliases, pad_body = discovery.ur5(
+        sim, other.robot_root, other.suction_root)
     handles = [*links, pad_body, other.island]
-    query = _ensure_queryable(sim, [*links, pad_body])
+    query = discovery.ensure_queryable(sim, [*links, pad_body])
     return handles, {
         "other_unit": other_id,
         "link_aliases": link_aliases,
@@ -108,13 +127,13 @@ def build_stage3_runtime(sim, scene: Stage3Scene, ik_by_unit: dict,
                             for uid in ("A", "B"))
     arms: dict[str, Stage3ArmRuntime] = {}
     semantics: dict = {}
-    query_restore: list[dict] = []
+    discovery = DiscoveryCache()
     for unit_id in ("A", "B"):
         unit = scene.unit(unit_id)
         view = UnitSceneView(unit_id=unit_id, scene=scene, unit=unit)
         try:
-            extra, other_info = _other_unit_obstacles(sim, scene, unit_id)
-            query_restore.extend(other_info.get("query_properties") or [])
+            extra, other_info = _other_unit_obstacles(
+                sim, scene, unit_id, discovery)
             arm, probed = build_arm_runtime(
                 sim, view=view,
                 shadow_aliases=dualcfg.SHADOW_ALIASES[unit_id],
@@ -124,6 +143,7 @@ def build_stage3_runtime(sim, scene: Stage3Scene, ik_by_unit: dict,
                 ik=ik_by_unit[unit_id],
                 probe_semantics=not semantics,
                 error_cls=Stage3RuntimeBuildError,
+                discovery=discovery,
                 logger=logger)
         except Exception:
             # 清理已建臂, 避免影子对象/集合残留
@@ -142,7 +162,7 @@ def build_stage3_runtime(sim, scene: Stage3Scene, ik_by_unit: dict,
             "session_resource_policy": "not_persisted",
             "inter_arm_policy": "real_other_unit_in_workcell",
         },
-        query_restore=query_restore,
+        query_restore=discovery.query_restore,
         session_prefix=dualcfg.SESSION_RESOURCE_PREFIX,
         build_error=Stage3RuntimeBuildError)
     if logger:
@@ -191,8 +211,8 @@ def _arm_conveyor_aliases(scene: Stage4Scene, unit_id: str) -> list[str]:
     return aliases
 
 
-def _unit_obstacles(sim, scene: Stage4Scene,
-                    unit_id: str) -> tuple[list[int], dict]:
+def _unit_obstacles(sim, scene: Stage4Scene, unit_id: str,
+                    discovery: DiscoveryCache) -> tuple[list[int], dict]:
     """其余 4 台真实臂的可见连杆、吸盘 Body 与岛体 (作为本臂障碍)."""
     handles: list[int] = []
     query: list[dict] = []
@@ -200,10 +220,10 @@ def _unit_obstacles(sim, scene: Stage4Scene,
     for other_id, other in scene.units.items():
         if other_id == unit_id:
             continue
-        links, link_aliases = discover_ur5_links(sim, other.robot_root)
-        pad_body = discover_pad_body(sim, other.suction_root)
+        links, link_aliases, pad_body = discovery.ur5(
+            sim, other.robot_root, other.suction_root)
         handles.extend([*links, pad_body, other.island])
-        query.extend(_ensure_queryable(sim, [*links, pad_body]))
+        query.extend(discovery.ensure_queryable(sim, [*links, pad_body]))
         others.append({
             "unit_id": other_id,
             "link_aliases": link_aliases,
@@ -214,8 +234,11 @@ def _unit_obstacles(sim, scene: Stage4Scene,
 
 
 def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
-                     logger=None) -> Stage4Runtime:
-    """构建五台影子臂/碰撞集合/规划器/锁存; 仿真必须处于停止态."""
+                     logger=None, unit_ids=None) -> Stage4Runtime:
+    """构建指定工位的影子臂/碰撞集合/规划器/锁存; 仿真必须处于停止态.
+
+    ``unit_ids=None`` 构建全部 A–E; 订单运行可传入候选工位子集。
+    """
     try:
         state = int(sim.getSimulationState())
     except Exception as exc:
@@ -224,21 +247,22 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
         raise RuntimeBuildError(
             f"阶段四运行时必须在仿真停止态构建 (state={state})")
 
+    unit_ids = normalize_unit_ids(unit_ids)
     station_aliases = tuple(
         unit.aliases["station"] for unit in scene.units.values()
         if unit.spec.has_station)
     arms: dict[str, Stage3ArmRuntime] = {}
     semantics: dict = {}
-    query_restore: list[dict] = []
-    for unit_id in cfg.UNIT_IDS:
+    discovery = DiscoveryCache()
+    for unit_id in unit_ids:
         if logger:
             logger.info("[V1] 构建 %s 影子臂/碰撞集合 ...", unit_id)
         unit = scene.unit(unit_id)
         conveyor_aliases = _arm_conveyor_aliases(scene, unit_id)
         view = UnitSceneView(unit_id=unit_id, scene=scene, unit=unit)
         try:
-            extra, other_info = _unit_obstacles(sim, scene, unit_id)
-            query_restore.extend(other_info.get("query_properties") or [])
+            extra, other_info = _unit_obstacles(
+                sim, scene, unit_id, discovery)
             arm, probed = build_arm_runtime(
                 sim, view=view,
                 shadow_aliases=cfg.SHADOW_ALIASES[unit_id],
@@ -252,6 +276,7 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
                     "conveyor_aliases": list(conveyor_aliases),
                 },
                 error_cls=RuntimeBuildError,
+                discovery=discovery,
                 logger=logger)
         except Exception:
             for built in arms.values():
@@ -269,18 +294,19 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
     runtime = Stage4Runtime(
         sim=sim, scene=scene, arms=arms, semantics=semantics,
         startup={
-            "units": list(cfg.UNIT_IDS),
-            "shadow_aliases": cfg.SHADOW_ALIASES,
+            "units": list(unit_ids),
+            "shadow_aliases": {uid: cfg.SHADOW_ALIASES[uid]
+                               for uid in unit_ids},
             "session_resource_policy": "not_persisted",
             "inter_arm_policy": "all_other_units_in_workcell",
             "adjacency_zones": cfg.ARM_ADJACENCY_ZONES,
         },
-        query_restore=query_restore,
+        query_restore=discovery.query_restore,
         session_prefix=cfg.SESSION_RESOURCE_PREFIX,
         build_error=RuntimeBuildError)
     if logger:
         logger.info(
             "[V1] 运行时构建完成: units=%s, cup_r=%.6f, "
-            "adjacency=%s", list(cfg.UNIT_IDS), arms["A"].cup_radius,
+            "adjacency=%s", list(unit_ids), arms[unit_ids[0]].cup_radius,
             cfg.ARM_ADJACENCY_ZONES)
     return runtime

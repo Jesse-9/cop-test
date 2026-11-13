@@ -20,7 +20,8 @@ from . import config_base as base
 from . import config_motion as s2cfg
 from .config_dual import (SESSION_RESOURCE_PREFIX, STAGE3_CONTRACT_VERSION,
                           STAGE3_CONTROLLER_ID)
-from .motion.collisions import CollisionRuntime
+from .motion.collisions import (CollisionRuntime, discover_conveyor_parts,
+                                discover_pad_body, discover_ur5_links)
 from .motion.path_planning import ConfigurationChecker, LocalPlanner
 from .motion.safety import Stage2Safety
 from .motion.shadow import ShadowProbe, build_shadow_arm
@@ -96,6 +97,61 @@ class UnitSceneView:
 
     def agv_dock_hit(self, agv_handle: int) -> bool:
         return self.scene.agv_dock_hit_at(self.unit_id, agv_handle)
+
+
+@dataclass
+class DiscoveryCache:
+    """一次运行时构建内共享的只读场景发现与查询属性结果.
+
+    传送带 pads、真实臂连杆/吸盘和 ``collidable``/``measurable`` 原值
+    在五台臂之间重复发现/设置会显著放大远程 API 往返; 本缓存按线别名、
+    真实臂根句柄去重. 缓存只在同一停止态构建窗口内有效, 影子对象创建后
+    不得用于新 alias 查询.
+    """
+
+    conveyor_parts: dict[str, tuple[list[int], list[int]]] = field(
+        default_factory=dict)
+    ur5_parts: dict[int, tuple[list[int], list[str], int]] = field(
+        default_factory=dict)
+    query_rows: dict[int, dict] = field(default_factory=dict)
+    query_restore: list[dict] = field(default_factory=list)
+
+    def conveyor(self, sim, scene, alias: str
+                 ) -> tuple[list[int], list[int]]:
+        if alias not in self.conveyor_parts:
+            belt = scene.handle(alias)
+            if belt < 0:
+                self.conveyor_parts[alias] = ([], [])
+            else:
+                pads, coarse = discover_conveyor_parts(sim, belt)
+                self.conveyor_parts[alias] = (list(pads), list(coarse))
+        pads, coarse = self.conveyor_parts[alias]
+        return list(pads), list(coarse)
+
+    def ur5(self, sim, robot_root: int, suction_root: int
+            ) -> tuple[list[int], list[str], int]:
+        key = int(robot_root)
+        if key not in self.ur5_parts:
+            links, aliases = discover_ur5_links(sim, robot_root)
+            pad_body = discover_pad_body(sim, suction_root)
+            self.ur5_parts[key] = (list(links), list(aliases), int(pad_body))
+        links, aliases, pad_body = self.ur5_parts[key]
+        return list(links), list(aliases), int(pad_body)
+
+    def ensure_queryable(self, sim, handles) -> list[dict]:
+        """按句柄只应用一次 collidable/measurable, 返回同样的原值行."""
+        rows = []
+        for handle in handles:
+            key = int(handle)
+            if key not in self.query_rows:
+                applied = _ensure_queryable(sim, [key])
+                row = (applied[0] if applied else
+                       {"alias": "", "handle": key, "ok": False,
+                        "error": "invalid handle"})
+                self.query_rows[key] = row
+                self.query_restore.append(row)
+            rows.append(self.query_rows[key])
+        return rows
 
 
 @dataclass
@@ -185,7 +241,7 @@ class Stage3Runtime:
         try:
             return self.arms[str(unit_id)]
         except KeyError as exc:
-            raise self.build_error(f"未知工位运行时: {unit_id!r}") from exc
+            raise self.build_error(f"工位运行时未构建: {unit_id!r}") from exc
 
     def update_materials(self, manager, targets: dict,
                          carrying: Optional[dict] = None) -> None:
@@ -294,6 +350,7 @@ def build_arm_runtime(sim, *, view: UnitSceneView, shadow_aliases,
                       probe_semantics: bool = False,
                       extra_startup: Optional[dict] = None,
                       error_cls: type[Exception] = RuntimeError,
+                      discovery: Optional[DiscoveryCache] = None,
                       logger: Optional["logging.Logger"] = None
                       ) -> tuple[Stage3ArmRuntime, Optional[dict]]:
     """构建单臂影子副本/碰撞集合/规划器/锁存.
@@ -335,7 +392,8 @@ def build_arm_runtime(sim, *, view: UnitSceneView, shadow_aliases,
             mount_alias=unit.aliases["island"],
             station_aliases=station_aliases,
             conveyor_aliases=tuple(conveyor_aliases),
-            extra_obstacles=obstacles)
+            extra_obstacles=obstacles,
+            discovery=discovery)
         current_collisions = collisions
         semantics = None
         if probe_semantics:

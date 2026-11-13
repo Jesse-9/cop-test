@@ -22,6 +22,7 @@ from ..simulation import config as cfg
 from ..simulation import contract
 from ..simulation.layout import layout_from_dict
 from ..simulation.scene import adopt_stage4_scene
+from ..simulation.scene_base import build_validation_context
 from ..util import append_jsonl, read_json, sha256_file, utc_now
 from . import store as sa
 
@@ -180,12 +181,14 @@ def migrate(source: Path | str, store: sa.ArtifactStore, sim, *,
         artifact = sa.Artifact(artifact_id=draft.artifact_id,
                                path=draft.path,
                                manifest=validation_manifest)
+        context = build_validation_context(sim, loaded_scene)
         result = sa.validate_artifact(
             sim, artifact, scene=loaded_scene,
             config=config_summary, config_digest=contract.config_digest(),
-            required_aliases=cfg.REQUIRED_ALIASES)
+            required_aliases=cfg.REQUIRED_ALIASES,
+            context=context)
         extra_result = contract.validate_contract(
-            sim, artifact, scene=loaded_scene)
+            sim, artifact, scene=loaded_scene, context=context)
         result["checks"].extend(extra_result.get("checks", []))
         result["differences"].extend(extra_result.get("differences", []))
         result["contract"] = {

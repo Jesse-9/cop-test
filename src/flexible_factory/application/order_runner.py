@@ -42,6 +42,25 @@ class OrderRunnerConfig:
     out_dir: Path = spec.REPORT_DIR
 
 
+def required_arm_units(compiled) -> tuple[str, ...]:
+    """订单 DAG 可能调度到的臂工位并集.
+
+    取每个实例的候选设备并集, 不只看 planner 当前选择; 这样调度改选时
+    不会落到未构建的运行时。没有臂候选时返回空集, 由调用方决定保守回退。
+    """
+    wanted: set[str] = set()
+    for instance in getattr(compiled, "instances", ()) or ():
+        devices = list(getattr(instance, "candidate_device_ids", ()) or ())
+        selected = str(getattr(instance, "selected_device_id", "") or "")
+        if selected:
+            devices.append(selected)
+        for device_id in devices:
+            text = str(device_id)
+            if text.startswith("arm_"):
+                wanted.add(text[len("arm_"):])
+    return tuple(unit_id for unit_id in cfg.UNIT_IDS if unit_id in wanted)
+
+
 def make_order_runner(config: OrderRunnerConfig,
                       catalog: Optional[ProcessCatalog] = None):
     """构造 worker runner; 延迟导入 CoppeliaSim 相关模块."""
@@ -86,7 +105,16 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
             if not started.get("ok"):
                 logger.error("[ORDER] 运行记录启动失败, 运行继续: %s",
                              started.get("error"))
-        comp = build_components_v1(sim, simIK, manager.scene, logger)
+        unit_ids = required_arm_units(command.compiled)
+        if not unit_ids:
+            logger.warning(
+                "[ORDER] 订单没有可识别臂候选; 保守构建全部五台")
+            unit_ids = tuple(cfg.UNIT_IDS)
+        else:
+            logger.info("[ORDER] 按订单候选构建臂运行时: %s",
+                        list(unit_ids))
+        comp = build_components_v1(
+            sim, simIK, manager.scene, logger, unit_ids=unit_ids)
         start_stepping(sim)
         coordinator = Stage4Coordinator(
             sim, manager.scene, comp, scenario=cfg.SCENARIO_FULL_FLOW,
@@ -129,6 +157,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         summary["steps"] = steps
         summary["run_id"] = command.run_id
         summary["artifact_id"] = command.artifact_id
+        summary["active_unit_ids"] = list(unit_ids)
         summary["all_ok"] = bool(
             (summary.get("acceptance") or {}).get("ok"))
         summary["lifecycle"] = manager.finish_run(
@@ -154,7 +183,9 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
             logger.exception("[ORDER] stop_simulation 失败")
         if coordinator is not None:
             try:
-                coordinator.runtime.destroy()
+                destroy_report = coordinator.runtime.destroy()
+                if summary is not None:
+                    summary["runtime_destroy"] = destroy_report
             except Exception:
                 logger.exception("[ORDER] runtime destroy 失败")
 

@@ -347,13 +347,14 @@ class ShadowProbe:
         """在真实臂**当前**构型比较真实/影子连杆与 TCP 世界位姿."""
         errors = []
         ok = True
+        real_index: dict[str, int] = {}
+        for h in [scene.robot_root, *subtree(self.sim, scene.robot_root)]:
+            alias = alias_of(self.sim, h)
+            if alias and alias not in real_index:
+                real_index[alias] = int(h)
         for alias, shadow_link in zip(self.shadow.link_aliases,
                                       self.shadow.links):
-            real = -1
-            for h in [scene.robot_root] + subtree(self.sim, scene.robot_root):
-                if alias_of(self.sim, h) == alias:
-                    real = int(h)
-                    break
+            real = real_index.get(alias, -1)
             if real < 0:
                 errors.append({"link": alias, "error": "real_missing"})
                 ok = False
@@ -393,7 +394,21 @@ class ShadowProbe:
     # ── 清理 ────────────────────────────────────────────────
 
     def destroy(self, names=None) -> list[int]:
-        """删除本影子臂的会话资源; 缺省按本臂别名精确清理."""
+        """删除本影子臂的会话资源; 缺省按本臂别名精确清理.
+
+        正常路径直接删除影子根和吸盘根 (TCP/载荷是吸盘子对象), 避免像
+        ``_remove_aliases`` 那样反复全场景枚举; 删除失败才回退到按别名清理.
+        """
+        if names is None:
+            handles = [int(self.shadow.root), int(self.shadow.pad_root),
+                       int(self.shadow.tcp), int(self.shadow.load)]
+            roots = [h for h in handles if h >= 0]
+            if roots:
+                try:
+                    self.sim.removeObjects(roots)
+                    return roots
+                except Exception:
+                    pass
         return _remove_aliases(self.sim,
                                names=(self.shadow.alias_names if names is None
                                       else names))

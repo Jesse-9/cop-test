@@ -21,7 +21,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Mapping, Optional
+from typing import Iterable, Mapping, Optional
 
 from ..simulation import config_base as base
 from ..simulation import physics as phys
@@ -42,7 +42,7 @@ from ..persistence.db import CatalogDatabase
 from ..persistence.runs import RunRecorder
 from ..simulation.layout import line_specs
 from ..domain.materials import MaterialRegistry
-from ..simulation.runtime import build_v1_runtime
+from ..simulation.runtime import build_v1_runtime, normalize_unit_ids
 
 REPORT_DIR = str(spec.REPORT_DIR)
 
@@ -57,8 +57,9 @@ def setup_logger(path: str) -> logging.Logger:
 # 组件
 # ═══════════════════════════════════════════════════════════════
 
-def build_components_v1(sim, simIK, scene, logger):
-    """构建共享组件 + 五台独立 IK/吸盘 + v1运行时 + 物料谱系."""
+def build_components_v1(sim, simIK, scene, logger, unit_ids=None):
+    """构建共享组件 + 指定工位 IK/吸盘 + v1运行时 + 物料谱系."""
+    unit_ids = normalize_unit_ids(unit_ids)
     comp = build_stage1_components(sim, simIK, scene, logger)
     conveyor = comp["conveyor"]
     for line_id, line in line_specs().items():
@@ -70,8 +71,12 @@ def build_components_v1(sim, simIK, scene, logger):
         if line_handle < 0:
             raise RuntimeError(f"缺少物流线对象: {line.conveyor}")
 
-    ik_by_unit = {"A": comp["ik"]}
-    for unit_id in ("B", "C", "D", "E"):
+    ik_by_unit = {}
+    if "A" in unit_ids:
+        ik_by_unit["A"] = comp["ik"]
+    for unit_id in unit_ids:
+        if unit_id == "A":
+            continue
         logger.info("[V1] 初始化 %s IK environment ...", unit_id)
         unit = scene.unit(unit_id)
         ik = Ur5IkController(
@@ -80,11 +85,13 @@ def build_components_v1(sim, simIK, scene, logger):
         ik.initialize()
         ik_by_unit[unit_id] = ik
 
-    logger.info("[V1] 构建五台影子臂/碰撞集合 ...")
-    runtime = build_v1_runtime(sim, scene, ik_by_unit, logger=logger)
+    logger.info("[V1] 构建影子臂/碰撞集合 (units=%s) ...",
+                list(unit_ids))
+    runtime = build_v1_runtime(
+        sim, scene, ik_by_unit, logger=logger, unit_ids=unit_ids)
     release_parent = scene.handle(base.ALIASES["roots"][4])
     suction = {}
-    for unit_id in cfg.UNIT_IDS:
+    for unit_id in unit_ids:
         unit = scene.unit(unit_id)
         suction[unit_id] = Stage2SuctionController(
             sim, comp["materials"], tcp_handle=unit.tcp,
@@ -299,6 +306,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             fault: str = cfg.FAULT_NONE,
                             batch_profile: str = DEFAULT_BATCH_PROFILE,
                             batch: Optional[Mapping[str, int]] = None,
+                            unit_ids: Optional[Iterable[str]] = None,
                             max_sim_time: float = cfg.DEFAULT_MAX_SIM_TIME,
                             repeat: int = 1,
                             out_dir=REPORT_DIR, logger,
@@ -327,6 +335,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
     # 批次在连接/构建组件之前解析并校验; 运行报告只记录实际生效的值.
     effective_batch = resolve_batch(scenario, profile=batch_profile,
                                     batch=batch)
+    effective_unit_ids = normalize_unit_ids(unit_ids)
     profile_name = str(batch_profile or DEFAULT_BATCH_PROFILE)
     logger.info("[TASK][v1] batch 解析: scenario=%s profile=%s batch=%s",
                 scenario, profile_name, effective_batch)
@@ -349,7 +358,8 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                          started.get("error"))
 
     try:
-        comp = build_components_v1(sim, simIK, scene, logger)
+        comp = build_components_v1(
+            sim, simIK, scene, logger, unit_ids=effective_unit_ids)
     except Exception as exc:
         if recorder is not None:
             recorder.finish(
@@ -363,6 +373,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             "phase": "v1",
             "lifecycle_state": "SIMULATION_RUNNING",
             "scenario": scenario,
+            "active_unit_ids": list(effective_unit_ids),
             "config": snapshot_config(
                 scenario, max_sim_time=max_sim_time, scene=scene,
                 batch=effective_batch, batch_profile=profile_name),
@@ -425,6 +436,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "batch": dict(effective_batch),
         "batch_profile": profile_name,
         "batch_input_version": spec.BATCH_INPUT_VERSION,
+        "active_unit_ids": list(effective_unit_ids),
         "layout": scene.stage4_layout.name,
         "catalog_source": "database" if catalog is not None else "code",
         "catalog_version": None if catalog is None else catalog.version,

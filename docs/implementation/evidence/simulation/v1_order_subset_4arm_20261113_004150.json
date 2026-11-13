@@ -1,0 +1,46 @@
+{
+  "order_id": "order-subset-4arm",
+  "version": 1,
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "active_unit_ids": [
+    "A",
+    "C",
+    "D",
+    "E"
+  ],
+  "safety_units": [
+    "A",
+    "C",
+    "D",
+    "E"
+  ],
+  "all_ok": true,
+  "order_status": "SUCCEEDED",
+  "final_count": 1,
+  "order_target_count": 1,
+  "sim_time": 163.4,
+  "steps": 3268,
+  "failure_count": 0,
+  "cleanup_leftover": [],
+  "first_attempt": {
+    "report": "docs\\implementation\\runs\\v1_order_run_20261113_002443.json",
+    "all_ok": false,
+    "order_status": "ABORTED",
+    "failure": "E task failed: RELEASE_FAILED: RELEASE_CORRECTION_EXCEEDED: pos=0.0063 m ang=0.5486 rad",
+    "active_unit_ids": [
+      "A",
+      "C",
+      "D",
+      "E"
+    ]
+  },
+  "source_pass_report": "docs\\implementation\\runs\\v1_order_run_20261113_004150.json",
+  "note": "First attempt aborted at E bracket_to_E release correction; retry passed with FINAL uid 3 parents [1,2]. B was not built; safety only A/C/D/E; cleanup leftover was [] in the CLI output.",
+  "final_parents": [
+    [
+      1,
+      2
+    ]
+  ],
+  "loaded_routes": 1
+}

@@ -236,18 +236,12 @@ def build_contract_extra(*, sim=None, scene=None, provenance=None,
     }
 
 
-def _resolve_aliases(sim) -> dict[str, list[int]]:
-    from .scene_base import alias_of, all_objects
+def validate_contract(sim, artifact, scene=None, *, context=None) -> dict:
+    """校验 manifest ``extra.v1`` 与当前场景.
 
-    index: dict[str, list[int]] = {}
-    for handle in all_objects(sim):
-        alias = alias_of(sim, handle)
-        if alias:
-            index.setdefault(alias, []).append(int(handle))
-    return index
-
-
-def validate_contract(sim, artifact, scene=None) -> dict:
+    ``context`` 可由调用方在同一次启动校验内复用, 避免重复 alias 枚举和
+    ``scene.verify()``; 未传入时本函数自行建立一次.
+    """
     manifest = artifact.manifest
     extra = (manifest.get("extra") or {}).get("v1")
     checks: list[dict] = []
@@ -257,6 +251,10 @@ def validate_contract(sim, artifact, scene=None) -> dict:
            f"type={type(extra).__name__}")
     if not isinstance(extra, dict):
         return {"ok": False, "checks": checks, "differences": differences}
+
+    if context is None:
+        from .scene_base import build_validation_context
+        context = build_validation_context(sim, scene)
 
     _check(checks, "v1_source_phase",
            manifest.get("source_phase") == "v1",
@@ -358,7 +356,7 @@ def validate_contract(sim, artifact, scene=None) -> dict:
                f"saved={saved_process_version!r} "
                f"current={PROCESS_MODEL_VERSION!r}")
 
-    index = _resolve_aliases(sim)
+    index = context.alias_index
     for alias in cfg.REQUIRED_ALIASES:
         hits = index.get(alias, [])
         _check(checks, f"v1_alias_unique:{alias}", len(hits) == 1,
@@ -405,15 +403,22 @@ def validate_contract(sim, artifact, scene=None) -> dict:
                            all(abs(pose[i] - expected[i]) <= 0.002
                                for i in range(3)),
                            f"pos={[round(v, 4) for v in pose]}")
-            report = scene.verify()
-            _check(checks, "v1_scene_contract", bool(report.get("ok")),
-                   f"{sum(1 for c in report.get('checks', []) if c['ok'])}"
-                   f"/{len(report.get('checks', []))} checks")
-            for item in report.get("checks", []):
-                if not item.get("ok"):
-                    differences.append({"kind": "contract",
-                                        "name": item.get("name"),
-                                        "detail": item.get("detail")})
+            report = context.scene_report
+            if report is None and not context.scene_error:
+                report = scene.verify()
+            if context.scene_error:
+                _check(checks, "v1_scene_observable", False,
+                       context.scene_error)
+            else:
+                report = report or {}
+                _check(checks, "v1_scene_contract", bool(report.get("ok")),
+                       f"{sum(1 for c in report.get('checks', []) if c['ok'])}"
+                       f"/{len(report.get('checks', []))} checks")
+                for item in report.get("checks", []):
+                    if not item.get("ok"):
+                        differences.append({"kind": "contract",
+                                            "name": item.get("name"),
+                                            "detail": item.get("detail")})
         except Exception as exc:
             _check(checks, "v1_scene_observable", False,
                    f"{type(exc).__name__}: {exc}")
