@@ -23,16 +23,22 @@ scope: v1 启动路径（lifecycle 校验、simulation runtime、订单子集构
 | 工作项 | 状态 | 说明 |
 |---|---|---|
 | P0 分阶段测量 | 已完成 3 次启动计时（2 次 load + 1 次 no-load） | `tools/measure_startup_stages.py`，用法见[使用指南](../../../wiki/98-ProjectUsage/USAGE.md)的“启动阶段计时”；结果见[实施报告](../../reports/simulation/v1-startup-performance-optimization.md) |
-| P1 校验路径去重 | 代码已实现；启动计时与 pytest 已验证；full_flow 待执行 | 方案见 §4；`prepare_start` 从约 25 s 降到 12.1–12.2 s |
-| P2 影子臂/碰撞集合构建优化 | 代码已实现；启动计时与 pytest 已验证；full_flow 待执行 | 方案见 §5；五台运行时从约 47.9 s 降到 20.3–21.4 s |
-| P3 订单按需构建子集臂 | 未实施、条件项 | 方案见 §6；仅订单模式，`full_flow` 仍建五台 |
+| P1 校验路径去重 | 代码已实现；启动计时、pytest 与 full_flow 功能验收已通过 | 方案见 §4；`prepare_start` 从约 25 s 降到 12.1–12.2 s，alias 缓存后 8.5–9.6 s |
+| P2 影子臂/碰撞集合构建优化 | 代码已实现；启动计时、pytest 与 full_flow 功能验收已通过 | 方案见 §5；五台运行时从约 47.9 s 降到 20.3–21.4 s，最新复测 18.2–19.5 s；清理修复后 3.5–4.4 s |
+| P3 订单按需构建子集臂 | 已通过 4 臂子集订单（B 跳过）；3 臂由同一路径覆盖 | 方案见 §6；首次尝试 E 释放校正失败，重试通过；`full_flow` 仍建五台 |
 | P4 长驻 worker 运行时复用 | 暂缓 | 方案见 §7；等 P1–P3 实测后再评估 |
 
 2026-11-12 实现进度：P1/P2 代码改动已落地，并完成两次 `load` 与一次
 `--no-load` 启动计时；`prepare_start`、影子臂构建和“加载完成 → 仿真启动”
-均明显下降，纯逻辑回归为 **607 passed / 7 skipped**。**集合成员核对和
-`full_flow` 验收仍未执行**，因此本文件只在性能测量和纯逻辑回归意义上
-标记 P1/P2 已验证，不能当作功能验收结论；详细数据、限制和后续步骤见
+均明显下降，纯逻辑回归为 **615 passed / 7 skipped**。P3 的 builder 子集参数、
+订单候选并集和 `active_unit_ids` 证据也已实现。干净 `full_flow` 功能验收
+`all_ok=true`（1 个 FINAL、343.85 s、0 failure），但该次运行使用修复前的
+快速销毁路径并留下 `Shadow_*`；修复后启动计时复测得到 `leftover=[]`、清理 4.01 s。**4 臂子集订单重试
+通过**（A/C/D/E，B 未构建，1 FINAL，`leftover=[]`）；首次尝试在 E 释放
+校正处失败，属间歇性运动问题；3 臂场景由同一 `unit_ids` 路径覆盖。
+2026-11-13 21:31–21:53 四次复测的 `startup_total_wall` 为
+**79.97–88.61 s**；旧工具打印的 130–210 s 是 `profile.*` 子项重复求和，
+不是墙钟。详见
 [实施报告](../../reports/simulation/v1-startup-performance-optimization.md)。
 
 ## 1. 目标与非目标
@@ -84,6 +90,8 @@ uv run python tools/measure_startup_stages.py --run-records off
 4. `--probe` 会步进约 35 次，只在需要时启用；它不计入“仿真刚启动”边界。
 5. 记录 `startup_total_wall_s` 和 `stages` 中的 `prepare_start_validation`、
    `build_components`、`build.shadow_runtime` 等阶段，不只记录总时间。
+   `build.*` 和 `profile.*` 是**重叠子项**，不能相加；真实启动总时间只看
+   `startup_total_wall_s`。
 
 ### 2.3 历史参考基线（非本次实测）
 
@@ -233,6 +241,9 @@ uv run python tools/measure_startup_stages.py --run-records off
    - `adopt_stage4_scene` 已建立一次 alias 索引；可在停止态构建期把它挂到
      场景对象上供 runtime 构建查询；
    - 影子臂创建后索引失效，不得用于影子对象的查找。
+   - 已实现：`adopt_stage4_scene` 缓存 `_validation_objects` /
+     `_validation_alias_index`，`build_validation_context` 复用；
+     `LifecycleManager.finish_run` 清除缓存。
 6. **降低 FK/查询属性开销。**
    - `verify_fk` 每次构建真实臂 alias → handle 索引一次，不再逐连杆遍历；
    - `_ensure_queryable` 按 handle 记录原值并只设置一次；销毁路径仍完整恢复。
@@ -264,6 +275,20 @@ uv run python tools/measure_startup_stages.py --run-records off
 - 任一步导致集合数量、检查项或 `full_flow` 行为变化，立即回退该步。
 
 ## 6. P3：订单按需构建子集臂（条件项）
+
+### 6.0 代码状态（2026-11-12）
+
+`build_components_v1` / `build_v1_runtime` 已接受可选 `unit_ids`；
+`normalize_unit_ids()` 校验空集/未知工位；订单 runner 取
+`candidate_device_ids ∪ selected_device_id` 的臂工位并集，并在报告记录
+`active_unit_ids` 和 `runtime_destroy`。`test_v1_order_runner_units.py`、
+`test_v1_runtime_common.py` 覆盖候选并集、子集构建和非法工位。
+
+**4 臂子集订单验收已通过**：`order-subset-4arm` 重试得到
+`active_unit_ids=A/C/D/E`（B 未构建）、1 个 FINAL（父 UID `[1,2]`）、
+sim 163.4 s、3268 步、0 failure、`leftover=[]`。首次尝试在 E 岛
+`bracket_to_E` 释放校正超限中止，说明该释放失败是间歇性运动问题；
+3 臂场景未单独运行，由同一 `unit_ids` 路径覆盖。
 
 ### 6.1 前置条件
 
@@ -297,6 +322,8 @@ uv run python tools/measure_startup_stages.py --run-records off
 ### 6.3 验收
 
 - 3 臂订单能完成启动和代表性执行；仅存在 3 套影子臂/集合；
+- 本次验收夹具为 A/C/D/E 四臂（跳过 B）；3 臂场景由同一 `unit_ids`
+  参数路径覆盖，不另设分支；
 - 空闲臂的真实连杆仍出现在活动臂的 `other_units` 障碍摘要中；
 - `full_flow` 的构建、运行和验收结果不变；`config_digest()` 不变；
 - P0 工具显示省略臂的构建时间被移除；P2 完成后需重新测量绝对收益。
@@ -347,12 +374,12 @@ uv run python tools/measure_startup_stages.py --run-records off
 
 | 顺序 | 工作 | 前置/门槛 | 验收 |
 |---|---|---|---|
-| 1 | 跑 `full_flow` 验收 | 纯逻辑回归已通过（607 passed / 7 skipped） | 集合成员、FINAL/UID/AGV 路线、启动摘要与基线一致 |
-| 2 | 给计时工具增加 `loadScene` vs `adopt_stage4_scene`、`_ensure_scene` vs 校验的子阶段打点，并记录 CoppeliaSim 版本/引擎和 artifact digest | 步骤 1 可用 | 三次 JSON 能拆分 74 s 并包含环境字段；仅改工具，不改产品代码 |
-| 3 | 复用 `adopt_stage4_scene` 的 alias 索引给 `ValidationContext`；评估把索引传入 `scene.verify()` | 步骤 2 有拆分数据 | 检查集不变；`prepare_start` 中位数继续下降 |
-| 4 | 优化 `runtime_destroy`：批量移除影子根、批量销毁 collections、合并查询属性恢复 | 步骤 1 通过 | 无 `Shadow_*` 残留；清理中位数下降 |
+| 1 | 跑 `full_flow` 验收 | 纯逻辑回归已通过（615 passed / 7 skipped） | 已通过 `all_ok`；修复后清理复测 `leftover=[]`，完整 full_flow 未重跑 |
+| 2 | 给计时工具增加 `loadScene` vs `adopt_stage4_scene`、`_ensure_scene` vs 校验的子阶段打点，并记录 CoppeliaSim 版本/引擎和 artifact digest | 步骤 1 可用 | 已实现 `profile.*` 子阶段和 simulator/config 字段 |
+| 3 | 复用 `adopt_stage4_scene` 的 alias 索引给 `ValidationContext`；评估把索引传入 `scene.verify()` | 步骤 2 有拆分数据 | 已实现索引缓存复用；`prepare_start` 9.63 s |
+| 4 | 优化 `runtime_destroy`：批量移除影子根、批量销毁 collections、合并查询属性恢复 | 步骤 1 通过 | 已实现影子根快速删除；清理 4.01 s、`leftover=[]` |
 | 5 | 实机确认 4.10 `addItemsToCollection`/`getCollectionObjects` | 步骤 1 可用 | 9 个集合成员数不变；回退路径可触发 |
-| 6 | P3 订单子集臂（条件项）；P4 worker 复用（暂缓） | 步骤 1–5 完成且订单需求确认 | 仅订单模式；未构建臂 fail closed；`full_flow` 仍五台 |
+| 6 | P3 订单子集臂（条件项）；P4 worker 复用（暂缓） | 步骤 1–5 完成且订单需求确认 | 4 臂子集订单通过；3 臂由同一路径覆盖 |
 
 ## 9. 验证矩阵
 
@@ -360,7 +387,7 @@ uv run python tools/measure_startup_stages.py --run-records off
 |---|---|---|
 | 工件/契约/生命周期 | `tests/test_v1_artifact_store.py`、`tests/test_v1_contract_validation.py`、`tests/test_v1_lifecycle_state.py` | 全通过；注入式差异仍被拒绝 |
 | 碰撞/运行时 | `tests/test_v1_motion_collisions.py`、`tests/test_v1_runtime_common.py` | 集合名称/数量、FK、杯口半径、查询语义不变 |
-| 协调器/订单 | `tests/test_v1_coordinator_*.py`、`tests/test_v1_order_*.py` | 订单 DAG 与 full_flow 行为不变；子集臂 fail closed |
+| 协调器/订单 | `tests/test_v1_coordinator_*.py`、`tests/test_v1_order_*.py`、`tests/test_v1_order_runner_units.py` | 订单 DAG 与 full_flow 行为不变；子集臂 fail closed |
 | 仿真 focused | 现有 `tests/test_v1_stage2_arm_sim.py`、`tests/test_v1_stage2_agv_sim.py`、`tests/test_v1_stage4_scheduler_sim.py`、`tests/test_v1_order_sim.py` | 按当前仿真测试入口执行；未执行项在报告中明确标注 |
 | 启动计时 | `uv run python tools/measure_startup_stages.py` | 3 次中位数；记录 JSON |
 | full_flow 验收 | `flexible-factory run --scenario full_flow --time 700` | `all_ok`；FINAL/UID/AGV 路线与基线一致 |

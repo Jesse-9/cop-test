@@ -31,9 +31,27 @@ P1/P2 的代码实施结果、pytest 回归、2026-11-12 的三次启动计时�
 5. **主要剩余瓶颈**是 `artifact_load` 中的 `adopt_stage4_scene()`（大量同步
    ZMQ 枚举）和清理阶段的 `runtime_destroy`（36.7–43.7 s）。前者需要子计时
    才能精确拆分，后者可直接作为下一轮优化目标。
-6. **纯逻辑回归已通过：607 passed / 7 skipped。** 7 个跳过项为需要
+6. **纯逻辑回归已通过：615 passed / 7 skipped。** 7 个跳过项为需要
    `FLEXIBLE_FACTORY_SIM=1` 且本机运行 CoppeliaSim 4.10 的 focused 测试；
    `full_flow` 验收仍未执行。
+7. **后续优化代码已落地：** `adopt_stage4_scene` 的 alias 索引缓存复用、
+   `ShadowProbe.destroy` 影子根快速删除、计时工具 `profile.*` 子阶段；
+   P3 订单子集臂的 builder/runner 代码已实现。子集订单实机验收仍待执行。
+8. **全量验收：** 干净 `full_flow` 运行 `all_ok=true`（1 个 FINAL、
+   6860 步、sim 343.85 s、0 failure）。该次运行使用了修复前的快速销毁
+   路径，结束时留下 15 个 `Shadow_*` 别名；修复后由启动计时复测确认
+   `leftover=[]`、清理 4.01 s。首次 `full_flow` 尝试在 E 岛
+   `robot_vs_parts` 处中止，且同一时段存在残留进程重新 `load` 场景，
+   该次未作为通过证据。
+9. **P3 子集订单：** `order-subset-4arm` 重试通过：`active_unit_ids=A/C/D/E`
+   （B 未构建），安全锁存仅包含 A/C/D/E，1 个 FINAL（父 UID `[1,2]`），
+   sim 163.4 s、3268 步、0 failure、清理 `leftover=[]`。首次尝试在 E 岛
+   `bracket_to_E` 释放校正超限（pos 0.0063 m / ang 0.5486 rad）中止；
+   重试通过，说明该释放失败是间歇性运动问题，不是子集构建错误。
+10. **计时口径修正：** 旧版 `measured_stages_total` 把 `profile.*` 与主阶段
+    重复相加，打印出 130–210 s 的假总时间；真实 `startup_total_wall` 为
+    79.97–88.61 s（2026-11-13 21:31–21:53 四次复测）。工具已改为
+    `non_overlapping_stages_total`，同时排除 `build.*` 和 `profile.*`。
 
 ## 2. 测量方法与证据
 
@@ -57,6 +75,11 @@ uv run python tools/measure_startup_stages.py --run-records off --no-load
 - [运行 1，load](../../evidence/simulation/v1_startup_timing_load_20261112_082956.json)
 - [运行 2，load](../../evidence/simulation/v1_startup_timing_load_20261112_083249.json)
 - [运行 3，no-load](../../evidence/simulation/v1_startup_timing_noload_20261112_083535.json)
+- [2026-11-13 alias/销毁优化后复测](../../evidence/simulation/v1_startup_timing_after_alias_destroy_20261113_001019.json)
+- [2026-11-13 21:33 load 复测](../../evidence/simulation/v1_startup_timing_load_20261113_213332.json)
+- [2026-11-13 21:53 no-load 复测](../../evidence/simulation/v1_startup_timing_noload_20261113_215332.json)
+- [2026-11-12 干净 full_flow 功能验收摘要](../../evidence/simulation/v1_full_flow_startup_validation_20261112_234224.json)
+- [2026-11-13 4 臂子集订单验收](../../evidence/simulation/v1_order_subset_4arm_20261113_004150.json)
 
 环境：本机 Windows；CoppeliaSim 4.10 + ZMQ Remote API `localhost:23000`；
 `--run-records off`；Python 环境由 `uv` 管理。本报告未记录 CoppeliaSim
@@ -122,9 +145,53 @@ scene.ttt 的 SHA-256 没有执行。
   `scene.verify()` 内部的全场景枚举，所以不能把 73.96 s 与 12.1 s 直接
   比较。
 
-精确拆分需要在 `_ensure_scene`/`adopt_stage4_scene`、`build_validation_context`、
-`validate_artifact`、`validate_contract` 内分别打点；当前工具只覆盖到
-`prepare_start_validation` 一整段。
+精确拆分已由 2026-11-13 的 `profile.*` 子阶段补充；见 §3.5。
+
+### 3.5 2026-11-13 复测（alias 缓存 + 销毁优化）
+
+在 alias 索引缓存复用和 `ShadowProbe.destroy` 快速删除落地后，重新跑一次
+`load` 启动计时：
+
+| 阶段/子阶段 | 耗时 | 说明 |
+|---|---:|---|
+| `artifact_load` | 54.33 s | 含 manifest/哈希、`loadScene`、adopt |
+| `profile.adopt_stage4_scene` | 49.72 s | 句柄解析，占 artifact_load 主要部分 |
+| `prepare_start_validation` | **9.63 s** | 从 12.1–12.2 s 继续下降约 21% |
+| `profile.build_validation_context` | 6.89 s | 复用 adopt 的 alias 索引 |
+| `profile.validate_artifact` | 2.47 s | 文件/环境/场景对象校验 |
+| `profile.validate_contract` | 0.13 s | 契约校验 |
+| `build.shadow_runtime` | 20.75 s | 五台合计，保持 P2 水平 |
+| `cleanup.runtime_destroy` | **4.01 s** | 从 36.7–43.7 s 下降；`leftover=[]`，恢复 80 项 |
+| `startup_total_wall` | 89.01 s | 进程开始 → 仿真启动 |
+
+证据：[v1_startup_timing_after_alias_destroy_20261113_001019.json](../../evidence/simulation/v1_startup_timing_after_alias_destroy_20261113_001019.json)。
+该 JSON 同时记录 `simulator.product_version=4.10.0.0`、引擎 `bullet` 和
+`config_digest`。`artifact_load - adopt ≈ 4.6 s`，包含 `loadScene`、manifest
+校验、SHA-256 和状态写入，不能全部归因于 `loadScene`。
+
+### 3.6 计时口径修正：`profile.*` 不能与主阶段相加
+
+`profile.adopt_stage4_scene` 包含在 `artifact_load` 内，
+`profile.build_validation_context` / `profile.validate_artifact` /
+`profile.validate_contract` 包含在 `prepare_start_validation` 内。旧版工具
+打印的 `measured_stages_total` 只排除了 `build.*`，没有排除 `profile.*`，
+因此把同一段工作重复相加，出现 130–210 s 的假总时间。真实总时间只看
+`startup_total_wall`。
+
+| 运行 | 真实 `startup_total_wall` | 旧口径合计（重复计数） | 修正后非重叠合计 |
+|---|---:|---:|---:|
+| 21:31 load | 83.26 s | 137.85 s | 83.25 s |
+| 21:33 load | 79.97 s | 133.20 s | 79.96 s |
+| 21:50 load | 79.99 s | 133.91 s | 79.99 s |
+| 21:53 no-load | 88.61 s | **210.26 s** | 88.60 s |
+
+工具已修正：`non_overlapping_stages_total` 同时排除 `build.*` 和
+`profile.*`，并在表头说明“子项与主阶段重叠、百分比不可相加；以
+`startup_total_wall` 为准”。
+
+补充证据：
+[21:33 load](../../evidence/simulation/v1_startup_timing_load_20261113_213332.json)、
+[21:53 no-load](../../evidence/simulation/v1_startup_timing_noload_20261113_215332.json)。
 
 ## 4. `artifact_load` 为什么长
 
@@ -180,7 +247,7 @@ RPC，可能数秒；主要成本在第 4 步的同步 ZMQ 往返：
 
 ### 5.3 测试
 
-已补充并执行纯逻辑测试：`uv run pytest -q` 为 **607 passed / 7 skipped**。
+已补充并执行纯逻辑测试：`uv run pytest -q` 为 **615 passed / 7 skipped**。
 7 个跳过项为需要 `FLEXIBLE_FACTORY_SIM=1` 且本机运行 CoppeliaSim 4.10
 （ZMQ 23000）的 focused 测试。新增用例覆盖：
 
@@ -191,12 +258,58 @@ RPC，可能数秒；主要成本在第 4 步的同步 ZMQ 往返：
 - `tests/test_v1_runtime_common.py`：发现缓存复用、查询属性只应用一次、
   FK 索引只建一次。
 
+### 5.4 后续优化与 P3 代码
+
+- `scene.py` / `scene_base.py`：`adopt_stage4_scene` 缓存停止态
+  `_validation_objects` / `_validation_alias_index`，`build_validation_context`
+  复用；`LifecycleManager.finish_run` 清除缓存，避免运行后使用陈旧索引。
+- `motion/shadow.py`：`ShadowProbe.destroy()` 正常路径直接删除影子臂根
+  （吸盘/TCP/载荷是其子对象），不再执行多轮全场景枚举；失败才回退按别名清理。
+- `runtime.py` / `application/run.py`：新增 `normalize_unit_ids()` 和
+  `unit_ids` 参数；`build_components_v1` 只为指定工位构建 IK/吸盘/运行时，
+  快照和报告记录 `active_unit_ids`。
+- `application/order_runner.py`：`required_arm_units()` 取订单实例
+  `candidate_device_ids ∪ selected_device_id` 的臂工位并集；订单运行按该
+  子集构建，并记录 `active_unit_ids` 与 `runtime_destroy`。
+- `tools/measure_startup_stages.py`：新增 `profile.adopt_stage4_scene`、
+  `profile.ensure_scene`、`profile.build_validation_context`、
+  `profile.validate_artifact`、`profile.validate_contract` 子阶段。
+- 新增 `tests/test_v1_order_runner_units.py`；当前纯逻辑回归
+  **615 passed / 7 skipped**。
+
+P3 4 臂子集订单已通过（见 §5.5）；3 臂场景由同一 `unit_ids` 路径覆盖，
+未单独运行。
+
+### 5.5 全量验收与 P3 子集订单
+
+- **首次 `full_flow` 尝试**（23:17:59 启动）在 sim 283.05 的 E 岛
+  `bracket_to_E` 处 `GOAL_CONFIG_INVALID: robot_vs_parts (682,705)` 中止；
+  同一时段有一个残留启动进程在 23:18:48 重新 `load` 场景。该次不作为
+  通过证据。
+- **干净重跑**（23:42:15–00:08:15）：`all_ok=true`，1 个 `FINAL`，
+  6860 步，sim 343.85 s，0 failure，`active_unit_ids=A–E`。功能验收通过。
+  该次运行使用修复前的快速销毁路径，结束时留下 15 个 `Shadow_*` 别名；
+  修复 `ShadowProbe.destroy` 后，启动计时复测得到 `leftover=[]`、
+  `runtime_destroy=4.01 s`。
+- **P3 子集订单**：`order-subset-4arm` 首次尝试在 E 岛 `bracket_to_E`
+  释放校正超限中止（pos 0.0063 m / ang 0.5486 rad）；重试通过：
+  `active_unit_ids=A/C/D/E`（B 未构建），安全锁存仅 A/C/D/E，1 个 FINAL
+  （父 UID `[1,2]`），sim 163.4 s、3268 步、0 failure、清理
+  `leftover=[]`。证据：
+  [v1_order_subset_4arm_20261113_004150.json](../../evidence/simulation/v1_order_subset_4arm_20261113_004150.json)。
+
 ## 6. 验证缺口与风险
 
 本报告**不声明**以下事项已完成：
 
-- 未运行 `full_flow`，集合成员数、FINAL/UID/AGV 路线和启动摘要未与基线
-  逐项比对；
+- `full_flow` 功能验收已通过（`all_ok=true`），但该次运行使用修复前的
+  快速销毁路径并留下 15 个 `Shadow_*`；修复后仅通过启动计时复测确认
+  `leftover=[]`，**没有重新跑完整 `full_flow`**；
+- P3 4 臂子集订单重试通过，但首次尝试在 E 岛释放校正处失败；这是间歇性
+  运动问题，不能把单次通过解释为所有子集订单稳定；3 臂场景未单独运行，
+  仅由同一 `unit_ids` 参数路径覆盖；
+- alias 索引缓存已把 `prepare_start` 降到 9.63 s；`ShadowProbe.destroy`
+  快速路径已把清理降到 4.01 s，两者均有本次计时证据；
 - `sim.addItemsToCollection` 的 4.10 实机语义未单独确认；实现有成员校验和
   逐项回退，但正式验收仍需实机覆盖；
 - 历史与今日校验报告的 `name` 检查项均为 454 项，`differences` 为 0；
@@ -212,16 +325,16 @@ RPC，可能数秒；主要成本在第 4 步的同步 ZMQ 往返：
 
 ## 7. 后续步骤
 
-纯逻辑回归已完成（607 passed / 7 skipped）；以下为剩余步骤：
+纯逻辑回归已完成（615 passed / 7 skipped）；以下为剩余步骤：
 
 | 优先级 | 步骤 | 预期收益 | 验收 |
 |---|---|---|---|
-| 高（必须） | 跑 `full_flow` 验收 | 确认集合成员、FINAL/UID/AGV 路线、启动摘要不变 | `all_ok`；与基线逐项一致 |
+| 高（必须） | 跑 `full_flow` 验收 | 确认集合成员、FINAL/UID/AGV 路线、启动摘要不变 | 已通过 `all_ok`；但清理残留需在修复后复测（见 §5.5） |
 | 中 | 给计时工具增加子阶段打点：`loadScene` vs `adopt_stage4_scene`；`_ensure_scene`、`build_validation_context`、`validate_artifact`、`validate_contract`；并记录 CoppeliaSim 版本/引擎、artifact digest | 确认 74 s 的准确构成，补齐可复现环境信息 | 三次运行 JSON 含子阶段和环境字段；不改变产品代码 |
-| 中 | 复用 `adopt_stage4_scene` 已建立的 alias 索引给 `ValidationContext`；评估把索引传入 `scene.verify()` | 去掉 1–2 次全场景枚举 | 校验检查集与差异不变；`prepare_start` 中位数下降 |
-| 中 | 优化 `runtime_destroy`：批量移除影子根、批量销毁 collections、合并查询属性恢复 | 当前 36.7–43.7 s 是最大清理成本 | 无 `Shadow_*` 残留；查询属性恢复；清理中位数下降 |
-| 中 | 确认 4.10 `addItemsToCollection` / `getCollectionObjects` 语义 | 验证批量集合写入的实机行为 | 9 个集合成员数与基线一致；回退路径可触发 |
-| 条件项 | P3 订单按需构建子集臂 | 每省一台约数秒（P2 后绝对值下降） | 仅订单模式；`full_flow` 仍五台；未构建臂 fail closed |
+| 中 | 复用 `adopt_stage4_scene` 已建立的 alias 索引给 `ValidationContext`；评估把索引传入 `scene.verify()` | 去掉 1–2 次全场景枚举 | 已实现索引缓存复用；`prepare_start` 9.63 s |
+| 中 | 优化 `runtime_destroy`：批量移除影子根、批量销毁 collections、合并查询属性恢复 | 当前 36.7–43.7 s 是最大清理成本 | 已实现影子根快速删除；清理 4.01 s、`leftover=[]` |
+| 中 | 实机确认 4.10 `addItemsToCollection` / `getCollectionObjects` 语义 | 验证批量集合写入的实机行为 | 9 个集合成员数与基线一致；回退路径可触发 |
+| 条件项 | P3 订单按需构建子集臂 | 每省一台约数秒（P2 后绝对值下降） | 4 臂子集订单通过（B 跳过，1 FINAL，`leftover=[]`）；3 臂场景由同一 `unit_ids` 路径覆盖 |
 | 暂缓 | P4 长驻 worker 运行时复用 | 同进程第 2 次及以后省去 adopt/构建 | 重置协议、残留检查和 fail closed 完成后再立项 |
 
 **建议顺序**：先完成 P0 验证门槛，再决定是否做 P1 索引复用和 P2 清理优化；
@@ -230,7 +343,7 @@ RPC，可能数秒；主要成本在第 4 步的同步 ZMQ 往返：
 ## 8. 复现命令
 
 ```powershell
-# 完整纯逻辑回归（2026-11-12: 607 passed / 7 skipped）
+# 完整纯逻辑回归（2026-11-12: 615 passed / 7 skipped）
 uv run pytest -q
 
 # 启动计时（建议连续 3 次取中位数）

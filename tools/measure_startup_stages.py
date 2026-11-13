@@ -12,7 +12,8 @@ step, 也不运行 coordinator. 随后做安全清理 (停仿真/销毁影子臂
 说明文档: docs/wiki/98-ProjectUsage/USAGE.md 的“启动阶段计时”一节.
 
 输出:
-  - stdout 分阶段表格;
+  - stdout 分阶段表格; build.* / profile.* 是重叠子项, 不能相加,
+    startup_total_wall 才是“进程开始 → 仿真启动”的真实总时间;
   - docs/implementation/runs/startup_timing_<stamp>.json (可用 --out 覆盖).
 """
 
@@ -41,6 +42,7 @@ from flexible_factory.artifacts import store as sa  # noqa: E402
 from flexible_factory.persistence.db import CatalogDatabase  # noqa: E402
 from flexible_factory.persistence.runs import RunRecorder  # noqa: E402
 from flexible_factory.simulation import config as cfg  # noqa: E402
+from flexible_factory.simulation import contract  # noqa: E402
 from flexible_factory.simulation.component_builder import (  # noqa: E402
     connect, probe_conveyor_drive, start_stepping, stop_simulation)
 
@@ -63,6 +65,80 @@ class Timings:
             yield
         finally:
             self.add(stage, time.perf_counter() - t0, note)
+
+
+def _instrument_validation(timings: Timings) -> None:
+    """拆分 artifact_load / prepare_start 内部的 adopt 与校验子阶段."""
+    from flexible_factory.application import lifecycle as lifecycle_mod
+    from flexible_factory.artifacts import store as store_mod
+    from flexible_factory.simulation import contract as contract_mod
+    from flexible_factory.simulation import scene_base as scene_base_mod
+
+    adopt = lifecycle_mod.adopt_stage4_scene
+
+    def timed_adopt(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return adopt(*args, **kwargs)
+        finally:
+            timings.add("profile.adopt_stage4_scene",
+                        time.perf_counter() - t0,
+                        "句柄解析; load 或 --no-load 的 _ensure_scene 内")
+
+    lifecycle_mod.adopt_stage4_scene = timed_adopt
+
+    ensure = lifecycle_mod.LifecycleManager._ensure_scene
+
+    def timed_ensure(self):
+        t0 = time.perf_counter()
+        try:
+            return ensure(self)
+        finally:
+            timings.add("profile.ensure_scene",
+                        time.perf_counter() - t0,
+                        "prepare_start 内的场景恢复/句柄解析")
+
+    lifecycle_mod.LifecycleManager._ensure_scene = timed_ensure
+
+    context = lifecycle_mod.build_validation_context
+
+    def timed_context(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return context(*args, **kwargs)
+        finally:
+            timings.add("profile.build_validation_context",
+                        time.perf_counter() - t0,
+                        "全场景索引 + 一次 scene.verify()")
+
+    lifecycle_mod.build_validation_context = timed_context
+    scene_base_mod.build_validation_context = timed_context
+
+    validate_artifact = store_mod.validate_artifact
+
+    def timed_validate_artifact(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return validate_artifact(*args, **kwargs)
+        finally:
+            timings.add("profile.validate_artifact",
+                        time.perf_counter() - t0,
+                        "文件/环境/场景对象校验")
+
+    store_mod.validate_artifact = timed_validate_artifact
+
+    validate_contract = contract_mod.validate_contract
+
+    def timed_validate_contract(*args, **kwargs):
+        t0 = time.perf_counter()
+        try:
+            return validate_contract(*args, **kwargs)
+        finally:
+            timings.add("profile.validate_contract",
+                        time.perf_counter() - t0,
+                        "extra.v1/版本/拓扑/单元契约校验")
+
+    contract_mod.validate_contract = timed_validate_contract
 
 
 def _instrument_build(timings: Timings) -> None:
@@ -154,16 +230,18 @@ def _print_table(rows: list[dict], startup_total: float,
 
     print("\n" + "=" * 78)
     print("启动阶段计时 (进程开始 → 仿真刚刚启动)")
+    print("子项 build.* / profile.* 与主阶段重叠; 百分比不可相加, "
+          "以 startup_total_wall 为准")
     print("=" * 78)
     for row in rows:
         print(line(row, startup_total))
     measured = sum(row["seconds"] for row in rows
-                   if not row["stage"].startswith("build."))
+                   if not row["stage"].startswith(("build.", "profile.")))
     print("-" * 78)
-    print(f"{'measured_stages_total':<{width}}  {measured:>9.3f}s"
-          f"  (不含 build.* 重叠子项)")
+    print(f"{'non_overlapping_stages_total':<{width}}  {measured:>9.3f}s"
+          f"  (不含 build.* / profile.* 重叠子项)")
     print(f"{'startup_total_wall':<{width}}  {startup_total:>9.3f}s"
-          f"  (含未计时间隙)")
+          f"  (含未计时间隙; 真实总时间)")
     if cleanup_rows:
         print("-" * 78)
         print("清理阶段 (不计入启动总计)")
@@ -222,6 +300,7 @@ def main(argv=None) -> int:
     lock_acquired = False
     startup_total = 0.0
 
+    _instrument_validation(timings)
     _instrument_build(timings)
 
     try:
@@ -238,6 +317,8 @@ def main(argv=None) -> int:
 
         with timings.time("zmq_connect", "RemoteAPIClient + sim/simIK"):
             _, sim, simIK = connect(args.host, args.port)
+        result["simulator"] = sa.simulator_info(sim)
+        result["config_digest"] = contract.config_digest()
 
         with timings.time("lifecycle_init", "会话状态/锁/工件仓库"):
             manager = LifecycleManager(
@@ -258,6 +339,7 @@ def main(argv=None) -> int:
         run_id = prepared["run_id"]
         result["run_id"] = run_id
         result["artifact_id"] = manager.session.artifact_id
+        result["manifest_digest"] = manager.session.manifest_digest
 
         if args.run_records == "on":
             with timings.time("run_record_init", "数据库初始化 + RUNNING 行"):

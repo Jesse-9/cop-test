@@ -198,11 +198,11 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 
 | 文件族 | 现行语义 |
 |---|---|
-| `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环；`scene_base` 提供只读校验上下文 |
+| `config_base` / `layout_base` / `scene_base` / `unit_controller_base` | 基础层：A/B 单站闭环；`scene_base` 提供只读校验上下文和 adopt alias 索引缓存 |
 | `config_motion` / `motion/*` / `unit_controller_motion` | 运动层：碰撞、规划、轨迹、安全、吸附；碰撞集合构建含只读发现缓存 |
 | `config_dual` / `layout_dual` / `scene_dual` | 双站层：`L2_MIRROR` 双工位 |
-| `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举；`DiscoveryCache` 只在一次停止态构建内复用发现结果 |
-| `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW`（`runtime.py` 同时含 Stage3 builder） |
+| `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举；`DiscoveryCache` 只在一次停止态构建内复用发现结果；影子根快速销毁 |
+| `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW`（`runtime.py` 同时含 Stage3 builder；v1 builder 支持订单工位子集） |
 
 `unit_controller_dual.py`、`runtime_dual.py` 和 `motion/path_planning.py`
 只做旧导入路径 re-export，不是独立实现；详细清单见

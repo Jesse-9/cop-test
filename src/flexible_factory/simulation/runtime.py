@@ -59,9 +59,28 @@ class Stage3RuntimeBuildError(RuntimeError):
     code = "STAGE3_RUNTIME"
 
 
+def normalize_unit_ids(unit_ids=None) -> tuple[str, ...]:
+    """规范化 v1 工位子集; None 表示全部 A–E.
+
+    子集只用于订单运行, 不改变场景工件或配置摘要. 空集合和未知工位
+    直接拒绝, 避免静默构建零台臂。
+    """
+    if unit_ids is None:
+        return tuple(cfg.UNIT_IDS)
+    values = tuple(str(item) for item in unit_ids)
+    if not values:
+        raise ValueError("unit_ids 不能为空; 至少构建一台臂")
+    unknown = [item for item in values if item not in cfg.UNIT_IDS]
+    if unknown:
+        raise ValueError(
+            f"未知工位 {unknown}; 允许 {list(cfg.UNIT_IDS)}")
+    wanted = set(values)
+    return tuple(unit_id for unit_id in cfg.UNIT_IDS if unit_id in wanted)
+
+
 @dataclass
 class Stage4Runtime(Stage3Runtime):
-    """五台臂的会话资源集合 (字段语义与阶段三一致)."""
+    """指定工位的会话资源集合 (字段语义与阶段三一致)."""
 
     def as_dict(self) -> dict:
         return {
@@ -215,8 +234,11 @@ def _unit_obstacles(sim, scene: Stage4Scene, unit_id: str,
 
 
 def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
-                     logger=None) -> Stage4Runtime:
-    """构建五台影子臂/碰撞集合/规划器/锁存; 仿真必须处于停止态."""
+                     logger=None, unit_ids=None) -> Stage4Runtime:
+    """构建指定工位的影子臂/碰撞集合/规划器/锁存; 仿真必须处于停止态.
+
+    ``unit_ids=None`` 构建全部 A–E; 订单运行可传入候选工位子集。
+    """
     try:
         state = int(sim.getSimulationState())
     except Exception as exc:
@@ -225,13 +247,14 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
         raise RuntimeBuildError(
             f"阶段四运行时必须在仿真停止态构建 (state={state})")
 
+    unit_ids = normalize_unit_ids(unit_ids)
     station_aliases = tuple(
         unit.aliases["station"] for unit in scene.units.values()
         if unit.spec.has_station)
     arms: dict[str, Stage3ArmRuntime] = {}
     semantics: dict = {}
     discovery = DiscoveryCache()
-    for unit_id in cfg.UNIT_IDS:
+    for unit_id in unit_ids:
         if logger:
             logger.info("[V1] 构建 %s 影子臂/碰撞集合 ...", unit_id)
         unit = scene.unit(unit_id)
@@ -271,8 +294,9 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
     runtime = Stage4Runtime(
         sim=sim, scene=scene, arms=arms, semantics=semantics,
         startup={
-            "units": list(cfg.UNIT_IDS),
-            "shadow_aliases": cfg.SHADOW_ALIASES,
+            "units": list(unit_ids),
+            "shadow_aliases": {uid: cfg.SHADOW_ALIASES[uid]
+                               for uid in unit_ids},
             "session_resource_policy": "not_persisted",
             "inter_arm_policy": "all_other_units_in_workcell",
             "adjacency_zones": cfg.ARM_ADJACENCY_ZONES,
@@ -283,6 +307,6 @@ def build_v1_runtime(sim, scene: Stage4Scene, ik_by_unit: dict,
     if logger:
         logger.info(
             "[V1] 运行时构建完成: units=%s, cup_r=%.6f, "
-            "adjacency=%s", list(cfg.UNIT_IDS), arms["A"].cup_radius,
+            "adjacency=%s", list(unit_ids), arms[unit_ids[0]].cup_radius,
             cfg.ARM_ADJACENCY_ZONES)
     return runtime

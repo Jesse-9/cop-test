@@ -45,7 +45,7 @@ related:
 
 | 模块 | 主要职责 | 备注 |
 |---|---|---|
-| `simulation/runtime.py` | `build_stage3_runtime()`（双站双臂）与 `build_v1_runtime()`（五岛五臂） | 应用层唯一运行时构建入口；两个 builder 和错误类型分开保留 |
+| `simulation/runtime.py` | `build_stage3_runtime()`（双站双臂）与 `build_v1_runtime()`（五岛五臂；`unit_ids` 支持订单子集） | 应用层唯一运行时构建入口；两个 builder 和错误类型分开保留 |
 | `simulation/scene.py` | v1 `Stage4Scene` / `Stage4Unit` 场景解析与契约断言 | `application/coordinator.py`、`artifacts/migration.py` 使用 |
 | `simulation/layout.py` | v1 `L5_UFLOW` 布局、物流线与 `UnitView4` | `application/*`、`execution/arm.py` 使用 |
 | `simulation/unit_controller.py` | `Stage3UnitController` 与 `Stage4UnitController` | UFLOW 执行适配器通过本模块使用控制器类 |
@@ -73,7 +73,7 @@ related:
 | `motion/branch.py` / `collisions.py` / `contact.py` | 腕部分支、碰撞查询与集合构建（含只读发现缓存）、接触几何 | 运动层安全判据 |
 | `motion/conveyor_safety.py` | 停带监视、受限补偿、物料稳定 | 控制器不得复制测量算法 |
 | `motion/diagnostics.py` / `metrics.py` / `trajectory.py` | 计划诊断、指标、轨迹执行 | 证据与执行统计 |
-| `motion/safety.py` / `shadow.py` / `suction.py` | 安全锁存、影子探针、吸附 | 会话资源/执行期检查 |
+| `motion/safety.py` / `shadow.py` / `suction.py` | 安全锁存、影子探针/快速销毁、吸附 | 会话资源/执行期检查 |
 
 ### 2.3 阶段基础复用
 
@@ -82,7 +82,7 @@ related:
 | `config_base.py` / `config_motion.py` | 基础/运动层 | v1 常量和容差来源 |
 | `config_dual.py` | 双站层 | Stage3 配置与 v1 共享的会话资源前缀 |
 | `layout_base.py` / `layout_dual.py` | 基础/双站层 | v1 布局派生与双站视图 |
-| `scene_base.py` / `scene_dual.py` | 基础/双站层 | 场景建立原语、Stage3 场景/单元类型、只读校验上下文 (`ValidationContext`) |
+| `scene_base.py` / `scene_dual.py` | 基础/双站层 | 场景建立原语、Stage3 场景/单元类型、只读校验上下文 (`ValidationContext`)；`adopt_stage4_scene` 缓存 alias 索引 |
 | `unit_controller_base.py` / `unit_controller_motion.py` | 基础/运动层 | v1 控制器继承链 |
 | `suction_base.py` / `pioneer.py` | 基础层 | 吸盘与差速车基础行为，仍被 v1 组件使用 |
 

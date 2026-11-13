@@ -638,7 +638,8 @@ def _compact_result(summary: Optional[dict], status: str,
         return {"status": status, "error": error} if error else None
     keys = ("scenario", "fault", "sim_time", "aborted", "frozen",
             "stop_reason", "order_status", "batch", "metrics",
-            "failure_summary", "acceptance")
+            "active_unit_ids", "runtime_destroy", "failure_summary",
+            "acceptance")
     compact = {key: summary[key] for key in keys if key in summary}
     compact["status"] = status
     if error:

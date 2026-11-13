@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from flexible_factory.simulation import config as cfg
 from flexible_factory.simulation import config_motion as movecfg
 from flexible_factory.simulation import runtime, runtime_common, runtime_dual
 from flexible_factory.simulation.motion.shadow import ShadowProbe
@@ -313,3 +314,90 @@ def test_verify_fk_builds_real_index_once():
 
     assert report["ok"], report["links"]
     assert sim.tree_calls == 1
+
+
+def test_normalize_unit_ids_defaults_and_subset():
+    assert runtime.normalize_unit_ids(None) == cfg.UNIT_IDS
+    assert runtime.normalize_unit_ids(["C", "A", "C"]) == ("A", "C")
+    with pytest.raises(ValueError):
+        runtime.normalize_unit_ids([])
+    with pytest.raises(ValueError):
+        runtime.normalize_unit_ids(["X"])
+
+
+class _SubsetSim:
+    simulation_stopped = 0
+
+    def getSimulationState(self):
+        return 0
+
+
+class _SubsetScene:
+    def __init__(self):
+        self.units = {
+            uid: SimpleNamespace(
+                spec=SimpleNamespace(has_station=True,
+                                     arm_base=(0.0, 0.0, 0.0)),
+                aliases={"station": f"Island_{uid}_Station"},
+                robot_root=100 + ord(uid),
+                suction_root=200 + ord(uid),
+                island=300 + ord(uid),
+            )
+            for uid in cfg.UNIT_IDS
+        }
+
+    def unit(self, unit_id):
+        return self.units[unit_id]
+
+
+def test_build_v1_runtime_builds_only_requested_units(monkeypatch):
+    built = []
+
+    def fake_obstacles(sim, scene, unit_id, discovery):
+        return [], {}
+
+    def fake_build(sim, **kwargs):
+        unit_id = kwargs["view"].unit_id
+        built.append(unit_id)
+        return SimpleNamespace(
+            collisions=SimpleNamespace(
+                specs=[], geometry=SimpleNamespace(workcell=[])),
+            cup_radius=0.02,
+            destroy=lambda: None), None
+
+    monkeypatch.setattr(runtime, "_unit_obstacles", fake_obstacles)
+    monkeypatch.setattr(runtime, "build_arm_runtime", fake_build)
+
+    result = runtime.build_v1_runtime(
+        _SubsetSim(), _SubsetScene(),
+        ik_by_unit={uid: object() for uid in "ACE"},
+        unit_ids=["E", "A", "C"])
+
+    assert built == ["A", "C", "E"]
+    assert list(result.arms) == ["A", "C", "E"]
+    assert result.startup["units"] == ["A", "C", "E"]
+
+
+class _DestroySim:
+    def __init__(self):
+        self.removed = []
+
+    def removeObjects(self, handles):
+        self.removed.append(list(handles))
+
+    def getObjectsInTree(self, *args):
+        raise AssertionError("shadow fast destroy must not enumerate")
+
+
+def test_shadow_destroy_removes_roots_without_full_scan():
+    sim = _DestroySim()
+    shadow = SimpleNamespace(
+        root=1, pad_root=2, tcp=3, load=4,
+        alias_names=["Shadow_UR5_01", "Shadow_Pad_01",
+                     "Shadow_TCP_01", "Shadow_Load_01"])
+    probe = ShadowProbe(sim, shadow)
+
+    removed = probe.destroy()
+
+    assert sim.removed == [[1, 2, 3, 4]]
+    assert removed == [1, 2, 3, 4]

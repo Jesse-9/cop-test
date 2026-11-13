@@ -159,3 +159,28 @@ def test_validation_context_records_scene_error():
     assert not result["ok"]
     assert any(item["name"] == "scene_contract" and not item["ok"]
                for item in result["checks"])
+
+
+class _NoEnumSim:
+    def getObjects(self, index, object_type):
+        raise AssertionError("cached context must not enumerate the scene")
+
+
+class _CachedScene:
+    _validation_objects = (10,)
+    _validation_alias_index = {"Floor": [10]}
+
+    def verify(self):
+        return {"ok": True, "checks": [], "differences": []}
+
+
+def test_validation_context_reuses_cached_scene_index():
+    scene = _CachedScene()
+    context = scene_base.build_validation_context(_NoEnumSim(), scene)
+
+    assert context.objects == (10,)
+    assert context.alias_index == {"Floor": [10]}
+
+    scene_base.clear_scene_index(scene)
+    assert scene._validation_objects is None
+    assert scene._validation_alias_index is None

@@ -241,7 +241,7 @@ class Stage3Runtime:
         try:
             return self.arms[str(unit_id)]
         except KeyError as exc:
-            raise self.build_error(f"未知工位运行时: {unit_id!r}") from exc
+            raise self.build_error(f"工位运行时未构建: {unit_id!r}") from exc
 
     def update_materials(self, manager, targets: dict,
                          carrying: Optional[dict] = None) -> None:

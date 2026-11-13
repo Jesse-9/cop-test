@@ -30,7 +30,8 @@ from ..simulation import config as cfg
 from ..simulation import contract
 from ..simulation.layout import layout_from_dict
 from ..simulation.scene import adopt_stage4_scene
-from ..simulation.scene_base import build_validation_context
+from ..simulation.scene_base import (build_validation_context,
+                                     clear_scene_index)
 from ..util import (append_jsonl, jsonable, read_json,
                     repo_root, utc_now, write_json_atomic)
 
@@ -950,6 +951,8 @@ class LifecycleManager:
         self.run_lock.release()
         self.has_run_since_build = True
         self.session.has_run_since_build = True
+        if self.scene is not None:
+            clear_scene_index(self.scene)
         if error is not None:
             self.session.last_error = error
         self.session_store.save(self.session)

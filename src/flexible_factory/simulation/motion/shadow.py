@@ -394,7 +394,21 @@ class ShadowProbe:
     # ── 清理 ────────────────────────────────────────────────
 
     def destroy(self, names=None) -> list[int]:
-        """删除本影子臂的会话资源; 缺省按本臂别名精确清理."""
+        """删除本影子臂的会话资源; 缺省按本臂别名精确清理.
+
+        正常路径直接删除影子根和吸盘根 (TCP/载荷是吸盘子对象), 避免像
+        ``_remove_aliases`` 那样反复全场景枚举; 删除失败才回退到按别名清理.
+        """
+        if names is None:
+            handles = [int(self.shadow.root), int(self.shadow.pad_root),
+                       int(self.shadow.tcp), int(self.shadow.load)]
+            roots = [h for h in handles if h >= 0]
+            if roots:
+                try:
+                    self.sim.removeObjects(roots)
+                    return roots
+                except Exception:
+                    pass
         return _remove_aliases(self.sim,
                                names=(self.shadow.alias_names if names is None
                                       else names))

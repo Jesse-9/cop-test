@@ -15,8 +15,18 @@
   真实臂索引。实测（正常 load 路径）`prepare_start` 25 s → 12.1–12.2 s、
   五台影子运行时 47.9 s → 20.3–21.4 s、加载完成 → 仿真启动
   74.65 s → 33.7–35.4 s。
-  pytest 607 passed / 7 skipped；集合成员核对和 `full_flow` 验收仍未执行，见
+  pytest 615 passed / 7 skipped；集合成员核对和 `full_flow` 验收仍未执行，见
   [实施报告](docs/implementation/reports/simulation/v1-startup-performance-optimization.md)。
+- 启动性能后续项：复用 `adopt_stage4_scene` 的 alias 索引、影子臂根快速
+  删除、计时工具 `profile.*` 子阶段；P3 订单子集臂的 builder/runner 代码
+  落地（`unit_ids`、候选工位并集、`active_unit_ids` 证据）。干净
+  `full_flow` 功能验收通过（`all_ok=true`，1 FINAL、343.85 s、0 failure）；
+  首次尝试因残留进程重载场景中止。快速删除路径的 `Shadow_*` 残留已修复，
+  启动计时复测 `leftover=[]`、清理 4.01 s。4 臂子集订单 `order-subset-4arm`
+  重试通过：A/C/D/E（B 未构建）、1 FINAL、sim 163.4 s、3268 步、
+  `leftover=[]`；首次尝试在 E 释放校正处失败，为重试通过的间歇性问题。
+  计时口径修正：`build.*`/`profile.*` 是重叠子项，不能相加；最新
+  `startup_total_wall` 为 79.97–88.61 s，旧打印的 130–210 s 是重复求和。
 - 修复订单工作台列表页在真实 `GET /api/orders` 摘要响应上崩溃的问题：
   列表接口返回 `OrderSummary`（不含 `versions`），页面改为从版本详情读取
   `dag_digest`，不再假设列表包含版本数组。补充订单列表 Playwright 旅程，

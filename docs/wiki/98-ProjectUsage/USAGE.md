@@ -158,6 +158,8 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
   创建新版本。
 - `api serve --host/--port` 只绑定本地 HTTP API；仿真 worker 通过
   `--sim-host/--sim-port` 连接 ZMQ（默认 `localhost:23000`），两者不要混用。
+- 订单运行按 DAG 节点的臂设备候选并集构建运行时；未用到的工位不创建
+  影子臂/碰撞集合，`full_flow` 仍构建五台。运行报告记录 `active_unit_ids`。
 - 阶段 6 已验证：手工订单和 planner 订单各生成 1 个 `FINAL`，父 UID 对应
   本次两个输入；NODE 前置拒绝只阻断依赖后继；真实安全锁存使运行 `ABORTED`
   并保留锁存。证据和未覆盖边界见阶段 6 实施报告；真实连接断开、Arm/AGV
@@ -395,6 +397,11 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
   `build_components`、`snapshot_write`、`simulation_start`；`build_components`
   另给出 `build.base_components`、`build.ik_initialize_total`、
   `build.shadow_runtime`、`build.suction_controllers` 子项（与主项重叠）。
+  `profile.*` 子项用于拆分加载/校验内部耗时：`profile.adopt_stage4_scene`、
+  `profile.ensure_scene`、`profile.build_validation_context`、
+  `profile.validate_artifact`、`profile.validate_contract`，它们可能包含在
+  `artifact_load` 或 `prepare_start_validation` 内；**这些子项和 `build.*`
+  都是重叠计时，不能相加，真实启动总时间只看 `startup_total_wall`。**
   `--probe` 时追加 `post_start.conveyor_drive_probe`。
 - 结果输出到 stdout 表格和
   `docs/implementation/runs/startup_timing_<stamp>.json`。停仿真、销毁影子臂、

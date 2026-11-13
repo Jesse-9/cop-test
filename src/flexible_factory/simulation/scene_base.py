@@ -126,8 +126,17 @@ def build_validation_context(sim, scene=None) -> ValidationContext:
 
     ``scene.verify()`` 是只读契约检查, 但可能因句柄缺失等原因抛异常;
     这里捕获为 ``scene_error``, 保持与原先逐处 try/except 一致的报告语义.
+
+    如果场景由 ``adopt_stage4_scene`` 建立, 可复用其停止态 alias 索引,
+    避免在 ``prepare_start`` 中再次全场景枚举. 运行结束必须清除该缓存。
     """
-    objects = tuple(all_objects(sim))
+    objects = None
+    index = None
+    if scene is not None:
+        objects, index = cached_scene_index(scene)
+    if objects is None or index is None:
+        objects = tuple(all_objects(sim))
+        index = alias_index_from(sim, objects)
     report = None
     error = ""
     if scene is not None:
@@ -137,10 +146,26 @@ def build_validation_context(sim, scene=None) -> ValidationContext:
             error = f"{type(exc).__name__}: {exc}"
     return ValidationContext(
         objects=objects,
-        alias_index=alias_index_from(sim, objects),
+        alias_index=index,
         scene_report=report,
         scene_error=error,
     )
+
+
+def cached_scene_index(scene):
+    """返回 adopt 阶段缓存的 (objects, alias_index), 无缓存时返回 (None, None)."""
+    objects = getattr(scene, "_validation_objects", None)
+    index = getattr(scene, "_validation_alias_index", None)
+    if objects is None or index is None:
+        return None, None
+    return tuple(objects), index
+
+
+def clear_scene_index(scene) -> None:
+    """清除 adopt 阶段的只读索引缓存; 场景对象变更或运行结束后调用."""
+    for attr in ("_validation_objects", "_validation_alias_index"):
+        if hasattr(scene, attr):
+            setattr(scene, attr, None)
 
 
 def _resolve_indexed(index: dict[str, list[int]], alias: str,

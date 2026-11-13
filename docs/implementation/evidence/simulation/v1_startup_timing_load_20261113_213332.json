@@ -1,0 +1,264 @@
+{
+  "timestamp": "20261113_213332",
+  "host": "localhost",
+  "port": 23000,
+  "artifact": "current",
+  "no_load": false,
+  "scenario": "full_flow",
+  "batch_profile": "default",
+  "catalog_source": "code",
+  "run_records": "off",
+  "stages": [
+    {
+      "stage": "process_import",
+      "seconds": 2.4869,
+      "note": "解释器启动至项目模块导入完成"
+    },
+    {
+      "stage": "batch_resolve",
+      "seconds": 0.0,
+      "note": "运行前批次校验"
+    },
+    {
+      "stage": "logger_setup",
+      "seconds": 0.0005,
+      "note": "flexible_factory.log"
+    },
+    {
+      "stage": "zmq_connect",
+      "seconds": 0.3253,
+      "note": "RemoteAPIClient + sim/simIK"
+    },
+    {
+      "stage": "lifecycle_init",
+      "seconds": 0.0142,
+      "note": "会话状态/锁/工件仓库"
+    },
+    {
+      "stage": "profile.adopt_stage4_scene",
+      "seconds": 44.9048,
+      "note": "句柄解析; load 或 --no-load 的 _ensure_scene 内"
+    },
+    {
+      "stage": "artifact_load",
+      "seconds": 48.0865,
+      "note": "loadScene + 句柄解析"
+    },
+    {
+      "stage": "profile.ensure_scene",
+      "seconds": 0.0,
+      "note": "prepare_start 内的场景恢复/句柄解析"
+    },
+    {
+      "stage": "profile.ensure_scene",
+      "seconds": 0.0,
+      "note": "prepare_start 内的场景恢复/句柄解析"
+    },
+    {
+      "stage": "profile.build_validation_context",
+      "seconds": 6.0393,
+      "note": "全场景索引 + 一次 scene.verify()"
+    },
+    {
+      "stage": "profile.validate_artifact",
+      "seconds": 2.1667,
+      "note": "文件/环境/场景对象校验"
+    },
+    {
+      "stage": "profile.validate_contract",
+      "seconds": 0.1331,
+      "note": "extra.v1/版本/拓扑/单元契约校验"
+    },
+    {
+      "stage": "prepare_start_validation",
+      "seconds": 8.4746,
+      "note": "运行锁 + 启动点全量只读校验"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0103,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.base_components",
+      "seconds": 0.0123,
+      "note": "物料/传送带/AGV/A 臂基座组件"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0099,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0148,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.0117,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.ik_initialize_total",
+      "seconds": 0.1026,
+      "note": "A–E 五台合计; A 部分已含在 base_components 内"
+    },
+    {
+      "stage": "build.shadow_runtime",
+      "seconds": 19.5137,
+      "note": "五台影子臂/碰撞集合"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build.suction_controllers",
+      "seconds": 0.0,
+      "note": "五台吸盘控制器合计"
+    },
+    {
+      "stage": "build_components",
+      "seconds": 19.6675,
+      "note": "含 build.* 子项, 子项与主项重叠"
+    },
+    {
+      "stage": "snapshot_write",
+      "seconds": 0.5726,
+      "note": "v1_scene_snapshot_*.json"
+    },
+    {
+      "stage": "simulation_start",
+      "seconds": 0.3313,
+      "note": "setStepping+startSimulation"
+    }
+  ],
+  "simulator": {
+    "product_version": "4.10.0.0",
+    "version_major_minor": "4.10",
+    "engine_code": 0,
+    "engine": "bullet",
+    "simulation_step": 0.05
+  },
+  "config_digest": "e292c37f6d2a611763a9d76f508ccb219e16c089e3ce6e6e67f9c700495b6c7c",
+  "run_id": "run_20261113_213420_4627ab",
+  "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+  "manifest_digest": "ed4c86421ef872b74de47c6c70efb514f1631ea50e0acd48042c984ba15c88ff",
+  "sim_time_at_start": 0.0,
+  "sim_started_stamp": "2026-11-13T21:34:49.538",
+  "runtime_destroy": {
+    "arms": {
+      "A": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_01",
+          "Shadow_SuctionPad_01",
+          "Shadow_TCP_01",
+          "Shadow_Load_01"
+        ]
+      },
+      "B": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_02",
+          "Shadow_SuctionPad_02",
+          "Shadow_TCP_02",
+          "Shadow_Load_02"
+        ]
+      },
+      "C": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_03",
+          "Shadow_SuctionPad_03",
+          "Shadow_TCP_03",
+          "Shadow_Load_03"
+        ]
+      },
+      "D": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_04",
+          "Shadow_SuctionPad_04",
+          "Shadow_TCP_04",
+          "Shadow_Load_04"
+        ]
+      },
+      "E": {
+        "hazards_removed": 0,
+        "shadow_removed": 4,
+        "aliases": [
+          "Shadow_UR5_05",
+          "Shadow_SuctionPad_05",
+          "Shadow_TCP_05",
+          "Shadow_Load_05"
+        ]
+      }
+    },
+    "query_restore": {
+      "restored": 80,
+      "failed": []
+    },
+    "leftover": []
+  },
+  "lifecycle": {
+    "lifecycle_state": "SCENE_VALIDATED",
+    "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+    "scene_origin": "ARTIFACT",
+    "manifest_digest": "ed4c86421ef872b74de47c6c70efb514f1631ea50e0acd48042c984ba15c88ff",
+    "validated_at": "2026-11-13T21:34:28+08:00",
+    "run_id": null,
+    "pid": null,
+    "host": "localhost",
+    "port": 23000,
+    "last_error": null,
+    "background": false,
+    "sim_state": 0,
+    "allowed_actions": [
+      "build",
+      "save",
+      "load",
+      "validate",
+      "start"
+    ]
+  },
+  "startup_total_wall_s": 79.967,
+  "cleanup": [
+    {
+      "stage": "cleanup.stop_simulation",
+      "seconds": 1.037,
+      "note": ""
+    },
+    {
+      "stage": "cleanup.runtime_destroy",
+      "seconds": 3.5818,
+      "note": "影子臂/碰撞集合"
+    },
+    {
+      "stage": "cleanup.lifecycle_finish",
+      "seconds": 0.0897,
+      "note": ""
+    }
+  ]
+}
