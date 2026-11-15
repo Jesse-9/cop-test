@@ -135,6 +135,7 @@ class Stage4Scene(Stage3Scene):
     stage4_layout: Optional[Stage4Layout] = None
     units: dict[str, Stage4Unit] = field(default_factory=dict)
     line_meta: dict[str, dict] = field(default_factory=dict)
+    scene_profile: str = "full_flow"
 
     # ── 访问 ────────────────────────────────────────────────
 
@@ -415,6 +416,19 @@ class Stage4Scene(Stage3Scene):
                   f"size={size}")
         except Exception as exc:
             check("stage4_floor_unchanged", False, str(exc))
+
+        # assembly_mvp 扩展: 只在 profile 标记存在时校验, v1 工件不受影响.
+        from .assembly_mvp_scene import PROFILE as MVP_PROFILE
+        from .assembly_mvp_scene import verify_extension
+        extension_checks: list[dict] = []
+        if self.scene_profile == MVP_PROFILE:
+            extension_checks = verify_extension(self.sim, self)
+            checks.extend(extension_checks)
+            self.build_report["assembly_mvp"] = {
+                "profile": MVP_PROFILE,
+                "ok": all(item["ok"] for item in extension_checks),
+                "checks": extension_checks,
+            }
 
         self.build_report["stage4"] = {
             "layout": layout.as_dict(),
@@ -935,4 +949,11 @@ def adopt_stage4_scene(sim, layout: Optional[Stage4Layout] = None
         line_id: _adopt_line_meta(sim, layout.lines[line_id])
         for line_id in cfg.LINE_IDS
     }
+    # assembly_mvp 工件: 把扩展 alias 纳入句柄索引/describe/manifest 往返.
+    from .assembly_mvp_scene import (FULL_FLOW_PROFILE,
+                                     PROFILE as MVP_PROFILE,
+                                     bind_extension)
+    info = bind_extension(sim, scene, index=index)
+    scene.scene_profile = MVP_PROFILE if info is not None else \
+        FULL_FLOW_PROFILE
     return scene

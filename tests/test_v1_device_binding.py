@@ -48,7 +48,7 @@ def _catalog_with_extra_device(device: DeviceSpec) -> ProcessCatalog:
 def test_default_catalog_bindings_validate_cleanly():
     report = validate_bindings(default_catalog())
     assert report["ok"], report["errors"]
-    assert report["devices"] == 7           # 五臂 + AGV + 逻辑处理器
+    assert report["devices"] == 8           # 五臂 + AGV + 两个逻辑处理器
     assert report["supports"] == 8          # 四条线 + 交接台 + 两缓冲 + 输出
     assert all(row["ok"] for row in report["checks"])
 

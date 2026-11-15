@@ -31,8 +31,9 @@
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) |
-| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) |
+| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) |
+| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) |
+| 参考 | [assembly_mvp 订单 fixture 与复现](reference/production-flow/assembly-mvp/README.md) |
 | 证据 | [生产流程验收证据目录](evidence/README.md) |
 
 ### 订单编排
@@ -53,7 +54,7 @@
 |---|---|
 | 方案 | [资源目录数据库化与知识图谱](plans/data-platform/resource-catalog-database-and-knowledge-graph.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
 | 报告 | [目录持久化](reports/data-platform/v1-catalog-persistence.md) · [运行记录持久化](reports/data-platform/v1-run-record-persistence.md) · [知识图谱导入](reports/data-platform/v1-knowledge-graph-import.md) |
-| 参考 | [静态目录字段盘点](reference/data-platform/static-catalog-field-inventory.md) · [数据库查看指南](reference/data-platform/database-inspection-guide.md) |
+| 参考 | [静态目录字段盘点](reference/data-platform/static-catalog-field-inventory.md) · [数据库查看指南](reference/data-platform/database-inspection-guide.md) · [Neo4j 图数据导出](reference/data-platform/neo4j-graph-export/README.md) |
 | 证据 | [数据平台验收证据目录](evidence/README.md) |
 
 ### 仿真工程

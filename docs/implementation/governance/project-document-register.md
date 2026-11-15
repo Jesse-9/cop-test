@@ -5,7 +5,7 @@ tags:
   - 类别/项目管理
   - 类别/实施计划
 created: 2026-11-05
-updated: 2026-11-12
+updated: 2026-11-14
 status: published
 ---
 
@@ -58,6 +58,8 @@ status: published
 |---|---|---|
 | [资源目录数据库化与知识图谱](../plans/data-platform/resource-catalog-database-and-knowledge-graph.md) | [字段盘点](../reference/data-platform/static-catalog-field-inventory.md)、[目录持久化](../reports/data-platform/v1-catalog-persistence.md)、[运行记录](../reports/data-platform/v1-run-record-persistence.md)、[知识图谱导入](../reports/data-platform/v1-knowledge-graph-import.md) | 阶段 0–5 已有实施记录；阶段 6 部分实施 |
 | [混线生产灵活性扩展示范](../plans/production-flow/v1-mixed-production-flexibility-demo.md) | [有限批次配比实施报告](../reports/production-flow/v1-mixed-production-flexibility-demo.md) | WP1/WP2 已实施并实机验收；WP3/WP4 为条件包 |
+| Neo4j 图谱混线装配 MVP | [实施方案](../plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)、[实施报告](../reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)、[订单 fixture 与复现](../reference/production-flow/assembly-mvp/README.md) | WP0–WP3 已实施；两产品在同一实验场景交替实机通过；多订单并发与真实装配未实现 |
+| [Neo4j 图谱混线装配 MVP](../plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) | 尚无 | proposed；先搭建新场景工件，再以虚拟工位打通两类产品的订单 DAG 与混线物料谱系 |
 | [仿真与运动规划性能](../plans/simulation/simulation-motion-planning-performance.md) | 暂无 | proposed |
 | [v1 启动性能优化](../plans/simulation/v1-startup-performance-optimization.md) | [启动阶段计时工具](../../../tools/measure_startup_stages.py)、[实施报告](../reports/simulation/v1-startup-performance-optimization.md)、[计时证据](../evidence/simulation/)、[使用指南](../../wiki/98-ProjectUsage/USAGE.md) | partially-implemented；P1/P2 已实施并完成启动计时（prepare 12.1–12.2 s，alias 缓存后 8.5–9.6 s；shadow 20.3–21.4 s；最新 `startup_total_wall` 79.97–88.61 s）；pytest 615 passed / 7 skipped；full_flow 功能验收通过（1 FINAL/343.85 s），清理修复复测 leftover=[]；P3 4 臂子集订单通过（B 跳过，1 FINAL，leftover=[]）；P4 未实施 |
 | [仿真模块代码优化](../plans/simulation/simulation-code-optimization-plan.md) | [实施报告](../reports/simulation/v1-simulation-code-optimization.md)、[模块清单](../reference/simulation/simulation-module-inventory.md) | P1/P2、P3 5.1/5.3 与第 6 节已实施并离线验证；5.2 未实施 |

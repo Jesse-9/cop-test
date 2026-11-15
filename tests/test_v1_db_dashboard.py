@@ -66,11 +66,11 @@ def test_build_payload_reads_revision_run_and_process_catalog(tmp_path):
     assert payload["knowledge"]["available"] is True
     catalog = payload["catalog"]
     assert catalog["published"]["release_id"] == "dash_catalog"
-    assert len(catalog["operations"]) == 10
+    assert len(catalog["operations"]) == 12
     assert len(catalog["routes"]) == 3
     assert len(catalog["resources"]) == 21
-    assert len(catalog["devices"]) == 7
-    assert len(catalog["zones"]) == 9
+    assert len(catalog["devices"]) == 8
+    assert len(catalog["zones"]) == 17
     assert len(catalog["entries"]) == 3
     ops = {row["operation_id"]: row for row in catalog["operations"]}
     assert ops["kit_join"]["inputs"][0]["zone"] == "buffer_e_c"

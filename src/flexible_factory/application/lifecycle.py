@@ -172,6 +172,7 @@ class SessionState:
     has_run_since_build: bool = False
     background: bool = False
     built_layout: Optional[dict] = None
+    scene_profile: str = ""
     updated_at: str = ""
 
     def to_dict(self) -> dict:
@@ -189,6 +190,7 @@ class SessionState:
             "has_run_since_build": bool(self.has_run_since_build),
             "background": bool(self.background),
             "built_layout": self.built_layout,
+            "scene_profile": self.scene_profile,
             "updated_at": self.updated_at or utc_now(),
         }
 
@@ -213,6 +215,7 @@ class SessionState:
             has_run_since_build=bool(data.get("has_run_since_build")),
             background=bool(data.get("background")),
             built_layout=data.get("built_layout"),
+            scene_profile=str(data.get("scene_profile") or ""),
             updated_at=data.get("updated_at", ""),
         )
 
@@ -476,6 +479,19 @@ class LifecycleManager:
         except Exception:
             return None
 
+    def _profile_of(self, artifact, scene=None) -> str:
+        """优先读 manifest 声明的 profile; 旧工件回落到场景探测."""
+        from ..domain import assembly_mvp as mvp_domain
+        extra = {}
+        if artifact is not None:
+            extra = ((artifact.manifest.get("extra") or {}).get("v1") or {})
+        profile = str(extra.get("scene_profile") or "")
+        if profile in (mvp_domain.SCENE_PROFILE_FULL_FLOW,
+                       mvp_domain.PROFILE):
+            return profile
+        from ..simulation import assembly_mvp_scene as mvp_scene
+        return mvp_scene.profile_of(self.sim, scene)
+
     def _ensure_stopped(self, action: str) -> None:
         state = self._sim_state()
         stopped = getattr(self.sim, "simulation_stopped", 0)
@@ -551,12 +567,20 @@ class LifecycleManager:
     # ── 动作: build ─────────────────────────────────────────
 
     def build(self, *, parent_scene: Path, parent_layout: dict,
-              layout=None) -> dict:
+              layout=None, profile: str = "full_flow") -> dict:
         """从父场景 (历史 stage3 工件) 增加 C/D/E 与物流线, 生成 v1 场景.
 
         v1 默认用户流程是加载已验收 v1 工件; build 仅用于显式重建/迁移.
-        父场景只读, 不修改父工件.
+        父场景只读, 不修改父工件. ``profile=assembly_mvp`` 在 v1 五岛底图
+        上追加两个独立装配岛; 其它值保持原 v1 构建/校验路径.
         """
+        from ..domain import assembly_mvp as mvp_domain
+        from ..simulation import assembly_mvp_scene as mvp_scene
+
+        profile = str(profile or mvp_domain.SCENE_PROFILE_FULL_FLOW)
+        if profile not in (mvp_domain.SCENE_PROFILE_FULL_FLOW,
+                           mvp_domain.PROFILE):
+            raise LifecycleError(f"未知场景 profile: {profile!r}")
         self.refresh()
         self._guard("build")
         self._ensure_stopped("build")
@@ -580,6 +604,8 @@ class LifecycleManager:
                 target_layout = default_layout()
             scene = build_stage4_scene(self.sim, base_scene,
                                        layout=target_layout)
+            if profile == mvp_domain.PROFILE:
+                mvp_scene.build_extension(self.sim, scene)
             report = scene.verify()
             if not report.get("ok"):
                 raise ValidationFailedError("v1 构建契约未通过",
@@ -600,6 +626,7 @@ class LifecycleManager:
         self.session.run_id = None
         self.session.last_error = None
         self.session.built_layout = target_layout.as_dict()
+        self.session.scene_profile = profile
         self.sm.transition("build")
         self._apply(LifecycleState.SCENE_VALIDATED, origin="BUILT",
                     event="built", layout=scene.layout.name,
@@ -661,6 +688,7 @@ class LifecycleManager:
         self.session.run_id = None
         self.session.last_error = None
         self.session.built_layout = None
+        self.session.scene_profile = self._profile_of(artifact, scene)
         self.sm.transition("load")
         self._apply(LifecycleState.SCENE_LOADED, origin="ARTIFACT",
                     event="loaded", path=str(artifact.scene_path))
@@ -765,9 +793,15 @@ class LifecycleManager:
 
         draft = self.store.create("v1", self.scene.layout.name)
         config_summary = contract.config_summary()
+        from ..domain import assembly_mvp as mvp_domain
+        from ..simulation import assembly_mvp_scene as mvp_scene
+        profile = mvp_scene.profile_of(self.sim, self.scene)
+        if profile not in (mvp_domain.SCENE_PROFILE_FULL_FLOW,
+                           mvp_domain.PROFILE):
+            raise LifecycleError(f"未知场景 profile: {profile!r}")
         extra = contract.build_contract_extra(
             sim=self.sim, scene=self.scene,
-            provenance=provenance or {}, notes=note)
+            provenance=provenance or {}, notes=note, profile=profile)
         manifest = sa.build_manifest(
             self.sim, self.scene, artifact_id=draft.artifact_id,
             config_summary=config_summary,
@@ -869,6 +903,7 @@ class LifecycleManager:
         self.session.validated_at = result["validated_at"]
         self.session.last_error = None
         self.session.built_layout = None
+        self.session.scene_profile = profile
         self.sm.transition("save")
         self._apply(LifecycleState.SCENE_VALIDATED, origin="ARTIFACT",
                     event="saved", path=str(final_scene),
@@ -1021,6 +1056,7 @@ class LifecycleManager:
             "lifecycle_state": self.sm.state.value,
             "artifact_id": self.session.artifact_id,
             "scene_origin": self.session.scene_origin,
+            "scene_profile": self.session.scene_profile,
             "manifest_digest": self.session.manifest_digest,
             "validated_at": self.session.validated_at,
             "run_id": self.session.run_id,

@@ -17,7 +17,8 @@ from typing import Optional
 from .. import spec
 from .orders import (ORDER_CONTRACT_VERSION, OrderDiagnostic, OrderEdge,
                      OrderInput, OrderSpec)
-from .process_model import (COMPLETION_VERIFIERS, EXECUTOR_KINDS,
+from .process_model import (COMPLETION_VERIFIERS,
+                            DIRECT_INPUT_JOIN_HANDLERS, EXECUTOR_KINDS,
                             JOIN_HANDLERS, RUNTIME_JOIN_HANDLERS,
                             WORK_STEP_TEMPLATES, OperationTemplate,
                             ProcessCatalog, ProcessModelError)
@@ -373,7 +374,9 @@ class OrderValidator:
                     input_id=row.input_id, node_id=node_id,
                     port_id=port_id))
                 continue
-            if target.executor_kind == "logic":
+            if target.executor_kind == "logic" and \
+                    target.join_handler_id not in \
+                    DIRECT_INPUT_JOIN_HANDLERS:
                 result.diagnostics.append(OrderDiagnostic(
                     "ORDER_JOIN_PORT_INPUT",
                     f"逻辑合流节点 {node_id!r} 的端口 {port_id!r} "
@@ -491,6 +494,15 @@ class OrderValidator:
                         f"多前驱节点 {node.node_id!r} 只有已登记逻辑合流"
                         f"处理器才能执行", node_id=node.node_id))
             if target.executor_kind == "logic" \
+                    and target.join_handler_id in \
+                    DIRECT_INPUT_JOIN_HANDLERS:
+                if predecessors:
+                    result.diagnostics.append(OrderDiagnostic(
+                        "ORDER_JOIN_DIRECT_PREDECESSOR",
+                        f"直接来料合流 {node.node_id!r} 不能有前置工序; "
+                        f"实际 {list(predecessors)}",
+                        node_id=node.node_id))
+            elif target.executor_kind == "logic" \
                     and len(predecessors) != len(target.inputs):
                 result.diagnostics.append(OrderDiagnostic(
                     "ORDER_JOIN_ARITY",

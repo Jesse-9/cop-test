@@ -27,6 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from ..domain import assembly_mvp as mvp
 from ..domain import rules as domain_rules
 from ..domain.process_model import ProcessCatalog
 from . import config as cfg
@@ -193,10 +194,22 @@ def _logic_binding() -> DeviceBinding:
         zones=("buffer_e_c", "buffer_e_d", "output_e"))
 
 
+def _logic_mvp_binding() -> DeviceBinding:
+    """assembly_mvp 直接来料逻辑配对处理器: 无场景对象."""
+    return DeviceBinding(
+        device_id="logic_MVP",
+        kind="logic",
+        aliases=(),
+        alias_roles=(),
+        runtime_keys=_DEVICE_RUNTIME_KEYS["logic"],
+        resources=(),
+        zones=tuple(mvp.ZONES))
+
+
 def device_bindings() -> tuple[DeviceBinding, ...]:
     """全部设备的绑定; 每次返回新元组, 便于测试注入变体."""
     return (*(_arm_binding(unit_id) for unit_id in cfg.UNIT_IDS),
-            _agv_binding(), _logic_binding())
+            _agv_binding(), _logic_binding(), _logic_mvp_binding())
 
 
 def support_bindings() -> tuple[SupportBinding, ...]:

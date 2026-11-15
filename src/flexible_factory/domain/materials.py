@@ -16,8 +16,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence
 
+from . import assembly_mvp as mvp
 from . import rules as cfg
 
 
@@ -30,6 +31,20 @@ class ItemType(str, Enum):
     RAW_D = cfg.ITEM_TYPE_RAW_D
     PART_DE = cfg.ITEM_TYPE_PART_DE
     FINAL = cfg.ITEM_TYPE_FINAL
+    # assembly_mvp 有限扩展; 不并入 rules.ITEM_TYPES 的 v1 冻结契约.
+    COMPRESSOR = mvp.ITEM_TYPE_COMPRESSOR
+    BASEPLATE = mvp.ITEM_TYPE_BASEPLATE
+    COMPRESSOR_ASSY = mvp.ITEM_TYPE_COMPRESSOR_ASSY
+    FRONT_FLANGE = mvp.ITEM_TYPE_FRONT_FLANGE
+    REAR_FLANGE = mvp.ITEM_TYPE_REAR_FLANGE
+    FLANGE_ASSY = mvp.ITEM_TYPE_FLANGE_ASSY
+
+
+# 已交付产品类型: 物料账本统计 WIP 时排除, final_records() 默认返回.
+PRODUCT_ITEM_TYPES = frozenset({
+    ItemType.FINAL,
+    *(ItemType(value) for value in mvp.PRODUCT_ITEM_TYPES),
+})
 
 
 class RecordState(str, Enum):
@@ -115,6 +130,9 @@ class JoinResult:
     semi_uid: Optional[int] = None
     part_uid: Optional[int] = None
     pair_key: str = ""
+    # 订单 join 的通用视图: 按输入端口顺序排列的父 UID 与成品类型.
+    parent_uids: tuple[int, ...] = ()
+    output_type: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -122,6 +140,8 @@ class JoinResult:
             "final_uid": self.final_uid,
             "semi_uid": self.semi_uid, "part_uid": self.part_uid,
             "pair_key": self.pair_key,
+            "parent_uids": list(self.parent_uids),
+            "output_type": self.output_type,
         }
 
 
@@ -189,9 +209,14 @@ class MaterialRegistry:
         return [rec for rec in self._by_uid.values()
                 if rec.state is RecordState.CONSUMED]
 
-    def final_records(self) -> list[MaterialRecord4]:
+    def final_records(
+            self, item_types: Optional[Iterable[ItemType]] = None
+            ) -> list[MaterialRecord4]:
+        """已交付产品记录; 默认覆盖 FINAL 与 MVP 成品类型."""
+        wanted = (PRODUCT_ITEM_TYPES if item_types is None
+                  else {ItemType(value) for value in item_types})
         return [rec for rec in self._by_uid.values()
-                if rec.item_type is ItemType.FINAL
+                if rec.item_type in wanted
                 and rec.state is not RecordState.CONSUMED]
 
     # ── 区域容量 ────────────────────────────────────────────
@@ -299,7 +324,11 @@ class MaterialRegistry:
                          final_alias: str,
                          final_handle: Optional[int] = None,
                          final_zone: str = "output_e") -> JoinResult:
-        """按显式父 UID 原子配对; 订单 DAG 使用该入口绑定编译后的物料."""
+        """E 岛 legacy 显式配对入口; 行为与常量保持 v1 契约不变.
+
+        订单模式改用 :meth:`commit_pair`, 由模板端口决定输入/输出类型;
+        本入口只保留给 v1 ``kit_join``/``e_material_pair``.
+        """
         semi = self._by_uid.get(int(semi_uid))
         part = self._by_uid.get(int(part_uid))
         if semi is None or part is None:
@@ -324,40 +353,128 @@ class MaterialRegistry:
                 False, f"ZONE_MISMATCH: {semi.zone}+{part.zone}",
                 semi_uid=semi.uid, part_uid=part.uid,
                 pair_key=f"{semi.uid}+{part.uid}")
-        pair_key = f"{semi.uid}+{part.uid}"
+        return self.commit_pair(
+            output_uid=final_uid, parent_uids=(semi.uid, part.uid),
+            sim_time=sim_time, output_alias=final_alias,
+            input_ports=((cfg.JOIN_BUFFER_OF[ItemType.SEMI_CE],
+                          ItemType.SEMI_CE),
+                         (cfg.JOIN_BUFFER_OF[ItemType.PART_DE],
+                          ItemType.PART_DE)),
+            output_type=ItemType.FINAL, output_zone=final_zone,
+            output_handle=final_handle, output_source="E",
+            task_id="join_e")
+
+    def commit_pair(
+            self, *, output_uid: int, parent_uids: Sequence[int],
+            sim_time: float, output_alias: str,
+            input_ports: Sequence[tuple[str, ItemType]],
+            output_type: ItemType, output_zone: str,
+            output_handle: Optional[int] = None,
+            output_source: str = "", task_id: str = "join_pair"
+            ) -> JoinResult:
+        """按模板端口顺序原子消费父件并登记成品.
+
+        ``input_ports`` 与 ``parent_uids`` 一一对应, 每项是
+        ``(期望区域, 期望类型)``; 类型/区域/消费状态全部匹配后才提交.
+        与 legacy :meth:`commit_join_uids` 共享消费检查、重复配对拒绝、
+        父子记录和 ``JOIN_COMMIT`` 事件.
+        """
+        parents = tuple(int(uid) for uid in parent_uids)
+        ports = tuple((str(zone), ItemType(item_type))
+                      for zone, item_type in input_ports)
+        wanted_output = ItemType(output_type)
+        if len(parents) != len(ports):
+            return JoinResult(
+                False, f"ARITY_MISMATCH: parents={len(parents)} "
+                       f"ports={len(ports)}", parent_uids=parents,
+                output_type=wanted_output.value)
+        if len(set(parents)) != len(parents):
+            return JoinResult(
+                False, f"DUPLICATE_PARENT: {parents}",
+                parent_uids=parents, output_type=wanted_output.value)
+        records = [self._by_uid.get(uid) for uid in parents]
+        missing = [uid for uid, row in zip(parents, records)
+                   if row is None]
+        if missing:
+            return JoinResult(
+                False, f"MISSING_INPUT: {missing}", parent_uids=parents,
+                output_type=wanted_output.value)
+        if any(row.state is RecordState.CONSUMED for row in records):
+            return JoinResult(
+                False, "ALREADY_CONSUMED", parent_uids=parents,
+                semi_uid=parents[0],
+                part_uid=parents[1] if len(parents) > 1 else None,
+                pair_key="+".join(str(uid) for uid in parents),
+                output_type=wanted_output.value)
+        for row, (zone, item_type) in zip(records, ports):
+            if row.item_type is not item_type:
+                return JoinResult(
+                    False,
+                    f"TYPE_MISMATCH: {row.item_type.value}!={item_type.value}",
+                    parent_uids=parents, semi_uid=parents[0],
+                    part_uid=parents[1] if len(parents) > 1 else None,
+                    pair_key="+".join(str(uid) for uid in parents),
+                    output_type=wanted_output.value)
+            if row.zone != zone:
+                return JoinResult(
+                    False, f"ZONE_MISMATCH: {row.zone!r}!={zone!r}",
+                    parent_uids=parents, semi_uid=parents[0],
+                    part_uid=parents[1] if len(parents) > 1 else None,
+                    pair_key="+".join(str(uid) for uid in parents),
+                    output_type=wanted_output.value)
+        pair_key = "+".join(str(uid) for uid in parents)
         if pair_key in self.consumed_pairs:
-            return JoinResult(False, "DUPLICATE_PAIR", semi_uid=semi.uid,
-                              part_uid=part.uid, pair_key=pair_key)
-        if final_uid in self._by_uid:
-            return JoinResult(False, f"FINAL_UID_EXISTS: {final_uid}",
-                              semi_uid=semi.uid, part_uid=part.uid,
-                              pair_key=pair_key)
-        semi.state = RecordState.CONSUMED
-        part.state = RecordState.CONSUMED
-        self._event("MATERIAL_CONSUMED", semi, sim_time=sim_time,
-                    task_id="join_e",
-                    detail={"pair_key": pair_key, "final_uid": final_uid})
-        self._event("MATERIAL_CONSUMED", part, sim_time=sim_time,
-                    task_id="join_e",
-                    detail={"pair_key": pair_key, "final_uid": final_uid})
+            return JoinResult(
+                False, "DUPLICATE_PAIR", semi_uid=parents[0],
+                part_uid=parents[1] if len(parents) > 1 else None,
+                pair_key=pair_key, parent_uids=parents,
+                output_type=wanted_output.value)
+        if int(output_uid) in self._by_uid:
+            return JoinResult(
+                False, f"FINAL_UID_EXISTS: {output_uid}",
+                semi_uid=parents[0],
+                part_uid=parents[1] if len(parents) > 1 else None,
+                pair_key=pair_key, parent_uids=parents,
+                output_type=wanted_output.value)
+        for row in records:
+            row.state = RecordState.CONSUMED
+            self._event("MATERIAL_CONSUMED", row, sim_time=sim_time,
+                        task_id=task_id,
+                        detail={"pair_key": pair_key,
+                                "final_uid": int(output_uid),
+                                "handler_id": (
+                                    "e_material_pair"
+                                    if wanted_output is ItemType.FINAL
+                                    else mvp.JOIN_HANDLER)})
         final = self.register(
-            final_uid, ItemType.FINAL, final_alias, sim_handle=final_handle,
-            source="E", destination="output_e", zone=final_zone,
-            parents=(semi.uid, part.uid), sim_time=sim_time)
+            int(output_uid), wanted_output, output_alias,
+            sim_handle=output_handle, source=output_source,
+            destination=output_zone, zone=output_zone,
+            parents=parents, sim_time=sim_time)
         final.state = RecordState.DELIVERED
         self.consumed_pairs.add(pair_key)
         row = {
             "sim_time": round(float(sim_time), 4),
             "pair_key": pair_key,
-            "semi_uid": semi.uid, "part_uid": part.uid,
-            "final_uid": final_uid,
+            # legacy 键保留给 v1 报告/运行记录; 订单按 parent_uids 追溯.
+            "semi_uid": parents[0],
+            "part_uid": parents[1] if len(parents) > 1 else None,
+            "final_uid": int(output_uid),
+            "parent_uids": list(parents),
+            "output_type": wanted_output.value,
+            "output_zone": output_zone,
+            "input_ports": [{"zone": zone, "item_type": item_type.value}
+                            for zone, item_type in ports],
         }
         self.join_history.append(row)
         self._event("JOIN_COMMIT", final, sim_time=sim_time,
-                    task_id="join_e", evidence_id=pair_key, detail=row)
-        return JoinResult(True, "JOIN_OK", final_uid=final_uid,
-                          semi_uid=semi.uid, part_uid=part.uid,
-                          pair_key=pair_key)
+                    task_id=task_id, evidence_id=pair_key, detail=row)
+        return JoinResult(
+            True, "JOIN_OK", final_uid=int(output_uid),
+            semi_uid=parents[0],
+            part_uid=parents[1] if len(parents) > 1 else None,
+            pair_key=pair_key, parent_uids=parents,
+            output_type=wanted_output.value)
 
     # ── 谱系/统计 ───────────────────────────────────────────
 
@@ -374,7 +491,7 @@ class MaterialRegistry:
     def wip(self) -> dict:
         rows = [rec for rec in self._by_uid.values()
                 if rec.state not in (RecordState.CONSUMED,)
-                and rec.item_type is not ItemType.FINAL]
+                and rec.item_type not in PRODUCT_ITEM_TYPES]
         by_type: dict[str, int] = {}
         for rec in rows:
             by_type[rec.item_type.value] = by_type.get(

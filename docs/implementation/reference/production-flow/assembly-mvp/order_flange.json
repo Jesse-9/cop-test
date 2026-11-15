@@ -1,0 +1,20 @@
+{
+  "contract_version": "v1_order_20261106",
+  "order_id": "mvp-flange-001",
+  "version": 1,
+  "scene_id": "L5_UFLOW",
+  "source": "fixture",
+  "target": {"item_type": "FLANGE_ASSY", "quantity": 1},
+  "inputs": [
+    {"input_id": "front-flange", "item_type": "FRONT_FLANGE", "quantity": 1,
+     "zone": "mvp_source_front_flange", "node_id": "assemble",
+     "port_id": "front-in"},
+    {"input_id": "rear-flange", "item_type": "REAR_FLANGE", "quantity": 1,
+     "zone": "mvp_source_rear_flange", "node_id": "assemble",
+     "port_id": "rear-in"}
+  ],
+  "nodes": [
+    {"node_id": "assemble", "template_id": "mvp_flange_assembly"}
+  ],
+  "edges": []
+}

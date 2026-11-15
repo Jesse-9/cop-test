@@ -3,13 +3,14 @@ title: 仿真模块清单与命名边界
 type: reference
 status: review
 created: 2026-11-06
-updated: 2026-11-12
+updated: 2026-11-14
 scope: src/flexible_factory/simulation
 related:
   - docs/implementation/plans/simulation/simulation-code-optimization-plan.md
   - docs/implementation/plans/simulation/v1-startup-performance-optimization.md
   - docs/implementation/reports/simulation/v1-simulation-code-optimization.md
   - docs/implementation/reports/simulation/v1-startup-performance-optimization.md
+  - docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
 ---
 
 # 仿真模块清单与命名边界
@@ -48,6 +49,7 @@ related:
 | `simulation/runtime.py` | `build_stage3_runtime()`（双站双臂）与 `build_v1_runtime()`（五岛五臂；`unit_ids` 支持订单子集） | 应用层唯一运行时构建入口；两个 builder 和错误类型分开保留 |
 | `simulation/scene.py` | v1 `Stage4Scene` / `Stage4Unit` 场景解析与契约断言 | `application/coordinator.py`、`artifacts/migration.py` 使用 |
 | `simulation/layout.py` | v1 `L5_UFLOW` 布局、物流线与 `UnitView4` | `application/*`、`execution/arm.py` 使用 |
+| `simulation/assembly_mvp_scene.py` | `assembly_mvp` profile 的独立岛、来料槽、逻辑装配位/输出位静态扩展与只读校验 | 不进入 `config`/`layout` digest；`application/lifecycle.py`、`scene.py`、`contract.py`、`coordinator.py` 使用 |
 | `simulation/unit_controller.py` | `Stage3UnitController` 与 `Stage4UnitController` | UFLOW 执行适配器通过本模块使用控制器类 |
 | `simulation/execution/` | 机械臂/AGV 执行适配器 | `application/coordinator.py` 使用；不调用 `sim.step()` |
 | `simulation/motion/path_planning.py` | 规划模块兼容导出层 | 旧导入路径；实现已拆到 `motion/plan_*` |

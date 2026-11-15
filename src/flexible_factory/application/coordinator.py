@@ -40,6 +40,7 @@ from ..simulation.scene_base import alias_of
 from ..simulation.agv_route import RouteState
 
 from ..simulation import config as cfg
+from ..simulation import assembly_mvp_scene as mvp_scene
 from ..simulation.agv import AGVRouteController4, make_route_spec, pose_yaw
 from ..simulation.execution import (AgvExecutor, ArmExecutor,
                                     ExecutionRequest, ExecutionState,
@@ -49,11 +50,12 @@ from ..domain.failures import (FAILURE_POLICY_VERSION, FailureScope,
                                classify_failure, make_failure_record)
 from ..simulation.layout import line_specs
 from ..domain.materials import (ItemType, MaterialFlowError, MaterialRegistry,
-                                RecordState)
+                                RecordState, material_type_color)
 from ..domain.operation_runtime import (OperationRuntime,
                                         OperationRuntimeError)
 from ..domain.order_compiler import CompiledOrder
-from ..domain.process_model import OperationTemplate, ProcessCatalog
+from ..domain.process_model import (DIRECT_INPUT_JOIN_HANDLERS,
+                                    OperationTemplate, ProcessCatalog)
 from ..domain.resources import ResourceTable
 from ..domain.scheduling import (SCHEDULER_POLICY_VERSION, DeviceView,
                                  MaterialView, OperationView,
@@ -69,6 +71,8 @@ from .batch import expected_flow_counts, validate_batch
 
 _SOURCE_ITEMS_BY_ZONE = {
     item["line"]: item for item in cfg.SOURCE_ITEMS.values()}
+# assembly_mvp 独立岛来料槽: 只在 MVP 订单 zone 被引用时生效.
+_SOURCE_ITEMS_BY_ZONE.update(mvp_scene.order_sources())
 
 
 class CoordinatorError(RuntimeError):
@@ -401,7 +405,14 @@ class Stage4Coordinator:
                                            for row in instances]})
 
     def _set_material_color(self, handle: int, item_type: ItemType) -> None:
-        color = cfg.ITEM_COLORS[item_type.value]
+        color = cfg.ITEM_COLORS.get(item_type.value)
+        if color is None:
+            # MVP 类型不在冻结的 simulation/config.py 颜色表内; 使用
+            # domain 扩展颜色, 避免改变 v1 config_digest.
+            try:
+                color = material_type_color(item_type)
+            except KeyError:
+                color = (0.80, 0.80, 0.80)
         try:
             self.sim.setObjectColor(
                 handle, 0, self.sim.colorcomponent_ambient_diffuse,
@@ -1780,6 +1791,9 @@ class Stage4Coordinator:
 
     def _zone_material_pose(self, zone: str):
         """订单逻辑工序输出区域的物料落点; 未知区域返回 None."""
+        pose = mvp_scene.material_pose(zone)
+        if pose is not None:
+            return pose
         if zone == "output_e":
             return (cfg.E_OUTPUT["position"][0],
                     cfg.E_OUTPUT["position"][1],
@@ -1811,9 +1825,17 @@ class Stage4Coordinator:
             predecessors = [self.op_runtime.instance(pid)
                             for pid in self.op_runtime.graph.predecessors(
                                 instance.instance_id)]
-            if not predecessors or not all(
-                    row is not None and row.state is TaskStatus.DONE
-                    and row.committed for row in predecessors):
+            if predecessors:
+                if not all(row is not None and row.state is TaskStatus.DONE
+                           and row.committed for row in predecessors):
+                    continue
+            elif template.join_handler_id in DIRECT_INPUT_JOIN_HANDLERS:
+                # 直接来料合流没有前驱; 等编译器绑定的两个来料 UID 均已
+                # 由来源生成后, 再按端口类型/区域原子提交.
+                if any(self.flow.by_uid(uid) is None
+                       for uid in instance.input_uids):
+                    continue
+            else:
                 continue
             result = self._execute_order_join(
                 instance, template, sim_time)
@@ -1829,33 +1851,31 @@ class Stage4Coordinator:
                 f"合流 {instance.node_id} 父 UID {parent_uids} 与输入端口 "
                 f"{len(template.inputs)} 不一致", sim_time)
             return False
-        for port in template.inputs:
-            matches = [uid for uid in parent_uids
-                       if self.flow.by_uid(uid) is not None
-                       and self.flow.by_uid(uid).item_type == port.item_type
-                       and self.flow.by_uid(uid).zone == port.zone]
-            if len(matches) != 1:
-                self._global_failure(
-                    "LEDGER_INCONSISTENT",
-                    f"合流 {instance.node_id} 端口 {port.zone}/"
-                    f"{port.item_type.value} 父 UID 不唯一: {parent_uids}",
-                    sim_time)
-                return False
-        semi_candidates = [
-            uid for uid in parent_uids
-            if self.flow.by_uid(uid) is not None
-            and self.flow.by_uid(uid).item_type is ItemType.SEMI_CE]
-        part_candidates = [
-            uid for uid in parent_uids
-            if self.flow.by_uid(uid) is not None
-            and self.flow.by_uid(uid).item_type is ItemType.PART_DE]
-        if len(semi_candidates) != 1 or len(part_candidates) != 1:
+        if len(set(parent_uids)) != len(parent_uids):
             self._global_failure(
                 "LEDGER_INCONSISTENT",
-                f"合流 {instance.node_id} 缺少唯一 SEMI_CE/PART_DE 父 UID: "
-                f"{parent_uids}", sim_time)
+                f"合流 {instance.node_id} 父 UID 重复: {parent_uids}",
+                sim_time)
             return False
-        semi_uid, part_uid = semi_candidates[0], part_candidates[0]
+        # 端口按模板声明顺序与编译后的 input_uids 一一对应; 不按物料类型
+        # 重新分组, 也不允许跨订单/先到先配.
+        expected_ports = [(port.zone, port.item_type)
+                          for port in template.inputs]
+        for uid, (zone, item_type) in zip(parent_uids, expected_ports):
+            record = self.flow.by_uid(uid)
+            if record is None:
+                self._global_failure(
+                    "LEDGER_INCONSISTENT",
+                    f"合流 {instance.node_id} 父 UID {uid} 未登记 "
+                    f"(ports={expected_ports})", sim_time)
+                return False
+            if record.item_type is not item_type or record.zone != zone:
+                self._global_failure(
+                    "LEDGER_INCONSISTENT",
+                    f"合流 {instance.node_id} 父 UID {uid}="
+                    f"{record.item_type.value}@{record.zone} 与端口 "
+                    f"{item_type.value}@{zone} 不一致", sim_time)
+                return False
         if template.output is None:
             self._global_failure(
                 "LEDGER_INCONSISTENT",
@@ -1881,10 +1901,15 @@ class Stage4Coordinator:
             return False
         self._set_material_color(handle, out_type)
         self.materials.register(out_uid, alias, sim_handle=handle)
-        result = self.flow.commit_join_uids(
-            final_uid=out_uid, semi_uid=semi_uid, part_uid=part_uid,
-            sim_time=sim_time, final_alias=alias, final_handle=handle,
-            final_zone=out_zone)
+        result = self.flow.commit_pair(
+            output_uid=out_uid, parent_uids=parent_uids,
+            sim_time=sim_time, output_alias=alias,
+            input_ports=tuple(expected_ports),
+            output_type=out_type, output_zone=out_zone,
+            output_handle=handle,
+            output_source=str(template.candidate_devices[0]
+                              if template.candidate_devices else "logic"),
+            task_id=f"join_{template.id}")
         if not result.ok:
             self.scene.remove_material(handle)
             self.materials.remove(out_uid)
@@ -1893,7 +1918,7 @@ class Stage4Coordinator:
                 f"JOIN_REJECTED: {result.reason}", sim_time,
                 evidence=result.as_dict())
             return False
-        for parent in (result.semi_uid, result.part_uid):
+        for parent in parent_uids:
             rec = self.materials.by_uid(parent)
             if rec is not None and rec.sim_handle is not None:
                 self.runtime.forget_material(rec.sim_handle)
@@ -1908,19 +1933,31 @@ class Stage4Coordinator:
                 except Exception:
                     pass
         self.final_count += 1
+        input_trace = [
+            {"uid": uid, "port_id": port_id, "zone": zone,
+             "item_type": item_type.value}
+            for uid, (zone, item_type), port_id
+            in zip(parent_uids, expected_ports,
+                   template.input_port_ids)]
         self.op_runtime.commit_success(
             instance.instance_id, output_uids=[out_uid], sim_time=sim_time,
             evidence={"pair_key": result.pair_key, "join": template.id,
-                      "parents": [result.semi_uid, result.part_uid],
+                      "parents": list(parent_uids),
+                      "input_ports": input_trace,
+                      "handler_id": template.join_handler_id,
                       "order_id": instance.order_id,
                       "node_id": instance.node_id})
+        device_id = str(template.candidate_devices[0]
+                        if template.candidate_devices else "logic")
         self._event(
             "FINAL_CREATED", uid=out_uid, item_type=out_type.value,
-            zone=out_zone, device="E", evidence_id=result.pair_key,
+            zone=out_zone, device=device_id, evidence_id=result.pair_key,
             node_id=instance.node_id,
-            detail={"parents": [result.semi_uid, result.part_uid],
+            detail={"parents": list(parent_uids),
                     "pair_key": result.pair_key,
                     "operation": template.id,
+                    "handler_id": template.join_handler_id,
+                    "input_ports": input_trace,
                     "instance": instance.instance_id,
                     "order_id": instance.order_id})
         return True

@@ -12,6 +12,9 @@
 - 场景：五岛 `L5_UFLOW`（A–E、S1/S2 仓库、四条物流线、共享 pioneer p3dx
   AGV、E 岛双输入缓冲与配对输出）。
 - 用户运行模式：`full_flow`。其他 scenario 仅用于内部回归/诊断。
+- 实验场景 profile：`assembly_mvp`，在 `L5_UFLOW` 底图上追加两个无机械臂
+  的独立装配岛；工件必须写入显式实验 artifact root，不改变 v1 基线。
+  MVP 只做逻辑齐套/账本装配，不代表真实抓取或轴孔/螺纹装配能力。
 - 运行期不导入旧 `stage1`–`stage4`、`stage1_1` 或 `reference`；旧实现已移除。
 - 统一故障自动恢复未实现；安全锁存不得自动清除。
 
@@ -23,10 +26,11 @@ src/flexible_factory/
   domain/            rules, materials, tasks, resources, metrics,
                      process_model, default_process, operation_runtime,
                      scheduling, orders, order_validation, order_compiler,
-                     failures（纯 Python）
+                     failures, assembly_mvp（纯 Python）
   simulation/        config, scene, layout, physics, conveyor, pioneer,
                      ur5_ik, material_manager, agv, runtime,
-                     runtime_common, unit_controller, device_binding
+                     runtime_common, unit_controller, device_binding,
+                     assembly_mvp_scene（MVP 静态岛/槽位扩展）
     motion/          contact, collisions, path_planning（兼容导出）,
                      plan_types, plan_checks, plan_search, plan_postprocess,
                      trajectory, safety, shadow, suction, conveyor_safety,
@@ -203,6 +207,7 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 | `config_dual` / `layout_dual` / `scene_dual` | 双站层：`L2_MIRROR` 双工位 |
 | `runtime_common` | 双站层与 UFLOW 层共用的单臂会话运行时（影子臂、碰撞集合、规划器、锁存与启动摘要）；不按工位枚举；`DiscoveryCache` 只在一次停止态构建内复用发现结果；影子根快速销毁 |
 | `config` / `layout` / `scene` / `unit_controller` / `runtime` / `coordinator` | UFLOW 层：五岛 `L5_UFLOW`（`runtime.py` 同时含 Stage3 builder；v1 builder 支持订单工位子集） |
+| `assembly_mvp_scene` | `assembly_mvp` profile 的静态岛面/槽位/装配位/输出位扩展；不进入 `config`/`layout` digest |
 
 `unit_controller_dual.py`、`runtime_dual.py` 和 `motion/path_planning.py`
 只做旧导入路径 re-export，不是独立实现；详细清单见
@@ -240,7 +245,13 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
 - 物料中心 = 承载面 + `MATERIAL_HALF_HEIGHT`；吸盘接触面在物料顶面。
 - E 岛配对：`SEMI_CE + PART_DE → FINAL`，原子消费，重复父对拒绝；
   缺件不生成 FINAL。
-- 区域容量/背压：每条线、交接、缓冲、载台默认 1 个占位；输出区 4。
+- `assembly_mvp` 扩展：`COMPRESSOR + BASEPLATE → COMPRESSOR_ASSY`、
+  `FRONT_FLANGE + REAR_FLANGE → FLANGE_ASSY`，由 `commit_pair` 原子提交；
+  订单输入必须显式绑定 `mvp_pair_assembly` 逻辑端口，v1 合流仍要求前置工序。
+- MVP 类型只在 manifest `extra.v1.scene_profile=assembly_mvp` 时写入
+  `material_model.types`；`domain.rules.ITEM_TYPES` 保持 8 个 v1 冻结类型。
+- 区域容量/背压：每条线、交接、缓冲、载台默认 1 个占位；输出区 4；
+  MVP 的 4 个来料槽、2 个装配位和 2 个成品位各 1 个占位。
 
 ## 6. 资源与安全
 
@@ -263,6 +274,11 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   覆盖 `scene.ttt`。
 - v1 运行期只比较 v1 自身 config/layout 摘要；stage2/3 来源只记在
   `provenance`，不比较其当前摘要。
+- `assembly_mvp` 实验工件根为
+  `docs/scene_artifacts/experiments/assembly-mvp/`，其 `current.json` 与
+  受保护 v1 `current` 指针独立；manifest `extra.v1.scene_profile` 决定
+  物料类型/扩展契约的校验分支。默认 `full_flow` 工件不含该字段，按 v1
+  8 类型契约校验。
 
 ## 8. 实测陷阱（CoppeliaSim 4.10）
 
@@ -313,6 +329,16 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   真实安全锁存 GLOBAL）；未启用时 4 个用例 skip，不能按通过报告。
   阶段 6 的 UI 实机旅程使用 `frontend/e2e/real_acceptance.mjs`（手动运行，
   不在默认 `npm run e2e` 中）。
+- 混线装配 MVP 测试：
+  `tests/test_v1_assembly_mvp.py`（两份订单 fixture、错误端口/跨产品配对/
+  缺件/重复消费、记录型混线序列、场景扩展 alias/坐标/静态属性/几何不重叠）。
+  2026-11-14 全量纯逻辑回归 635 passed / 7 skipped；真实 CoppeliaSim
+  4.10（独立 23001 进程）上压缩机 → 法兰 → 压缩机三笔订单均
+  `SUCCEEDED`、`ok=true`，受保护 v1 工件 `full_flow` 回归
+  `all_ok=true`（337.15 s、1 FINAL、0 failure），证据见
+  [assembly_mvp 验收证据](docs/implementation/evidence/production-flow/v1_assembly_mvp_acceptance_20261114.json)，
+  报告见
+  [assembly_mvp 实施报告](docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)。
 - 前端测试（需要 Node.js，不需要 CoppeliaSim）：
   `cd frontend && npm ci && npm test`（Vitest：API client 错误映射、
   订单草稿模型、状态映射）；`npm run e2e`（Playwright 三条旅程，首次执行

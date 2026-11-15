@@ -22,6 +22,8 @@ from ..domain.default_process import (DEFAULT_RECIPE_ID,
 from ..util import check as _check
 from ..util import checks_ok, jsonable, jsonable as _jsonable
 from ..util import pick_upper, stable_digest
+from ..domain import assembly_mvp as mvp
+from . import assembly_mvp_scene as mvp_scene
 from . import config as cfg
 from . import config_base as base
 from . import config_dual as s3cfg
@@ -52,11 +54,17 @@ def layout_digest(layout: Stage4Layout | None = None) -> str:
 
 
 def build_contract_extra(*, sim=None, scene=None, provenance=None,
-                         notes: str = "") -> dict:
+                         notes: str = "", profile: str = "") -> dict:
     """生成可写入 manifest ``extra.v1`` 的稳定契约."""
     from .agv import route_map
 
     provenance = dict(provenance or {})
+    profile = str(profile or "")
+    if not profile:
+        profile = (mvp_scene.profile_of(sim, scene)
+                   if sim is not None else mvp.SCENE_PROFILE_FULL_FLOW)
+    if profile not in (mvp.SCENE_PROFILE_FULL_FLOW, mvp.PROFILE):
+        raise ValueError(f"未知场景 profile: {profile!r}")
     layout = (scene.stage4_layout if scene is not None
               and getattr(scene, "stage4_layout", None) is not None
               else default_layout())
@@ -99,9 +107,14 @@ def build_contract_extra(*, sim=None, scene=None, provenance=None,
     }
     lines = {line_id: line.as_dict()
              for line_id, line in layout.lines.items()}
+    material_types = list(domain.ITEM_TYPES)
+    if profile == mvp.PROFILE:
+        material_types.extend(mvp.ITEM_TYPES)
     material_model = {
         "version": spec.MATERIAL_MODEL_VERSION,
-        "types": list(domain.ITEM_TYPES),
+        "types": material_types,
+        "extension_types": (list(mvp.ITEM_TYPES)
+                            if profile == mvp.PROFILE else []),
         "process_transitions": {
             f"{island}:{source}": target
             for (island, source), target in domain.PROCESS_TRANSITIONS.items()},
@@ -198,6 +211,9 @@ def build_contract_extra(*, sim=None, scene=None, provenance=None,
     return {
         "contract_version": spec.SCENE_CONTRACT_VERSION,
         "product_version": spec.PRODUCT_VERSION,
+        "scene_profile": profile,
+        "assembly_mvp": (mvp_scene.contract_payload()
+                         if profile == mvp.PROFILE else None),
         "controller": {
             "id": spec.CONTROLLER_ID,
             "coordinator": spec.COORDINATOR_ID,
@@ -335,9 +351,22 @@ def validate_contract(sim, artifact, scene=None, *, context=None) -> dict:
                for key, value in default_layout().agv_nodes.items()},
            f"saved={saved_network.get('nodes')}")
     material_model = extra.get("material_model") or {}
+    profile = str(extra.get("scene_profile") or mvp.SCENE_PROFILE_FULL_FLOW)
+    expected_types = list(domain.ITEM_TYPES)
+    if profile == mvp.PROFILE:
+        expected_types.extend(mvp.ITEM_TYPES)
     _check(checks, "v1_material_types",
-           list(material_model.get("types") or ()) == list(domain.ITEM_TYPES),
-           f"saved={material_model.get('types')}")
+           list(material_model.get("types") or ()) == expected_types,
+           f"profile={profile!r} saved={material_model.get('types')}")
+    detected_profile = (mvp_scene.profile_of(sim, scene) if sim is not None
+                        else profile)
+    _check(checks, "v1_scene_profile", profile == detected_profile,
+           f"saved={profile!r} detected={detected_profile!r}")
+    if profile == mvp.PROFILE:
+        errors = mvp_scene.extension_contract_mismatches(
+            extra.get("assembly_mvp"))
+        _check(checks, "v1_assembly_mvp_contract", not errors,
+               "; ".join(errors) if errors else "extension contract ok")
     join = material_model.get("join") or {}
     _check(checks, "v1_join_inputs",
            list(join.get("inputs") or ()) == list(domain.JOIN_INPUTS),

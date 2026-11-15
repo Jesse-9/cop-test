@@ -1,0 +1,140 @@
+{
+  "schema": "v1_assembly_mvp_acceptance",
+  "created": "2026-11-14",
+  "artifact": {
+    "artifact_id": "v1/L5_UFLOW/v001_20261114_120734",
+    "scene_profile": "assembly_mvp",
+    "extension_version": "v1_assembly_mvp_20261114",
+    "manifest_digest": "33dc2d54c207f4c486e29c01f00c59cd59481cbe8f843b986f07befe0f58dd3a",
+    "scene_sha256": "e7653ececf2867f0f8e2c30a61b5d282058b07074a6a6c6835fcb01786e88646",
+    "protected": true
+  },
+  "scene_validation": {
+    "ok": true,
+    "checks": 557,
+    "failed": [],
+    "build_check_rows": 869,
+    "build_unique_checks": 341,
+    "mvp_check_rows": 308,
+    "mvp_unique_checks": 154,
+    "mvp_failed": []
+  },
+  "runs": [
+    {
+      "report": "v1_order_run_20261114_121202.json",
+      "order_id": "mvp-compressor-001",
+      "order_version": 1,
+      "run_id": "order_mvp-compressor-001_20261114_041006_bad9df",
+      "status": "SUCCEEDED",
+      "acceptance_ok": true,
+      "target_item_type": "COMPRESSOR_ASSY",
+      "final_parents": [
+        [
+          2,
+          1
+        ]
+      ],
+      "input_spawns": [
+        {
+          "uid": 1,
+          "item_type": "BASEPLATE",
+          "input_id": "baseplate"
+        },
+        {
+          "uid": 2,
+          "item_type": "COMPRESSOR",
+          "input_id": "compressor"
+        }
+      ],
+      "sim_time": 0.05,
+      "failures": []
+    },
+    {
+      "report": "v1_order_run_20261114_121452.json",
+      "order_id": "mvp-flange-001",
+      "order_version": 1,
+      "run_id": "order_mvp-flange-001_20261114_041251_62a85e",
+      "status": "SUCCEEDED",
+      "acceptance_ok": true,
+      "target_item_type": "FLANGE_ASSY",
+      "final_parents": [
+        [
+          1,
+          2
+        ]
+      ],
+      "input_spawns": [
+        {
+          "uid": 1,
+          "item_type": "FRONT_FLANGE",
+          "input_id": "front-flange"
+        },
+        {
+          "uid": 2,
+          "item_type": "REAR_FLANGE",
+          "input_id": "rear-flange"
+        }
+      ],
+      "sim_time": 0.05,
+      "failures": []
+    },
+    {
+      "report": "v1_order_run_20261114_122006.json",
+      "order_id": "mvp-compressor-002",
+      "order_version": 1,
+      "run_id": "order_mvp-compressor-002_20261114_041811_5e3a6c",
+      "status": "SUCCEEDED",
+      "acceptance_ok": true,
+      "target_item_type": "COMPRESSOR_ASSY",
+      "final_parents": [
+        [
+          2,
+          1
+        ]
+      ],
+      "input_spawns": [
+        {
+          "uid": 1,
+          "item_type": "BASEPLATE",
+          "input_id": "baseplate"
+        },
+        {
+          "uid": 2,
+          "item_type": "COMPRESSOR",
+          "input_id": "compressor"
+        }
+      ],
+      "sim_time": 0.05,
+      "failures": []
+    }
+  ],
+  "sequence": [
+    "mvp-compressor-001",
+    "mvp-flange-001",
+    "mvp-compressor-002"
+  ],
+  "boundaries": [
+    "逻辑装配, 不包含真实抓取/轴孔插装/螺纹运动或质量判定",
+    "每次 order start 重新加载实验工件; 不并发、不共享在制物料",
+    "CoppeliaSim 实例为独立 23001 端口进程, 不改动用户 23000 会话",
+    "受保护 v1 场景包与 current 指针未修改"
+  ],
+  "full_flow_regression": {
+    "report": "v1_run_full_flow_20261114_123150.json",
+    "run_id": "run_20261114_123137_32ce6b",
+    "artifact_id": "v1/L5_UFLOW/v001_20261103_004317",
+    "all_ok": true,
+    "sim_time": 337.15,
+    "steps": 6726,
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        3
+      ]
+    ],
+    "unpaired_semi_ce": 1,
+    "failures": [],
+    "runtime_destroy_leftover": []
+  }
+}

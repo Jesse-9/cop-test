@@ -210,8 +210,8 @@ def test_single_published_release_index(database):
 def test_staging_is_not_published_and_can_be_read(database):
     result = _stage(database)
     assert result["status"] == "staging"
-    assert result["catalog_version"] == "v1_process_20261106a"
-    assert result["counts"]["operations"] == 10
+    assert result["catalog_version"] == "v1_process_20261114a"
+    assert result["counts"]["operations"] == 12
     with pytest.raises(NoPublishedReleaseError):
         load_catalog(database)
     catalog = load_catalog(database, "rel_test")
