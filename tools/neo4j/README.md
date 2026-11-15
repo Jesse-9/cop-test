@@ -54,6 +54,32 @@ uv run python .\tools\neo4j_export.py `
 - `nodes`：`id`、`labels`、`properties`；
 - `relationships`：`id`、`type`、`start`、`end`、`properties`。
 
+### 3.1 转换为更易读的格式（可选）
+
+已有导出 JSON 时，不需要 Docker 或 Neo4j，可直接生成 CSV、GraphML 和
+Cypher：
+
+```powershell
+uv run python .\tools\neo4j_export_formats.py `
+  --export .\docs\implementation\runs\fmpmm_graph.json `
+  --out-dir .\var\neo4j_export
+```
+
+输出目录默认 `var/neo4j_export/`（已被 Git 忽略）：
+
+- `nodes.csv` / `relationships.csv`：UTF-8 BOM，可直接用 Excel 打开；
+- `graph.graphml`：可导入 Gephi / yEd / Cytoscape；
+- `graph.cypher`：可读的 `CREATE` 语句，可在空 Neo4j 库中重放；
+- `README.md`：来源 dump 的 SHA-256、节点/关系数量与类型分布。
+
+该脚本只消费导出 JSON，不解析二进制 dump；dump 摘要与导出时间原样保留在
+输出摘要中。
+
+仓库内已归档一份由真实 `fmpmm.dump` 导出并转换的可读数据，见
+[docs/implementation/reference/data-platform/neo4j-graph-export/](../../docs/implementation/reference/data-platform/neo4j-graph-export/README.md)。
+需要更新归档时，重新载入/导出 JSON 后执行上面的转换命令，并将
+`--out-dir` 指向该目录。
+
 ## 4. 导入 SQLite 并审核发布
 
 ```powershell
@@ -109,3 +135,16 @@ docker compose -f .\tools\neo4j\docker-compose.yml down
   JSON 进行 SQLite staging 和测试，不能声称已完成真实 dump 导入。
 - 二进制 dump 的格式、版本和官方恢复方式由 `neo4j-admin` 校验；
   本项目不实现自己的 dump 解析器。
+
+## 故障排查
+
+容器反复重启且日志出现 `Neo4j is already running (pid: ...)` 时，通常是
+容器可写层里残留了上次异常退出的 `neo4j.pid`。命名卷中的图数据不受影响；
+用同一个 `NEO4J_AUTH` 重建容器即可（`docker compose down` 不会删除命名卷，
+不要加 `-v`）：
+
+```powershell
+$env:NEO4J_AUTH = 'neo4j/<password>'
+docker compose -f .\tools\neo4j\docker-compose.yml down
+docker compose -f .\tools\neo4j\docker-compose.yml up -d
+```
