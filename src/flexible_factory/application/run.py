@@ -204,6 +204,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
                         fault: str = cfg.FAULT_NONE,
                         batch: Optional[Mapping[str, int]] = None,
                         batch_profile: str = DEFAULT_BATCH_PROFILE,
+                        fleet_mode: str = "single",
                         catalog=None, run_recorder=None,
                         stop_event=None, pause_event=None,
                         pause_ack_event=None, on_start=None) -> dict:
@@ -233,6 +234,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
         coordinator = Stage4Coordinator(
             sim, scene, comp, scenario=scenario, fault=effective_fault,
             logger=logger, catalog=catalog, batch=effective_batch,
+            fleet_mode=fleet_mode,
             on_controller=(lambda unit_id, controller: on_start(
                 coordinator) if on_start else None) if on_start else None)
         coordinator.start(float(sim.getSimulationTime()))
@@ -305,6 +307,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             target: str = "full_flow",
                             fault: str = cfg.FAULT_NONE,
                             batch_profile: str = DEFAULT_BATCH_PROFILE,
+                            fleet_mode: str = "single",
                             batch: Optional[Mapping[str, int]] = None,
                             unit_ids: Optional[Iterable[str]] = None,
                             max_sim_time: float = cfg.DEFAULT_MAX_SIM_TIME,
@@ -405,6 +408,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             sim, scene, comp, scenario=scenario,
             max_sim_time=max_sim_time, logger=logger, fault=effective_fault,
             batch=effective_batch, batch_profile=profile_name,
+            fleet_mode=fleet_mode,
             catalog=catalog, run_recorder=recorder,
             stop_event=stop_event, pause_event=pause_event,
             pause_ack_event=pause_ack_event, on_start=on_start)

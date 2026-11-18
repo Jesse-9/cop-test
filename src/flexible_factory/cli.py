@@ -114,7 +114,7 @@ def cmd_validate(ns) -> int:
 def cmd_stop(ns) -> int:
     _, sim, simIK = _connect(ns)
     manager = _manager(ns, sim, simIK)
-    _print(manager.stop(timeout=ns.timeout))
+    _print(manager.stop(timeout=ns.timeout, force=ns.force))
     return 0
 
 
@@ -439,6 +439,7 @@ def cmd_run(ns) -> int:
             sim, simIK, manager.scene, scenario=ns.scenario,
             target=ns.scenario, fault=ns.fault,
             batch_profile=ns.batch_profile,
+            fleet_mode=ns.transport_fleet,
             max_sim_time=ns.time,
             out_dir=Path(ns.out_dir), logger=logger,
             catalog=catalog, run_record_db=run_record_db,
@@ -495,6 +496,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("stop", help="停止仿真并确认停止态")
     _add_common(p)
     p.add_argument("--timeout", type=float, default=10.0)
+    p.add_argument("--force", action="store_true",
+                   help="仿真确认停止后强制收回残留运行锁 (崩溃后的急救)")
     p.set_defaults(func=cmd_stop)
 
     catalog_parser = sub.add_parser(
@@ -753,6 +756,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="命名批次配比: 只改变 RAW_A/RAW_B/RAW_D 数量, 不改变工艺"
              "路线或设备候选; 非 default profile 仅用于 full_flow")
     p.add_argument("--time", type=float, default=1200.0)
+    p.add_argument("--transport-fleet", choices=["single", "dual"],
+                   default="single",
+                   help="车队编制: single=只用 agv_1 (默认, 既有验收基线); "
+                        "dual=agv_1 跑 B→A、cart_2 跑 D→E (需场景含 Cart2)")
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
     p.add_argument("--catalog-source", choices=["code", "db"],

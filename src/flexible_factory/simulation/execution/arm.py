@@ -227,14 +227,17 @@ class ArmExecutor:
             target="agv" if sink == "agv" else "station")
         expected_types = tuple(port.item_type
                                for port in operation.inputs)
-        return Stage4UnitController(
+        vehicle_id = str(getattr(request, "vehicle_id", "") or "")
+        vehicle = (self.comp.get("cart2_vehicle")
+                   if vehicle_id == "cart_2" else self.comp["agv"])
+        controller = Stage4UnitController(
             sim=self.sim, scene=arm.view,
             materials=self.comp["materials"],
             conveyor=self.comp["conveyor"],
             belt_geometry=line.geometry,
             ik=self.comp["ik"][self.unit_id],
             suction=self.comp["suction"][self.unit_id],
-            agv=self.comp["agv"],
+            agv=vehicle,
             target=("agv" if sink == "agv" else "station"),
             uid=request.uid, fault=cfg.FAULT_NONE, layout=task_layout,
             logger=self.logger, runtime=arm, unit_id=self.unit_id,
@@ -244,6 +247,12 @@ class ArmExecutor:
             expected_types=expected_types,
             park_tcp_pose=handoff_park_tcp(self.unit_id),
             pick_timeout=cfg.TASK_TIMEOUT)
+        controller.tray_alias = str(getattr(request, "tray_alias", "") or "")
+        if controller.tray_alias:
+            from ..cart_vehicle import Cart2Spec
+
+            controller.tray_thickness = float(Cart2Spec().tray_size[2])
+        return controller
 
 
 __all__ = ["ArmExecutor", "sink_spec_for"]

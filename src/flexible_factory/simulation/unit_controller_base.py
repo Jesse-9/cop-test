@@ -83,6 +83,24 @@ _MOTION_STATES = {
 
 
 class Stage1UnitController:
+    #: 取放使用的托盘别名; 由 ArmExecutor 按车辆注入, 空表示沿用 AGV 托盘。
+    tray_alias = ""
+    #: 托盘厚度; 与 tray_alias 配套, 用于按实测托盘位姿算承载面高度。
+    tray_thickness = cfg.AGV_TRAY_THICKNESS
+
+    def _tray_surface_z(self) -> float:
+        """承载面高度: 有注入托盘别名时按实测托盘顶面, 否则用 AGV 常量。"""
+        if not self.tray_alias:
+            return cfg.AGV_TRAY_TOP_Z
+        try:
+            tray = self.scene.handle(self.tray_alias)
+            if int(tray) < 0:
+                return cfg.AGV_TRAY_TOP_Z
+            pose = self.sim.getObjectPose(tray, self.sim.handle_world)
+            return float(pose[2]) + self.tray_thickness / 2.0
+        except Exception:
+            return cfg.AGV_TRAY_TOP_Z
+
     def __init__(self, sim, scene, materials, conveyor, belt_geometry: BeltGeometry,
                  ik, suction, agv=None, target: str = "station", uid: int = 1,
                  fault: str = cfg.FAULT_NONE,
@@ -492,7 +510,7 @@ class Stage1UnitController:
             if self.fault == cfg.FAULT_RELEASE_UNSTABLE:
                 material_pose[2] += 0.30
             support_z = (self.layout.station_top_z
-                         if self.target == "station" else cfg.AGV_TRAY_TOP_Z)
+                         if self.target == "station" else self._tray_surface_z())
             self._settle_max_speed = 0.0
             self._settle_step = 0
             result = self.suction.release(self.uid, self.sim_time,
@@ -534,7 +552,7 @@ class Stage1UnitController:
                         rec.sim_handle, self.sim.handle_world)[2])
                     support = (self.layout.station_top_z
                                if self.target == "station"
-                               else cfg.AGV_TRAY_TOP_Z)
+                               else self._tray_surface_z())
                     if z - cfg.MATERIAL_HALF_HEIGHT < \
                             support - cfg.SUCTION_SETTLE_Z_TOL:
                         self._fail("RELEASE_FAILED: 物料穿透承载面")

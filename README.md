@@ -15,6 +15,7 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 - 工程不变量、模块职责和实测陷阱：[工程参考](PROJECT_ENGINEERING_REFERENCE.md)
 - CoppeliaSim 知识库：[知识库索引](docs/wiki/index.md)
 - 文档导航与 Neo4j 维护入口：[文档导航](docs/README.md) · [Neo4j 工具](tools/neo4j/README.md)
+- 项目学习导读（9 篇中文，含双车调度设计）：[学习导读](学习导读/README.md)
 
 ## 快速开始
 
