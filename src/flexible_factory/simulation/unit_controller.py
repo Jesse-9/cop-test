@@ -53,33 +53,36 @@ from ..domain.materials import ItemType, MaterialRegistry
 _APPROACH_BRANCH_MAX = 4
 
 
-def agv_material_position(tray_pose):
+def agv_material_position(tray_pose,
+                          thickness: float = base.AGV_TRAY_THICKNESS):
     """托盘实测位姿 → 物料中心 (托盘顶面 + 物料半高)."""
     return [float(tray_pose[0]), float(tray_pose[1]),
-            float(tray_pose[2]) + base.AGV_TRAY_THICKNESS / 2.0
+            float(tray_pose[2]) + float(thickness) / 2.0
             + base.MATERIAL_HALF_HEIGHT]
 
 
-def agv_place_pose(nominal_pose, tray_pose):
-    """AGV 载台放置点: 跟随实测托盘中心, 保持标称竖向偏移与工具姿态.
+def agv_place_pose(nominal_pose, tray_pose,
+                   thickness: float = base.AGV_TRAY_THICKNESS):
+    """载台放置点: 跟随实测托盘中心, 保持标称竖向偏移与工具姿态.
 
     AGV 停靠误差可达数厘米; 固定标称放置点会让载荷降入托盘时蹭到
-    托盘壁 (实测 `AGV_TrayWall_Front`). 托盘是 AGV 的子对象, 其世界
-    位姿就是当前载台中心; 竖向偏移按托盘厚度与物料半高计算.
+    托盘壁 (实测 `AGV_TrayWall_Front`). 托盘是车辆的子对象, 其世界
+    位姿就是当前载台中心; 竖向偏移按**该车托盘厚度**与物料半高计算.
     """
-    position = agv_material_position(tray_pose)
+    position = agv_material_position(tray_pose, thickness)
     return [position[0], position[1],
             position[2] + base.MATERIAL_HALF_HEIGHT,
             *[float(v) for v in nominal_pose[3:7]]]
 
 
-def agv_material_pose(nominal_pose, tray_pose):
+def agv_material_pose(nominal_pose, tray_pose,
+                      thickness: float = base.AGV_TRAY_THICKNESS):
     """与 :func:`agv_place_pose` 同源的释放目标物料位姿.
 
     释放校验比较实测物料位姿与目标; 放置点跟随托盘后, 目标也必须
     用同一托盘中心, 否则会被判为修正超限.
     """
-    position = agv_material_position(tray_pose)
+    position = agv_material_position(tray_pose, thickness)
     return [*position, *[float(v) for v in nominal_pose[3:7]]]
 
 
@@ -190,7 +193,7 @@ class Stage3UnitController(Stage2UnitController):
                 f"{rec.state.value} 不可从 AGV 取料")
             return
 
-        docked = self.scene.agv_dock_hit(self.scene.agv_root)
+        docked = self._vehicle_docked()
         stopped = self._agv_stationary()
         upright = self._agv_upright()
         if not (docked and stopped and upright):
@@ -263,7 +266,8 @@ class Stage3UnitController(Stage2UnitController):
         c, s = math.cos(-yaw), math.sin(-yaw)
         local_x = c * dx - s * dy
         local_y = s * dx + c * dy
-        z_error = pose[2] - (base.AGV_TRAY_TOP_Z + base.MATERIAL_HALF_HEIGHT)
+        z_error = pose[2] - (self._tray_surface_z()
+                             + base.MATERIAL_HALF_HEIGHT)
         ok = (abs(local_x) <= dualcfg.AGV_TRAY_XY_TOL
               and abs(local_y) <= dualcfg.AGV_TRAY_XY_TOL
               and abs(z_error) <= dualcfg.AGV_TRAY_Z_TOL)
@@ -534,7 +538,7 @@ class Stage4UnitController(Stage3UnitController):
             return
         if self._assert_expected_type():
             return
-        docked = self.scene.agv_dock_hit(self.scene.agv_root)
+        docked = self._vehicle_docked()
         stopped = self._agv_stationary()
         upright = self._agv_upright()
         if not (docked and stopped and upright):
@@ -609,13 +613,13 @@ class Stage4UnitController(Stage3UnitController):
         if self.sink != "agv":
             return pose
         try:
-            tray = self.scene.handle(base.ALIASES["agv_tray"])
+            tray = self.scene.handle(self.tray_alias or base.ALIASES["agv_tray"])
             if int(tray) < 0:
                 return pose
             tray_pose = self.sim.getObjectPose(tray, self.sim.handle_world)
         except Exception:
             return pose
-        return agv_place_pose(pose, tray_pose)
+        return agv_place_pose(pose, tray_pose, self.tray_thickness)
 
     def _material_pose_for_target(self) -> list[float]:
         """释放目标物料位姿必须与 AGV 放置点同源 (实测托盘)."""
@@ -623,13 +627,13 @@ class Stage4UnitController(Stage3UnitController):
         if self.sink != "agv":
             return pose
         try:
-            tray = self.scene.handle(base.ALIASES["agv_tray"])
+            tray = self.scene.handle(self.tray_alias or base.ALIASES["agv_tray"])
             if int(tray) < 0:
                 return pose
             tray_pose = self.sim.getObjectPose(tray, self.sim.handle_world)
         except Exception:
             return pose
-        return agv_material_pose(pose, tray_pose)
+        return agv_material_pose(pose, tray_pose, self.tray_thickness)
 
     def _transfer_goal_variants(self, place, start_pose):
         """A 臂从 AGV 卸货到交接台: 增加同高度 via-park 候选.
@@ -869,9 +873,19 @@ class Stage4UnitController(Stage3UnitController):
                                      start_pose=current_tcp)
         return super()._build_plan()
 
+    def _vehicle_docked(self) -> bool:
+        """车辆是否已到位。
+
+        AGV 用 dock 传感器判据; 小车二没有传感器, 由注入的托盘别名标识,
+        此时以"车体已停稳"代替 (运动学车恒为停稳)。
+        """
+        if self.tray_alias:
+            return True
+        return self.scene.agv_dock_hit(self.scene.agv_root)
+
     def _placing_target_ready(self) -> bool:
         if self.sink == "agv":
-            docked = self.scene.agv_dock_hit(self.scene.agv_root)
+            docked = self._vehicle_docked()
             stopped = self._agv_stationary() and self._agv_upright()
             if docked and stopped:
                 self._dock_wait_since = None

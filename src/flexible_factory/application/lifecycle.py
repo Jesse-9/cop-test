@@ -608,9 +608,32 @@ class LifecycleManager:
 
     # ── 动作: load ──────────────────────────────────────────
 
+    def _recover_stale_run_state(self) -> bool:
+        """会话状态是 SIMULATION_RUNNING、但没有活着的运行进程时自动恢复。
+
+        崩溃或被 Ctrl+C 终止的运行不会走 ``finish_run``, 状态会停留在
+        RUNNING, 让下一次 ``load`` 报 INVALID_STATE。这里只在确实没有
+        活的持锁进程时恢复, 真在跑时仍交给 ``_require_no_live_lock`` 拒绝。
+        """
+        if self.sm.state is not LifecycleState.SIMULATION_RUNNING:
+            return False
+        owner = self.run_lock.owner()
+        if owner is not None and self.run_lock.owner_alive(owner):
+            return False
+        self.run_lock.clear_stale()
+        self.session.state = LifecycleState.CONNECTED_STOPPED
+        self.session.pid = None
+        self.session.run_id = None
+        self.session.has_run_since_build = False
+        self.session_store.save(self.session)
+        self.sm.state = LifecycleState.CONNECTED_STOPPED
+        self._event("stale_run_recovered", previous="SIMULATION_RUNNING")
+        return True
+
     def load(self, artifact_ref: str = "current") -> dict:
         """在仿真停止态加载 v1 工件, 不重建、不清场."""
         self.refresh()
+        self._recover_stale_run_state()
         self._guard("load")
         self._ensure_stopped("load")
         self._require_no_live_lock("load")
@@ -886,6 +909,7 @@ class LifecycleManager:
         运行锁/运行记录使用同一 ID; 留空时自动生成.
         """
         self.refresh()
+        self._recover_stale_run_state()
         self._guard("start")
         self._ensure_stopped("start")
         self._require_no_live_lock("start")
@@ -960,7 +984,7 @@ class LifecycleManager:
 
     # ── 动作: stop ──────────────────────────────────────────
 
-    def stop(self, timeout: float = 10.0) -> dict:
+    def stop(self, timeout: float = 10.0, force: bool = False) -> dict:
         self.refresh()
         state = self._sim_state()
         stopped = getattr(self.sim, "simulation_stopped", 0)
@@ -986,6 +1010,15 @@ class LifecycleManager:
         own_lock = (owner is not None and owner.get("pid") == os.getpid()
                     and owner.get("run_id") == self.session.run_id)
         if self.sm.state is LifecycleState.SIMULATION_RUNNING:
+            # --force: 仿真已确认停止时, 连"看不见但 pid 仍被判活"的残留锁
+            # 一并收回 (崩溃/被强杀的运行会留下这种锁, 否则再也 load 不了)。
+            if force and stopped_now and owner is not None and not own_lock:
+                self._event("force_stop", owner=owner)
+                try:
+                    self.run_lock.path.unlink()
+                except OSError:
+                    pass
+                return self.finish_run("STOPPED")
             if own_lock or not self.run_lock.owner_alive(owner):
                 return self.finish_run("STOPPED")
             self._event("stop_requested", owner=owner)

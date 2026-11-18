@@ -30,7 +30,7 @@ from .process_model import (CapabilitySpec, DeviceSpec, MaterialPort,
 # config digest, 由报告与未来 manifest 记录.
 # 20261106a: 增加订单 DAG 编排元数据 (端口 identity、编排 allowlist、
 # 场景范围、join handler、可生成来料区域).
-PROCESS_MODEL_VERSION = "v1_process_20261106a"
+PROCESS_MODEL_VERSION = "v1_process_20261117a"
 DEFAULT_RECIPE_ID = "mixed_line_v1"
 DEFAULT_PRODUCT_ID = "assembled_module"
 
@@ -72,12 +72,14 @@ def _transport_operation(*, operation_id: str, kind: str, semantics: str,
                          item_type: ItemType, origin: str,
                          destination: str, depends_on: tuple[str, ...],
                          successors: tuple[str, ...],
-                         priority: int) -> OperationTemplate:
+                         priority: int,
+                         devices: tuple[str, ...] = ("agv_1",)
+                         ) -> OperationTemplate:
     port = MaterialPort("agv", item_type)
     return OperationTemplate(
         id=operation_id, kind=kind, semantics=semantics,
         executor_kind="agv", capability=_AGV_TRANSPORT,
-        candidate_devices=("agv_1",),
+        candidate_devices=devices,
         inputs=(port,), output=port,
         source_kind="agv", sink_kind="agv",
         resources=(), resource_policy="agv_route",
@@ -168,7 +170,7 @@ def _build_operations() -> tuple[OperationTemplate, ...]:
         semantics="D→E: AGV loaded dock_D → dock_E → E → buffer_e_d",
         item_type=ItemType.PART_DE, origin="D", destination="E",
         depends_on=("bracket_process",), successors=("bracket_to_E",),
-        priority=1)
+        priority=1, devices=("agv_1", "cart_2"))
 
     bracket_to_e = _arm_operation(
         operation_id="bracket_to_E", kind=cfg.TASK_KIND_E_AGV,
@@ -265,6 +267,9 @@ def _build_devices() -> tuple[DeviceSpec, ...]:
                    default_line_id=default_lines[unit_id])
         for unit_id in cfg.UNIT_IDS]
     devices.append(DeviceSpec(id="agv_1", kind="agv",
+                              capabilities=(_AGV_TRANSPORT,)))
+    # 小车二: 第二台运输设备, 只承运 transport_DE (见 _transport_operation)。
+    devices.append(DeviceSpec(id="cart_2", kind="agv",
                               capabilities=(_AGV_TRANSPORT,)))
     devices.append(DeviceSpec(id="logic_E", kind="logic",
                               capabilities=(_LOGICAL_JOIN,),

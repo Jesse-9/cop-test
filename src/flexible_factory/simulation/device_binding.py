@@ -181,6 +181,19 @@ def _agv_binding() -> DeviceBinding:
         zones=("agv",))
 
 
+def _cart2_binding() -> DeviceBinding:
+    """小车二: 只有车体与托盘两个稳定对象; 与 AGV 共用直道与 dock 资源."""
+    return DeviceBinding(
+        device_id="cart_2",
+        kind="agv",
+        aliases=("Cart2", "Cart2_Tray"),
+        alias_roles=("robot", "tray"),
+        runtime_keys=_DEVICE_RUNTIME_KEYS["agv"],
+        resources=(*cfg.AGV_LANES,
+                   *(f"dock_{dock}" for dock in cfg.AGV_DOCK_IDS)),
+        zones=("agv",))
+
+
 def _logic_binding() -> DeviceBinding:
     """E 逻辑配对处理器: 无场景对象, 只有物料区域与谱系记录."""
     return DeviceBinding(
@@ -196,7 +209,7 @@ def _logic_binding() -> DeviceBinding:
 def device_bindings() -> tuple[DeviceBinding, ...]:
     """全部设备的绑定; 每次返回新元组, 便于测试注入变体."""
     return (*(_arm_binding(unit_id) for unit_id in cfg.UNIT_IDS),
-            _agv_binding(), _logic_binding())
+            _agv_binding(), _cart2_binding(), _logic_binding())
 
 
 def support_bindings() -> tuple[SupportBinding, ...]:

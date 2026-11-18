@@ -68,6 +68,9 @@ class ExecutionRequest:
     task_id: str
     sim_time: float
     route_spec: Optional["RouteSpec4"] = None
+    #: 该工序使用的车辆与托盘别名; 空表示沿用 AGV 默认 (agv_1 / AGV_LoadTray)
+    vehicle_id: str = ""
+    tray_alias: str = ""
 
 
 @dataclass(frozen=True)

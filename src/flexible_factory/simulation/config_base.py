@@ -60,6 +60,9 @@ ALIASES = {
     "agv_wall_left": "AGV_TrayWall_Left",
     "agv_wall_right": "AGV_TrayWall_Right",
     "agv_dock_sensor": "Sensor_AGV_Dock",
+    # 小车二 (第二台运输车): 车体与托盘
+    "cart2": "Cart2",
+    "cart2_tray": "Cart2_Tray",
 }
 
 REQUIRED_ALIASES = [
