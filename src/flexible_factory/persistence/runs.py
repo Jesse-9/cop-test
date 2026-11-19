@@ -22,6 +22,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .. import spec
+from ..domain.materials import PRODUCT_ITEM_TYPES
 from .clock import utc_iso_now
 from .db import CatalogDatabase, initialize_database
 from .errors import RunNotFoundError, RunRecordError
@@ -490,8 +491,9 @@ def run_summary(database: CatalogDatabase,
         final_uids = [int(row) for row in session.scalars(select(
             MaterialInstanceRecord.uid).where(
             MaterialInstanceRecord.run_id == run.run_id,
-            MaterialInstanceRecord.item_type == "FINAL").order_by(
-            MaterialInstanceRecord.uid))]
+            MaterialInstanceRecord.item_type.in_(
+                sorted(item.value for item in PRODUCT_ITEM_TYPES))
+            ).order_by(MaterialInstanceRecord.uid))]
         return {
             "run_id": run.run_id,
             "record_version": run.record_version,

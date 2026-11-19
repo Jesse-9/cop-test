@@ -105,6 +105,11 @@ flexible-factory knowledge verify --extraction-id <extraction_id>
 flexible-factory knowledge publish --extraction-id <extraction_id>
 ```
 
+已归档一份由真实 dump 导出并转换为 CSV/GraphML/Cypher 的可读版本，见
+[Neo4j 图数据导出](../../reference/data-platform/neo4j-graph-export/README.md)。
+它从同一导出 JSON 生成，包含 222 个节点和 384 条关系；源 dump 的 SHA-256
+记录在该目录的 README 中。转换不解析二进制 dump，只消费导出 JSON。
+
 `knowledge import` 会自动幂等升级 schema（等同 `catalog init`）。默认数据库
 仍是 `var/catalog/catalog.db`。
 

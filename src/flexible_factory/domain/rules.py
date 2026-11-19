@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from ..spec import (MATERIAL_MODEL_VERSION, METRICS_VERSION,
                     RESOURCE_POLICY_VERSION, TASK_FLOW_VERSION)
+from .assembly_mvp import ITEM_COLORS as MVP_ITEM_COLORS
+from .assembly_mvp import ITEM_TYPES as MVP_ITEM_TYPES
+from .assembly_mvp import ZONE_CAPACITY as MVP_ZONE_CAPACITY
 
 # ═══════════════════════════════════════════════════════════════
 # 物料类型、工序与区域容量
@@ -28,6 +31,11 @@ ITEM_TYPES = (
     ITEM_TYPE_PART_DE, ITEM_TYPE_FINAL,
 )
 
+# MVP 扩展类型不并入 ``ITEM_TYPES``: 该元组写入受保护 v1 工件的
+# ``material_model.types`` 契约, 扩展它会使旧工件校验失败. 目录持久化
+# 使用 ``ALL_ITEM_TYPES`` 覆盖当前代码支持的全部枚举.
+ALL_ITEM_TYPES = (*ITEM_TYPES, *MVP_ITEM_TYPES)
+
 ITEM_COLORS = {
     ITEM_TYPE_RAW_A: (0.30, 0.70, 1.00),
     ITEM_TYPE_RAW_B: (1.00, 0.65, 0.25),
@@ -37,6 +45,7 @@ ITEM_COLORS = {
     ITEM_TYPE_RAW_D: (0.80, 0.45, 0.90),
     ITEM_TYPE_PART_DE: (0.60, 0.30, 0.80),
     ITEM_TYPE_FINAL: (1.00, 0.80, 0.20),
+    **MVP_ITEM_COLORS,
 }
 
 PROCESS_TRANSITIONS = {
@@ -63,6 +72,8 @@ ZONE_CAPACITY = {
     "buffer_e_c": 1, "buffer_e_d": 1,
     "agv": 1,
     "output_e": 4,
+    # assembly_mvp 扩展区域 (有限、封闭; 不改变 v1 区域容量).
+    **MVP_ZONE_CAPACITY,
 }
 
 JOIN_INPUTS = (ITEM_TYPE_SEMI_CE, ITEM_TYPE_PART_DE)

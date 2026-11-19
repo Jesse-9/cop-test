@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from . import assembly_mvp as mvp
 from .materials import ItemType
 
 
@@ -39,7 +40,8 @@ WORK_STEP_TEMPLATES = {
     "arm_pick_place": "机械臂吸附/转运/放置 "
                       "(Stage4UnitController 状态机与 IK/碰撞检查)",
     "agv_route": "AGV 轮速路线 (AGVRouteController4)",
-    "logical_join": "E 岛逻辑配对 (MaterialRegistry.commit_join)",
+    "logical_join": "逻辑配对 (MaterialRegistry.commit_pair / "
+                    "commit_join)",
 }
 
 COMPLETION_VERIFIERS = {
@@ -52,13 +54,19 @@ COMPLETION_VERIFIERS = {
 }
 
 # 已登记的逻辑合流处理器; 订单 DAG 只能引用这里的稳定 ID, 不允许携带
-# 任意代码. 首期只有 E 岛两父件原子配对.
+# 任意代码. ``e_material_pair`` 是 v1 E 岛两父件原子配对;
+# ``mvp_pair_assembly`` 是 assembly_mvp 独立岛的直接来料配对 (订单输入
+# 可直接绑定到该逻辑工序的端口, 无前置工序).
 JOIN_HANDLERS = {
     "e_material_pair": "E 岛 SEMI_CE + PART_DE 原子配对 (commit_join)",
+    mvp.JOIN_HANDLER: "MVP 双组件直接来料原子配对 (commit_pair)",
 }
 # 当前 coordinator/runtime 已实现的 join handler. 目录可以登记更多处理器,
 # 但订单运行只允许这里列出的实现; 新增处理器必须同时实现运行时路径.
-RUNTIME_JOIN_HANDLERS = ("e_material_pair",)
+RUNTIME_JOIN_HANDLERS = ("e_material_pair", mvp.JOIN_HANDLER)
+# 允许订单输入直接绑定其输入端口的逻辑处理器. 这类工序没有前置工序,
+# 来料槽本身就是齐套缓冲; 其它逻辑处理器仍要求前置工序供给.
+DIRECT_INPUT_JOIN_HANDLERS = (mvp.JOIN_HANDLER,)
 
 EXECUTOR_KINDS = ("arm", "agv", "logic")
 SOURCE_KINDS = {
@@ -256,6 +264,18 @@ class RecipeSpec:
     route_variants: tuple[RouteVariant, ...]
     entries: tuple[OrderEntry, ...]
     join_operation_id: str = ""
+
+    @property
+    def direct_input(self) -> bool:
+        """全部工序都是直接来料逻辑合流 (MVP 独立岛配方).
+
+        这类配方没有静态 route/entry: 订单输入本身就是入口, 每笔订单
+        显式绑定逻辑工序端口. 不是动态选路或通用 recipe 编译器.
+        """
+        return bool(self.operations) and all(
+            operation.executor_kind == "logic"
+            and operation.join_handler_id in DIRECT_INPUT_JOIN_HANDLERS
+            for operation in self.operations)
 
     def as_dict(self) -> dict:
         return {
@@ -564,8 +584,12 @@ class ProcessCatalog:
             self._check_operation(recipe, op, operation_index, err, check)
 
         self._check_dependency_graph(recipe, operation_index, err, check)
-        self._check_routes(recipe, operation_index, err, check)
-        self._check_entries(recipe, operation_index, err, check)
+        if recipe.direct_input:
+            check(f"recipe:{rid}:direct_input_join", True,
+                  f"operations={[op.id for op in recipe.operations]}")
+        else:
+            self._check_routes(recipe, operation_index, err, check)
+            self._check_entries(recipe, operation_index, err, check)
         self._check_join(recipe, operation_index, err, check)
 
     def _check_operation(self, recipe: RecipeSpec, op: OperationTemplate,

@@ -14,6 +14,10 @@ v1/
     manifest.json          # schema 2.0
     validation.json        # 迁移时 452 项只读校验
     lifecycle.jsonl
+experiments/
+  assembly-mvp/v1/         # 混线装配 MVP 实验工件, 与 v1 current 独立
+    current.json
+    L5_UFLOW/v001_20261114_120734/
 ```
 
 ## 当前 v1 场景包
@@ -47,6 +51,39 @@ v1 运行期不读取它们，只读取 `v1/current.json`。
 
 `v1/current.json` 是当前场景包标识与摘要的唯一指针；只在新场景包写入、重新加载
 并只读校验通过后原子更新。使用者应读取该文件，不要在其他文档另存一份指针副本。
+
+## assembly_mvp 实验场景包
+
+混线装配 MVP 使用独立的实验工件根，不进入受保护 `v1/current.json`：
+
+```text
+experiments/assembly-mvp/v1/
+  current.json
+  L5_UFLOW/v001_20261114_120734/
+    scene.ttt
+    manifest.json          # extra.v1.scene_profile=assembly_mvp
+    validation.json
+    lifecycle.jsonl
+```
+
+- 场景包 ID：`v1/L5_UFLOW/v001_20261114_120734`
+- 构建来源：`stage3/L2_MIRROR/v008_20261029_112305`
+- profile：`assembly_mvp`；扩展契约 `v1_assembly_mvp_20261114`
+- 内容：v1 五岛底图 + 2 个独立岛、4 个来料槽、2 个逻辑装配位、2 个成品位
+- 校验：保存后重载 `validation.json` `ok=true`；manifest 构建契约含 308 项
+  MVP 扩展检查
+- 命令：
+
+      flexible-factory build \
+        --parent docs/scene_artifacts/stage3/L2_MIRROR/v008_20261029_112305 \
+        --profile assembly_mvp \
+        --artifact-root docs/scene_artifacts/experiments/assembly-mvp \
+        --save
+
+实验场景包与 v1 工件同样受版本目录、SHA-256 和只读保护；它只服务 MVP
+订单验收，不是新的 v1 基线，也不改变 `docs/scene_artifacts/v1/current.json`。
+订单 fixture 与复现步骤见
+[assembly_mvp 参考](../implementation/reference/production-flow/assembly-mvp/README.md)。
 
 ## 覆盖与派生规则
 

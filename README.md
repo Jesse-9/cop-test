@@ -33,6 +33,12 @@ v1 只交付五岛 `L5_UFLOW` 场景；用户运行模式为 `full_flow`，入�
 当前场景包与阶段交付状态以[场景版本包说明](docs/scene_artifacts/README.md)和
 [实施资料索引](docs/implementation/README.md)为准；报告和证据是测试与验收事实的权威记录。
 
+混线装配 MVP 是独立实验 profile（`assembly_mvp`），在 `L5_UFLOW` 底图上追加
+两个无机械臂的独立岛，用声明式订单验证压缩机/法兰两产品切换和物料谱系。
+工件写入 `docs/scene_artifacts/experiments/assembly-mvp/`，不改变受保护 v1
+场景包；命令见[项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)，结论见
+[实施报告](docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)。
+
 MCP 和自动故障恢复不在当前 v1 能力范围；安全锁存不会自动清除。
 
 ## 入口与结构

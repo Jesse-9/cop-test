@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-12
+updated: 2026-11-14
 status: published
 sim_version: "4.10+"
 ---
@@ -95,6 +95,36 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
     flexible-factory list
     flexible-factory stop
 
+## 混线装配 MVP（assembly_mvp profile，实验）
+
+在 `L5_UFLOW` 底图西侧追加两个**独立、无机械臂**的装配岛，分别处理
+`COMPRESSOR + BASEPLATE → COMPRESSOR_ASSY` 和
+`FRONT_FLANGE + REAR_FLANGE → FLANGE_ASSY`。每个岛自带两个来料槽、
+齐套/逻辑装配位和成品位；订单切换决定运行哪座岛。逻辑装配只做物料账本
+原子消费和成品登记，不是真实轴孔/螺纹装配。
+
+实验工件与受保护 v1 基线分离：
+
+    docs/scene_artifacts/experiments/assembly-mvp/v1/current.json
+
+构建（需要 CoppeliaSim + ZMQ；先确认当前 GUI 没有未保存改动）：
+
+    flexible-factory build --parent docs/scene_artifacts/stage3/L2_MIRROR/v008_20261029_112305 --profile assembly_mvp --artifact-root docs/scene_artifacts/experiments/assembly-mvp --save
+
+`full_flow` 是默认 profile；`assembly_mvp` 只增加实验场景对象，不改变
+`config_digest`、`layout_digest` 或 v1 场景包。
+
+订单 fixture 与完整复现说明见
+[assembly_mvp 参考](../../implementation/reference/production-flow/assembly-mvp/README.md)：
+
+    flexible-factory order validate --file docs/implementation/reference/production-flow/assembly-mvp/order_compressor.json --db var/catalog/catalog.db
+    flexible-factory order create --file docs/implementation/reference/production-flow/assembly-mvp/order_compressor.json --source fixture --db var/catalog/catalog.db
+    flexible-factory order start --order-id mvp-compressor-001 --version 1 --artifact-id current --artifact-root docs/scene_artifacts/experiments/assembly-mvp --time 300 --run-records on
+
+混线演示按“压缩机 → 法兰 → 压缩机”固定序列分别运行三个订单/版本；每次
+`order start` 都重新加载实验工件，不复用上一笔的输入/成品。首版不验证
+多订单并发、工位互斥、真实抓取或装配质量。
+
 ## 订单 DAG（阶段 1–6）
 
 自建订单把工序模板组合成声明式 DAG，经同一 validator/compiler 编译后在
@@ -168,7 +198,7 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
   隔离；真实 ArmExecutor/AgvExecutor 目前不产生该 code，纯逻辑测试不构成
   物理准入。安全锁存、仿真基础设施、共享资源和未知异常一律 GLOBAL。真实
   运动错误的 NODE 准入需 focused 证据，未验证类型保持 GLOBAL。
-- 静态定义版本已升至 `v1_process_20261106a`。旧 release 需重新
+- 静态定义版本已升至 `v1_process_20261114a`。旧 release 需重新
   `catalog import/publish` 后才能作为 `--catalog-source db` 使用；订单表由
   `0005_orders` 迁移创建。
 - API 首期没有认证/TLS，不得直接暴露到非本机网络。

@@ -19,6 +19,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from .. import spec
+from . import assembly_mvp as mvp
 from . import rules as cfg
 from .materials import ItemType
 from .process_model import (CapabilitySpec, DeviceSpec, MaterialPort,
@@ -210,6 +211,43 @@ def _build_operations() -> tuple[OperationTemplate, ...]:
             bracket_to_e, kit_join)
 
 
+def _build_mvp_recipe(recipe_id: str) -> RecipeSpec:
+    """MVP 直接来料逻辑合流配方: 无 route/entry, 订单输入绑定端口.
+
+    ``RecipeSpec.direct_input`` 由该唯一 join 的 handler 派生; 目录校验
+    因此允许空 route/entry, 但不把它解释为通用配方编译器.
+    """
+    product = mvp.PRODUCTS[recipe_id]
+    inputs = tuple(
+        MaterialPort(zone, ItemType(item_type), port_id=port_id)
+        for zone, item_type, port_id in product["inputs"])
+    output_zone, output_type, output_port = product["output"]
+    operation = OperationTemplate(
+        id=product["template_id"], kind=product["template_id"],
+        semantics=product["semantics"],
+        executor_kind="logic", capability=_LOGICAL_JOIN,
+        candidate_devices=("logic_MVP",),
+        inputs=inputs,
+        output=MaterialPort(output_zone, ItemType(output_type)),
+        source_kind="none", sink_kind="none",
+        resources=(), resource_policy="logical_join",
+        work_steps=(_step("logical_join"),),
+        completion_verifier="join_pair_committed",
+        priority=0, depends_on=(), predecessor_policy="all",
+        successors=(), orchestratable=True, scene_id=spec.LAYOUT_NAME,
+        output_port_id=output_port, join_handler_id=mvp.JOIN_HANDLER)
+    return RecipeSpec(
+        id=recipe_id, version=PROCESS_MODEL_VERSION,
+        product_type=product["product_type"],
+        operations=(operation,), route_variants=(), entries=(),
+        join_operation_id=operation.id)
+
+
+def _build_mvp_recipes() -> tuple[RecipeSpec, ...]:
+    return (_build_mvp_recipe(mvp.RECIPE_COMPRESSOR),
+            _build_mvp_recipe(mvp.RECIPE_FLANGE))
+
+
 def _build_route_variants() -> tuple[RouteVariant, ...]:
     housing_direct = RouteVariant(
         id="housing_direct", group="housing_supply",
@@ -274,6 +312,9 @@ def _build_devices() -> tuple[DeviceSpec, ...]:
     devices.append(DeviceSpec(id="logic_E", kind="logic",
                               capabilities=(_LOGICAL_JOIN,),
                               physical=False))
+    devices.append(DeviceSpec(id="logic_MVP", kind="logic",
+                              capabilities=(_LOGICAL_JOIN,),
+                              physical=False))
     return tuple(devices)
 
 
@@ -289,7 +330,9 @@ def _build_zones() -> tuple[ZoneSpec, ...]:
         "agv": "AGV 载台",
         "output_e": "E 岛成品输出",
     }
-    spawnable = {"line_s1a", "line_s1b", "line_s2d"}
+    spawnable = {"line_s1a", "line_s1b", "line_s2d",
+                 *mvp.SOURCE_ZONES}
+    descriptions.update(mvp.ZONE_DESCRIPTIONS)
     return tuple(ZoneSpec(id=zone_id, capacity=int(capacity),
                           description=descriptions.get(zone_id, ""),
                           spawnable=zone_id in spawnable)
@@ -306,7 +349,7 @@ def build_default_catalog() -> ProcessCatalog:
         entries=_build_entries(),
         join_operation_id="kit_join")
     catalog = ProcessCatalog(
-        recipes=(recipe,),
+        recipes=(recipe, *_build_mvp_recipes()),
         capabilities=(
             CapabilitySpec(_ROBOTIC_PICK_PLACE, "机械臂取放/转运"),
             CapabilitySpec(_AGV_TRANSPORT, "AGV 按路线运输"),

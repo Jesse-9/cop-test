@@ -1,0 +1,20 @@
+{
+  "contract_version": "v1_order_20261106",
+  "order_id": "mvp-compressor-001",
+  "version": 1,
+  "scene_id": "L5_UFLOW",
+  "source": "fixture",
+  "target": {"item_type": "COMPRESSOR_ASSY", "quantity": 1},
+  "inputs": [
+    {"input_id": "compressor", "item_type": "COMPRESSOR", "quantity": 1,
+     "zone": "mvp_source_compressor", "node_id": "assemble",
+     "port_id": "compressor-in"},
+    {"input_id": "baseplate", "item_type": "BASEPLATE", "quantity": 1,
+     "zone": "mvp_source_baseplate", "node_id": "assemble",
+     "port_id": "baseplate-in"}
+  ],
+  "nodes": [
+    {"node_id": "assemble", "template_id": "mvp_compressor_assembly"}
+  ],
+  "edges": []
+}

@@ -32,7 +32,8 @@ from enum import Enum
 from typing import Iterable, Optional
 
 from .orders import OrderRunContext
-from .process_model import (MaterialPort, OperationTemplate, ProcessCatalog,
+from .process_model import (DIRECT_INPUT_JOIN_HANDLERS, MaterialPort,
+                            OperationTemplate, ProcessCatalog,
                             ProcessModelError, RecipeSpec, RouteVariant)
 
 
@@ -601,10 +602,20 @@ class OperationGraph:
                           f"前驱 {predecessor.template_id!r} 输出 {actual} "
                           f"不能接入端口 {port_id!r} "
                           f"({port.zone}/{port.item_type.value})")
-            if template.executor_kind == "logic" \
-                    and len(pred_ids) != len(template.inputs):
-                issue(instance, f"合流前驱 {len(pred_ids)} 个, 模板输入 "
-                                f"{len(template.inputs)} 个")
+            if template.executor_kind == "logic":
+                if template.join_handler_id in DIRECT_INPUT_JOIN_HANDLERS:
+                    # 直接来料合流: 无前驱, 输入 UID 必须覆盖全部端口.
+                    if pred_ids:
+                        issue(instance, f"直接来料合流不能有前驱: "
+                                        f"{list(pred_ids)}")
+                    if len(instance.input_uids) != len(template.inputs):
+                        issue(instance,
+                              f"直接来料合流输入 UID "
+                              f"{len(instance.input_uids)} 个, 模板输入 "
+                              f"{len(template.inputs)} 个")
+                elif len(pred_ids) != len(template.inputs):
+                    issue(instance, f"合流前驱 {len(pred_ids)} 个, 模板输入 "
+                                    f"{len(template.inputs)} 个")
         issues.extend(self._check_cycles(
             f"run={ctx.order_id} ", f"order={ctx.order_id}"))
         target_ids = set(ctx.target_instance_ids)

@@ -5,7 +5,7 @@ tags:
   - 类别/案例
   - 难度/中级
 created: 2026-11-10
-updated: 2026-11-11
+updated: 2026-11-14
 status: published
 ---
 
@@ -136,19 +136,19 @@ flexible-factory stop --timeout 20
 
 运行场景。正式用户入口为 `full_flow`；其他场景仅用于内部回归/诊断。
 
-| 选项 | 默认值 | 可选值/说明 |
-|---|---|---|
-| `--artifact TEXT` | `current` | 要加载的 v1 场景包引用。 |
-| `--no-load` | 关闭 | 使用当前已加载场景，不重新加载。 |
-| `--scenario TEXT` | `full_flow` | `full_flow`、`no_pair`、`agv_priority`、`agv_blocked`、`conveyor_fault`、`staggered_batch`。正式入口仅 `full_flow`。 |
-| `--fault TEXT` | `none` | `none`、`agv_blocked`、`conveyor_stop`。 |
-| `--batch-profile TEXT` | `default` | `default`、`direct_heavy`、`detour_heavy`。非默认配比仅可用于 `full_flow`。 |
-| `--time FLOAT` | `1200.0` 秒 | 本次运行的仿真时间上限。 |
-| `--log PATH` | `flexible_factory.log` | 日志文件路径。 |
-| `--out-dir PATH` | `docs/implementation/runs` | 运行报告输出目录。 |
-| `--catalog-source TEXT` | `code` | `code` 使用代码内静态工艺与资源定义（`ProcessCatalog`）；`db` 使用 SQLite 已发布定义，并要求与代码定义等价。 |
-| `--catalog-db PATH` | `var/catalog/catalog.db` | 目录/运行记录数据库路径。 |
-| `--run-records TEXT` | `on` | `on` 或 `off`；控制是否批量写入运行记录。 |
+| 选项                      | 默认值                        | 可选值/说明                                                                                                   |
+| ----------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `--artifact TEXT`       | `current`                  | 要加载的 v1 场景包引用。                                                                                           |
+| `--no-load`             | 关闭                         | 使用当前已加载场景，不重新加载。                                                                                         |
+| `--scenario TEXT`       | `full_flow`                | `full_flow`、`no_pair`、`agv_priority`、`agv_blocked`、`conveyor_fault`、`staggered_batch`。正式入口仅 `full_flow`。 |
+| `--fault TEXT`          | `none`                     | `none`、`agv_blocked`、`conveyor_stop`。                                                                    |
+| `--batch-profile TEXT`  | `default`                  | `default`、`direct_heavy`、`detour_heavy`。非默认配比仅可用于 `full_flow`。                                           |
+| `--time FLOAT`          | `1200.0` 秒                 | 本次运行的仿真时间上限。                                                                                             |
+| `--log PATH`            | `flexible_factory.log`     | 日志文件路径。                                                                                                  |
+| `--out-dir PATH`        | `docs/implementation/runs` | 运行报告输出目录。                                                                                                |
+| `--catalog-source TEXT` | `code`                     | `code` 使用代码内静态工艺与资源定义（`ProcessCatalog`）；`db` 使用 SQLite 已发布定义，并要求与代码定义等价。                                 |
+| `--catalog-db PATH`     | `var/catalog/catalog.db`   | 目录/运行记录数据库路径。                                                                                            |
+| `--run-records TEXT`    | `on`                       | `on` 或 `off`；控制是否批量写入运行记录。                                                                               |
 
 ```powershell
 flexible-factory run --scenario full_flow --time 700
@@ -183,12 +183,14 @@ flexible-factory migrate `
 |---|---|---|
 | `--parent PATH` | 必填 | 历史 stage3 场景包目录，或该场景包内受支持的文件。 |
 | `--layout PATH` | 不使用覆盖布局 | 可选布局 JSON 文件。 |
+| `--profile TEXT` | `full_flow`；`full_flow`、`assembly_mvp` | 场景 profile。`assembly_mvp` 在 v1 底图上追加两个独立装配岛；应配合显式 `--artifact-root` 保存实验工件。 |
 | `--save` | 关闭 | 构建后立即保存为新的 v1 场景包。 |
 | `--note TEXT` | 空字符串 | 保存时使用的备注。 |
 
 ```powershell
 flexible-factory build --parent .\docs\scene_artifacts\stage3\L2_MIRROR\v008
 flexible-factory build --parent .\path\to\parent --save --note "v1 rebuild"
+flexible-factory build --parent .\docs\scene_artifacts\stage3\L2_MIRROR\v008_20261029_112305 --profile assembly_mvp --artifact-root .\docs\scene_artifacts\experiments\assembly-mvp --save
 ```
 
 ## 静态工艺与资源定义数据库（CLI 名称：`catalog`）

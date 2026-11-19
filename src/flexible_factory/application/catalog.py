@@ -63,7 +63,9 @@ _RESOURCE_POLICY = "exclusive"
 
 def material_type_records() -> tuple[MaterialTypeRecord, ...]:
     rows = []
-    for item_type in rules.ITEM_TYPES:
+    # ALL_ITEM_TYPES = v1 冻结类型 + assembly_mvp 扩展; 目录种子必须覆盖
+    # 工序端口实际使用的全部枚举.
+    for item_type in rules.ALL_ITEM_TYPES:
         color = rules.ITEM_COLORS.get(item_type)
         rows.append(MaterialTypeRecord(
             material_type_id=item_type,

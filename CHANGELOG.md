@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- 混线装配 MVP（Neo4j 图谱子图，WP0–WP3）：新增 `assembly_mvp` 场景 profile，
+  在 `L5_UFLOW` 底图西侧追加压缩机/法兰两个独立静态岛（4 个来料槽、
+  2 个逻辑装配位、2 个成品位）；新增 `COMPRESSOR + BASEPLATE →
+  COMPRESSOR_ASSY` 与 `FRONT_FLANGE + REAR_FLANGE → FLANGE_ASSY` 两个
+  直接来料逻辑配方和 `mvp_pair_assembly` handler；订单输入可按模板端口
+  显式绑定，账本用 `MaterialRegistry.commit_pair` 原子消费并记录父 UID。
+  v1 `ITEM_TYPES`/`config_digest`/`layout_digest`/受保护工件不变；MVP 类型
+  只在 `scene_profile=assembly_mvp` 的 manifest 分支声明。
+  实验工件 `docs/scene_artifacts/experiments/assembly-mvp/v1/L5_UFLOW/v001_20261114_120734`
+  通过保存后重载校验；独立 CoppeliaSim 4.10 进程上“压缩机 → 法兰 →
+  压缩机”三笔订单均 `SUCCEEDED`、`ok=true`；受保护 v1 工件
+  `full_flow` 回归 `all_ok=true`（337.15 s、1 FINAL、0 failure）。方案/报告/复现资料见
+  `docs/implementation/plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md`、
+  `docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md`、
+  `docs/implementation/reference/production-flow/assembly-mvp/README.md`；
+  证据见 `docs/implementation/evidence/production-flow/v1_assembly_mvp_acceptance_20261114.json`。
+  `PROCESS_MODEL_VERSION` 升至 `v1_process_20261114a`；全量 pytest
+  635 passed / 7 skipped。多订单并发、工位互斥、真实抓取/轴孔/螺纹装配
+  仍未实现。
+
 - 新增 `tools/measure_startup_stages.py`：复用 `run` 启动路径，测量连接、
   工件加载、启动点校验、组件构建到 `start_stepping` 的各阶段耗时，并在
   仿真刚启动时截断，不执行场景循环；方法见

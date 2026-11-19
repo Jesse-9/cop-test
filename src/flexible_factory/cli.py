@@ -145,7 +145,8 @@ def cmd_build(ns) -> int:
         layout = layout_from_dict(json.loads(Path(ns.layout).read_text(
             encoding="utf-8")))
     manager.build(parent_scene=parent / sa.SCENE_FILE,
-                  parent_layout=parent_layout, layout=layout)
+                  parent_layout=parent_layout, layout=layout,
+                  profile=ns.profile)
     if ns.save:
         provenance = {
             "source_phase": parent_manifest.get("source_phase"),
@@ -153,6 +154,7 @@ def cmd_build(ns) -> int:
             "source_manifest_digest": sa.sha256_file(manifest_path),
             "source_scene_sha256": sa.sha256_file(parent / sa.SCENE_FILE),
             "migrated_at": sa.utc_now(),
+            "profile": ns.profile,
             "policy": "built from parent scene with v1 contract",
         }
         _print(manager.save(note=ns.note, provenance=provenance))
@@ -734,6 +736,10 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(p)
     p.add_argument("--parent", required=True, help="历史 stage3 工件目录")
     p.add_argument("--layout", default=None, help="可选布局 JSON")
+    p.add_argument("--profile", default="full_flow",
+                   choices=["full_flow", "assembly_mvp"],
+                   help="场景 profile: full_flow 为 v1 基线; assembly_mvp "
+                        "追加两个独立装配岛 (实验工件, 不改变 v1 基线)")
     p.add_argument("--save", action="store_true", help="构建后立即保存 v1 工件")
     p.add_argument("--note", default="")
     p.set_defaults(func=cmd_build)
