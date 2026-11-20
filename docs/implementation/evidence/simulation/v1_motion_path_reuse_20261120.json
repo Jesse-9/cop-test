@@ -1,0 +1,221 @@
+{
+  "case": "v1_motion_path_reuse_placing_focused",
+  "date": "2026-11-20",
+  "simulator": "CoppeliaSim 4.10.0.0",
+  "command": "FLEXIBLE_FACTORY_SIM=1 python -m pytest -q tests/test_v1_stage2_arm_sim.py -k path_reuse -s",
+  "scene_artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "operation": "housing_direct_A",
+  "device": "arm_A",
+  "path_record_id": "e63675d4372253a9",
+  "run1": {
+    "task_status": "DONE",
+    "safety_engaged": false,
+    "steps": 961,
+    "wall_s": 104.045,
+    "sim_time": 48.05,
+    "frozen": false,
+    "aborted": false,
+    "mode": "PLAN_ONLY",
+    "policy": {
+      "version": "v1_path_reuse_20261120",
+      "mode": "PLAN_ONLY",
+      "scene": "v1/L5_UFLOW/v005_20261117_110924",
+      "lookup": 0,
+      "replay": 0,
+      "fallback": 0,
+      "planner_calls": 1,
+      "export": true,
+      "last_error": ""
+    },
+    "placing": {
+      "state": "DONE",
+      "plan_source": "online",
+      "plan_wall_s": 3.312,
+      "plan_timings": {
+        "search_wall_s": 1.266,
+        "verify_wall_s": 1.016,
+        "postprocess_wall_s": 0.562
+      },
+      "plan_samples": 51,
+      "plan_strategy": "lock:direct",
+      "execution_totals": {
+        "segments": 1,
+        "tv_total": 1.190051,
+        "max_step": 0.03754,
+        "points": 81,
+        "sim_duration": 4.0,
+        "steps": 81,
+        "commands": 20
+      },
+      "target_error": {
+        "pos": 0.0008450597612003178,
+        "ang": 0.0013697895511679957
+      },
+      "tcp_pose": [
+        -0.200001,
+        1.200397,
+        0.400746,
+        -0.000675,
+        -0.000116,
+        -0.0,
+        -1.0
+      ],
+      "replay_phases": [
+        "PR_DONE"
+      ],
+      "replay_record_id": "e63675d4372253a9",
+      "original_strategy": null,
+      "original_status": null,
+      "lookup_wall_s": null,
+      "export_saved": true
+    }
+  },
+  "run2": {
+    "task_status": "DONE",
+    "safety_engaged": false,
+    "steps": 959,
+    "wall_s": 101.067,
+    "sim_time": 47.95,
+    "frozen": false,
+    "aborted": false,
+    "mode": "CACHE_ONLY",
+    "policy": {
+      "version": "v1_path_reuse_20261120",
+      "mode": "CACHE_ONLY",
+      "scene": "v1/L5_UFLOW/v005_20261117_110924",
+      "lookup": 1,
+      "replay": 1,
+      "fallback": 0,
+      "planner_calls": 0,
+      "export": false,
+      "last_error": ""
+    },
+    "placing": {
+      "state": "DONE",
+      "plan_source": "cache",
+      "plan_wall_s": 0.015,
+      "plan_timings": {
+        "search_wall_s": 0.0,
+        "verify_wall_s": 0.0,
+        "postprocess_wall_s": 0.0
+      },
+      "plan_samples": 0,
+      "plan_strategy": "replay",
+      "execution_totals": {
+        "segments": 1,
+        "tv_total": 1.190089,
+        "max_step": 0.03754,
+        "points": 81,
+        "sim_duration": 4.0,
+        "steps": 81,
+        "commands": 20
+      },
+      "target_error": {
+        "pos": 0.000844590433287048,
+        "ang": 0.0013678184878677898
+      },
+      "tcp_pose": [
+        -0.200001,
+        1.200396,
+        0.400746,
+        -0.000674,
+        -0.000116,
+        0.0,
+        -1.0
+      ],
+      "replay_phases": [
+        "PR_LOOKUP",
+        "PR_REPLAY",
+        "PR_DONE"
+      ],
+      "replay_record_id": "e63675d4372253a9",
+      "original_strategy": "lock:direct",
+      "original_status": "DIRECT_OK",
+      "lookup_wall_s": 0.015,
+      "export_saved": null
+    }
+  },
+  "comparison": {
+    "tcp_distance": 9.999999999177334e-07,
+    "pos_delta": 4.693279132697917e-07,
+    "ang_delta": 1.971063300205923e-06
+  },
+  "assertions": {
+    "both_tasks_done": true,
+    "both_safety_not_engaged": true,
+    "run2_planner_calls_zero": true,
+    "run2_replay_count_one": true,
+    "run2_phases": [
+      "PR_LOOKUP",
+      "PR_REPLAY",
+      "PR_DONE"
+    ],
+    "target_tolerance_m": 0.01,
+    "target_tolerance_rad": 0.05,
+    "tcp_distance_m": 9.999999999177334e-07
+  },
+  "limitations": [
+    "focused 只验证一个固定 A 臂 PLACING 段; 未覆盖 APPROACHING/LIFTING/TRANSFERRING 段",
+    "未执行第二个固定动作、移动目标、动态障碍物或故障注入回放",
+    "本次 PLACING 在线规划约 3.3 s, 单段执行 4.0 s; 全任务墙钟约 104 s, 不能由此推断全流程规划是主要瓶颈",
+    "P2/P3 未执行"
+  ],
+  "path_key": {
+    "motion_version": "motion_db3d54aaf188c989",
+    "payload": "box[-0.050000,-0.050000,-0.050000,0.050000,0.050000,0.050000];types[RAW_A]",
+    "phase": "PLACING:place",
+    "robot": "UR5",
+    "scene": "v1/L5_UFLOW/v005_20261117_110924",
+    "start_digest": [
+      -297,
+      -37,
+      -116,
+      -4,
+      157,
+      -454
+    ],
+    "targets_digest": "4b5a5323b4d57c16",
+    "tool": "UR5+suction_pad:cup=0.023579",
+    "unit": "A"
+  },
+  "record_geometry": {
+    "format_version": "v1_path_record_20261120",
+    "start_q": [
+      -2.971664,
+      -0.370635,
+      -1.157873,
+      -0.042287,
+      1.570796,
+      -4.542461
+    ],
+    "end_q": [
+      -2.971543,
+      -0.521562,
+      -1.601138,
+      0.551904,
+      1.570796,
+      -4.54234
+    ],
+    "waypoint_count": 21,
+    "segments": [
+      {
+        "cartesian": true,
+        "lock_joint": 0,
+        "lock_tol": 0.02,
+        "lock_value": -2.971664,
+        "name": "place",
+        "target_pose": [
+          -0.2,
+          1.2,
+          0.4,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "waypoint_count": 20
+      }
+    ],
+    "branch_anchor": "positive"
+  }
+}

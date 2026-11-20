@@ -35,6 +35,7 @@ v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件�
 | 目录/运行记录/知识图谱持久化 | 部分实现 | SQLite 目录、运行记录、Neo4j dump 导入链均有实现记录；真实 dump 的 Docker 端到端、备份恢复演练、记录保留策略及 Q5/Q6 查询仍有缺口 | [目录持久化报告](../reports/data-platform/v1-catalog-persistence.md)、[运行记录报告](../reports/data-platform/v1-run-record-persistence.md)、[知识图谱报告](../reports/data-platform/v1-knowledge-graph-import.md) |
 | 本地数据库仪表盘前端优化 | 提案，未实施 | 现有 CLI/HTML 可查看数据；仪表盘改版方案与 UI 蓝图尚未形成实施报告 | [优化方案](../plans/data-platform/db-dashboard-frontend-optimization.md)、[UI 蓝图](../plans/data-platform/db-dashboard-ui-blueprint.md) |
 | v1 启动性能优化 | 部分实施，性能已计时 | P1/P2 代码落地；正常 load 路径 `prepare_start` 25→12.1–12.2 s（alias 缓存后 8.5–9.6 s）、五台影子运行时 47.9→20.3–21.4 s；最新 `startup_total_wall` 79.97–88.61 s（旧口径 130–210 s 为重叠求和）；pytest 615 passed / 7 skipped；full_flow 功能验收通过（1 FINAL/343.85 s），清理修复复测 leftover=[]；P3 4 臂子集订单通过（B 跳过，1 FINAL，leftover=[]）；P4 未实施 | [方案](../plans/simulation/v1-startup-performance-optimization.md)、[报告](../reports/simulation/v1-startup-performance-optimization.md) |
+| 运动规划效率与固定路径回放 | 部分实施，focused 实机通过 | P0 计时字段与 P1 路径库/回放策略代码落地，默认不注入；首版仅 A 臂 `PLACING` 试点；全量离线 728 passed / 8 skipped；固定 `PLACING` 段 focused 对照通过（在线规划 3.312 s → 回放查找 0.015 s、规划器调用 0，目标误差同容差、无安全锁存）；抓取/转运段计时、第二个动作和 P2/P3 未执行 | [方案](../plans/simulation/simulation-motion-planning-performance.md)、[报告](../reports/simulation/v1-motion-planning-performance.md) |
 
 ## v2 前需管理的风险
 
