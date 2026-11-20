@@ -1,0 +1,263 @@
+{
+  "evidence_id": "v1_order_dag_phase7_dual_20261120_004442",
+  "phase": "order-dag-phase-7",
+  "case": "dual manual order (CLI order start, not UI)",
+  "executed_at": "2026-11-20T00:44:42+08:00",
+  "environment": {
+    "simulator": "CoppeliaSim 4.10.0",
+    "transport": "ZeroMQ Remote API 23000",
+    "source_revision": "e87e48b49ade95edd8b884f845fa763ee2a21f9a",
+    "source_revision_note": "acceptance ran on HEAD + uncommitted phase 7 changes",
+    "coppelia": {
+      "version": "4.10.0.0",
+      "zmq": "localhost:23000"
+    },
+    "artifact": {
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "protected": true,
+      "manifest_digest": "70457326be098844fe778f3f1962a61763352e27d7a461a63d7b1b7d9f8274f1",
+      "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+      "validation_ok": true
+    }
+  },
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "order": {
+    "order_id": "phase7-dual-manual",
+    "version": 1,
+    "dag_digest": "3fd961b4851b3abef06500bb6d28e6a4530de3e8b4ee84526efd38426c04cd85"
+  },
+  "run_id": "order_phase7-dual-manual_20261119_162821_96004c",
+  "transport_fleet": "dual",
+  "fleet_policy_version": "v1_fleet_20261119",
+  "catalog_version": "v1_process_20261117a",
+  "result": {
+    "order_status": "SUCCEEDED",
+    "all_ok": true,
+    "aborted": false,
+    "frozen": false,
+    "sim_time": 293.75,
+    "steps": 5875,
+    "active_unit_ids": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ]
+  },
+  "acceptance": {
+    "ok": true,
+    "order_status": "SUCCEEDED",
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        2
+      ]
+    ],
+    "order_target_count": 1,
+    "graph_complete": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "resources_released": true,
+    "route_ok": true,
+    "scheduler_ok": true,
+    "priority_ok": true,
+    "loaded_routes": 2
+  },
+  "node_states": {
+    "bracket-start": "DONE",
+    "bracket-transport": "DONE",
+    "bracket-buffer": "DONE",
+    "housing-start": "DONE",
+    "housing-transport": "DONE",
+    "housing-a": "DONE",
+    "housing-finish": "DONE",
+    "housing-buffer": "DONE",
+    "kit-join": "DONE"
+  },
+  "fleet": {
+    "mode": "dual",
+    "default_vehicle": "agv_1",
+    "assignment": {
+      "b_conveyor": "agv_1",
+      "a_agv": "agv_1",
+      "transport_ba": "agv_1",
+      "d_conveyor": "cart_2",
+      "e_agv": "cart_2",
+      "transport_de": "cart_2"
+    },
+    "verified_pairs": [
+      [
+        "cart_2",
+        "transport_DE"
+      ]
+    ],
+    "transport_selections": [
+      {
+        "instance_id": "order_phase7-dual-manual_20261119_162821_96004c:bracket-transport:2",
+        "task_id": "transport_de_uid2_bracket-transport",
+        "template_id": "transport_DE",
+        "kind": "transport_de",
+        "selected_device_id": "cart_2",
+        "execution_id": "cart_2#1"
+      },
+      {
+        "instance_id": "order_phase7-dual-manual_20261119_162821_96004c:housing-transport:1",
+        "task_id": "transport_ba_uid1_housing-transport",
+        "template_id": "transport_BA",
+        "kind": "transport_ba",
+        "selected_device_id": "agv_1",
+        "execution_id": "agv_1#2"
+      }
+    ],
+    "vehicles": [
+      {
+        "vehicle_id": "agv_1",
+        "at_dock": "A",
+        "device_id": "agv_1",
+        "active": false,
+        "task_id": "",
+        "execution_id": ""
+      },
+      {
+        "vehicle_id": "cart_2",
+        "at_dock": "E",
+        "device_id": "cart_2",
+        "active": false,
+        "task_id": "",
+        "execution_id": ""
+      }
+    ],
+    "route_lock": {
+      "resources": "all_docks_and_lanes",
+      "parallel_routes": false,
+      "policy_version": "v1_resources_20261103"
+    }
+  },
+  "routes": [
+    {
+      "vehicle_id": "agv_1",
+      "route_id": "A_to_B_empty",
+      "loaded": false,
+      "start_dock": "A",
+      "end_dock": "B",
+      "metrics": {
+        "route_id": "A_to_B_empty",
+        "loaded": false,
+        "start_pose": [
+          0.399248,
+          0.710854,
+          0.138692,
+          -0.000673,
+          -0.000617,
+          -0.709665,
+          0.704539
+        ],
+        "end_pose": [
+          0.399521,
+          -0.680234,
+          0.138692,
+          -0.000673,
+          -0.000621,
+          -0.707273,
+          0.70694
+        ],
+        "target_pose": null,
+        "stop_error": 0.019772,
+        "heading_error": 0.00047,
+        "duration_s": 12.35,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": null,
+        "material_relative_start": null,
+        "material_relative_end": null,
+        "blocked": {},
+        "resumed": []
+      }
+    },
+    {
+      "vehicle_id": "cart_2",
+      "route_id": "D->E",
+      "loaded": true,
+      "start_dock": "D",
+      "end_dock": "E",
+      "metrics": {
+        "stop_error": 0.0,
+        "heading_error": 0.0,
+        "material_slip": 0.0
+      }
+    },
+    {
+      "vehicle_id": "agv_1",
+      "route_id": "B_to_A_loaded",
+      "loaded": true,
+      "start_dock": "B",
+      "end_dock": "A",
+      "metrics": {
+        "route_id": "B_to_A_loaded",
+        "loaded": true,
+        "start_pose": [
+          0.395354,
+          -0.65443,
+          0.138691,
+          -0.000692,
+          -0.000618,
+          -0.719369,
+          0.694628
+        ],
+        "end_pose": [
+          0.399726,
+          0.68017,
+          0.138649,
+          -0.001056,
+          -0.001003,
+          -0.707099,
+          0.707113
+        ],
+        "target_pose": null,
+        "stop_error": 0.019832,
+        "heading_error": -2e-05,
+        "duration_s": 11.8,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": 0.003548,
+        "material_relative_start": [
+          -0.020546,
+          -0.006022,
+          0.168201
+        ],
+        "material_relative_end": [
+          -0.023884,
+          -0.007224,
+          0.16817
+        ],
+        "blocked": {},
+        "resumed": []
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "transport_DE selected cart_2 (cart_2#1) and transport_BA selected agv_1 (agv_1#2).",
+    "AGV loaded-route stop_error 0.019832 m and empty reposition 0.019772 m, both below 0.02 m tolerance; margin remains narrow.",
+    "Two horizontal_direct transfer plans failed (IK / workcell collision) and completed via the existing horizontal detour fallback; no node failure was raised.",
+    "Routes remained mutually exclusive (all-docks lock); this run does not demonstrate parallel route execution."
+  ],
+  "uncovered": [
+    "UI-driven start for the same order was not executed in this acceptance.",
+    "Planner-generated dual order was not executed.",
+    "cart_2 remains a kinematic executor, not wheel-driven physical control."
+  ],
+  "versions": {
+    "order_contract": "v1_order_20261106",
+    "catalog": "v1_process_20261117a",
+    "fleet_policy": "v1_fleet_20261119"
+  }
+}

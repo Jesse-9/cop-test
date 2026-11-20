@@ -14,7 +14,8 @@
      全部忙时仍选择排序第一的可用候选, 由协调器排队等待;
   5. 工序/物料前提 — 输入 UID 在期望区域、类型匹配、目标区域容量允许;
   6. 物理可行性 — 非基线设备只有在 ``verified_pairs`` 中登记的
-     (device, operation) 组合才可被选择; 未验收组合显式拒绝.
+     (device, operation) 组合才可被选择; 未验收组合显式拒绝. 车队固定分工
+     的已验收组合由协调器从 ``FleetConfig.verified_pairs()`` 注入.
 
 资源 owner 冲突、AGV 停靠状态属于执行前条件, 记录在 ``conditions`` 中但不
 阻断选择: 任务必须进入队列, 现有 ``_poll_agv`` 才会据此调度车辆, 否则
@@ -113,6 +114,8 @@ class OperationView:
     route_destination_dock: str = ""
     required_resources: tuple[str, ...] = ()
     selected_route: str = ""
+    #: 该工序实际服务的运输车辆 (fleet 固定分工); 空表示不涉及车辆.
+    vehicle_id: str = ""
 
     @property
     def baseline_device_id(self) -> str:
@@ -151,6 +154,7 @@ class OperationView:
             "route_destination_dock": self.route_destination_dock,
             "required_resources": list(self.required_resources),
             "selected_route": self.selected_route,
+            "vehicle_id": self.vehicle_id,
         }
 
 
@@ -172,12 +176,24 @@ class SchedulingSnapshot:
     verified_pairs: frozenset[tuple[str, str]] = frozenset()
     agv_at_dock: str = ""
     agv_dock_settled: bool = True
+    #: 按车辆 ID 的停靠状态 (dual 下同时包含 agv_1 与 cart_2). 未登记的
+    #: 车辆回退到 ``agv_at_dock`` / ``agv_dock_settled`` 兼容单车辆调用方.
+    vehicle_at_dock: Mapping[str, str] = field(default_factory=dict)
+    vehicle_dock_settled: Mapping[str, bool] = field(default_factory=dict)
 
     def material(self, uid: int) -> Optional[MaterialView]:
         for row in self.materials:
             if int(row.uid) == int(uid):
                 return row
         return None
+
+    def dock_state(self, vehicle_id: str) -> tuple[str, bool]:
+        """车辆当前 dock 与停稳状态; 空 ID 或未登记时回退单车辆字段."""
+        if vehicle_id:
+            return (self.vehicle_at_dock.get(vehicle_id, self.agv_at_dock),
+                    bool(self.vehicle_dock_settled.get(
+                        vehicle_id, self.agv_dock_settled)))
+        return self.agv_at_dock, bool(self.agv_dock_settled)
 
     def as_dict(self) -> dict:
         return {
@@ -195,6 +211,11 @@ class SchedulingSnapshot:
                                sorted(self.verified_pairs)],
             "agv_at_dock": self.agv_at_dock,
             "agv_dock_settled": bool(self.agv_dock_settled),
+            "vehicle_at_dock": {name: dock for name, dock
+                                in sorted(self.vehicle_at_dock.items())},
+            "vehicle_dock_settled": {
+                name: bool(value)
+                for name, value in sorted(self.vehicle_dock_settled.items())},
         }
 
 
@@ -365,24 +386,29 @@ def _evaluate_candidate(
             and pair not in snapshot.verified_pairs):
         reasons.append("DYNAMIC_GEOMETRY_NOT_VERIFIED")
 
-    # AGV 停靠属于执行前条件: 入队后由协调器等待并驱动空载调机.
+    # 车辆停靠属于执行前条件: 入队后由协调器等待并驱动空载调机.
+    # dual 下按工序固定分工查询对应车辆的 dock/停稳状态, 不使用 agv_1 状态
+    # 代替 cart_2; 未提供 vehicle_id 的调用方回退到单车辆兼容字段.
     if operation.executor_kind == "agv":
         expected = operation.route_origin_dock
+        actual, settled = snapshot.dock_state(
+            operation.vehicle_id or device.device_id)
         if not expected:
             conditions.append("AGV_ROUTE_MISSING_ORIGIN")
-        elif snapshot.agv_at_dock != expected:
+        elif actual != expected:
             conditions.append(
                 f"AGV_NOT_AT_DOCK: expected {expected} "
-                f"actual {snapshot.agv_at_dock}")
-        elif not snapshot.agv_dock_settled:
+                f"actual {actual}")
+        elif not settled:
             conditions.append("AGV_DOCK_NOT_SETTLED")
     elif operation.source_kind == "agv" or operation.sink_kind == "agv":
         expected = operation.dock
-        if expected and snapshot.agv_at_dock != expected:
+        actual, settled = snapshot.dock_state(operation.vehicle_id)
+        if expected and actual != expected:
             conditions.append(
                 f"AGV_NOT_AT_DOCK: expected {expected} "
-                f"actual {snapshot.agv_at_dock}")
-        elif expected and not snapshot.agv_dock_settled:
+                f"actual {actual}")
+        elif expected and not settled:
             conditions.append("AGV_DOCK_NOT_SETTLED")
 
     return CandidateDecision(

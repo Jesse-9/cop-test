@@ -11,6 +11,7 @@ export const ITEM_TYPES = [
 
 export type ItemType = (typeof ITEM_TYPES)[number];
 export type OrderSource = "manual" | "planner" | "fixture";
+export type TransportFleet = "single" | "dual";
 export type OrderRunStatus =
   | "STARTING"
   | "RUNNING"
@@ -129,12 +130,55 @@ export interface RunMeta {
   order_version: number;
   dag_digest: string;
   artifact_id: string;
+  transport_fleet: TransportFleet;
+  fleet_policy_version: string;
   status: OrderRunStatus;
   failure_scope: "" | "NODE" | "GLOBAL";
   stop_reason: string;
   started_at: string;
   finished_at: string;
   result: Record<string, unknown> | null;
+}
+
+export interface FleetVehicle {
+  vehicle_id: string;
+  device_id: string;
+  at_dock: string;
+  active: boolean;
+  task_id: string;
+  execution_id: string;
+}
+
+export interface FleetTransportSelection {
+  instance_id: string;
+  task_id: string;
+  template_id: string;
+  kind: string;
+  selected_device_id: string;
+  execution_id: string;
+}
+
+export interface FleetSummary {
+  mode: TransportFleet;
+  policy_version: string;
+  default_vehicle: string;
+  assignment: Record<string, string>;
+  verified_pairs: string[][];
+  vehicles: FleetVehicle[];
+  transport_selections: FleetTransportSelection[];
+  route_lock: {
+    resources: string;
+    parallel_routes: boolean;
+    policy_version: string;
+  };
+}
+
+export interface FleetStatus {
+  modes: TransportFleet[];
+  default: TransportFleet;
+  policy_version: string;
+  artifact_id: string;
+  dual: { available: boolean; reason: string };
 }
 
 export interface OrderSummary {
@@ -357,6 +401,7 @@ export interface RunDetail extends RunMeta {
   failed_count: number;
   cancelled_count: number;
   nodes: RunNode[];
+  fleet?: FleetSummary | null;
   live?: Record<string, unknown> | null;
 }
 
@@ -379,6 +424,7 @@ export interface RunEvent {
 export interface StartRunBody {
   artifact_id: string;
   max_sim_time?: number;
+  transport_fleet?: TransportFleet;
 }
 
 export interface PlannerDraftResponse {

@@ -26,6 +26,7 @@ ORDER_SOURCES = ("manual", "planner", "fixture")
 ORDER_STATUSES = ("STARTING", "RUNNING", "SUCCEEDED", "PARTIAL_FAILED",
                   "FAILED", "ABORTED")
 ORDER_FAILURE_SCOPES = ("NODE", "GLOBAL")
+ORDER_TRANSPORT_FLEETS = ("single", "dual")
 
 
 class OrderHeader(Base):
@@ -92,6 +93,7 @@ class OrderRun(Base):
         _non_empty("dag_digest"),
         _in("status", ORDER_STATUSES),
         _in("failure_scope", ORDER_FAILURE_SCOPES),
+        _in("transport_fleet", ORDER_TRANSPORT_FLEETS),
         CheckConstraint("length(dag_digest) = 64",
                         name="dag_digest_sha256"),
         CheckConstraint(
@@ -115,6 +117,9 @@ class OrderRun(Base):
     dag_digest: Mapped[str] = mapped_column(Text, nullable=False)
     artifact_id: Mapped[str] = mapped_column(Text, nullable=False,
                                              default="")
+    transport_fleet: Mapped[str] = mapped_column(Text, nullable=False,
+                                                 default="single")
+    fleet_policy_version: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     failure_scope: Mapped[Optional[str]] = mapped_column(Text)
     stop_reason: Mapped[Optional[str]] = mapped_column(Text)
@@ -155,4 +160,5 @@ class OrderNodeRun(Base):
 
 
 __all__ = ["ORDER_FAILURE_SCOPES", "ORDER_SOURCES", "ORDER_STATUSES",
-           "OrderHeader", "OrderNodeRun", "OrderRun", "OrderVersion"]
+           "ORDER_TRANSPORT_FLEETS", "OrderHeader", "OrderNodeRun",
+           "OrderRun", "OrderVersion"]

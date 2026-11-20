@@ -84,6 +84,8 @@ def test_order_run_linkage_and_node_snapshots(repository):
         run_id="run_order_1", order_id=order.order_id, version=1,
         dag_digest=digest, artifact_id="v1/L5_UFLOW/v001")
     assert run["status"] == "STARTING"
+    assert run["transport_fleet"] == "single"
+    assert run["fleet_policy_version"] == ""
     repository.update_run("run_order_1", status="RUNNING")
     repository.record_nodes("run_order_1", [{
         "instance_id": "run_order_1:housing-start:1",
@@ -102,6 +104,41 @@ def test_order_run_linkage_and_node_snapshots(repository):
     assert finished["nodes"][0]["failure_code"] == "NODE_PRECHECK_REJECTED"
     assert repository.list_runs(order_id=order.order_id)[0]["run_id"] == \
         "run_order_1"
+
+
+def test_run_records_transport_fleet_mode(repository):
+    order = full_flow_order()
+    repository.create_order(order)
+    run = repository.create_run(
+        run_id="run_order_dual", order_id=order.order_id, version=1,
+        dag_digest=order.dag_digest(), artifact_id="v1/L5_UFLOW/v005",
+        transport_fleet="dual",
+        fleet_policy_version="v1_fleet_20261119")
+    assert run["transport_fleet"] == "dual"
+    assert run["fleet_policy_version"] == "v1_fleet_20261119"
+    assert repository.get_run("run_order_dual")["transport_fleet"] == "dual"
+
+
+def test_order_run_fleet_migration_round_trip(tmp_path):
+    import sqlite3
+
+    from alembic import command
+
+    from flexible_factory.persistence.db import alembic_config
+
+    database = CatalogDatabase(tmp_path / "roundtrip.db")
+    initialize_database(database)
+    config = alembic_config(database)
+    command.downgrade(config, "0006_order_planner_metadata")
+    with sqlite3.connect(database.path) as connection:
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(order_run)")}
+    assert "transport_fleet" not in columns
+    command.upgrade(config, "head")
+    with sqlite3.connect(database.path) as connection:
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(order_run)")}
+    assert {"transport_fleet", "fleet_policy_version"} <= columns
 
 
 def test_run_creation_requires_matching_digest(repository):

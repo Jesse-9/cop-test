@@ -270,18 +270,53 @@ def _order_catalog(ns):
     return default_catalog()
 
 
+def _fleet_artifact_checker(store: sa.ArtifactStore):
+    """构造启动前的工件双车能力检查 (manifest 只读, 不加载场景)."""
+    def check(artifact_id: str, fleet_mode: str) -> None:
+        if fleet_mode != "dual":
+            return
+        from .persistence.errors import OrderRunConfigError
+        try:
+            artifact = store.resolve(artifact_id)
+        except Exception as exc:
+            raise OrderRunConfigError(
+                f"工件 {artifact_id!r} 无法解析: "
+                f"{type(exc).__name__}: {exc}") from exc
+        aliases = {str(row.get("alias") or "")
+                   for row in artifact.manifest.get("objects") or []}
+        missing = [alias for alias in ("Cart2", "Cart2_Tray")
+                   if alias not in aliases]
+        if missing:
+            raise OrderRunConfigError(
+                f"工件 {artifact_id!r} 缺少双车对象 {missing}; "
+                f"不能以 dual 启动 (single 仍可用)")
+        contract = str(
+            artifact.manifest.get("scene_contract_version")
+            or (artifact.manifest.get("extra") or {}).get(
+                "v1", {}).get("contract_version")
+            or "")
+        if not contract:
+            raise OrderRunConfigError(
+                f"工件 {artifact_id!r} 未记录场景契约版本; "
+                f"不能确认 dual 场景契约")
+    return check
+
+
 def _order_service(ns, *, runner=None) -> OrderService:
     database = _catalog_db(ns)
     initialize_database(database)
     catalog = _order_catalog(ns)
     resolver = None
+    checker = None
     if hasattr(ns, "artifact_root"):
         store = _store(ns)
         resolver = lambda ref: store.find(ref).artifact_id
+        checker = _fleet_artifact_checker(store)
     return OrderService(
         database, catalog=catalog,
         artifact_id=getattr(ns, "artifact_id", "") or "current",
-        runner=runner, artifact_resolver=resolver)
+        runner=runner, artifact_resolver=resolver,
+        fleet_artifact_checker=checker)
 
 
 def _order_runner(ns):
@@ -358,7 +393,8 @@ def cmd_order_start(ns) -> int:
     service = _order_service(ns)
     result = service.run_sync(
         ns.order_id, ns.version, _order_runner(ns),
-        artifact_id=ns.artifact_id, max_sim_time=ns.max_time)
+        artifact_id=ns.artifact_id, max_sim_time=ns.max_time,
+        transport_fleet=ns.transport_fleet)
     _print(result)
     return 0 if result.get("status") == "SUCCEEDED" else 1
 
@@ -675,6 +711,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", type=int, required=True)
     p.add_argument("--artifact-id", default="current")
     p.add_argument("--time", dest="max_time", type=float, default=1200.0)
+    p.add_argument("--transport-fleet", choices=["single", "dual"],
+                   default="single",
+                   help="车队编制: single=只用 agv_1 (默认); "
+                        "dual=agv_1 跑 B→A、cart_2 跑 D→E (需场景含 Cart2)")
     p.add_argument("--run-records", choices=["on", "off"], default="on")
     _add_common(p)
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)

@@ -50,7 +50,8 @@ def _op(instance_id: str, *, candidates=("arm_A",), capability="pick",
 
 def _snapshot(operations, devices, *, materials=None, free=None,
               owners=None, busy=None, verified=(), agv_at="A",
-              settled=True, sim_time=0.0) -> SchedulingSnapshot:
+              settled=True, sim_time=0.0, vehicle_at=None,
+              vehicle_settled=None) -> SchedulingSnapshot:
     return SchedulingSnapshot(
         sim_time=sim_time, operations=tuple(operations),
         devices=tuple(devices),
@@ -61,7 +62,9 @@ def _snapshot(operations, devices, *, materials=None, free=None,
         resource_owners=dict(owners or {}),
         busy_devices=dict(busy or {}),
         verified_pairs=frozenset(verified),
-        agv_at_dock=agv_at, agv_dock_settled=settled)
+        agv_at_dock=agv_at, agv_dock_settled=settled,
+        vehicle_at_dock=dict(vehicle_at or {}),
+        vehicle_dock_settled=dict(vehicle_settled or {}))
 
 
 def _decision(result, instance_id: str):
@@ -157,6 +160,44 @@ def test_agv_transport_ignores_same_zone_destination_capacity():
     decision = _decision(result, "run:1:move")
     assert decision.selected_device_id == "agv_1"
     assert decision.candidates[0].reasons == ()
+
+
+def test_vehicle_dock_conditions_use_assigned_vehicle_state():
+    """双车下 transport_DE 的条件应读 cart_2 状态, 不沿用 agv_1."""
+    operation = OperationView(
+        instance_id="run:1:move", template_id="transport_DE",
+        kind="transport_de", uid=2, executor_kind="agv",
+        capability="agv_transport", candidate_device_ids=("cart_2",),
+        input_zones=("agv",), input_item_types=("RAW_D",),
+        destination_zone="agv", source_kind="conveyor", sink_kind="conveyor",
+        route_origin_dock="D", route_destination_dock="E",
+        vehicle_id="cart_2")
+    device = DeviceView(
+        device_id="cart_2", kind="agv", capabilities=("agv_transport",),
+        resources=("agv_lane_east", "dock_D", "dock_E"), zones=("agv",))
+    result = plan_ready(_snapshot(
+        [operation], [device],
+        materials=[MaterialView(2, "RAW_D", "agv")],
+        agv_at="A", settled=True,
+        vehicle_at={"agv_1": "A", "cart_2": "E"},
+        vehicle_settled={"agv_1": True, "cart_2": True}))
+    decision = _decision(result, "run:1:move")
+    assert decision.selected_device_id == "cart_2"
+    assert any(condition.startswith(
+        "AGV_NOT_AT_DOCK: expected D actual E")
+        for condition in decision.candidates[0].conditions)
+
+    # 车辆回到 D 且停稳后条件消失.
+    result = plan_ready(_snapshot(
+        [operation], [device],
+        materials=[MaterialView(2, "RAW_D", "agv")],
+        vehicle_at={"cart_2": "D"},
+        vehicle_settled={"cart_2": True}))
+    decision = _decision(result, "run:1:move")
+    assert not any("AGV_NOT_AT_DOCK" in condition
+                   for condition in decision.candidates[0].conditions)
+    assert not any("AGV_DOCK_NOT_SETTLED" in condition
+                   for condition in decision.candidates[0].conditions)
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -58,6 +58,59 @@ def test_unknown_mode_is_rejected():
         tf.FleetConfig("triple")
 
 
+def test_normalize_fleet_mode_defaults_and_rejects_unknown():
+    assert tf.normalize_fleet_mode(None) == tf.FLEET_SINGLE
+    assert tf.normalize_fleet_mode("") == tf.FLEET_SINGLE
+    assert tf.normalize_fleet_mode(" Dual ") == tf.FLEET_DUAL
+    with pytest.raises(ValueError, match="车队模式"):
+        tf.normalize_fleet_mode("triple")
+
+
+def test_fleet_config_reports_policy_and_verified_pairs():
+    config = tf.FleetConfig(tf.FLEET_DUAL)
+    payload = config.as_dict()
+    assert payload["policy_version"] == tf.FLEET_POLICY_VERSION
+    assert ["cart_2", "transport_DE"] in payload["verified_pairs"]
+    assert payload["assignment"]["transport_de"] == "cart_2"
+    single = tf.FleetConfig().as_dict()
+    assert single["verified_pairs"] == []
+    assert single["assignment"] == {}
+
+
+def test_effective_candidates_follow_fleet_assignment():
+    from flexible_factory.application.coordinator import Stage4Coordinator
+    from flexible_factory.domain.default_process import default_catalog
+
+    coordinator = object.__new__(Stage4Coordinator)
+    template = default_catalog().operation("transport_DE")
+    candidates = tuple(template.candidate_devices)
+
+    coordinator.fleet_config = tf.FleetConfig(tf.FLEET_SINGLE)
+    assert coordinator._effective_candidates(template, candidates) == \
+        (template.candidate_devices[0],)
+
+    coordinator.fleet_config = tf.FleetConfig(tf.FLEET_DUAL)
+    assert coordinator._effective_candidates(template, candidates) == \
+        ("cart_2",)
+
+
+def test_fleet_assignment_is_validated_against_catalog():
+    from types import SimpleNamespace
+
+    from flexible_factory.application.coordinator import (CoordinatorError,
+                                                          Stage4Coordinator)
+
+    template = SimpleNamespace(
+        id="transport_DE", kind="transport_de", executor_kind="agv",
+        candidate_devices=("agv_1",))
+    coordinator = object.__new__(Stage4Coordinator)
+    coordinator.catalog = SimpleNamespace(
+        recipes=(SimpleNamespace(operations=(template,)),))
+    coordinator._validate_fleet_assignment(tf.FleetConfig(tf.FLEET_SINGLE))
+    with pytest.raises(CoordinatorError, match="FLEET_ASSIGNMENT_INVALID"):
+        coordinator._validate_fleet_assignment(tf.FleetConfig(tf.FLEET_DUAL))
+
+
 # ═══════════════════════════════════════════════════════════════
 # 2. 路线插值
 # ═══════════════════════════════════════════════════════════════
@@ -138,6 +191,21 @@ def test_executor_late_tick_still_arrives_at_end():
     assert report.state is ExecutionState.SUCCEEDED
     assert report.detail["progress"] == pytest.approx(1.0)
     assert trace[-1][1] == pytest.approx(NODES["E"][1], abs=1e-6)
+
+
+def test_executor_poll_evidence_matches_agv_contract():
+    """小车二证据与 AgvExecutor 同形: 验收层不需要按车辆实现分支."""
+    executor = tf.KinematicTransportExecutor(mover=lambda *a: None)
+    execution_id = executor.start(_request())
+    executor.pre_tick(1000.0)
+    report = executor.poll(execution_id)
+    route = report.evidence["route"]
+    assert route["spec"]["loaded"] is True
+    assert route["spec"]["start_dock"] == "D"
+    assert route["spec"]["end_dock"] == "E"
+    assert route["vehicle_id"] == "cart_2"
+    assert route["metrics"]["stop_error"] == 0.0
+    assert report.detail["vehicle_id"] == "cart_2"
 
 
 # ═══════════════════════════════════════════════════════════════

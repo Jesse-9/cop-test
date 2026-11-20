@@ -125,7 +125,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 `order start` 都重新加载实验工件，不复用上一笔的输入/成品。首版不验证
 多订单并发、工位互斥、真实抓取或装配质量。
 
-## 订单 DAG（阶段 1–6）
+## 订单 DAG（阶段 1–7）
 
 自建订单把工序模板组合成声明式 DAG，经同一 validator/compiler 编译后在
 `L5_UFLOW` 中执行。阶段 1–5 已实现契约、编译、局部失败隔离、版本化持久化、
@@ -133,6 +133,12 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 完成手工 UI 订单、planner UI 订单、物理动作前 NODE 拒绝和真实安全锁存
 GLOBAL 停止验收，见
 [阶段 6 实施报告](../../implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。
+阶段 7 已把 `single/dual` 车队作为**运行选项**接入订单 API/worker/coordinator
+和启动 UI：`dual` 下 `agv_1` 负责壳体 B→A 物流、`cart_2` 负责支架 D→E 物流；
+该选项不写入不可变订单版本或 DAG digest。`v005` 上 single 回归、dual 手工订单、
+dual planner 订单和真实 UI 双车启动已在 CoppeliaSim 限定验收中通过；路线并行、
+planner UI 启动仍未验证，见
+[阶段 7 实施报告](../../implementation/reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。
 本轮只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开等
 未验证类型仍是 GLOBAL，不能把纯逻辑或本报告范围外结果当作实机能力。
 
@@ -152,11 +158,17 @@ CLI（不需要 CoppeliaSim 的校验/预览/版本命令）：
 运行（需要 CoppeliaSim + ZMQ 23000；`start` 在当前进程同步执行）：
 
     flexible-factory order start --order-id <id> --version 1 \
-        --artifact-id current --time 700 --run-records on
+        --artifact-id current --time 700 --run-records on \
+        --transport-fleet single
     flexible-factory order status --run-id <run_id> --db var/catalog/catalog.db
     flexible-factory order nodes  --run-id <run_id> --db var/catalog/catalog.db
     flexible-factory order events --run-id <run_id> --db var/catalog/catalog.db
     flexible-factory order stop   --run-id <run_id> --db var/catalog/catalog.db
+
+    # 双车运行: 工件必须包含 Cart2 / Cart2_Tray (当前 v005)
+    flexible-factory order start --order-id <id> --version 1 \
+        --artifact-id v1/L5_UFLOW/v005_20261117_110924 \
+        --transport-fleet dual
 
 HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）：
 
@@ -166,6 +178,7 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
 
     GET  /api/health
     GET  /api/templates
+    GET  /api/fleet?artifact_id={ref}
     GET/POST /api/orders
     GET  /api/orders/{order_id}
     GET/POST /api/orders/{order_id}/versions
@@ -184,6 +197,15 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
 - 创建/保存版本只做 JSON 字段校验；DAG 结构在预览和启动时由后端 validator/
   compiler 拒绝并返回定位诊断。`start` 绑定不可变版本、静态定义版本和具体
   场景包；`current` 会在服务端解析为具体的 `artifact_id`。
+- `start` 可选 `transport_fleet`（`single` 缺省 / `dual`）。该值是**运行配置**，
+  不修改订单版本与 DAG digest；未知值在创建 run 前拒绝。`dual` 启动前检查
+  工件 manifest 必须含 `Cart2`、`Cart2_Tray`，目录必须登记 `cart_2`，否则
+  返回 422 且不产生 run 记录。
+- 双车固定分工：`agv_1` 承运壳体 B→A 相关物流，`cart_2` 承运支架 D→E 相关
+  物流。运行记录/状态/报告返回实际生效的 `transport_fleet`、
+  `fleet_policy_version`、车辆分工和每个运输实例选中的车辆。路线资源仍按
+  “全部 dock + 直道”全有或全无锁定，因此两条路线互斥；双车当前提供分工与
+  能力可用，不声明并行提速，路线锁缩窄需单独冲突验收。
 - 订单版本只能追加；数据库触发器禁止原地 UPDATE。运行开始后修改编排必须
   创建新版本。
 - `api serve --host/--port` 只绑定本地 HTTP API；仿真 worker 通过
@@ -198,9 +220,10 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
   隔离；真实 ArmExecutor/AgvExecutor 目前不产生该 code，纯逻辑测试不构成
   物理准入。安全锁存、仿真基础设施、共享资源和未知异常一律 GLOBAL。真实
   运动错误的 NODE 准入需 focused 证据，未验证类型保持 GLOBAL。
-- 静态定义版本已升至 `v1_process_20261114a`。旧 release 需重新
+- 静态定义版本已升至 `v1_process_20261117a`。旧 release 需重新
   `catalog import/publish` 后才能作为 `--catalog-source db` 使用；订单表由
-  `0005_orders` 迁移创建。
+  `0005_orders` 迁移创建，`0007_order_run_fleet` 为运行记录增加车队模式与
+  策略版本列（历史行回填 `single`）。
 - API 首期没有认证/TLS，不得直接暴露到非本机网络。
 
 ### 自主规划（阶段 4）
@@ -259,6 +282,9 @@ input/search_limit/compile 中最先阻断的类别。
 打开 `http://127.0.0.1:5173/orders`。页面包括订单列表、订单编辑器、自动规划
 和运行详情；编辑器的“服务端预览”是校验权威，保存总是创建新的不可变版本。
 运行页只读显示服务端节点/事件快照，stop 按钮只发送受控停止请求。
+订单详情“确认启动”对话框可选单车/双车：默认单车；双车按钮按
+`GET /api/fleet` 的工件能力启用/禁用，运行详情显示本次模式、策略版本和
+实际选车。
 
     npm test          # Vitest 单元测试
     npm run e2e       # Playwright 三条旅程（首次先 npm run e2e:install）
@@ -267,7 +293,8 @@ input/search_limit/compile 中最先阻断的类别。
 真实 CoppeliaSim 的 UI 验收入口见
 [frontend/README.md](../../../frontend/README.md) 的
 `e2e/real_acceptance.mjs`（`manual`/`planner`/`start`/`verify`）；该脚本不使用
-route mock，会实际启动订单运行。
+route mock，会实际启动订单运行。设置 `ACCEPT_FLEET=dual` 可在启动对话框
+选择双车，并断言运行页的车队模式、策略版本和实际选车。
 
 开发 API 目标可用 `VITE_DEV_API_TARGET` 覆盖；生产 API 基址可用
 `VITE_API_BASE_URL` 覆盖（默认 `/api`）。前端与 API 不同源部署时需使用

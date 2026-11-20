@@ -1,0 +1,204 @@
+{
+  "evidence_id": "v1_order_dag_phase7_single_regression_20261120_005619",
+  "phase": "order-dag-phase-7",
+  "case": "single regression on dual-capable artifact (CLI order start, default fleet)",
+  "executed_at": "2026-11-20T00:56:19+08:00",
+  "environment": {
+    "source_revision": "e87e48b49ade95edd8b884f845fa763ee2a21f9a",
+    "source_revision_note": "acceptance ran on HEAD + uncommitted phase 7 changes",
+    "simulator": "CoppeliaSim 4.10.0",
+    "transport": "ZeroMQ Remote API 23000",
+    "coppelia": {
+      "version": "4.10.0.0",
+      "zmq": "localhost:23000"
+    },
+    "artifact": {
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "protected": true,
+      "manifest_digest": "70457326be098844fe778f3f1962a61763352e27d7a461a63d7b1b7d9f8274f1",
+      "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+      "validation_ok": true
+    }
+  },
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "order": {
+    "order_id": "phase7-single-regression",
+    "version": 1,
+    "dag_digest": "543a139343227bbf213f62e3a5e3a047c8bb5c7282ca8155bb6789d9a6bf6c37"
+  },
+  "run_id": "order_phase7-single-regression_20261119_164611_3a9fe4",
+  "transport_fleet": "single",
+  "fleet_policy_version": "v1_fleet_20261119",
+  "catalog_version": "v1_process_20261117a",
+  "versions": {
+    "order_contract": "v1_order_20261106",
+    "catalog": "v1_process_20261117a",
+    "fleet_policy": "v1_fleet_20261119"
+  },
+  "result": {
+    "order_status": "SUCCEEDED",
+    "all_ok": true,
+    "aborted": false,
+    "frozen": false,
+    "sim_time": 163.8,
+    "steps": 3276,
+    "active_unit_ids": [
+      "A",
+      "C",
+      "D",
+      "E"
+    ]
+  },
+  "acceptance": {
+    "ok": true,
+    "order_status": "SUCCEEDED",
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        2
+      ]
+    ],
+    "order_target_count": 1,
+    "graph_complete": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "resources_released": true,
+    "route_ok": true,
+    "scheduler_ok": true,
+    "priority_ok": true,
+    "loaded_routes": 1
+  },
+  "fleet": {
+    "mode": "single",
+    "assignment": {},
+    "verified_pairs": [],
+    "transport_selections": [
+      {
+        "instance_id": "order_phase7-single-regression_20261119_164611_3a9fe4:bracket-transport:2",
+        "task_id": "transport_de_uid2_bracket-transport",
+        "template_id": "transport_DE",
+        "kind": "transport_de",
+        "selected_device_id": "agv_1",
+        "execution_id": "agv_1#2"
+      }
+    ],
+    "vehicles": [
+      {
+        "vehicle_id": "agv_1",
+        "at_dock": "E",
+        "device_id": "agv_1",
+        "active": false,
+        "task_id": "",
+        "execution_id": ""
+      }
+    ],
+    "route_lock": {
+      "resources": "all_docks_and_lanes",
+      "parallel_routes": false,
+      "policy_version": "v1_resources_20261103"
+    }
+  },
+  "routes": [
+    {
+      "vehicle_id": "agv_1",
+      "route_id": "A_to_D_empty",
+      "loaded": false,
+      "start_dock": "A",
+      "end_dock": "D",
+      "metrics": {
+        "route_id": "A_to_D_empty",
+        "loaded": false,
+        "start_pose": [
+          0.4,
+          0.7,
+          0.138786,
+          0.0,
+          0.0,
+          -0.707107,
+          0.707107
+        ],
+        "end_pose": [
+          2.900305,
+          -1.369602,
+          0.138651,
+          -0.00104,
+          -0.000983,
+          -0.707174,
+          0.707039
+        ],
+        "target_pose": null,
+        "stop_error": 0.019604,
+        "heading_error": 0.000191,
+        "duration_s": 61.45,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": null,
+        "material_relative_start": null,
+        "material_relative_end": null,
+        "blocked": {},
+        "resumed": []
+      }
+    },
+    {
+      "vehicle_id": "agv_1",
+      "route_id": "D_to_E_loaded",
+      "loaded": true,
+      "start_dock": "D",
+      "end_dock": "E",
+      "metrics": {
+        "route_id": "D_to_E_loaded",
+        "loaded": true,
+        "start_pose": [
+          2.901912,
+          -1.355316,
+          0.13865,
+          -0.00105,
+          -0.000994,
+          -0.7068,
+          0.707412
+        ],
+        "end_pose": [
+          2.899786,
+          1.330439,
+          0.138649,
+          -0.001053,
+          -0.001001,
+          -0.707206,
+          0.707006
+        ],
+        "target_pose": null,
+        "stop_error": 0.019562,
+        "heading_error": 0.000283,
+        "duration_s": 23.05,
+        "max_speed": 0.0,
+        "mean_speed": 0.0,
+        "samples": 0,
+        "stable_samples": 0,
+        "stable_fraction": 0.0,
+        "material_slip": 0.008474,
+        "material_relative_start": [
+          -0.013757,
+          0.000378,
+          0.1682
+        ],
+        "material_relative_end": [
+          -0.022075,
+          -0.001244,
+          0.168176
+        ],
+        "blocked": {},
+        "resumed": []
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "Cart2 was parked outside docks; only agv_1 routed and transported.",
+    "transport_DE used agv_1 with stop_error 0.019562 m (< 0.02 m); margin remains narrow.",
+    "Single mode leaves order/DAG digest unchanged; fleet assignment is empty."
+  ]
+}

@@ -5,7 +5,7 @@ tags:
   - 类别/项目管理
   - 类别/实施计划
 created: 2026-11-05
-updated: 2026-11-14
+updated: 2026-11-20
 status: published
 ---
 
@@ -49,7 +49,7 @@ status: published
 
 | 主题 | 实施方案 | 状态说明 |
 |---|---|---|
-| 自建订单与工序 DAG 自主编排 | [路线图](../plans/order-orchestration/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/order-orchestration/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 方案](../plans/order-orchestration/v1-order-dag-phase-05-frontend.md)、[阶段 5 UI 规格](../plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md)、[阶段 6](../plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) | 订单 DAG 实施阶段 1–6 已完成各自限定交付；报告入口见[阶段 1–3](../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4](../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)、[阶段 6](../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。真实 Arm/AGV 运动故障与 ZMQ/step 断连仍未获 NODE 准入 |
+| 自建订单与工序 DAG 自主编排 | [路线图](../plans/order-orchestration/v1-self-built-order-dag-orchestration.md)、[阶段 1](../plans/order-orchestration/v1-order-dag-phase-01-foundation.md)、[阶段 2](../plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md)、[阶段 3](../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md)、[阶段 4](../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 方案](../plans/order-orchestration/v1-order-dag-phase-05-frontend.md)、[阶段 5 UI 规格](../plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md)、[阶段 6](../plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)、[阶段 7 双车](../plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) | 订单 DAG 实施阶段 1–6 已完成各自限定交付；阶段 7 已完成运行配置透传、双车派工一致性、迁移和启动 UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行、planner UI 启动和轮式物理未验证。报告入口见[阶段 1–3](../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4](../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5](../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)、[阶段 6](../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)、[阶段 7](../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。真实 Arm/AGV 运动故障与 ZMQ/step 断连仍未获 NODE 准入 |
 | 本地数据库仪表盘优化 | [前端优化方案](../plans/data-platform/db-dashboard-frontend-optimization.md)、[UI 蓝图](../plans/data-platform/db-dashboard-ui-blueprint.md)、[数据库查看指南](../reference/data-platform/database-inspection-guide.md) | 保持只读离线 HTML；方案尚未实施 |
 
 ## 跨阶段技术主题

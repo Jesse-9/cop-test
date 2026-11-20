@@ -1138,6 +1138,12 @@ summary {
   margin-bottom: 10px;
 }
 
+.fleet-switch {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .detail-grid-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

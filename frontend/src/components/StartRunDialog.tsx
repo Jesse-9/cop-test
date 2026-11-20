@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import { Field, InlineError } from "./ui";
+import type { FleetStatus, TransportFleet } from "../api/types";
+import { Field, InlineError, InlineNotice } from "./ui";
 
 export function StartRunDialog({
   orderId,
@@ -17,12 +18,50 @@ export function StartRunDialog({
   const navigate = useNavigate();
   const [artifact, setArtifact] = useState("current");
   const [maxSimTime, setMaxSimTime] = useState(1200);
+  const [fleetMode, setFleetMode] = useState<TransportFleet>("single");
+  const [fleetInfo, setFleetInfo] = useState<FleetStatus | null>(null);
+  const [fleetError, setFleetError] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      api
+        .fleet(artifact.trim() || undefined)
+        .then((payload) => {
+          if (cancelled) return;
+          setFleetInfo(payload.fleet);
+          setFleetError("");
+          setFleetMode((current) =>
+            payload.fleet.dual.available ? current : "single",
+          );
+        })
+        .catch((exc) => {
+          if (cancelled) return;
+          setFleetInfo(null);
+          setFleetError(exc instanceof ApiError ? exc.message : String(exc));
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [artifact]);
+
+  const dualAvailable = fleetInfo?.dual.available === true;
+  const dualReason =
+    fleetError ||
+    fleetInfo?.dual.reason ||
+    (fleetInfo ? "" : "正在检查场景工件的双车能力…");
 
   const start = async () => {
     if (!artifact.trim()) {
       setError("必须指定场景工件引用");
+      return;
+    }
+    if (fleetMode === "dual" && !dualAvailable) {
+      setError(dualReason || "当前工件不支持双车运行");
       return;
     }
     setBusy(true);
@@ -31,6 +70,7 @@ export function StartRunDialog({
       const payload = await api.start(orderId, version, {
         artifact_id: artifact.trim(),
         max_sim_time: maxSimTime,
+        transport_fleet: fleetMode,
       });
       navigate(`/runs/${encodeURIComponent(payload.run.run_id)}`);
     } catch (exc) {
@@ -78,7 +118,60 @@ export function StartRunDialog({
             }
           />
         </Field>
+        <Field
+          label="车队模式"
+          htmlFor="start-fleet"
+          hint="运行选项，不写入订单版本或 DAG；双车需工件包含 Cart2。"
+        >
+          <div
+            id="start-fleet"
+            className="fleet-switch"
+            role="radiogroup"
+            aria-label="车队模式"
+          >
+            <button
+              type="button"
+              className={
+                fleetMode === "single"
+                  ? "button button-small"
+                  : "button button-small button-secondary"
+              }
+              role="radio"
+              aria-checked={fleetMode === "single"}
+              disabled={busy}
+              onClick={() => setFleetMode("single")}
+            >
+              单车
+            </button>
+            <button
+              type="button"
+              className={
+                fleetMode === "dual"
+                  ? "button button-small"
+                  : "button button-small button-secondary"
+              }
+              role="radio"
+              aria-checked={fleetMode === "dual"}
+              disabled={busy || !dualAvailable}
+              title={dualAvailable ? "" : dualReason}
+              onClick={() => setFleetMode("dual")}
+            >
+              双车
+            </button>
+          </div>
+        </Field>
       </div>
+      {!dualAvailable && dualReason ? (
+        <InlineNotice tone="warning">
+          双车不可用：{dualReason}
+        </InlineNotice>
+      ) : null}
+      {fleetInfo ? (
+        <p className="muted">
+          车队策略 {fleetInfo.policy_version} · 默认 {fleetInfo.default}
+          {fleetInfo.artifact_id ? ` · 工件 ${fleetInfo.artifact_id}` : ""}
+        </p>
+      ) : null}
       {error ? <InlineError message={error} /> : null}
       <div className="button-row">
         <button

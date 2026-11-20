@@ -79,9 +79,10 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
     from .coordinator import Stage4Coordinator
 
     logger = setup_logger(config.log)
-    logger.info("[ORDER] start run=%s order=%s@%s artifact=%s",
+    logger.info("[ORDER] start run=%s order=%s@%s artifact=%s fleet=%s",
                 command.run_id, command.order.order_id,
-                command.order.version, command.artifact_id)
+                command.order.version, command.artifact_id,
+                command.transport_fleet)
     _client, sim, simIK = connect(config.host, config.port)
     manager = LifecycleManager(
         sim, simIK, host=config.host, port=config.port, actor="order",
@@ -118,7 +119,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         start_stepping(sim)
         coordinator = Stage4Coordinator(
             sim, manager.scene, comp, scenario=cfg.SCENARIO_FULL_FLOW,
-            catalog=catalog, order_plan=command.compiled, logger=logger)
+            catalog=catalog, order_plan=command.compiled,
+            fleet_mode=command.transport_fleet, logger=logger)
         coordinator.start(float(sim.getSimulationTime()))
         task_start = float(sim.getSimulationTime())
         wall_deadline = time.time() + max(
@@ -137,6 +139,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                     "status": "RUNNING",
                     "order_status": coordinator.order_status(),
                     "sim_time": round(float(sim.getSimulationTime()), 4),
+                    "transport_fleet": coordinator.fleet_config.mode,
+                    "fleet": coordinator.fleet_summary(),
                     "nodes": [row.as_dict()
                               for row in coordinator.op_runtime.instances()],
                     "events": list(coordinator.events[-500:]),

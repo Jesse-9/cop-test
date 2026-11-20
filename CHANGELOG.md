@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- 自建订单 DAG 阶段 7（双车订单运行接入）：订单启动 API/CLI 新增
+  `transport_fleet`（`single` 缺省 / `dual`），在创建 run 前校验并冻结到
+  `OrderRunCommand`，运行记录新增 `transport_fleet` / `fleet_policy_version`
+  列（迁移 `0007_order_run_fleet`，历史行回填 `single`）。`dual` 固定分工为
+  `agv_1` 承运壳体 B→A、`cart_2` 承运支架 D→E；coordinator 按分工收窄运输
+  候选，并统一 `selected_device_id`、执行器、事件、资源 owner 和报告中的
+  车辆，调度快照按车辆读取 dock/停稳状态。`dual` 启动前检查工件 manifest
+  的 `Cart2`/`Cart2_Tray`，缺失返回 422 且不产生 run；启动对话框和运行详情
+  展示车队模式/分工/路线锁。路线资源仍按全部 dock + 直道全有或全无锁定，
+  路线互斥，不声明并行提速；`cart_2` 仍是运动学执行器。纯逻辑/API/前端测试
+  704 passed / 7 skipped（跳过项需 CoppeliaSim），frontend 13 passed、
+  e2e 4 passed、typecheck/build 通过。CoppeliaSim 限定验收（`v005`）已执行：single 回归、
+  dual 手工订单、dual planner 订单和真实 UI 双车启动均 `SUCCEEDED` 并生成
+  1 个 FINAL，`transport_BA → agv_1`、`transport_DE → cart_2`；路线并行
+  证明未执行，见
+  `docs/implementation/reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md`。
+
 - 混线装配 MVP（Neo4j 图谱子图，WP0–WP3）：新增 `assembly_mvp` 场景 profile，
   在 `L5_UFLOW` 底图西侧追加压缩机/法兰两个独立静态岛（4 个来料槽、
   2 个逻辑装配位、2 个成品位）；新增 `COMPRESSOR + BASEPLATE →

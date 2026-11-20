@@ -416,7 +416,7 @@ def _compact_summary(summary: dict) -> Optional[dict]:
         return None
     keys = ("scenario", "fault", "sim_time", "aborted", "frozen",
             "stop_reason", "batch", "source_counts", "agv_at_dock",
-            "metrics", "acceptance")
+            "transport_fleet", "fleet", "metrics", "acceptance")
     compact = {key: summary[key] for key in keys if key in summary}
     process_model = summary.get("process_model") or {}
     if process_model:

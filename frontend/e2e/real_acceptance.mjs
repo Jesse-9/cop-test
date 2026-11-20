@@ -9,9 +9,12 @@
  *
  * 用法：
  *   node e2e/real_acceptance.mjs manual
+ *   ACCEPT_FLEET=dual node e2e/real_acceptance.mjs manual
  *   node e2e/real_acceptance.mjs planner
  *   RUN_ID=<run_id> node e2e/real_acceptance.mjs verify
  *
+ * `ACCEPT_FLEET=dual` 会在启动对话框中选中双车，并断言运行页显示双车、
+ * 固定分工和实际选车；缺省 single，行为与阶段 6 相同。
  * 脚本通过真实后端创建/保存订单并从 UI 启动；不使用 route mock。运行可能
  * 持续数十分钟，默认等待 60 分钟。verify 只检查已结束运行在刷新前后一致。
  */
@@ -20,6 +23,7 @@ import { chromium } from "playwright";
 const BASE = process.env.E2E_BASE_URL || "http://127.0.0.1:5173";
 const ARTIFACT_ID = process.env.ACCEPT_ARTIFACT_ID;
 const MODE = process.argv[2] || "manual";
+const FLEET = process.env.ACCEPT_FLEET === "dual" ? "dual" : "single";
 
 if (!ARTIFACT_ID) {
   console.error("必须设置 ACCEPT_ARTIFACT_ID");
@@ -44,12 +48,59 @@ async function waitNodeRows(page, expected) {
   );
 }
 
+async function selectFleet(page) {
+  await page.locator("#start-fleet").waitFor({ timeout: 60_000 });
+  const dual = page.getByRole("radio", { name: "双车" });
+  await dual.waitFor();
+  if (FLEET === "dual") {
+    // /api/fleet 异步检查工件；按钮可用后才允许选择。
+    await page.waitForFunction(
+      () => {
+        const buttons = [
+          ...document.querySelectorAll('#start-fleet [role="radio"]'),
+        ];
+        const target = buttons.find(
+          (button) => (button.textContent || "").trim() === "双车",
+        );
+        return Boolean(target) && !target.disabled;
+      },
+      null,
+      { timeout: 60_000 },
+    );
+    await dual.click();
+    if ((await dual.getAttribute("aria-checked")) !== "true") {
+      throw new Error("双车单选未生效");
+    }
+  } else {
+    await page.getByRole("radio", { name: "单车" }).click();
+  }
+}
+
+async function assertRunFleet(page, bodyText) {
+  if (FLEET === "dual") {
+    if (!bodyText.includes("车队 双车")) {
+      throw new Error("运行页未显示双车模式");
+    }
+    if (!bodyText.includes("v1_fleet_")) {
+      throw new Error("运行页未显示车队策略版本");
+    }
+    if (!bodyText.includes("transport_DE→cart_2")) {
+      throw new Error("运行页未显示 transport_DE→cart_2 实际选车");
+    }
+  } else if (!bodyText.includes("车队 单车")) {
+    throw new Error("运行页未显示单车模式");
+  }
+  console.log(`RUN_FLEET=${FLEET}`);
+  console.log("RUN_FLEET_OK=true");
+}
+
 async function startRun(page) {
   const expectedNodes = process.env.EXPECT_NODES
     ? Number(process.env.EXPECT_NODES)
     : null;
   await page.locator("#start-artifact").waitFor({ timeout: 60_000 });
   await page.locator("#start-artifact").fill(ARTIFACT_ID);
+  await selectFleet(page);
   await page.getByRole("button", { name: "确认启动" }).click();
   await page.waitForURL(/\/runs\//, { timeout: 60_000 });
   const runUrl = page.url();
@@ -74,11 +125,13 @@ async function startRun(page) {
     throw new Error(`刷新后状态不一致: ${status} != ${reloaded}`);
   }
   const nodeRows = await page.locator(".data-table tbody tr").count();
+  const pageText = await page.locator("body").innerText();
+  await assertRunFleet(page, pageText);
   console.log(`RUN_URL=${runUrl}`);
   console.log(`RUN_STATUS=${status}`);
   console.log(`RUN_RELOAD_STATUS=${reloaded}`);
   console.log(`RUN_NODE_ROWS=${nodeRows}`);
-  console.log(`RUN_PAGE_TEXT=${(await page.locator("body").innerText()).slice(0, 1200)}`);
+  console.log(`RUN_PAGE_TEXT=${pageText.slice(0, 1800)}`);
 }
 
 async function verifyRun(page) {
@@ -112,7 +165,9 @@ async function verifyRun(page) {
   console.log(`RUN_URL=${runUrl}`);
   console.log(`RUN_STATUS=${after}`);
   console.log(`RUN_NODE_ROWS=${await page.locator(".data-table tbody tr").count()}`);
-  console.log(`RUN_PAGE_TEXT=${(await page.locator("body").innerText()).slice(0, 1200)}`);
+  const pageText = await page.locator("body").innerText();
+  await assertRunFleet(page, pageText);
+  console.log(`RUN_PAGE_TEXT=${pageText.slice(0, 1800)}`);
 }
 
 async function connect(page, source, target, port) {

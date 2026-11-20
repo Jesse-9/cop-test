@@ -19,6 +19,7 @@ from ..application.orders import OrderService
 from ..domain.orders import (ORDER_CONTRACT_VERSION, OrderSpecError,
                              OrderValidationError)
 from ..persistence.errors import (OrderIntegrityError, OrderNotFoundError,
+                                  OrderRunConfigError,
                                   OrderRunConflictError, OrderRunNotFoundError,
                                   OrderStateError,
                                   OrderVersionConflictError,
@@ -81,6 +82,9 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         except _CONFLICT_ERRORS as exc:
             self._json(409, _domain_error(getattr(exc, "code", "CONFLICT"),
                                           exc))
+        except OrderRunConfigError as exc:
+            # 非法车队模式 / dual 工件缺 Cart2 等都在创建 run 前拒绝.
+            self._json(422, _domain_error("ORDER_RUN_CONFIG", exc))
         except OrderIntegrityError as exc:
             self._json(500, _domain_error("ORDER_INTEGRITY", exc))
         except Exception as exc:
@@ -100,6 +104,9 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             return self._health()
         if parts == ["templates"] and method == "GET":
             return self.service.templates()
+        if parts == ["fleet"] and method == "GET":
+            artifact = (query.get("artifact_id") or [""])[0]
+            return {"fleet": self.service.fleet_status(artifact)}
         if parts == ["planner", "plan"] and method == "POST":
             plan = self._planner_call(
                 lambda: self.service.plan(self._read_json()))
@@ -184,7 +191,8 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             result = self.service.start(
                 order_id, version,
                 artifact_id=str(body.get("artifact_id") or ""),
-                max_sim_time=max_sim_time)
+                max_sim_time=max_sim_time,
+                transport_fleet=str(body.get("transport_fleet") or "single"))
             return {"run": result}
         raise ApiError(404, "NOT_FOUND", f"未知订单动作 {action!r}")
 
@@ -219,12 +227,20 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             from ..application.planner import PLANNER_POLICY_VERSION
         except Exception:      # 阶段 3 部署可独立于阶段 4 planner 模块
             PLANNER_POLICY_VERSION = ""
+        try:
+            from ..simulation.transport_fleet import (FLEET_MODES,
+                                                      FLEET_POLICY_VERSION)
+        except Exception:
+            FLEET_MODES = ("single", "dual")
+            FLEET_POLICY_VERSION = ""
         return {
             "service": "order",
             "contract_version": ORDER_CONTRACT_VERSION,
             "planner_policy_version": PLANNER_POLICY_VERSION,
             "catalog_version": self.service.catalog.version,
             "scene_id": "L5_UFLOW",
+            "transport_fleets": list(FLEET_MODES),
+            "fleet_policy_version": FLEET_POLICY_VERSION,
         }
 
     @staticmethod

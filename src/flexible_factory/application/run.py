@@ -277,6 +277,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
             "batch": dict(effective_batch),
             "batch_profile": str(batch_profile or DEFAULT_BATCH_PROFILE),
             "batch_input_version": spec.BATCH_INPUT_VERSION,
+            "transport_fleet": fleet_mode,
             "steps": steps,
             "sim_time": round(float(sim.getSimulationTime()), 4),
             "coordinator": summary,
@@ -335,6 +336,10 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         raise ValueError(f"未知 fault: {fault!r}")
     effective_fault = (fault if fault != cfg.FAULT_NONE
                        else cfg.SCENARIO_FAULT[scenario])
+    # 车队模式是运行选项; 非法值在装配协调器前拒绝.
+    from ..simulation.transport_fleet import FleetConfig
+
+    fleet_mode = FleetConfig(fleet_mode).mode
     # 批次在连接/构建组件之前解析并校验; 运行报告只记录实际生效的值.
     effective_batch = resolve_batch(scenario, profile=batch_profile,
                                     batch=batch)
@@ -440,6 +445,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "batch": dict(effective_batch),
         "batch_profile": profile_name,
         "batch_input_version": spec.BATCH_INPUT_VERSION,
+        "transport_fleet": fleet_mode,
         "active_unit_ids": list(effective_unit_ids),
         "layout": scene.stage4_layout.name,
         "catalog_source": "database" if catalog is not None else "code",
