@@ -175,6 +175,7 @@ class Stage4Coordinator:
                                         materials=self.materials,
                                         logger=logger)
         self.fleet_config = FleetConfig(fleet_mode)
+        self._validate_fleet_assignment(self.fleet_config)
         self.cart2_vehicle = None
         if self.fleet_config.dual:
             if not any(device.id == "cart_2" for device in self.catalog.devices):
@@ -284,12 +285,106 @@ class Stage4Coordinator:
         """当前活动航线控制器的只读视图; 生命周期由 AgvExecutor 管理."""
         return self.agv_executor.route
 
+    # ═══════════════════════════════════════════════════════
+    # 车队编制校验与投影
+    # ═══════════════════════════════════════════════════════
+
+    def _validate_fleet_assignment(self, fleet: FleetConfig) -> None:
+        """固定分工的车辆必须在该运输工序的合法候选内.
+
+        启动前显式拒绝, 不能等调度选中 `agv_1` 后由执行层偷偷换成
+        `cart_2`, 也不能在失败后无记录地改派另一辆车.
+        """
+        seen: set[tuple[str, str]] = set()
+        for recipe in self.catalog.recipes:
+            for template in recipe.operations:
+                if template.executor_kind != "agv":
+                    continue
+                key = (template.id, template.kind)
+                if key in seen:
+                    continue
+                seen.add(key)
+                vehicle = fleet.vehicle_for(template.kind)
+                if vehicle not in template.candidate_devices:
+                    raise CoordinatorError(
+                        f"FLEET_ASSIGNMENT_INVALID: 工序 {template.id!r} "
+                        f"(kind={template.kind!r}) 在 {fleet.mode} 下分配给 "
+                        f"{vehicle!r}, 但候选设备为 "
+                        f"{list(template.candidate_devices)}; 请检查工艺目录"
+                        f"与固定分工策略")
+
+    def _effective_candidates(self, template: OperationTemplate,
+                              candidates) -> tuple[str, ...]:
+        """运输工序只保留固定分工车辆; 其它工序保持 recipe 候选."""
+        values = tuple(str(value) for value in candidates or ())
+        if template.executor_kind != "agv":
+            return values
+        vehicle = self.fleet_config.vehicle_for(template.kind)
+        return (vehicle,) if vehicle in values else values
+
+    def _vehicle_settled(self, vehicle_id: str) -> bool:
+        """车辆是否停在记录的 dock 并满足停稳判据."""
+        runtime = self.fleet.get(vehicle_id)
+        if runtime is None or not runtime.at_dock:
+            return False
+        return self._vehicle_at_dock(runtime.at_dock, vehicle_id)
+
+    def _vehicle_dock_states(self) -> tuple[dict[str, str], dict[str, bool]]:
+        docks: dict[str, str] = {}
+        settled: dict[str, bool] = {}
+        for vehicle_id, runtime in self.fleet.items():
+            docks[vehicle_id] = str(runtime.at_dock or "")
+            try:
+                settled[vehicle_id] = self._vehicle_settled(vehicle_id)
+            except Exception:
+                settled[vehicle_id] = False
+        return docks, settled
+
+    def fleet_summary(self) -> dict:
+        """本次运行的车队模式、策略版本、车辆槽位与运输选车记录."""
+        selections = []
+        for row in self.schedule_decisions:
+            template_id = str(row.get("template_id") or "")
+            if not template_id:
+                continue
+            template = self.catalog.operation(template_id)
+            if template.executor_kind != "agv" or not row.get(
+                    "selected_device_id"):
+                continue
+            selections.append({
+                "instance_id": row.get("operation_instance_id", ""),
+                "task_id": row.get("task_id", ""),
+                "template_id": template.id,
+                "kind": template.kind,
+                "selected_device_id": row["selected_device_id"],
+                "execution_id": row.get("execution_id", ""),
+            })
+        return {
+            **self.fleet_config.as_dict(),
+            "vehicles": [runtime.as_dict()
+                         for runtime in self.fleet.values()],
+            "transport_selections": selections,
+            "route_lock": self._route_lock_policy(),
+        }
+
+    def _route_lock_policy(self) -> dict:
+        """路线资源锁定边界; 首期保守串行, 不声称真实并行."""
+        return {
+            "resources": ("all_docks_and_lanes"
+                          if cfg.AGV_ROUTE_REQUIRES_ALL_DOCKS
+                          else "route_lanes_and_docks"),
+            "parallel_routes": not bool(cfg.AGV_ROUTE_REQUIRES_ALL_DOCKS),
+            "policy_version": spec.RESOURCE_POLICY_VERSION,
+        }
+
     def start(self, sim_time: float = 0.0) -> None:
         self.started_at = float(sim_time)
         self._event("COORDINATOR_START", detail={
             "scenario": self.scenario, "fault": self.fault,
             "batch": dict(self._batch),
-            "batch_input_version": spec.BATCH_INPUT_VERSION})
+            "batch_input_version": spec.BATCH_INPUT_VERSION,
+            "transport_fleet": self.fleet_config.mode,
+            "fleet_policy_version": self.fleet_config.policy_version})
 
     # ═══════════════════════════════════════════════════════
     # 单步
@@ -578,6 +673,7 @@ class Stage4Coordinator:
             if operation.destination_zone:
                 free_zones[operation.destination_zone] = bool(
                     self.flow.zone_free(operation.destination_zone))
+        vehicle_docks, vehicle_settled = self._vehicle_dock_states()
         return SchedulingSnapshot(
             sim_time=float(sim_time), operations=operations,
             devices=devices, materials=tuple(materials),
@@ -585,11 +681,22 @@ class Stage4Coordinator:
             resource_owners={name: owner for name, owner
                              in self.resources.owners.items() if owner},
             busy_devices=self._busy_devices(),
+            verified_pairs=self.fleet_config.verified_pairs(),
             agv_at_dock=self.agv_at_dock,
-            agv_dock_settled=self._agv_dock_settled())
+            agv_dock_settled=self._agv_dock_settled(),
+            vehicle_at_dock=vehicle_docks,
+            vehicle_dock_settled=vehicle_settled)
 
     def _operation_view(self, instance) -> OperationView:
         template = self._template(instance.template_id)
+        candidates = self._effective_candidates(
+            template,
+            instance.candidate_device_ids or template.candidate_devices)
+        vehicle_id = ""
+        if template.executor_kind == "agv" \
+                or template.source_kind == "agv" \
+                or template.sink_kind == "agv":
+            vehicle_id = self.fleet_config.vehicle_for(template.kind)
         return OperationView(
             instance_id=instance.instance_id,
             task_id=instance.task_id,
@@ -598,9 +705,7 @@ class Stage4Coordinator:
             uid=int(instance.uid),
             executor_kind=template.executor_kind,
             capability=template.capability,
-            candidate_device_ids=tuple(
-                instance.candidate_device_ids
-                or template.candidate_devices),
+            candidate_device_ids=candidates,
             run_id=instance.run_id,
             entry_id=instance.entry_id,
             priority=int(instance.priority),
@@ -616,7 +721,8 @@ class Stage4Coordinator:
             route_origin_dock=template.route_origin_dock,
             route_destination_dock=template.route_destination_dock,
             required_resources=tuple(template.resources),
-            selected_route=instance.selected_route)
+            selected_route=instance.selected_route,
+            vehicle_id=vehicle_id)
 
     def _ready_sim_time(self, instance) -> float:
         """实例变为 ready 的时间: 前驱全部提交时刻, 入口用创建时间."""
@@ -661,12 +767,13 @@ class Stage4Coordinator:
         for record in self.controllers.values():
             busy[record.executor.device_id] = \
                 f"execution/{record.execution_id}"
-        try:
-            if self.agv_executor.active:
-                busy[self.agv_executor.device_id] = (
-                    f"execution/{self.agv_executor.execution_id or 'route'}")
-        except Exception:
-            pass
+        for runtime in self.fleet.values():
+            try:
+                if runtime.executor is not None and runtime.executor.active:
+                    busy[runtime.executor.device_id] = (
+                        f"execution/{runtime.route_execution_id or 'route'}")
+            except Exception:
+                continue
         return busy
 
     def _agv_dock_settled(self) -> bool:
@@ -835,7 +942,11 @@ class Stage4Coordinator:
         if template.source_kind == "agv" or template.sink_kind == "agv":
             dock = template.dock
             vehicle_id = self.fleet_config.vehicle_for(template.kind)
-            if self.fleet[vehicle_id].at_dock != dock:
+            runtime = self.fleet.get(vehicle_id)
+            if runtime is None:
+                return False, (f"车辆 {vehicle_id} 未在本次 "
+                               f"{self.fleet_config.mode} 编制中")
+            if runtime.at_dock != dock:
                 return False, f"车辆 {vehicle_id} 不在 dock {dock}"
             if not self._vehicle_at_dock(dock, vehicle_id):
                 return False, f"等待 {vehicle_id} 在 dock {dock} 停稳"
@@ -1097,7 +1208,13 @@ class Stage4Coordinator:
         return requests
 
     def _route_resources(self, spec) -> tuple[str, ...]:
-        """路线实际经过的直道 + 全部 dock (车辆可能穿过中间 dock)."""
+        """路线实际经过的直道 + 全部 dock (车辆可能穿过中间 dock).
+
+        首期沿用 ``AGV_ROUTE_REQUIRES_ALL_DOCKS``: 整条路线的资源一次性
+        ``acquire_all`` (全有或全无), 因而任意两条路线互斥、不会出现逐段
+        持有并等待. 这是保守串行, 不是并行/碰撞证明; 缩窄锁定范围必须
+        先补充共享车道与相向冲突验收.
+        """
         resources = list(spec.lanes)
         if cfg.AGV_ROUTE_REQUIRES_ALL_DOCKS:
             resources.extend(f"dock_{dock}"
@@ -1119,7 +1236,7 @@ class Stage4Coordinator:
             task_id=f"reposition_uid{uid}_to{dock}_leg{serial}",
             kind=cfg.TASK_KIND_REPOSITION, uid=uid,
             source=runtime.at_dock, destination=dock,
-            dock=dock, device="agv",
+            dock=dock, device=runtime.vehicle_id,
             status=TaskStatus.PENDING,
             priority=int(cfg.TASK_PRIORITY[cfg.TASK_KIND_REPOSITION]),
             created_sim_time=sim_time)
@@ -1155,6 +1272,25 @@ class Stage4Coordinator:
     def _start_transport(self, task: Stage4Task, origin: str,
                          destination: str, sim_time: float,
                          runtime: VehicleRuntime) -> bool:
+        template = self._operation_or_none(task)
+        expected = (self.fleet_config.vehicle_for(template.kind)
+                    if template is not None else runtime.vehicle_id)
+        if expected != runtime.vehicle_id:
+            # 记录/实际执行必须一致: 不允许调度选中另一辆车后静默改派.
+            self._fail_operation(
+                task, sim_time,
+                f"FLEET_VEHICLE_MISMATCH: 任务分配 {expected}, "
+                f"执行车辆 {runtime.vehicle_id}",
+                failure_code="FLEET_VEHICLE_MISMATCH")
+            self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
+                        device=runtime.vehicle_id,
+                        detail={"reason": "FLEET_VEHICLE_MISMATCH",
+                                "expected": expected,
+                                "actual": runtime.vehicle_id})
+            self._freeze(
+                f"运输任务 {task.task_id} 车辆分配不一致: "
+                f"{expected} != {runtime.vehicle_id}", sim_time, abort=True)
+            return False
         spec = make_route_spec(self.layout, origin, destination,
                                loaded=True)
         owner = self._owner(task)
@@ -1193,15 +1329,17 @@ class Stage4Coordinator:
         self._set_phase(task, f"ROUTE {spec.route_id}")
         self._event("TASK_START", task_id=task.task_id, uid=task.uid,
                     source=spec.start_dock, destination=spec.end_dock,
-                    device="agv",
+                    device=runtime.vehicle_id,
                     detail={"kind": task.kind,
                             "route_id": spec.route_id,
                             "execution_id": execution_id,
+                            "vehicle_id": runtime.vehicle_id,
                             "loaded": bool(spec.loaded)})
         self._event("ROUTE_START", task_id=task.task_id, uid=task.uid,
                     source=spec.start_dock, destination=spec.end_dock,
-                    device="agv", evidence_id=spec.route_id,
+                    device=runtime.vehicle_id, evidence_id=spec.route_id,
                     detail={"route_id": spec.route_id,
+                            "vehicle_id": runtime.vehicle_id,
                             "loaded": bool(spec.loaded),
                             "distance": round(spec.distance, 4),
                             "lanes": list(spec.lanes),
@@ -1642,24 +1780,29 @@ class Stage4Coordinator:
         spec = executor.spec
         route_state = str(report.detail.get("route_state", ""))
         route_summary = dict(report.evidence.get("route") or {})
+        route_summary.setdefault("vehicle_id", runtime.vehicle_id)
+        vehicle_id = runtime.vehicle_id
         if route_state == RouteState.DONE.value:
             ok, reason = self._verify_route(task, executor.controller)
             if ok:
                 runtime.at_dock = spec.end_dock
                 self._event("ROUTE_DONE", task_id=task.task_id,
                             uid=task.uid, source=spec.start_dock,
-                            destination=spec.end_dock, device="agv",
+                            destination=spec.end_dock, device=vehicle_id,
                             evidence_id=spec.route_id,
                             detail={"reason": reason,
+                                    "vehicle_id": vehicle_id,
                                     "loaded": bool(spec.loaded)})
                 if spec.loaded:
                     self._event("TASK_DONE", task_id=task.task_id,
-                                uid=task.uid, device="agv",
-                                detail={"reason": reason})
+                                uid=task.uid, device=vehicle_id,
+                                detail={"reason": reason,
+                                        "vehicle_id": vehicle_id})
                 else:
                     self._event("TASK_DONE", task_id=task.task_id,
-                                uid=task.uid, device="agv",
+                                uid=task.uid, device=vehicle_id,
                                 detail={"reason": reason,
+                                        "vehicle_id": vehicle_id,
                                         "kind": cfg.TASK_KIND_REPOSITION})
                 # 载货航线与单元工序走同一成功边界: 停靠/滑移验证通过后
                 # 才提交工序, 由运行图解锁后继 (不再读模板 successor).
@@ -1670,11 +1813,11 @@ class Stage4Coordinator:
                                      {"route": route_summary},
                                      failure_code="NODE_VERIFICATION_FAILED")
                 self._event("TASK_FAILED", task_id=task.task_id,
-                            uid=task.uid, device="agv",
+                            uid=task.uid, device=vehicle_id,
                             detail={"reason": reason})
                 self._global_failure(
                     "NODE_VERIFICATION_FAILED", reason, sim_time,
-                    task=task, device_id="agv",
+                    task=task, device_id=vehicle_id,
                     evidence={"route": route_summary}, mark_failed=False)
             self.agv_history.append(route_summary)
             self._release_task(task, sim_time, "route complete")
@@ -1689,8 +1832,9 @@ class Stage4Coordinator:
                 {"route": route_summary}, failure_code="AGV_ROUTE_FAILED")
             self.agv_history.append(route_summary)
             self._event("TASK_FAILED", task_id=task.task_id, uid=task.uid,
-                        device="agv",
-                        detail={"reason": report.failure_reason})
+                        device=vehicle_id,
+                        detail={"reason": report.failure_reason,
+                                "vehicle_id": vehicle_id})
             self._release_task(task, sim_time, "route failed")
             executor.release("route failed")
             runtime.route_task = None
@@ -1698,7 +1842,7 @@ class Stage4Coordinator:
             self._global_failure(
                 "AGV_ROUTE_FAILED",
                 f"AGV_ROUTE_FAILED: {report.failure_reason}", sim_time,
-                task=task, device_id="agv",
+                task=task, device_id=vehicle_id,
                 evidence={"route": route_summary}, mark_failed=False)
             return
         if route_state == RouteState.BLOCKED.value:
@@ -1707,17 +1851,19 @@ class Stage4Coordinator:
                                     "AGV 路线受阻, 轮速已停止"):
                     self._block_since = sim_time
                     self._event("TASK_BLOCK", task_id=task.task_id,
-                                uid=task.uid, device="agv",
-                                detail={"route_id": spec.route_id})
+                                uid=task.uid, device=vehicle_id,
+                                detail={"route_id": spec.route_id,
+                                        "vehicle_id": vehicle_id})
             if self._block_since is None:
                 self._block_since = sim_time
             if sim_time - self._block_since >= cfg.AGV_BLOCK_CLEAR_AFTER_S:
                 removed = self._remove_agv_obstacle()
-                clearance_ok = self._route_clearance_ok()
+                clearance_ok = self._route_clearance_ok(runtime)
                 self._event("AGV_BLOCK_CLEAR", task_id=task.task_id,
                             uid=task.uid,
                             detail={"removed": removed,
                                     "clearance_ok": clearance_ok,
+                                    "vehicle_id": vehicle_id,
                                     "lanes": list(spec.lanes),
                                     "owner": {lane: self.resources.owner(lane)
                                               for lane in spec.lanes}})
@@ -1728,7 +1874,7 @@ class Stage4Coordinator:
                         task, sim_time,
                         "障碍清除, 现场/资源所有权重新确认")
                     self._event("TASK_UNBLOCK", task_id=task.task_id,
-                                uid=task.uid, device="agv")
+                                uid=task.uid, device=vehicle_id)
                     self._block_since = None
                     return
             if sim_time - self._block_since > cfg.AGV_ROUTE_TIMEOUT:
@@ -1739,7 +1885,7 @@ class Stage4Coordinator:
                     failure_code="AGV_ROUTE_FAILED")
                 self._global_failure(
                     "AGV_ROUTE_FAILED", "AGV_BLOCKED_TIMEOUT", sim_time,
-                    task=task, device_id="agv",
+                    task=task, device_id=vehicle_id,
                     evidence={"route": route_summary},
                     mark_failed=False)
 
@@ -1765,15 +1911,17 @@ class Stage4Coordinator:
                 return False, "LOAD_NOT_ON_TRAY_AFTER_TRANSIT"
         return True, "route metrics within limits"
 
-    def _route_clearance_ok(self) -> bool:
+    def _route_clearance_ok(self, runtime: VehicleRuntime) -> bool:
         if any(arm.safety.engaged for arm in self.runtime.arms.values()):
             return False
         if self._fault_handles:
             return False
-        if self.route_task is None or self.route is None:
+        task = runtime.route_task
+        route = runtime.executor.controller
+        if task is None or route is None:
             return False
-        owner = self._owner(self.route_task)
-        for lane in self.route.spec.lanes:
+        owner = self._owner(task)
+        for lane in route.spec.lanes:
             if self.resources.owner(lane) != owner:
                 return False
         for dock in cfg.AGV_DOCK_IDS:
@@ -2189,7 +2337,14 @@ class Stage4Coordinator:
             if device.kind == "arm":
                 unit_id = device.id.removeprefix("arm_")
                 return f"unit_{unit_id}/task_{task.task_id}"
-        return f"agv/task_{task.task_id}"
+            # 运输工序: 资源 owner 使用固定分工的实际车辆, dual 下与
+            # selected_device_id / 执行器 device_id 保持一致.
+            vehicle_id = self.fleet_config.vehicle_for(template.kind)
+            return f"{vehicle_id}/task_{task.task_id}"
+        vehicle_id = str(task.device or "")
+        if not vehicle_id or vehicle_id == "agv":
+            vehicle_id = self.fleet_config.default_vehicle
+        return f"{vehicle_id}/task_{task.task_id}"
 
     def _release_task(self, task: Stage4Task, sim_time: float,
                       reason: str) -> None:
@@ -2288,7 +2443,8 @@ class Stage4Coordinator:
                         or self._abort_settle_steps >=
                         cfg.SAFETY_STOP_SETTLE_STEPS)
             return False
-        if self.route is not None or self.controllers:
+        if any(runtime.active for runtime in self.fleet.values()) \
+                or self.controllers:
             return False
         if not self.queue.finished():
             return False
@@ -2701,6 +2857,8 @@ class Stage4Coordinator:
             "batch": dict(self._batch),
             "batch_input_version": spec.BATCH_INPUT_VERSION,
             "source_counts": dict(self._source_count),
+            "transport_fleet": self.fleet_config.mode,
+            "fleet": self.fleet_summary(),
             "agv_at_dock": self.agv_at_dock,
             "order": None if self.order is None else self.order.as_dict(),
             "order_plan": (None if self.order_plan is None else {

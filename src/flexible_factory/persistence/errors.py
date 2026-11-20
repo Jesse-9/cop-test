@@ -117,3 +117,9 @@ class OrderRunConflictError(OrderError):
 
 class OrderStateError(OrderError):
     code = "ORDER_STATE"
+
+
+class OrderRunConfigError(OrderError):
+    """运行执行配置非法或与工件/目录不兼容 (启动前拒绝)."""
+
+    code = "ORDER_RUN_CONFIG"

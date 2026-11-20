@@ -37,6 +37,30 @@ describe("order API client", () => {
     );
   });
 
+  it("queries fleet availability for a specific artifact", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        ok: true,
+        fleet: {
+          modes: ["single", "dual"],
+          default: "single",
+          policy_version: "v1_fleet_test",
+          artifact_id: "v1/L5_UFLOW/v005",
+          dual: { available: false, reason: "缺少 Cart2" },
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await api.fleet("v1/L5_UFLOW/v005");
+
+    expect(result.fleet.dual.available).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/fleet?artifact_id=v1%2FL5_UFLOW%2Fv005",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("maps 422 diagnostics into ApiError", async () => {
     const diagnostic = {
       code: "ORDER_PORT_UNSUPPLIED",

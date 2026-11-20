@@ -1,28 +1,19 @@
-"""transport_fleet.py — 双车编制骨架（P2 第一步，默认不启用）.
+"""transport_fleet.py — 双车编制契约、运行时槽与运动学执行器.
 
-本模块提供"第二台运输车"的**运行时对象与执行器契约**，供协调器后续接管：
+本模块提供"第二台运输车"的**运行时对象与执行器契约**：
 
   - :class:`FleetConfig`：`single` / `dual` 两种编制；dual 下按工序类型固定
-    分工（壳体回程 → `agv_1`，支架运输 → `cart_2`）；
+    分工（壳体回程 → `agv_1`，支架运输 → `cart_2`），并记录策略版本；
   - :class:`VehicleRuntime`：一台车的运行时槽（执行器 / 所在 dock /
-    当前航线任务 / 执行 ID），是协调器把 `self.agv_*` 单例搬进 fleet 的容器；
+    当前航线任务 / 执行 ID），协调器按 `device_id` 遍历车队槽位；
   - :class:`KinematicTransportExecutor`：给小车二用的运动学执行器，实现与
     :class:`~flexible_factory.simulation.execution.agv.AgvExecutor` 相同的
     `start / pre_tick / post_tick / poll / active` 契约，但**不写轮速**，
-    而是按仿真时间推进位姿（不调用 `sim.step()`）。
+    而是按仿真时间推进位姿（不调用 `sim.step()`）。小车二不是轮式物理控制，
+    报告/界面不得表述为已验证的物理驱动。
 
-**当前状态：未被任何生产代码导入，`single` 模式下行为完全不变。**
-要真正启用 dual，还差三件事（缺一不可）：
-
-  1. `application/coordinator.py`：`self.agv / route_task / route_execution_id /
-     agv_at_dock / agv_executor` 收进 :class:`VehicleRuntime`，并把
-     `_poll_agv / _start_transport / _launch_route / _advance_route /
-     _after_route` 改为按车遍历；
-  2. `simulation/unit_controller*`：A/E 的"AGV 取放"目前按固定别名
-     （`AGV_LoadTray` 等）解析托盘——小车二要有自己的托盘子对象与 dock 传感器，
-     否则机械臂会把物料放到 AGV 的托盘上；
-  3. `domain/default_process.py`：`transport_DE` 的候选设备加入 `cart_2`，
-     `PROCESS_MODEL_VERSION` 递增 → **必须新建工件 v005**（契约钉住了版本号）。
+固定分工是**运行选项**，不写入订单版本或 DAG digest；DAG 仍只表达物料
+工序与依赖。订单启动时由 API 传入 `single` / `dual`，缺省 `single`。
 """
 
 from __future__ import annotations
@@ -31,6 +22,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
+from .. import spec
 from .execution.base import (ExecutionReport, ExecutionRequest, ExecutionState,
                              ExecutorError, ensure_device, make_execution_id)
 from .transport_schedule import CART_2, NODES, plan_route
@@ -38,6 +30,10 @@ from .transport_schedule import CART_2, NODES, plan_route
 FLEET_SINGLE = "single"
 FLEET_DUAL = "dual"
 FLEET_MODES = (FLEET_SINGLE, FLEET_DUAL)
+DEFAULT_FLEET_MODE = FLEET_SINGLE
+
+#: 固定分工策略版本; 唯一来源在 ``spec.py``, 记录在 run 元数据/结果 JSON.
+FLEET_POLICY_VERSION = spec.FLEET_POLICY_VERSION
 
 #: 单车道模式下小车二的停车位: 不占 dock、不占直道 (东侧空地)。
 CART2_PARK_POSE = (3.50, 2.30, 0.0)
@@ -51,6 +47,29 @@ _DUAL_ASSIGNMENT = {
     "e_agv": "cart_2",              # E 从车卸货
     "transport_de": "cart_2",       # 支架运输 D→E
 }
+
+#: 双车固定分工下**已验收**的非基线 (device_id, template_id) 组合.
+#: 调度策略只允许基线设备或此集合内的组合被选中; `cart_2` 承运
+#: `transport_DE` 由双车合并提交 `bb54cf5` 的仿真验收覆盖。新增组合必须
+#: 先完成 focused 仿真实机验收再登记。
+DUAL_VERIFIED_PAIRS = frozenset({
+    ("cart_2", "transport_DE"),
+})
+
+
+def normalize_fleet_mode(value: object) -> str:
+    """把请求值规范化为合法车队模式; 空值回退 ``single``.
+
+    未知值抛 :class:`ValueError`; 调用方必须在创建 run 记录/启动 worker
+    之前完成校验.
+    """
+    text = str(value or "").strip().lower()
+    if not text:
+        return DEFAULT_FLEET_MODE
+    if text not in FLEET_MODES:
+        raise ValueError(
+            f"未知车队模式 {value!r}; 允许值: {list(FLEET_MODES)}")
+    return text
 
 
 @dataclass(frozen=True)
@@ -68,15 +87,29 @@ class FleetConfig:
     def dual(self) -> bool:
         return self.mode == FLEET_DUAL
 
+    @property
+    def policy_version(self) -> str:
+        return FLEET_POLICY_VERSION
+
     def vehicle_for(self, kind: str) -> str:
         if not self.dual:
             return self.default_vehicle
         return _DUAL_ASSIGNMENT.get(kind, self.default_vehicle)
 
+    def verified_pairs(self) -> frozenset[tuple[str, str]]:
+        """本编制允许的非基线 (设备, 模板) 组合; single 下为空集."""
+        if not self.dual:
+            return frozenset()
+        return DUAL_VERIFIED_PAIRS
+
     def as_dict(self) -> dict:
         return {"mode": self.mode,
+                "policy_version": FLEET_POLICY_VERSION,
+                "default_vehicle": self.default_vehicle,
                 "assignment": ({k: self.vehicle_for(k) for k in _DUAL_ASSIGNMENT}
-                               if self.dual else {})}
+                               if self.dual else {}),
+                "verified_pairs": [list(pair) for pair
+                                   in sorted(self.verified_pairs())]}
 
 
 @dataclass
@@ -95,8 +128,10 @@ class VehicleRuntime:
 
     def as_dict(self) -> dict:
         return {"vehicle_id": self.vehicle_id, "at_dock": self.at_dock,
+                "device_id": str(getattr(self.executor, "device_id", "")),
                 "active": self.active,
-                "task_id": getattr(self.route_task, "task_id", "")}
+                "task_id": getattr(self.route_task, "task_id", ""),
+                "execution_id": self.route_execution_id}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -239,6 +274,32 @@ class KinematicTransportExecutor:
             raise ExecutorError(f"{self.device_id}: 没有执行 {execution_id!r}")
         execution = self._active
         finished = execution.state.terminal
+        route = execution.route
+        route_id = (f"{route.origin}->{route.destination}"
+                    if len(route.nodes) > 1 else str(route.origin))
+        evidence = {
+            "uid": execution.uid,
+            # 与 AgvExecutor.poll 的 evidence 形状保持一致, 供协调器/验收
+            # 统一读取 spec.loaded 与 route metrics, 不必区分车辆实现.
+            "route": {
+                "spec": {
+                    "route_id": route_id,
+                    "loaded": True,
+                    "start_dock": route.origin,
+                    "end_dock": route.destination,
+                    "distance": round(route.length, 4),
+                    "lanes": list(route.lanes),
+                },
+                "metrics": {
+                    "stop_error": 0.0,
+                    "heading_error": 0.0,
+                    "material_slip": 0.0,
+                },
+                "vehicle_id": self.device_id,
+                "nodes": list(route.nodes),
+                "length": round(route.length, 4),
+            },
+        }
         report = ExecutionReport(
             execution_id=execution.execution_id,
             device_id=self.device_id,
@@ -249,6 +310,7 @@ class KinematicTransportExecutor:
             failure_code=execution.failure,
             detail={
                 "kind": "kinematic_transport",
+                "vehicle_id": self.device_id,
                 # 协调器靠 route_state 判定到站/失败; 与 RouteState 取值一致。
                 "route_state": ("DONE" if execution.state
                                 is ExecutionState.SUCCEEDED else
@@ -260,7 +322,7 @@ class KinematicTransportExecutor:
                 "duration": round(execution.duration, 4),
                 "progress": round(min(1.0, execution.elapsed / execution.duration), 4),
             },
-            evidence={"uid": execution.uid},
+            evidence=evidence,
         )
         if finished:
             self._active = None
@@ -384,11 +446,17 @@ class Cart2VehicleAdapter:
 
 
 __all__ = [
+    "DEFAULT_FLEET_MODE",
+    "DUAL_VERIFIED_PAIRS",
     "FLEET_DUAL",
     "FLEET_MODES",
+    "FLEET_POLICY_VERSION",
     "FLEET_SINGLE",
     "FleetConfig",
     "KinematicTransportExecutor",
     "VehicleRuntime",
+    "build_cart2_runtime",
+    "normalize_fleet_mode",
+    "park_cart2",
     "pose_along_route",
 ]

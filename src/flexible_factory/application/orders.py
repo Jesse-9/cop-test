@@ -30,7 +30,8 @@ from ..domain.orders import (ORDER_CONTRACT_VERSION, OrderSpec,
                              OrderSpecError)
 from ..domain.process_model import ProcessCatalog
 from ..persistence.db import CatalogDatabase
-from ..persistence.errors import (OrderNotFoundError, OrderRunConflictError,
+from ..persistence.errors import (OrderNotFoundError, OrderRunConfigError,
+                                  OrderRunConflictError,
                                   OrderRunNotFoundError, OrderStateError)
 from ..persistence.orders import OrderRepository
 
@@ -49,6 +50,8 @@ class OrderRunCommand:
     run_id: str
     artifact_id: str
     max_sim_time: float = 1200.0
+    #: 本次运行的运输车队模式: single | dual; 不写入不可变订单版本/DAG.
+    transport_fleet: str = "single"
     progress: Optional[Callable[[dict], None]] = field(
         default=None, compare=False, repr=False)
 
@@ -60,6 +63,7 @@ class OrderRunCommand:
             "dag_digest": self.compiled.digest,
             "artifact_id": self.artifact_id,
             "max_sim_time": float(self.max_sim_time),
+            "transport_fleet": self.transport_fleet,
         }
 
 
@@ -221,6 +225,9 @@ class OrderSimulationWorker:
         finished = state.finished_event.is_set()
         return {
             "run_id": state.run_id,
+            "transport_fleet": state.command.transport_fleet,
+            "fleet": (state.progress_data.get("fleet")
+                      or (state.summary or {}).get("fleet")),
             "status": (state.status if finished else
                        state.progress_data.get("status") or state.status),
             "order_status": ("" if finished else
@@ -250,11 +257,17 @@ class OrderService:
                  worker: Optional[OrderSimulationWorker] = None,
                  runner: Optional[Runner] = None,
                  artifact_resolver: Optional[Callable[[str], str]] = None,
+                 fleet_artifact_checker: Optional[
+                     Callable[[str, str], None]] = None,
                  logger: Optional[logging.Logger] = None) -> None:
         self.database = database
         self.catalog = catalog if catalog is not None else default_catalog()
         self.artifact_id = str(artifact_id or "")
         self.artifact_resolver = artifact_resolver
+        # 启动前检查工件是否支持所选车队 (例如 dual 需要 Cart2/Cart2_Tray).
+        # 检查失败抛 OrderRunConfigError; 未配置时由 coordinator 在加载后
+        # 再显式拒绝, 不会静默退回单车.
+        self.fleet_artifact_checker = fleet_artifact_checker
         self.repository = OrderRepository(database)
         self.compiler = OrderDagCompiler(self.catalog)
         # planner 延迟装配, 避免 order service 的导入路径依赖阶段 4 模块.
@@ -417,6 +430,54 @@ class OrderService:
 
     # ── 运行 ────────────────────────────────────────────────
 
+    @staticmethod
+    def normalize_transport_fleet(value: object) -> str:
+        """校验并规范化车队模式; 非法值在创建 run 前拒绝."""
+        from ..simulation.transport_fleet import normalize_fleet_mode
+        try:
+            return normalize_fleet_mode(value)
+        except ValueError as exc:
+            raise OrderRunConfigError(str(exc)) from exc
+
+    @staticmethod
+    def _fleet_policy_version() -> str:
+        from ..simulation.transport_fleet import FLEET_POLICY_VERSION
+        return FLEET_POLICY_VERSION
+
+    def _validate_fleet_for_artifact(self, artifact_id: str,
+                                     fleet_mode: str) -> None:
+        """启动前的工件/目录能力检查 (目前只有 dual 需要额外对象)."""
+        if fleet_mode != "dual":
+            return
+        if not any(device.id == "cart_2" for device in self.catalog.devices):
+            raise OrderRunConfigError(
+                "dual 车队需要工艺目录登记 cart_2; 当前目录只有 agv_1")
+        if self.fleet_artifact_checker is not None:
+            self.fleet_artifact_checker(artifact_id, fleet_mode)
+
+    def fleet_status(self, artifact_id: str = "") -> dict:
+        """返回可选车队模式及默认工件对 dual 的支持情况 (供 UI 禁用)."""
+        from ..simulation.transport_fleet import (DEFAULT_FLEET_MODE,
+                                                  FLEET_MODES,
+                                                  FLEET_POLICY_VERSION)
+        reference = str(artifact_id or self.artifact_id or "").strip()
+        resolved = ""
+        available = False
+        reason = ""
+        try:
+            resolved = self._resolve_artifact(reference)
+            self._validate_fleet_for_artifact(resolved, "dual")
+            available = True
+        except Exception as exc:
+            reason = str(exc) or type(exc).__name__
+        return {
+            "modes": list(FLEET_MODES),
+            "default": DEFAULT_FLEET_MODE,
+            "policy_version": FLEET_POLICY_VERSION,
+            "artifact_id": resolved or reference,
+            "dual": {"available": available, "reason": reason},
+        }
+
     def _resolve_artifact(self, artifact_id: str) -> str:
         reference = str(artifact_id or self.artifact_id or "").strip()
         if not reference:
@@ -449,20 +510,26 @@ class OrderService:
         return self.repository.get_spec(order_id, version)
 
     def start(self, order_id: str, version: int, *,
-              artifact_id: str = "", max_sim_time: float = 1200.0) -> dict:
+              artifact_id: str = "", max_sim_time: float = 1200.0,
+              transport_fleet: str = "single") -> dict:
         if self.worker is None:
             raise OrderStateError("订单 worker 未配置")
+        fleet_mode = self.normalize_transport_fleet(transport_fleet)
         artifact_id = self._resolve_artifact(artifact_id)
+        self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
         run_id = _new_run_id(order_id)
         compiled = self.compiler.compile(order, run_id=run_id)
         self.repository.create_run(
             run_id=run_id, order_id=order.order_id,
             version=int(order.version), dag_digest=compiled.digest,
-            artifact_id=artifact_id, status="STARTING")
+            artifact_id=artifact_id, status="STARTING",
+            transport_fleet=fleet_mode,
+            fleet_policy_version=self._fleet_policy_version())
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
-            artifact_id=artifact_id, max_sim_time=float(max_sim_time))
+            artifact_id=artifact_id, max_sim_time=float(max_sim_time),
+            transport_fleet=fleet_mode)
         try:
             self.worker.start(command)
         except Exception as exc:
@@ -480,19 +547,25 @@ class OrderService:
 
     def run_sync(self, order_id: str, version: int, runner: Runner, *,
                  artifact_id: str = "",
-                 max_sim_time: float = 1200.0) -> dict:
+                 max_sim_time: float = 1200.0,
+                 transport_fleet: str = "single") -> dict:
         """CLI/维护入口: 在当前进程同步执行一次订单运行."""
+        fleet_mode = self.normalize_transport_fleet(transport_fleet)
         artifact_id = self._resolve_artifact(artifact_id)
+        self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
         run_id = _new_run_id(order_id)
         compiled = self.compiler.compile(order, run_id=run_id)
         self.repository.create_run(
             run_id=run_id, order_id=order.order_id,
             version=int(order.version), dag_digest=compiled.digest,
-            artifact_id=artifact_id, status="STARTING")
+            artifact_id=artifact_id, status="STARTING",
+            transport_fleet=fleet_mode,
+            fleet_policy_version=self._fleet_policy_version())
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
-            artifact_id=artifact_id, max_sim_time=float(max_sim_time))
+            artifact_id=artifact_id, max_sim_time=float(max_sim_time),
+            transport_fleet=fleet_mode)
         summary: Optional[dict] = None
         error = ""
         try:
@@ -505,8 +578,11 @@ class OrderService:
     def status(self, run_id: str) -> dict:
         persisted = self.repository.get_run(run_id)
         live = self.worker.status(run_id) if self.worker is not None else None
+        persisted = dict(persisted)
+        result = persisted.get("result") or {}
+        persisted["fleet"] = ((live or {}).get("fleet")
+                              or result.get("fleet"))
         if live is not None and not live.get("finished_at"):
-            persisted = dict(persisted)
             persisted["status"] = live.get("status") or persisted["status"]
             persisted["live"] = live
             if live.get("nodes"):
@@ -639,12 +715,15 @@ def _compact_result(summary: Optional[dict], status: str,
     keys = ("scenario", "fault", "sim_time", "aborted", "frozen",
             "stop_reason", "order_status", "batch", "metrics",
             "active_unit_ids", "runtime_destroy", "failure_summary",
-            "acceptance")
+            "transport_fleet", "fleet", "acceptance")
     compact = {key: summary[key] for key in keys if key in summary}
     compact["status"] = status
     if error:
         compact["error"] = error
     compact["failures"] = list(summary.get("failures") or [])
+    process_model = summary.get("process_model") or {}
+    if process_model.get("version"):
+        compact["catalog_version"] = process_model["version"]
     order_plan = summary.get("order_plan") or {}
     if order_plan:
         compact["order_run_id"] = order_plan.get("run_id")

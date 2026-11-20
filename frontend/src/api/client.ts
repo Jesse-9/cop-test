@@ -1,6 +1,7 @@
 import type {
   CompilePreview,
   Diagnostic,
+  FleetStatus,
   OrderHeader,
   OrderSpec,
   OrderSummary,
@@ -151,11 +152,17 @@ export interface HealthResponse {
   planner_policy_version: string;
   catalog_version: string;
   scene_id: string;
+  transport_fleets?: string[];
+  fleet_policy_version?: string;
 }
 
 export const api = {
   health: () => request<HealthResponse>("/health"),
   templates: () => request<TemplateCatalog>("/templates"),
+  fleet: (artifact?: string) => {
+    const query = artifact ? `?artifact_id=${encodeURIComponent(artifact)}` : "";
+    return request<{ fleet: FleetStatus }>(`/fleet${query}`);
+  },
 
   listOrders: (limit = 50) =>
     request<{ orders: OrderSummary[] }>(`/orders?limit=${limit}`),

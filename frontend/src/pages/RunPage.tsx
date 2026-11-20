@@ -186,6 +186,33 @@ export function RunPage() {
             {failureScopeLabel(run.failure_scope)}
           </p>
           <p className="muted run-meta">
+            车队 {run.transport_fleet === "dual" ? "双车" : "单车"} · 策略{" "}
+            {run.fleet_policy_version || "未记录"}
+            {run.fleet && Object.keys(run.fleet.assignment).length > 0
+              ? ` · 分工 ${Object.entries(run.fleet.assignment)
+                  .map(([kind, vehicle]) => `${kind}→${vehicle}`)
+                  .join("，")}`
+              : ""}
+            {run.fleet?.route_lock
+              ? ` · 路线锁 ${run.fleet.route_lock.resources}（并行 ${
+                  run.fleet.route_lock.parallel_routes ? "已启用" : "未启用"
+                }）`
+              : ""}
+          </p>
+          {run.fleet && run.fleet.transport_selections.length > 0 ? (
+            <p className="muted run-meta">
+              已派运输：
+              {run.fleet.transport_selections
+                .map(
+                  (row) =>
+                    `${row.template_id}→${row.selected_device_id}${
+                      row.execution_id ? ` (${row.execution_id})` : ""
+                    }`,
+                )
+                .join("，")}
+            </p>
+          ) : null}
+          <p className="muted run-meta">
             开始 {formatTime(run.started_at)} · 结束{" "}
             {formatTime(run.finished_at)} · 最后刷新 {lastUpdated || "未刷新"}
           </p>

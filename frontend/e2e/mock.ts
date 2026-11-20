@@ -303,6 +303,8 @@ export const runs: Record<string, RunDetail> = {
     order_version: 1,
     dag_digest: DIGEST,
     artifact_id: "artifact-test",
+    transport_fleet: "single",
+    fleet_policy_version: "v1_fleet_mock",
     status: "PARTIAL_FAILED",
     failure_scope: "NODE",
     stop_reason: "",
@@ -320,6 +322,8 @@ export const runs: Record<string, RunDetail> = {
     order_version: 1,
     dag_digest: DIGEST,
     artifact_id: "artifact-test",
+    transport_fleet: "single",
+    fleet_policy_version: "v1_fleet_mock",
     status: "ABORTED",
     failure_scope: "GLOBAL",
     stop_reason: "安全锁存: tcp_collision",
@@ -375,7 +379,7 @@ export const runEvents: Record<string, unknown[]> = {
 
 export async function installMocks(page: Page): Promise<void> {
   await page.route(
-    /\/api\/(?:health|templates|orders|planner|runs)(?:\/|\?|$)/,
+    /\/api\/(?:health|templates|fleet|orders|planner|runs)(?:\/|\?|$)/,
     async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -400,6 +404,18 @@ export async function installMocks(page: Page): Promise<void> {
     }
     if (path === "/api/templates") {
       return fulfill({ ok: true, ...catalog });
+    }
+    if (path === "/api/fleet") {
+      return fulfill({
+        ok: true,
+        fleet: {
+          modes: ["single", "dual"],
+          default: "single",
+          policy_version: "v1_fleet_mock",
+          artifact_id: "artifact-test",
+          dual: { available: true, reason: "" },
+        },
+      });
     }
     if (path === "/api/planner/plan" && method === "POST") {
       return fulfill({ ok: true, plan: plannerResult });
@@ -493,7 +509,14 @@ export async function installMocks(page: Page): Promise<void> {
       /^\/api\/orders\/([^/]+)\/versions\/(\d+)\/start$/,
     );
     if (startMatch && method === "POST") {
-      return fulfill({ ok: true, run: runs["run-1"] });
+      const body = JSON.parse(request.postData() ?? "{}");
+      return fulfill({
+        ok: true,
+        run: {
+          ...runs["run-1"],
+          transport_fleet: body.transport_fleet === "dual" ? "dual" : "single",
+        },
+      });
     }
     const runsMatch = path.match(/^\/api\/orders\/([^/]+)\/runs$/);
     if (runsMatch && method === "GET") {

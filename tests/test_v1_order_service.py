@@ -17,7 +17,8 @@ from flexible_factory.domain.orders import OrderCompileError
 from flexible_factory.domain.process_model import ProcessCatalog
 from flexible_factory.persistence.db import (CatalogDatabase,
                                               initialize_database)
-from flexible_factory.persistence.errors import (OrderRunConflictError,
+from flexible_factory.persistence.errors import (OrderRunConfigError,
+                                                  OrderRunConflictError,
                                                   OrderStateError)
 from order_fixtures import full_flow_order
 
@@ -34,6 +35,9 @@ def _success_summary(command) -> dict:
         "run_id": command.run_id,
         "order": command.compiled.context.as_dict(),
         "order_status": "SUCCEEDED",
+        "transport_fleet": command.transport_fleet,
+        "fleet": {"mode": command.transport_fleet},
+        "process_model": {"version": "v1_process_test"},
         "acceptance": {"ok": True, "order_status": "SUCCEEDED",
                        "order": command.compiled.context.as_dict()},
         "operations": {"graph": {"instances": instances}},
@@ -89,6 +93,8 @@ def test_service_runs_order_and_persists_versions_and_nodes(database):
     assert status["order_id"] == "order-full-flow-001"
     assert status["order_version"] == 1
     assert status["artifact_id"] == "artifact-test"
+    assert status["result"]["catalog_version"] == "v1_process_test"
+    assert status["result"]["transport_fleet"] == "single"
     assert status["node_count"] == len(status["nodes"])
     assert status["dag_digest"] == full_flow_order().dag_digest()
     nodes = service.nodes(run_id)
@@ -191,6 +197,115 @@ def test_service_persists_node_scoped_failure(database):
     assert failed[0]["failure_code"] == "NODE_PRECHECK_REJECTED"
 
 
+def test_service_defaults_to_single_fleet(database):
+    seen = {}
+
+    def runner(command, stop):
+        seen["fleet"] = command.transport_fleet
+        return _success_summary(command)
+
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    run = service.start("order-full-flow-001", 1,
+                        artifact_id="artifact-test")
+    service.worker.wait(run["run_id"], timeout=5)
+    assert seen["fleet"] == "single"
+    status = service.status(run["run_id"])
+    assert status["transport_fleet"] == "single"
+    assert status["fleet_policy_version"]
+    assert status["fleet"]["mode"] == "single"
+
+
+def test_service_passes_dual_fleet_and_records_it(database):
+    seen = {}
+
+    def runner(command, stop):
+        seen["fleet"] = command.transport_fleet
+        return _success_summary(command)
+
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    run = service.start("order-full-flow-001", 1,
+                        artifact_id="artifact-test",
+                        transport_fleet="dual")
+    service.worker.wait(run["run_id"], timeout=5)
+    assert seen["fleet"] == "dual"
+    status = service.status(run["run_id"])
+    assert status["status"] == "SUCCEEDED"
+    assert status["transport_fleet"] == "dual"
+    assert status["fleet"]["mode"] == "dual"
+    assert status["fleet_policy_version"].startswith("v1_fleet")
+    # 运行模式不进入订单版本或 DAG digest.
+    assert status["dag_digest"] == full_flow_order().dag_digest()
+
+
+def test_service_rejects_unknown_fleet_before_creating_run(database):
+    service = _service(database, lambda command, stop: _success_summary(command))
+    service.create_order(full_flow_order().as_dict())
+    with pytest.raises(OrderRunConfigError, match="车队模式"):
+        service.start("order-full-flow-001", 1,
+                      artifact_id="artifact-test",
+                      transport_fleet="triple")
+    assert service.list_runs(order_id="order-full-flow-001") == []
+
+
+def test_service_rejects_dual_when_artifact_lacks_cart2(database):
+    def checker(artifact_id, fleet_mode):
+        raise OrderRunConfigError(f"{artifact_id} 缺少 Cart2")
+
+    service = OrderService(
+        database, artifact_id="artifact-old",
+        runner=lambda command, stop: _success_summary(command),
+        fleet_artifact_checker=checker)
+    service.create_order(full_flow_order().as_dict())
+    with pytest.raises(OrderRunConfigError, match="Cart2"):
+        service.start("order-full-flow-001", 1,
+                      artifact_id="artifact-old",
+                      transport_fleet="dual")
+    assert service.list_runs(order_id="order-full-flow-001") == []
+
+
+def test_service_fleet_status_reports_dual_availability(database):
+    def checker(artifact_id, fleet_mode):
+        if artifact_id == "artifact-old":
+            raise OrderRunConfigError("缺少 Cart2")
+
+    service = OrderService(
+        database, artifact_id="artifact-test",
+        runner=lambda command, stop: _success_summary(command),
+        fleet_artifact_checker=checker)
+    status = service.fleet_status("artifact-test")
+    assert status["modes"] == ["single", "dual"]
+    assert status["default"] == "single"
+    assert status["dual"]["available"] is True
+    unavailable = service.fleet_status("artifact-old")
+    assert unavailable["dual"]["available"] is False
+    assert "Cart2" in unavailable["dual"]["reason"]
+
+
+def test_cli_fleet_checker_requires_cart2_objects(tmp_path):
+    from flexible_factory.artifacts.store import ArtifactStore
+    from flexible_factory.cli import _fleet_artifact_checker
+
+    def make(version: str, aliases: list[str], contract: str = "c1") -> str:
+        path = tmp_path / "v1" / "L5_UFLOW" / version
+        path.mkdir(parents=True)
+        (path / "manifest.json").write_text(json.dumps({
+            "objects": [{"alias": alias} for alias in aliases],
+            "extra": {"v1": {"contract_version": contract}},
+        }), encoding="utf-8")
+        return f"v1/L5_UFLOW/{version}"
+
+    good = make("v001_good", ["Cart2", "Cart2_Tray"])
+    old = make("v002_old", ["AGV_LoadTray"])
+    checker = _fleet_artifact_checker(ArtifactStore(tmp_path))
+    checker(good, "single")
+    checker(good, "dual")
+    checker(old, "single")
+    with pytest.raises(OrderRunConfigError, match="Cart2"):
+        checker(old, "dual")
+
+
 # ═══════════════════════════════════════════════════════════════
 # HTTP API
 # ═══════════════════════════════════════════════════════════════
@@ -238,6 +353,13 @@ def test_http_api_contract_and_run_query(database):
             "housing_direct", "housing_alt", "bracket_route"}
 
         status, payload = _request(
+            server.base_url, "GET",
+            "/api/fleet?artifact_id=artifact-test")
+        assert status == 200
+        assert payload["fleet"]["modes"] == ["single", "dual"]
+        assert payload["fleet"]["dual"]["available"] is True
+
+        status, payload = _request(
             server.base_url, "POST", "/api/orders/preview",
             full_flow_order().as_dict())
         assert status == 200 and payload["preview"]["ok"] is True
@@ -262,6 +384,25 @@ def test_http_api_contract_and_run_query(database):
         run_id = payload["run"]["run_id"]
         run = _wait_status(server.base_url, run_id)
         assert run["status"] == "SUCCEEDED"
+        assert run["transport_fleet"] == "single"
+
+        status, payload = _request(
+            server.base_url, "POST",
+            "/api/orders/order-full-flow-001/versions/1/start",
+            {"artifact_id": "artifact-test", "transport_fleet": "dual"})
+        assert status == 200, payload
+        dual = _wait_status(server.base_url, payload["run"]["run_id"])
+        assert dual["status"] == "SUCCEEDED"
+        assert dual["transport_fleet"] == "dual"
+        assert dual["fleet"]["mode"] == "dual"
+
+        status, payload = _request(
+            server.base_url, "POST",
+            "/api/orders/order-full-flow-001/versions/1/start",
+            {"artifact_id": "artifact-test",
+             "transport_fleet": "triple"})
+        assert status == 422
+        assert payload["error"]["code"] == "ORDER_RUN_CONFIG"
 
         status, payload = _request(
             server.base_url, "GET", f"/api/runs/{run_id}/nodes")

@@ -29,6 +29,9 @@ SCHEDULER_POLICY_VERSION = "v1_scheduler_20261104"
 # 订单自主编排策略版本; 只随 planner 搜索空间/选择规则/explain 语义变化
 # 递增. 版本写入订单版本元数据, 不改变场景工件 config_digest.
 ORDER_PLANNER_POLICY_VERSION = "v1_planner_20261107"
+# 订单运行车队固定分工策略版本; 只随 single/dual 分工表或已验证组合变化
+# 递增. 版本写入订单运行元数据, 不写入订单版本或 DAG digest.
+FLEET_POLICY_VERSION = "v1_fleet_20261119"
 # 运行边界有限批次输入版本; 只随 profile 表或校验规则变化递增. 批次只
 # 影响单次运行, 不写入场景/manifest, 也不改变冻结的 config_digest.
 BATCH_INPUT_VERSION = "v1_batch_20261105"

@@ -57,12 +57,12 @@ def test_coordinator_reads_operation_fields_from_catalog():
     transport = make_task_from_operation(
         catalog.operation("transport_BA"), 2)
     assert coordinator._owner(transport) == \
-        f"agv/task_{transport.task_id}"
+        f"agv_1/task_{transport.task_id}"
 
     reposition = make_task("reposition", 2, source="A", destination="B",
                            dock="B", device="agv")
     assert coordinator._owner(reposition) == \
-        f"agv/task_{reposition.task_id}"
+        f"agv_1/task_{reposition.task_id}"
 
 
 def test_sink_spec_is_derived_from_operation_output_zone():

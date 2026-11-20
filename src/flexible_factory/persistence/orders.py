@@ -238,7 +238,9 @@ class OrderRepository:
 
     def create_run(self, *, run_id: str, order_id: str, version: int,
                    dag_digest: str, artifact_id: str = "",
-                   status: str = "STARTING") -> dict:
+                   status: str = "STARTING",
+                   transport_fleet: str = "single",
+                   fleet_policy_version: str = "") -> dict:
         with self.database.session() as session:
             with session.begin():
                 if session.get(OrderRun, str(run_id)) is not None:
@@ -256,7 +258,11 @@ class OrderRepository:
                 session.add(OrderRun(
                     run_id=str(run_id), order_id=str(order_id),
                     order_version=int(version), dag_digest=str(dag_digest),
-                    artifact_id=str(artifact_id or ""), status=str(status),
+                    artifact_id=str(artifact_id or ""),
+                    transport_fleet=str(transport_fleet or "single"),
+                    fleet_policy_version=(str(fleet_policy_version or "")
+                                          or None),
+                    status=str(status),
                     failure_scope=None, stop_reason=None,
                     started_at=utc_iso_now(), finished_at=None,
                     result_json=None))
@@ -430,6 +436,8 @@ def _run_meta(row: OrderRun) -> dict:
         "order_version": int(row.order_version),
         "dag_digest": row.dag_digest,
         "artifact_id": row.artifact_id or "",
+        "transport_fleet": row.transport_fleet or "single",
+        "fleet_policy_version": row.fleet_policy_version or "",
         "status": row.status,
         "failure_scope": row.failure_scope or "",
         "stop_reason": row.stop_reason or "",
