@@ -3,7 +3,7 @@ title: 仿真模块清单与命名边界
 type: reference
 status: review
 created: 2026-11-06
-updated: 2026-11-14
+updated: 2026-11-20
 scope: src/flexible_factory/simulation
 related:
   - docs/implementation/plans/simulation/simulation-code-optimization-plan.md
@@ -72,6 +72,7 @@ related:
 | `motion/plan_checks.py` | `ConfigurationChecker` 构型/段检查 | 不改变检查序列与容差 |
 | `motion/plan_search.py` | `LocalPlanner` 有限局部搜索 | 候选顺序、预算与安全检查不变 |
 | `motion/plan_postprocess.py` | 成功计划的平滑/压缩 | 开关、容差与恢复语义不变 |
+| `motion/path_library.py` / `motion/path_reuse.py` | 固定动作路径记录、精确匹配与可选回放策略 | 默认不注入；首版只接 `PLACING` 单目标段；不保存句柄/旧 context，回放不取消执行期联锁 |
 | `motion/branch.py` / `collisions.py` / `contact.py` | 腕部分支、碰撞查询与集合构建（含只读发现缓存）、接触几何 | 运动层安全判据 |
 | `motion/conveyor_safety.py` | 停带监视、受限补偿、物料稳定 | 控制器不得复制测量算法 |
 | `motion/diagnostics.py` / `metrics.py` / `trajectory.py` | 计划诊断、指标、轨迹执行 | 证据与执行统计 |

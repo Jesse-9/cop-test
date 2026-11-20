@@ -33,8 +33,8 @@ src/flexible_factory/
                      assembly_mvp_scene（MVP 静态岛/槽位扩展）
     motion/          contact, collisions, path_planning（兼容导出）,
                      plan_types, plan_checks, plan_search, plan_postprocess,
-                     trajectory, safety, shadow, suction, conveyor_safety,
-                     branch, diagnostics, metrics
+                     path_library, path_reuse, trajectory, safety, shadow,
+                     suction, conveyor_safety, branch, diagnostics, metrics
     execution/       base（执行契约）, arm（ArmExecutor）, agv（AgvExecutor）
   artifacts/         store（manifest/仓库/校验）, migration
   persistence/       SQLAlchemy 2.x ORM、SQLite Engine/Session、Alembic 迁移、
@@ -176,6 +176,12 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
 - `simulation/motion/path_planning.py` 是 `plan_types` / `plan_checks` /
   `plan_search` / `plan_postprocess` 的兼容导出层；拆分不得改变检查顺序、
   容差、预算或规划算法。
+- `simulation/motion/path_library.py` 只做固定动作关节路径的精确键匹配与
+  JSON 存取（记录版本 `v1_path_record_20261120`）；`path_reuse.py` 提供
+  可选 `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN` 策略
+  （`v1_path_reuse_20261120`），首版只接入 `PLACING` 单目标段。默认不注入，
+  不新增 `config*.py` 常量，不改 `config_digest()`/`layout_digest()`；
+  记录不得保存 CoppeliaSim 句柄或旧 context，回放不得取消执行期联锁。
 - `simulation/device_handle_map.py` 已按“无生产消费者”删除；别名唯一性
   仍由场景解析与 `contract.py` 校验，不引入第二套句柄表。
 - `unit_controller_motion.ConveyorPickContext` 是运动层与 UFLOW 层共享的
@@ -324,6 +330,14 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   [目录实施报告](docs/implementation/reports/data-platform/v1-catalog-persistence.md)、
   [知识图谱报告](docs/implementation/reports/data-platform/v1-knowledge-graph-import.md) 与
   [运行记录报告](docs/implementation/reports/data-platform/v1-run-record-persistence.md)。
+- 运动规划计时与路径复用：离线
+  `tests/test_v1_motion_path_reuse.py` 覆盖精确键、损坏记录、起点/分支
+  容差、三种模式和 `PLACING` 控制器接入；`MotionPlan.timings` 记录搜索/
+  复核/后处理墙钟。focused 仿真（需要 `FLEXIBLE_FACTORY_SIM=1` 和
+  CoppeliaSim 4.10）使用 `tests/test_v1_stage2_arm_sim.py -k path_reuse`；
+  2026-11-20 在 `v005` 上对同一固定 `PLACING` 段完成
+  `PLAN_ONLY` → `CACHE_ONLY` 对照（两次任务 `DONE`、无安全锁存、回放
+  规划器调用 0）。抓取/抬升/转运段、第二个固定动作和 P2/P3 未执行。
 - 订单 DAG 纯逻辑/API 测试（不需要 CoppeliaSim）：
   `tests/test_v1_order_foundation.py`（契约/校验/编译/digest）、
   `tests/test_v1_order_failure_isolation.py`（NODE/GLOBAL 与收敛）、

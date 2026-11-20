@@ -116,6 +116,23 @@ def test_direct_plan_passes_when_clear():
     assert plan.metrics["totals"]["tv_total"] > 0
 
 
+def test_plan_records_search_verify_and_postprocess_timings():
+    planner = LocalPlanner(FakeChecker(), FakeIK())
+    plan = planner.plan(start_q(), [goal()], context(),
+                        start_pose=[0.0, 0.0, 0.5, 0, 0, 0, 1])
+    assert plan.ok
+    assert {"search_wall_s", "verify_wall_s", "postprocess_wall_s"} == \
+        set(plan.timings)
+    assert plan.timings["search_wall_s"] >= 0.0
+    assert plan.timings["verify_wall_s"] >= 0.0
+    assert plan.timings["postprocess_wall_s"] >= 0.0
+    summed = (plan.timings["search_wall_s"]
+              + plan.timings["verify_wall_s"]
+              + plan.timings["postprocess_wall_s"])
+    assert plan.wall_s >= summed - 1e-6
+    assert plan.as_dict()["timings"] == plan.timings
+
+
 def test_middle_segment_collision_is_not_treated_as_endpoint_only():
     def block(q):
         if 0.05 < q[0] < 0.15 and abs(q[1]) < 1e-6:

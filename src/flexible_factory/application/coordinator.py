@@ -110,7 +110,8 @@ class Stage4Coordinator:
                  catalog: Optional[ProcessCatalog] = None,
                  batch: Optional[Mapping[str, int]] = None,
                  fleet_mode: str = "single",
-                 order_plan: Optional[CompiledOrder] = None) -> None:
+                 order_plan: Optional[CompiledOrder] = None,
+                 path_reuse: Optional[object] = None) -> None:
         if scenario not in cfg.STAGE4_SCENARIOS:
             raise CoordinatorError(f"未知 scenario: {scenario!r}")
         # 批次只影响本次运行的来源数量; 显式输入在创建任何任务前校验,
@@ -142,6 +143,8 @@ class Stage4Coordinator:
         self.on_controller = on_controller
         self.scenario = scenario
         self.fault = fault
+        # 可选固定路径复用策略; None 时所有臂保持原在线规划路径.
+        self.path_reuse = path_reuse
 
         self.queue = TaskQueue(catalog=self.catalog)
         self.resources = ResourceTable()
@@ -165,7 +168,8 @@ class Stage4Coordinator:
         self.arm_executors = {
             device.id: ArmExecutor(self.sim, scene, comp, device=device,
                                    catalog=self.catalog,
-                                   resources=self.resources, logger=logger)
+                                   resources=self.resources, logger=logger,
+                                   path_reuse=path_reuse)
             for device in self.catalog.devices if device.kind == "arm"}
         # 车队槽位: 先建槽位, 再通过 agv_executor 的 setter 写入执行器。
         self.fleet: dict[str, VehicleRuntime] = {

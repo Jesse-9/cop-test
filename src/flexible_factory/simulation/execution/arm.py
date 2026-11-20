@@ -88,7 +88,8 @@ class ArmExecutor:
 
     def __init__(self, sim: Any, scene: Any, comp: dict, *,
                  device: DeviceSpec, catalog: ProcessCatalog,
-                 resources: Any = None, logger: Any = None) -> None:
+                 resources: Any = None, logger: Any = None,
+                 path_reuse: Any = None) -> None:
         if device.kind != "arm":
             raise ExecutorError(
                 f"ArmExecutor 需要 arm 设备, 收到 {device.kind!r}")
@@ -101,6 +102,7 @@ class ArmExecutor:
         self.catalog = catalog
         self.resources = resources
         self.logger = logger
+        self.path_reuse = path_reuse
         self.lines = line_specs()
         self._serial = 0
         self._active: Optional[_ArmExecution] = None
@@ -230,6 +232,10 @@ class ArmExecutor:
         vehicle_id = str(getattr(request, "vehicle_id", "") or "")
         vehicle = (self.comp.get("cart2_vehicle")
                    if vehicle_id == "cart_2" else self.comp["agv"])
+        reuse = self.path_reuse
+        if reuse is not None and not reuse.applies(
+                self.unit_id, UnitTaskState.PLACING.name):
+            reuse = None
         controller = Stage4UnitController(
             sim=self.sim, scene=arm.view,
             materials=self.comp["materials"],
@@ -246,7 +252,8 @@ class ArmExecutor:
             sink_spec=sink_spec, flow=self.comp["flow"],
             expected_types=expected_types,
             park_tcp_pose=handoff_park_tcp(self.unit_id),
-            pick_timeout=cfg.TASK_TIMEOUT)
+            pick_timeout=cfg.TASK_TIMEOUT,
+            path_reuse=reuse)
         controller.tray_alias = str(getattr(request, "tray_alias", "") or "")
         if controller.tray_alias:
             from ..cart_vehicle import Cart2Spec

@@ -35,6 +35,8 @@ class PlanStatus(str, Enum):
     WRIST_BRANCH_MISMATCH = "WRIST_BRANCH_MISMATCH"
     WRIST_SINGULARITY = "WRIST_SINGULARITY"
     JOINT_LOCK_UNAVAILABLE = "JOINT_LOCK_UNAVAILABLE"
+    # 固定路径复用: CACHE_ONLY 未命中时明确失败, 不静默改为在线规划.
+    PATH_REPLAY_MISS = "PATH_REPLAY_MISS"
 
 
 _OK_STATUSES = frozenset({PlanStatus.OK, PlanStatus.DIRECT_OK,
@@ -278,6 +280,12 @@ class MotionPlan:
     chain_search: dict = field(default_factory=dict)
     smoothing: dict = field(default_factory=dict)
     diagnostics: dict = field(default_factory=dict)
+    # P0 计时基线: 只汇总规划阶段耗时, 不逐 tick 记录.
+    timings: dict = field(default_factory=dict)
+    # 固定路径复用: "cache" / "online" / "" (未知来源).
+    plan_source: str = ""
+    # 回放来源、命中的记录 ID 和 PR_* 阶段; 在线计划为空.
+    replay: dict = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -295,6 +303,9 @@ class MotionPlan:
             "chain_search": self.chain_search,
             "smoothing": self.smoothing,
             "diagnostics": self.diagnostics,
+            "timings": self.timings,
+            "plan_source": self.plan_source,
+            "replay": self.replay,
             "waypoints": [[round(float(v), 6) for v in q]
                           for q in self.waypoints],
             "segments": [s.as_dict() for s in self.segments],
