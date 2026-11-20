@@ -90,7 +90,7 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
   `TaskQueue` 只服务非配方任务（空载调机/兼容路径），直接赋值会抛
   `TaskError`。
-- 自建订单 DAG（阶段 1–6）：
+- 自建订单 DAG（阶段 1–7）：
   - `domain/orders.py` 只保存声明式 `OrderSpec`/节点/边/投料/目标，严格拒绝
     未知字段、代码字段和运行时句柄；`canonical_json()`/`dag_digest()` 是
     版本不可变性和运行关联的稳定摘要。
@@ -144,6 +144,17 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
     `--sim-host/--sim-port` 只供 worker 连接 ZMQ，与 HTTP `--host/--port` 分离。
     验收只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开和
     未验证故障仍按 GLOBAL，不能据 UI 成功推断任意 DAG/设备可行。
+  - 阶段 7 把车队模式作为订单运行配置：`transport_fleet`（`single` 缺省/
+    `dual`）在创建 run 前校验并冻结到 `OrderRunCommand`，写入
+    `order_run.transport_fleet`/`fleet_policy_version` 和运行报告；**不写入**
+    订单 spec 或 DAG digest。dual 固定分工为 `agv_1` 负责壳体 B→A 物流、
+    `cart_2` 负责支架 D→E 物流；运输工序的调度候选按分工收窄，
+    `selected_device_id`、执行器 device、事件、资源 owner 和报告使用同一
+    车辆。dual 启动前要求工件 manifest 含 `Cart2`/`Cart2_Tray`。路线资源仍
+    按全部 dock + 直道全有或全无锁定，任意两条路线互斥，不得宣传并行提速；
+    `cart_2` 是运动学执行器，不是物理轮式控制。CoppeliaSim 限定验收
+    （`v005`）已通过 single 回归、dual 手工订单、dual planner 订单和真实 UI
+    双车启动；路线并行与 planner UI 启动未验证，见阶段 7 报告。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -184,7 +195,8 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   来源追溯，`0003_run_records` 是运行快照/事件，`0004_order_catalog_metadata`
   增加订单编排所需端口/allowlist/场景字段，`0005_orders` 增加版本化订单与
   订单运行关联，`0006_order_planner_metadata` 增加 planner 输入/explain/
-  候选数元数据。数据库默认路径 `var/catalog/catalog.db`（`.gitignore`），
+  候选数元数据，`0007_order_run_fleet` 增加运行车队模式/策略版本（历史行
+  回填 `single`）。数据库默认路径 `var/catalog/catalog.db`（`.gitignore`），
   不得写入场景工件目录；连接级 `PRAGMA foreign_keys=ON` 失败即拒绝运行。
 - 知识图谱导入只消费 `tools/neo4j_export.py` 的 JSON：原始 `fmpmm.dump`
   由官方 `neo4j-admin` 载入/迁移，项目不解析二进制 dump。`knowledge import`

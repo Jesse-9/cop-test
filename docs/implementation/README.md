@@ -38,12 +38,12 @@
 
 ### 订单编排
 
-订单契约、失败隔离、API/持久化、确定性 planner、前端和限定范围的仿真实机验收。阶段 1–6 的限制和未准入故障以各阶段报告为准。
+订单契约、失败隔离、API/持久化、确定性 planner、前端和限定范围的仿真实机验收。阶段 1–6 的限制和未准入故障以各阶段报告为准；阶段 7 已接入双车运行配置、派工一致性和启动 UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行与 planner UI 启动未验证。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
-| 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
+| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) |
+| 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) |
 | 证据 | [订单编排阶段 6 验收证据](evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json) |
 
 ### 数据平台

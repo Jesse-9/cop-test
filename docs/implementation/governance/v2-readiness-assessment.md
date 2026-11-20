@@ -2,20 +2,20 @@
 title: v2 启动准备度与 v1 阶段盘点
 type: assessment
 created: 2026-11-09
-updated: 2026-11-12
+updated: 2026-11-20
 status: current
 scope: flexible-factory v1 -> v2
 ---
 
 # v2 启动准备度与 v1 阶段盘点
 
-本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-12 已归档资料，未在本次重新运行完整测试套件；启动性能部分只有计时记录，功能验收仍未执行。
+本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-20 已归档资料（含阶段 7 实现记录）；启动性能部分只有计时记录，功能验收仍未执行。
 
 ## 总体判断
 
 v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件支持 `full_flow`、静态工艺目录、工序 DAG、确定性能力筛选、订单 API/持久化、planner 草稿和前端；阶段 6 已在 CoppeliaSim 4.10 上完成限定矩阵的实机验收。可进入 v2 需求与基线阶段，但不应把 v1 的限定验收扩展解释为通用工厂调度或自动恢复能力。
 
-业务阶段编号与订单 DAG 实施阶段编号是两套序列：业务阶段 0–4 已实现，业务阶段 5（调度优化与有限恢复）暂缓；订单 DAG 实施阶段 1–6 已完成各自限定交付和报告。两者不可用同一个“阶段 5/6”状态替代。
+业务阶段编号与订单 DAG 实施阶段编号是两套序列：业务阶段 0–4 已实现，业务阶段 5（调度优化与有限恢复）暂缓；订单 DAG 实施阶段 1–6 已完成各自限定交付和报告，阶段 7（双车订单运行接入）已实施运行配置/派工一致性/UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行与 planner UI 启动仍未验证。两者不可用同一个“阶段 5/6”状态替代。
 
 ## 阶段盘点
 
@@ -31,6 +31,7 @@ v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件�
 | 订单 DAG 阶段 4：planner | 已实现，逻辑/API 验证 | 有界确定性 planner 生成并保存草稿；不自行启动仿真或选择未登记的工艺/设备 | [阶段 4 报告](../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) |
 | 订单 DAG 阶段 5：前端 | 已实现并集成验证 | 订单编辑、planner、运行查看；独立本机 API 消费端 | [阶段 5 报告](../reports/order-orchestration/v1-order-dag-phase-05-frontend.md) |
 | 订单 DAG 阶段 6：仿真实机验收 | 已完成限定矩阵 | 手工/planner 订单、NODE 前置拒绝、GLOBAL 安全锁存通过；见报告列出的未执行项 | [阶段 6 报告](../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) |
+| 订单 DAG 阶段 7：双车订单运行 | 已实施，限定实机验收通过 | `single/dual` 运行配置、fixed fleet 派工一致性、迁移和启动 UI 已落地；`v005` 上 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动均通过（各 1 FINAL）；路线并行/缩窄锁、planner UI 启动和轮式物理未验证 | [阶段 7 方案](../plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)、[阶段 7 报告](../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) |
 | 目录/运行记录/知识图谱持久化 | 部分实现 | SQLite 目录、运行记录、Neo4j dump 导入链均有实现记录；真实 dump 的 Docker 端到端、备份恢复演练、记录保留策略及 Q5/Q6 查询仍有缺口 | [目录持久化报告](../reports/data-platform/v1-catalog-persistence.md)、[运行记录报告](../reports/data-platform/v1-run-record-persistence.md)、[知识图谱报告](../reports/data-platform/v1-knowledge-graph-import.md) |
 | 本地数据库仪表盘前端优化 | 提案，未实施 | 现有 CLI/HTML 可查看数据；仪表盘改版方案与 UI 蓝图尚未形成实施报告 | [优化方案](../plans/data-platform/db-dashboard-frontend-optimization.md)、[UI 蓝图](../plans/data-platform/db-dashboard-ui-blueprint.md) |
 | v1 启动性能优化 | 部分实施，性能已计时 | P1/P2 代码落地；正常 load 路径 `prepare_start` 25→12.1–12.2 s（alias 缓存后 8.5–9.6 s）、五台影子运行时 47.9→20.3–21.4 s；最新 `startup_total_wall` 79.97–88.61 s（旧口径 130–210 s 为重叠求和）；pytest 615 passed / 7 skipped；full_flow 功能验收通过（1 FINAL/343.85 s），清理修复复测 leftover=[]；P3 4 臂子集订单通过（B 跳过，1 FINAL，leftover=[]）；P4 未实施 | [方案](../plans/simulation/v1-startup-performance-optimization.md)、[报告](../reports/simulation/v1-startup-performance-optimization.md) |

@@ -3,9 +3,11 @@ title: v1 自建订单与工序 DAG 自主编排总体方案
 type: plan
 status: implemented
 created: 2026-11-06
-updated: 2026-11-08
+updated: 2026-11-20
 scope: v1 UFLOW / L5_UFLOW / 自建订单
 related:
+  - v1-order-dag-phase-07-dual-fleet.md
+  - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../reports/production-flow/v1-stage-03-operation-dag.md
   - ../../reports/production-flow/v1-stage-04-capability-scheduling.md
   - ../../../wiki/06-工业案例/柔性车间/当前规划/06-24-混线生产术语与对象模型.md
@@ -108,7 +110,7 @@ related:
 
 ## 6. 分阶段实施工作包
 
-按依赖顺序推进以下六个阶段。工作量为相对估计，用于拆分审查和排期，不代表日历工期；阶段 2 与阶段 6 的物理风险最高。详细步骤、代码落点和验收见各阶段文档。
+按依赖顺序推进以下七个阶段。工作量为相对估计，用于拆分审查和排期，不代表日历工期；阶段 2、6 的物理风险最高，阶段 7 是已完成首期订单链路后的双车运行扩展。详细步骤、代码落点和验收见各阶段文档。
 
 | 顺序 | 阶段与工作量 | 主要交付 | 进入下一阶段的条件 | 详细方案 |
 |---|---|---|---|---|
@@ -118,10 +120,11 @@ related:
 | 4 | 后端自主规划（中） | 有界确定性 planner、选择解释、无解诊断 | planner 输出经同一 compiler 验证并保存为普通订单 | [阶段 4](v1-order-dag-phase-04-auto-planner.md) |
 | 5 | 前端编排（大） | 订单工作台、DAG 编辑、planner 结果预览和运行 trace | 手工与自动订单共享 API，运行状态与服务端一致 | [阶段 5](v1-order-dag-phase-05-frontend.md) |
 | 6 | 仿真验收（中，依赖 CoppeliaSim） | 默认回归、自建订单、planner 订单、局部/全局故障证据 | 真实运行通过；未验证故障保持 GLOBAL | [阶段 6](v1-order-dag-phase-06-simulation-acceptance.md) |
+| 7 | 双车订单运行接入（中到大，依赖双车仿真环境） | 订单启动配置透传、固定分工派车一致性、路线资源边界、手工/planner 共用双车运行 | single 兼容；dual 订单由正确车辆执行；真实并行仅在路线冲突验收通过后声明 | [阶段 7](v1-order-dag-phase-07-dual-fleet.md) |
 
 阶段 1–2 的稳定契约和失败语义是 API/UI 的前置条件；阶段 3 是 planner 和前端共用的服务边界；阶段 4、5 可在 API 冻结后并行实现，但发布验收必须覆盖两者。测试保持聚焦：每阶段运行受影响测试；新增测试只覆盖关键正例、核心负例和新失败边界；最后跑一次全量纯测试及上述有限的实机验收矩阵，不重复生成同义测试。
 
-实施状态（2026-11-08）：阶段 1–6 均已实施。阶段 1–5 通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)；阶段 6 已在受保护 `L5_UFLOW` 工件上完成手工/planner UI 订单、NODE 前置拒绝和安全锁存全局停止验收，见[阶段 6 实施报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。未验证的真实运动/连接故障仍为 GLOBAL；本文其余部分保留原始总体设计。
+实施状态（2026-11-20）：阶段 1–6 已实施。阶段 1–5 通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)；阶段 6 已在受保护 `L5_UFLOW` 工件上完成手工/planner UI 订单、NODE 前置拒绝和安全锁存全局停止验收，见[阶段 6 实施报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 7 已把 `single/dual` 车队作为运行选项接入订单 API/worker/coordinator 与启动 UI，并完成派工一致性和迁移测试；CoppeliaSim 限定验收（`v005`）已通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动，均生成 1 个 `FINAL`，路线并行与 planner UI 启动仍未验证，不能表述为并行提速或轮式物理控制已验收，详见[阶段 7 方案](v1-order-dag-phase-07-dual-fleet.md)与[阶段 7 实施报告](../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。未验证的真实运动/连接故障仍为 GLOBAL；本文其余部分保留原始总体设计。
 
 ## 7. 首期验收场景
 
@@ -161,4 +164,4 @@ related:
 | `MaterialRegistry` 与 E join handler | 复用 UID、区域、类型和原子合流账本；关联输入/输出工序实例 |
 | `persistence/runs.py` / run records | 关联订单版本与运行终态；订单版本仓储独立于静态 catalog release |
 
-此方案是总体计划，不表示所有边界已经完成。阶段 1–6 已实施（见[阶段 1–3 报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)与[阶段 6 报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)）；未验证的真实 Arm/AGV 运动错误、连接故障和其他场景仍保持 GLOBAL/未覆盖。各工作包应独立实施，并在报告中记录纯逻辑测试、仿真证据和未覆盖限制。
+此方案是总体计划，不表示所有边界已经完成。阶段 1–6 已实施（见[阶段 1–3 报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md)、[阶段 5 报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)与[阶段 6 报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)）；阶段 7 的订单双车运行配置、派工一致性与 UI 已实施，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行、planner UI 启动与轮式物理仍未验证（见[阶段 7 报告](../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)）。未验证的真实 Arm/AGV 运动错误、连接故障和其他场景仍保持 GLOBAL/未覆盖。各工作包应独立实施，并在报告中记录纯逻辑测试、仿真证据和未覆盖限制。

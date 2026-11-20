@@ -1,0 +1,159 @@
+{
+  "evidence_id": "v1_order_dag_phase7_dual_planner_20261120_010820",
+  "phase": "order-dag-phase-7",
+  "case": "planner-generated order started with dual fleet (CLI, not UI)",
+  "executed_at": "2026-11-20T01:08:20+08:00",
+  "environment": {
+    "source_revision": "e87e48b49ade95edd8b884f845fa763ee2a21f9a",
+    "source_revision_note": "acceptance ran on HEAD + uncommitted phase 7 changes",
+    "simulator": "CoppeliaSim 4.10.0",
+    "transport": "ZeroMQ Remote API 23000",
+    "coppelia": {
+      "version": "4.10.0.0",
+      "zmq": "localhost:23000"
+    },
+    "artifact": {
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "protected": true,
+      "manifest_digest": "70457326be098844fe778f3f1962a61763352e27d7a461a63d7b1b7d9f8274f1",
+      "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+      "validation_ok": true
+    }
+  },
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "order": {
+    "order_id": "phase7-dual-planner",
+    "version": 1,
+    "dag_digest": "dc10746e17694460fd619b3baee57dd0cf8ed9154338f73f8714bf6537917fa1",
+    "source": "planner",
+    "planner_policy_version": "v1_planner_20261107",
+    "planner_candidate_count": 2
+  },
+  "run_id": "order_phase7-dual-planner_20261119_165811_9eabd8",
+  "transport_fleet": "dual",
+  "fleet_policy_version": "v1_fleet_20261119",
+  "catalog_version": "v1_process_20261117a",
+  "versions": {
+    "order_contract": "v1_order_20261106",
+    "catalog": "v1_process_20261117a",
+    "fleet_policy": "v1_fleet_20261119",
+    "planner_policy": "v1_planner_20261107"
+  },
+  "result": {
+    "order_status": "SUCCEEDED",
+    "all_ok": true,
+    "aborted": false,
+    "frozen": false,
+    "sim_time": 136.15,
+    "steps": 2723,
+    "active_unit_ids": [
+      "A",
+      "C",
+      "D",
+      "E"
+    ]
+  },
+  "acceptance": {
+    "ok": true,
+    "order_status": "SUCCEEDED",
+    "final_count": 1,
+    "final_parents": [
+      [
+        1,
+        2
+      ]
+    ],
+    "order_target_count": 1,
+    "graph_complete": true,
+    "any_task_failed": false,
+    "any_task_blocked": false,
+    "resources_released": true,
+    "route_ok": true,
+    "scheduler_ok": true,
+    "priority_ok": true,
+    "loaded_routes": 1
+  },
+  "planner": {
+    "order_dag_digest": "dc10746e17694460fd619b3baee57dd0cf8ed9154338f73f8714bf6537917fa1",
+    "plan_digest": "dc10746e17694460fd619b3baee57dd0cf8ed9154338f73f8714bf6537917fa1",
+    "instance_counts": {
+      "bracket_process-03": 1,
+      "housing_direct_A-00": 1,
+      "housing_finish-01": 1,
+      "housing_to_E_buffer-02": 1,
+      "transport_DE-04": 1,
+      "bracket_to_E-05": 1,
+      "kit_join-06": 1
+    }
+  },
+  "fleet": {
+    "mode": "dual",
+    "assignment": {
+      "b_conveyor": "agv_1",
+      "a_agv": "agv_1",
+      "transport_ba": "agv_1",
+      "d_conveyor": "cart_2",
+      "e_agv": "cart_2",
+      "transport_de": "cart_2"
+    },
+    "verified_pairs": [
+      [
+        "cart_2",
+        "transport_DE"
+      ]
+    ],
+    "transport_selections": [
+      {
+        "instance_id": "order_phase7-dual-planner_20261119_165811_9eabd8:transport_DE-04:2",
+        "task_id": "transport_de_uid2_transport_DE-04",
+        "template_id": "transport_DE",
+        "kind": "transport_de",
+        "selected_device_id": "cart_2",
+        "execution_id": "cart_2#1"
+      }
+    ],
+    "vehicles": [
+      {
+        "vehicle_id": "agv_1",
+        "at_dock": "A",
+        "device_id": "agv_1",
+        "active": false,
+        "task_id": "",
+        "execution_id": ""
+      },
+      {
+        "vehicle_id": "cart_2",
+        "at_dock": "E",
+        "device_id": "cart_2",
+        "active": false,
+        "task_id": "",
+        "execution_id": ""
+      }
+    ],
+    "route_lock": {
+      "resources": "all_docks_and_lanes",
+      "parallel_routes": false,
+      "policy_version": "v1_resources_20261103"
+    }
+  },
+  "routes": [
+    {
+      "vehicle_id": "cart_2",
+      "route_id": "D->E",
+      "loaded": true,
+      "start_dock": "D",
+      "end_dock": "E",
+      "metrics": {
+        "stop_error": 0.0,
+        "heading_error": 0.0,
+        "material_slip": 0.0
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "Saved planner order DAG digest equals run order_plan digest; enabling dual did not alter the planner DAG.",
+    "transport_DE selected cart_2; agv_1 stayed idle because this planner route uses housing_direct_A.",
+    "cart_2 route metrics are kinematic zeros; no wheel-level physical evidence."
+  ]
+}
