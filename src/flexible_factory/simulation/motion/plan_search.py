@@ -134,6 +134,9 @@ class LocalPlanner:
         的预算覆盖, 只放宽时间/采样上限, 不减少任何检查.
         """
         started = time.monotonic()
+        # P0 计时基线: 只汇总搜索/最终复核/后处理三段, 不逐 tick 记录.
+        timings = {"search_wall_s": 0.0, "verify_wall_s": 0.0,
+                   "postprocess_wall_s": 0.0}
         if wall_s is not None or max_samples is not None:
             budget = PlanBudget(
                 wall_s=(cfg.PLAN_WALL_BUDGET_S if wall_s is None
@@ -145,10 +148,12 @@ class LocalPlanner:
         self.checker.budget = budget
         anchor, margin = wrist_branch(start_q)
         if anchor is None or margin < cfg.WRIST_BRANCH_MARGIN:
+            total = time.monotonic() - started
             return MotionPlan(
                 PlanStatus.WRIST_SINGULARITY,
                 message=f"起始构型腕部裕量 {margin:.3f} < "
-                        f"{cfg.WRIST_BRANCH_MARGIN:.3f} rad, 拒绝规划")
+                        f"{cfg.WRIST_BRANCH_MARGIN:.3f} rad, 拒绝规划",
+                wall_s=total, timings=_timing_dict(timings))
         context = context.with_flags(branch=anchor,
                                      branch_margin=cfg.WRIST_BRANCH_MARGIN)
         requested = [goal.name for goal in goals
@@ -172,6 +177,7 @@ class LocalPlanner:
                 if direct_only and name != "direct":
                     continue
                 label = f"{policy}:{name}"
+                attempt_started = time.monotonic()
                 try:
                     plan = self._attempt(
                         name, start_q, strategy_goals, context,
@@ -187,6 +193,7 @@ class LocalPlanner:
                         PlanStatus.LOCAL_AVOIDANCE_FAILED,
                         message=f"{type(exc).__name__}: {exc}",
                         samples=budget.samples, configs=budget.configs)
+                timings["search_wall_s"] += time.monotonic() - attempt_started
                 plan.strategy = label
                 plan.branch_anchor = anchor
                 plan.lock_policy = policy
@@ -199,22 +206,40 @@ class LocalPlanner:
                     compact = {}
                     smoothing = {}
                     try:
+                        post_started = time.monotonic()
                         compact = compact_plan_waypoints(
                             plan, self.checker)
                         smoothing = smooth_plan_waypoints(
                             plan, self.checker)
                         self._finalize_plan_metrics(plan)
+                        timings["postprocess_wall_s"] += \
+                            time.monotonic() - post_started
+                        verify_started = time.monotonic()
                         verified = self._verify_plan(plan)
+                        timings["verify_wall_s"] += \
+                            time.monotonic() - verify_started
                         if not verified.ok and smoothing.get("applied"):
                             _restore_waypoints(plan, smoothing)
                             smoothing["reverted"] = True
                             smoothing["reverted_reason"] = verified.message
+                            post_started = time.monotonic()
                             self._finalize_plan_metrics(plan)
+                            timings["postprocess_wall_s"] += \
+                                time.monotonic() - post_started
+                            verify_started = time.monotonic()
                             verified = self._verify_plan(plan)
+                            timings["verify_wall_s"] += \
+                                time.monotonic() - verify_started
                         if (not verified.ok and compact.get("removed")):
                             _restore_waypoints(plan, compact)
+                            post_started = time.monotonic()
                             self._finalize_plan_metrics(plan)
+                            timings["postprocess_wall_s"] += \
+                                time.monotonic() - post_started
+                            verify_started = time.monotonic()
                             verified = self._verify_plan(plan)
+                            timings["verify_wall_s"] += \
+                                time.monotonic() - verify_started
                             compact["reverted"] = True
                             compact["reverted_reason"] = verified.message
                         compact.pop("_original_waypoints", None)
@@ -250,6 +275,11 @@ class LocalPlanner:
                                     "enabled": True, "points": 0,
                                     "error": f"{type(exc).__name__}: {exc}",
                                 }
+                        # wall_s 覆盖后处理、最终复核与诊断导出, 不再只是
+                        # 粗筛时间; 便于和 execution_metrics 的 sim_duration
+                        # 在同一份报告里比较.
+                        plan.wall_s = time.monotonic() - started
+                        plan.timings = _timing_dict(timings)
                         return plan
                     if verified is not None:
                         plan.status = verified.status
@@ -269,10 +299,11 @@ class LocalPlanner:
                 })
                 if exhausted or time.monotonic() - started > \
                         cfg.PLAN_WALL_BUDGET_S:
-                    return _best_plan(best, attempts, started, budget)
+                    return _best_plan(best, attempts, started, budget,
+                                      timings)
             if exhausted:
                 break
-        return _best_plan(best, attempts, started, budget)
+        return _best_plan(best, attempts, started, budget, timings)
 
     def _verify_plan(self, plan: MotionPlan) -> SegmentCheck:
         """对完整计划按 2° 采样重新执行全部检查 (粗筛不能代替复核)."""
@@ -1014,17 +1045,32 @@ def _lock_fields(lock: Optional[tuple[int, float, float]]) -> dict:
 
 
 def _best_plan(best: Optional[MotionPlan], attempts: list[dict],
-               started: float, budget: PlanBudget) -> MotionPlan:
+               started: float, budget: PlanBudget,
+               timings: Optional[dict] = None) -> MotionPlan:
     if best is None:
         best = MotionPlan(PlanStatus.LOCAL_AVOIDANCE_FAILED,
                           message="没有可用候选")
     best.attempts = attempts
     best.wall_s = time.monotonic() - started
+    best.timings = _timing_dict(timings or {})
     best.samples = budget.samples
     best.configs = budget.configs
     if best.status in _OK_STATUSES:
         best.status = PlanStatus.LOCAL_AVOIDANCE_FAILED
     return best
+
+
+def _timing_dict(timings: dict) -> dict:
+    """规划耗时汇总 (P0): 只记录搜索/复核/后处理三段.
+
+    总墙钟仍写入 ``MotionPlan.wall_s``; 不在这里重复.
+    """
+    return {
+        "search_wall_s": round(float(timings.get("search_wall_s", 0.0)), 6),
+        "verify_wall_s": round(float(timings.get("verify_wall_s", 0.0)), 6),
+        "postprocess_wall_s": round(
+            float(timings.get("postprocess_wall_s", 0.0)), 6),
+    }
 
 
 def _restore_waypoints(plan: MotionPlan, compact: dict) -> None:

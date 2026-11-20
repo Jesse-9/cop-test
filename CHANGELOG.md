@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- 仿真与运动规划 P0/P1：`MotionPlan` 新增 `timings`（搜索/最终复核/
+  后处理墙钟）、`plan_source` 与 `replay`；成功计划 `wall_s` 改为覆盖
+  后处理和最终复核。新增 `motion/path_library.py`
+  （`v1_path_record_20261120`）和 `motion/path_reuse.py`
+  （`v1_path_reuse_20261120`），实现精确键、JSON 原子存取与
+  `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN`；`Stage2UnitController`
+  只在 `PLACING` 试点段可选接入，默认仍走 `LocalPlanner`，不新增
+  config 常量、不改变 `config_digest()`/`layout_digest()`、不取消执行期
+  联锁。新增 `tests/test_v1_motion_path_reuse.py`；全量离线回归
+  728 passed / 8 skipped（8 项为需 CoppeliaSim 的 focused 测试）。
+  2026-11-20 在 CoppeliaSim 4.10、工件
+  `v1/L5_UFLOW/v005_20261117_110924` 上完成 `housing_direct_A` 固定
+  `PLACING` 段 focused 对照：`PLAN_ONLY` 在线规划 `3.312 s`，重载场景
+  `CACHE_ONLY` 查找 `0.015 s`、规划器调用 0、执行 81 步/20 命令，
+  两次任务均 `DONE`、无安全锁存，目标误差均在同一容差内，最终 TCP
+  距离 `1e-6 m`。抓取/抬升/转运段计时、第二个固定动作、动态目标和
+  P2/P3 未执行，不能据此宣称全流程提速。见
+  `docs/implementation/reports/simulation/v1-motion-planning-performance.md`
+  和 `docs/implementation/evidence/simulation/v1_motion_path_reuse_20261120.json`。
+
 - 自建订单 DAG 阶段 7（双车订单运行接入）：订单启动 API/CLI 新增
   `transport_fleet`（`single` 缺省 / `dual`），在创建 run 前校验并冻结到
   `OrderRunCommand`，运行记录新增 `transport_fleet` / `fleet_policy_version`

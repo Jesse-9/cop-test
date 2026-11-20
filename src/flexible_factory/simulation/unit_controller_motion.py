@@ -41,6 +41,7 @@ from .motion.conveyor_safety import (ConveyorStopMonitor, MaterialStabilityTrack
 from .motion.path_planning import (Goal, MotionContext, PlanStatus,
                             ConfigurationChecker, MotionPlan,
                             failure_priority)
+from .motion.path_reuse import mark_replay_done
 from .motion.safety import SafetyObservation
 from .motion.trajectory import ExecutorStatus, JointStreamExecutor, joint_distance
 
@@ -68,6 +69,8 @@ class ConveyorPickContext:
 
 class Stage2UnitController(Stage1UnitController):
     def __init__(self, *args, runtime, **kwargs) -> None:
+        # 可选路径复用策略; 默认 None 时保持原有在线规划调用路径.
+        self._path_reuse = kwargs.pop("path_reuse", None)
         super().__init__(*args, **kwargs)
         self.runtime = runtime
         self.safety = runtime.safety
@@ -440,6 +443,8 @@ class Stage2UnitController(Stage1UnitController):
             plan = self._build_plan()
             if plan is None:
                 return
+            if not plan.plan_source:
+                plan.plan_source = "online"
             self._last_plan = plan
             if not plan.ok:
                 self._event(
@@ -450,6 +455,9 @@ class Stage2UnitController(Stage1UnitController):
                     "message": plan.message,
                     "attempts": plan.attempts,
                     "branch_anchor": plan.branch_anchor,
+                    "timings": plan.timings,
+                    "plan_source": plan.plan_source or "online",
+                    "replay": plan.replay,
                 })
                 self._motion_reported = True
                 if plan.status is PlanStatus.QUERY_UNKNOWN:
@@ -462,7 +470,9 @@ class Stage2UnitController(Stage1UnitController):
             totals = (plan.metrics or {}).get("totals", {})
             self._event(
                 f"PLAN {plan.status.value} strategy={plan.strategy} "
-                f"policy={plan.lock_policy} segments={len(plan.segments)} "
+                f"policy={plan.lock_policy} source="
+                f"{plan.plan_source or 'online'} "
+                f"segments={len(plan.segments)} "
                 f"samples={plan.samples} points={totals.get('points')} "
                 f"tv={totals.get('tv_total')} "
                 f"wall={plan.wall_s:.2f}s")
@@ -509,6 +519,8 @@ class Stage2UnitController(Stage1UnitController):
                     return
             execution = self._executor.execution_metrics()
             self._planned_end_q = [float(v) for v in final]
+            if plan is not None:
+                mark_replay_done(plan)
             self._event(
                 f"MOTION {self.state.name} executed "
                 f"tv={execution['totals'].get('tv_total')} "
@@ -519,6 +531,9 @@ class Stage2UnitController(Stage1UnitController):
                 "state": self.state.name,
                 "status": "DONE",
                 "branch_anchor": self._branch_anchor,
+                "plan_source": ((plan.plan_source or "online")
+                                if plan is not None else "online"),
+                "replay": plan.replay if plan is not None else {},
                 "plan": plan.summary_dict() if plan is not None else None,
                 "execution": execution,
                 "tcp_pose": [round(float(v), 6) for v in
@@ -603,6 +618,35 @@ class Stage2UnitController(Stage1UnitController):
         """
         return None
 
+    # ── 固定路径复用 (P1) ───────────────────────────────────
+
+    def _path_reuse_applies(self) -> bool:
+        """只对显式注入策略的试点工位/动作启用, 默认始终 False."""
+        policy = getattr(self, "_path_reuse", None)
+        if policy is None:
+            return False
+        return bool(policy.applies(self._reuse_unit_id(), self.state.name))
+
+    def _reuse_unit_id(self) -> str:
+        return str(getattr(self, "unit_id", "A"))
+
+    def _tool_id(self) -> str:
+        """工具标识: 机械臂型号 + 实测杯口半径."""
+        return f"UR5+suction_pad:cup={float(self.runtime.cup_radius):.6f}"
+
+    def _payload_id(self) -> str:
+        """载荷标识: 实测包围盒 + 期望物料类型; 无载荷时为 none."""
+        box = self._pick_box
+        if box is None:
+            return "none"
+        values = [round(float(v), 6)
+                  for v in (*box.minimum, *box.maximum)]
+        types = ",".join(sorted(
+            str(getattr(item, "value", item))
+            for item in getattr(self, "expected_types", ())))
+        return (f"box[{','.join(f'{value:.6f}' for value in values)}];"
+                f"types[{types}]")
+
     def _build_plan(self) -> Optional[MotionPlan]:
         rec = self.materials.by_uid(self.uid)
         try:
@@ -664,10 +708,18 @@ class Stage2UnitController(Stage1UnitController):
                           lock_joint=self._lock_for("place"))]
             context = MotionContext(phase="PLACE", target_handle=-1,
                                     carrying=True, snapshot=snapshot)
+            plan_kwargs = {"direct_only": True,
+                           "wall_s": cfg.TRANSFER_PLAN_WALL_BUDGET_S}
+            if self._path_reuse_applies():
+                # 首版只在这个固定放置段接入; 未注入策略时保持原调用路径.
+                return self._path_reuse.plan(
+                    self.planner, current_q, goals, context,
+                    phase=f"{state.name}:place",
+                    unit_id=self._reuse_unit_id(),
+                    tool=self._tool_id(), payload=self._payload_id(),
+                    start_pose=current_tcp, **plan_kwargs)
             return self.planner.plan(current_q, goals, context,
-                                     start_pose=current_tcp,
-                                     direct_only=True,
-                                     wall_s=cfg.TRANSFER_PLAN_WALL_BUDGET_S)
+                                     start_pose=current_tcp, **plan_kwargs)
 
         if state is Stage2TaskState.RETREATING:
             retreat = list(current_tcp)
@@ -1118,6 +1170,9 @@ class Stage2UnitController(Stage1UnitController):
             "plan": self._last_plan.as_dict() if self._last_plan else None,
             "motion": self._motion_reports,
             "motion_totals": _motion_totals(self._motion_reports),
+            "path_reuse": (getattr(self, "_path_reuse", None).stats()
+                           if getattr(self, "_path_reuse", None)
+                           is not None else None),
             "branch_anchor": self._branch_anchor,
             "stop": (self._stop_monitor.measurement.as_dict()
                      if self._stop_monitor else None),
