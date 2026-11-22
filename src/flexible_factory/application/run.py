@@ -31,6 +31,8 @@ from ..simulation.component_builder import (
 from ..simulation.scene_base import alias_of
 from ..simulation.unit_controller_base import UnitTaskState
 from ..simulation.ur5_ik import Ur5IkController
+from ..simulation.motion.path_library import PathLibrary
+from ..simulation.motion.path_reuse import PATH_REUSE_MODES, PathReusePolicy
 from ..simulation.motion.suction import Stage2SuctionController
 
 from ..simulation import config as cfg
@@ -51,6 +53,60 @@ def setup_logger(path: str) -> logging.Logger:
     logger = setup_log(path)
     logger.name = "v1"
     return logger
+
+
+def build_path_reuse_policy(
+        mode: str = "off", root: Path | str | None = None,
+        scene_artifact_id: str | None = None, *,
+        export: Optional[bool] = None) -> Optional[PathReusePolicy]:
+    """构建运行级路径复用策略; ``off`` 保持原在线规划行为."""
+    mode = str(mode or "off")
+    if mode == "off":
+        return None
+    if mode not in PATH_REUSE_MODES:
+        raise ValueError(
+            f"未知路径复用模式 {mode!r}; 可选 off/{'/'.join(PATH_REUSE_MODES)}")
+    artifact = str(scene_artifact_id or "").strip()
+    if not artifact:
+        raise ValueError("路径复用需要已加载工件 ID; 请先 load v1 工件")
+    library_root = (Path(root) if root is not None
+                    else spec.PATH_LIBRARY_ROOT)
+    resolved = library_root.resolve()
+    artifact_root = spec.ARTIFACT_ROOT.resolve()
+    if resolved == artifact_root or resolved.is_relative_to(artifact_root):
+        raise ValueError(
+            f"路径库根目录不得位于场景工件目录内: {library_root}")
+    library = PathLibrary(library_root)
+    if mode == "CACHE_ONLY" and library.count_records(artifact) == 0:
+        raise ValueError(
+            f"CACHE_ONLY 需要场景 {artifact} 的路径记录; "
+            f"{library_root} 为空")
+    if export is None:
+        export = mode == "PLAN_ONLY"
+    return PathReusePolicy(
+        library, mode, scene_artifact_id=artifact, export=bool(export),
+        enabled_units=None, enabled_phases=("PLACING",))
+
+
+def path_reuse_info(policy: Optional[PathReusePolicy],
+                    root: Path | str | None = None) -> Optional[dict]:
+    """运行前可序列化的策略配置; 运行结束后由 stats() 提供计数."""
+    if policy is None:
+        return None
+    library_root = (Path(root) if root is not None
+                    else spec.PATH_LIBRARY_ROOT)
+    return {
+        "mode": policy.mode,
+        "library_root": str(library_root),
+        "scene": policy.scene_artifact_id,
+        "record_count": policy.library.count_records(
+            policy.scene_artifact_id),
+        "enabled_units": (None if policy.enabled_units is None
+                          else list(policy.enabled_units)),
+        "enabled_phases": list(policy.enabled_phases),
+        "export": policy.export,
+        "version": policy.stats()["version"],
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -182,9 +238,10 @@ def collect_scene_snapshot(scene, comp) -> dict:
 
 def snapshot_config(scenario: str, *, max_sim_time: float, scene,
                     batch: Mapping[str, int],
-                    batch_profile: str = DEFAULT_BATCH_PROFILE) -> dict:
+                    batch_profile: str = DEFAULT_BATCH_PROFILE,
+                    path_reuse: Optional[dict] = None) -> dict:
     """运行快照中的配置段; batch 必须是本次实际生效并通过校验的值."""
-    return {
+    data = {
         "scenario": scenario,
         "max_sim_time": max_sim_time,
         "sim_step": base.SIM_STEP,
@@ -193,6 +250,9 @@ def snapshot_config(scenario: str, *, max_sim_time: float, scene,
         "batch_profile": str(batch_profile or DEFAULT_BATCH_PROFILE),
         "batch_input_version": spec.BATCH_INPUT_VERSION,
     }
+    if path_reuse is not None:
+        data["path_reuse"] = path_reuse
+    return data
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -206,6 +266,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
                         batch_profile: str = DEFAULT_BATCH_PROFILE,
                         fleet_mode: str = "single",
                         catalog=None, run_recorder=None,
+                        path_reuse: Optional[PathReusePolicy] = None,
                         stop_event=None, pause_event=None,
                         pause_ack_event=None, on_start=None) -> dict:
     """在已加载/已建组件的 v1 场景上运行一个验收场景."""
@@ -234,7 +295,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
         coordinator = Stage4Coordinator(
             sim, scene, comp, scenario=scenario, fault=effective_fault,
             logger=logger, catalog=catalog, batch=effective_batch,
-            fleet_mode=fleet_mode,
+            fleet_mode=fleet_mode, path_reuse=path_reuse,
             on_controller=(lambda unit_id, controller: on_start(
                 coordinator) if on_start else None) if on_start else None)
         coordinator.start(float(sim.getSimulationTime()))
@@ -282,6 +343,8 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
             "sim_time": round(float(sim.getSimulationTime()), 4),
             "coordinator": summary,
             "acceptance": acceptance,
+            "path_reuse": (None if path_reuse is None
+                           else path_reuse.stats()),
             "materials": {
                 rec.uid: _material_evidence(sim, materials, flow, rec.uid)
                 for rec in materials.all_records()},
@@ -321,7 +384,10 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             stop_event=None, pause_event=None,
                             pause_ack_event=None, on_start=None,
                             run_id: str | None = None,
-                            artifact_id: str | None = None) -> dict:
+                            artifact_id: str | None = None,
+                            path_reuse_mode: str = "off",
+                            path_library_root: Path | str | None = None
+                            ) -> dict:
     """v1生命周期 runner; 不 build、不清场."""
     if keep_running:
         raise ValueError(
@@ -347,6 +413,14 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
     profile_name = str(batch_profile or DEFAULT_BATCH_PROFILE)
     logger.info("[TASK][v1] batch 解析: scenario=%s profile=%s batch=%s",
                 scenario, profile_name, effective_batch)
+    path_reuse = build_path_reuse_policy(
+        path_reuse_mode, path_library_root, artifact_id)
+    reuse_info = path_reuse_info(path_reuse, path_library_root)
+    if path_reuse is not None:
+        logger.info(
+            "[PATH_REUSE] mode=%s root=%s scene=%s records=%s units=all",
+            path_reuse.mode, reuse_info["library_root"],
+            path_reuse.scene_artifact_id, reuse_info["record_count"])
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = Path(out_dir)
@@ -384,7 +458,8 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             "active_unit_ids": list(effective_unit_ids),
             "config": snapshot_config(
                 scenario, max_sim_time=max_sim_time, scene=scene,
-                batch=effective_batch, batch_profile=profile_name),
+                batch=effective_batch, batch_profile=profile_name,
+                path_reuse=reuse_info),
             "scene": collect_scene_snapshot(scene, comp),
             "contract": {
                 "validated_by": "lifecycle.prepare_start",
@@ -415,6 +490,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             batch=effective_batch, batch_profile=profile_name,
             fleet_mode=fleet_mode,
             catalog=catalog, run_recorder=recorder,
+            path_reuse=path_reuse,
             stop_event=stop_event, pause_event=pause_event,
             pause_ack_event=pause_ack_event, on_start=on_start)
         evidence["conveyor_drive_probe"] = drive_probe
@@ -435,6 +511,13 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                 logger.exception("[V1] runtime 清理失败: %s", exc)
                 runtime_destroy = {"error": f"{type(exc).__name__}: {exc}"}
 
+    reuse_summary = None
+    if path_reuse is not None:
+        reuse_summary = dict(reuse_info)
+        reuse_summary.update(path_reuse.stats())
+        reuse_summary["record_count_after"] = \
+            path_reuse.library.count_records(path_reuse.scene_artifact_id)
+
     summary = {
         "timestamp": stamp,
         "run_id": run_id,
@@ -446,6 +529,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "batch_profile": profile_name,
         "batch_input_version": spec.BATCH_INPUT_VERSION,
         "transport_fleet": fleet_mode,
+        "path_reuse": reuse_summary,
         "active_unit_ids": list(effective_unit_ids),
         "layout": scene.stage4_layout.name,
         "catalog_source": "database" if catalog is not None else "code",

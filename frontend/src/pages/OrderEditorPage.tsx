@@ -4,9 +4,9 @@ import { api, ApiError } from "../api/client";
 import type {
   CompilePreview,
   Diagnostic,
+  TemplateCatalog,
   TemplateSummary,
 } from "../api/types";
-import { ITEM_TYPES } from "../api/types";
 import { DiagnosticsPanel, Inspector, NodeEdgeLists } from "../components/Inspector";
 import { OrderCanvas, type Selection } from "../components/OrderCanvas";
 import { TemplatePalette } from "../components/TemplatePalette";
@@ -24,8 +24,10 @@ import {
   addNode,
   blankDraft,
   cloneDraft,
+  draftProfileIssues,
   fromSpec,
   localDiagnostics,
+  pruneForCatalog,
   templateMap,
   toSpec,
   updateTarget,
@@ -43,6 +45,11 @@ export function OrderEditorPage() {
   const isNew = !orderId;
 
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [catalog, setCatalog] = useState<TemplateCatalog | null>(null);
+  const [artifact, setArtifact] = useState("");
+  const [artifactInput, setArtifactInput] = useState("");
+  const [catalogBusy, setCatalogBusy] = useState(false);
+  const [catalogError, setCatalogError] = useState("");
   const [draft, setDraft] = useState<DraftState | null>(null);
   const [past, setPast] = useState<DraftState[]>([]);
   const [future, setFuture] = useState<DraftState[]>([]);
@@ -65,9 +72,10 @@ export function OrderEditorPage() {
     setError("");
     const load = async () => {
       try {
-        const catalog = await api.templates();
+        const loadedCatalog = await api.templates();
         if (cancelled) return;
-        setTemplates(catalog.templates);
+        setCatalog(loadedCatalog);
+        setTemplates(loadedCatalog.templates);
         if (orderId) {
           const order = await api.getOrder(orderId);
           if (cancelled) return;
@@ -82,8 +90,14 @@ export function OrderEditorPage() {
           setDirty(false);
         } else {
           const blank = blankDraft();
-          blank.contractVersion = catalog.contract_version;
-          blank.sceneId = catalog.scene_id;
+          blank.contractVersion = loadedCatalog.contract_version;
+          blank.sceneId = loadedCatalog.scene_id;
+          if (loadedCatalog.item_types.targets.length > 0) {
+            blank.target = {
+              ...blank.target,
+              item_type: loadedCatalog.item_types.targets[0],
+            };
+          }
           setDraft(blank);
           setBaseVersion(0);
           setDirty(true);
@@ -107,9 +121,17 @@ export function OrderEditorPage() {
     () => (draft ? localDiagnostics(draft, map) : []),
     [draft, map],
   );
+  const profileIssues = useMemo(
+    () => (draft && catalog ? draftProfileIssues(draft, catalog) : []),
+    [draft, catalog],
+  );
   const allDiagnostics = useMemo(
-    () => [...localIssues, ...(preview?.diagnostics ?? [])],
-    [localIssues, preview],
+    () => [
+      ...localIssues,
+      ...profileIssues,
+      ...(preview?.diagnostics ?? []),
+    ],
+    [localIssues, profileIssues, preview],
   );
   const previewMatches = useMemo(
     () => draft !== null && previewSignature === signature(draft),
@@ -120,6 +142,7 @@ export function OrderEditorPage() {
     preview !== null &&
     preview.ok &&
     previewMatches &&
+    profileIssues.length === 0 &&
     !saving;
 
   const applySemantic = (next: DraftState) => {
@@ -190,15 +213,42 @@ export function OrderEditorPage() {
     });
   };
 
+  const reloadCatalog = async () => {
+    setCatalogBusy(true);
+    setCatalogError("");
+    try {
+      const next = await api.templates(artifactInput.trim() || undefined);
+      setCatalog(next);
+      setArtifact(artifactInput.trim());
+      setTemplates(next.templates);
+      setPreview(null);
+      setPreviewSignature("");
+      setLocalError("");
+    } catch (exc) {
+      setCatalogError(exc instanceof ApiError ? exc.message : String(exc));
+    } finally {
+      setCatalogBusy(false);
+    }
+  };
+
+  const pruneProfile = () => {
+    if (!draft || !catalog) return;
+    applySemantic(pruneForCatalog(draft, catalog));
+    setSelection(null);
+  };
+
   const runPreview = async () => {
     if (!draft) return;
     setPreviewLoading(true);
     setPreviewError("");
     try {
-      const payload = await api.preview({
-        ...toSpec(draft),
-        source: "manual",
-      });
+      const payload = await api.preview(
+        {
+          ...toSpec(draft),
+          source: "manual",
+        },
+        artifact.trim() || undefined,
+      );
       setPreview(payload.preview);
       setPreviewSignature(signature(draft));
     } catch (exc) {
@@ -271,6 +321,9 @@ export function OrderEditorPage() {
             ) : (
               <Badge tone="neutral">未预览</Badge>
             )}
+            <Badge tone="neutral">
+              {catalog?.scene_profile || "unbound"}
+            </Badge>
           </div>
         </div>
         <div className="editor-actions">
@@ -341,7 +394,7 @@ export function OrderEditorPage() {
                 )
               }
             >
-              {ITEM_TYPES.map((item) => (
+              {catalog?.item_types.targets.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -362,14 +415,69 @@ export function OrderEditorPage() {
             />
           </div>
         </Field>
-        <Field label="场景" htmlFor="editor-scene">
-          <input id="editor-scene" value={draft.sceneId} readOnly />
+        <Field label="场景工件" htmlFor="editor-artifact">
+          <div className="inline-controls">
+            <input
+              id="editor-artifact"
+              value={artifactInput}
+              onChange={(event) => setArtifactInput(event.target.value)}
+              placeholder="current 或具体 artifact_id"
+            />
+            <button
+              type="button"
+              className="button button-quiet button-small"
+              onClick={() => void reloadCatalog()}
+              disabled={catalogBusy}
+            >
+              {catalogBusy ? "加载中…" : "加载能力"}
+            </button>
+          </div>
+        </Field>
+        <Field label="场景 / profile" htmlFor="editor-scene">
+          <input
+            id="editor-scene"
+            readOnly
+            value={`${draft.sceneId} · ${
+              catalog?.scene_profile || "unbound"
+            }`}
+          />
         </Field>
         <span className="muted editor-meta-summary">
           节点 {draft.nodes.length} · 连线 {draft.edges.length} · 投料{" "}
           {draft.inputs.length}
         </span>
       </div>
+
+      {catalog ? (
+        <p className="muted mono">
+          工件 {catalog.artifact_id || "未绑定"} · profile 来源{" "}
+          {catalog.profile_source} · {catalog.profile_version}
+        </p>
+      ) : null}
+      {catalog?.profile_source === "unbound" ? (
+        <InlineNotice tone="warning">
+          当前服务未绑定场景工件 profile，物料/模板下拉显示全部目录；保存与启动仍以实际工件 manifest 为准。
+        </InlineNotice>
+      ) : null}
+      {artifactInput.trim() !== artifact.trim() ? (
+        <InlineNotice tone="warning">
+          场景工件输入已修改；请先点击“加载能力”，再预览或保存。
+        </InlineNotice>
+      ) : null}
+      {catalogError ? <InlineError message={catalogError} /> : null}
+      {profileIssues.length > 0 ? (
+        <InlineNotice tone="warning">
+          当前草稿与场景 profile {catalog?.scene_profile || "unbound"} 不兼容（
+          {profileIssues.length} 项），不能保存。
+          <button
+            type="button"
+            className="button button-quiet button-small"
+            onClick={pruneProfile}
+          >
+            清理不兼容项
+          </button>
+        </InlineNotice>
+      ) : null}
 
       {localError ? <InlineError message={localError} /> : null}
       {saveError ? <InlineError message={saveError} /> : null}
@@ -394,6 +502,9 @@ export function OrderEditorPage() {
         <Inspector
           draft={draft}
           templates={templates}
+          targetTypes={catalog?.item_types.targets ?? []}
+          inputTypes={catalog?.item_types.inputs ?? []}
+          zones={catalog?.zones ?? []}
           selection={selection}
           onChange={applySemantic}
           onSelect={setSelection}

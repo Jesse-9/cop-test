@@ -1,4 +1,9 @@
-export const ITEM_TYPES = [
+/**
+ * 编译期已知物料类型集合，用于在 API 解析边界拒绝未知值。
+ * 运行时可选项必须来自 `/api/templates` 的 `item_types`，不得用本常量
+ * 假定当前工件可以生产/接收哪些物料。
+ */
+export const KNOWN_ITEM_TYPES = [
   "RAW_A",
   "RAW_B",
   "SEMI_AB",
@@ -7,9 +12,18 @@ export const ITEM_TYPES = [
   "RAW_D",
   "PART_DE",
   "FINAL",
+  "COMPRESSOR",
+  "BASEPLATE",
+  "COMPRESSOR_ASSY",
+  "FRONT_FLANGE",
+  "REAR_FLANGE",
+  "FLANGE_ASSY",
 ] as const;
 
-export type ItemType = (typeof ITEM_TYPES)[number];
+export type ItemType = (typeof KNOWN_ITEM_TYPES)[number];
+export const SCENE_PROFILES = ["full_flow", "assembly_mvp"] as const;
+export type SceneProfile = (typeof SCENE_PROFILES)[number];
+export type ProfileSource = "manifest" | "default" | "unbound";
 export type OrderSource = "manual" | "planner" | "fixture";
 export type TransportFleet = "single" | "dual";
 export type OrderRunStatus =
@@ -63,10 +77,30 @@ export interface RouteSummary {
   exit_zone: string;
 }
 
+export interface SceneZoneSummary {
+  id: string;
+  capacity: number;
+  description: string;
+  spawnable: boolean;
+  item_types: string[];
+}
+
+export interface SceneItemTypes {
+  targets: ItemType[];
+  inputs: ItemType[];
+}
+
 export interface TemplateCatalog {
   catalog_version: string;
   contract_version: string;
   scene_id: string;
+  artifact_id: string;
+  scene_profile: SceneProfile | "";
+  profile_source: ProfileSource;
+  profile_version: string;
+  profiles: SceneProfile[];
+  item_types: SceneItemTypes;
+  zones: SceneZoneSummary[];
   templates: TemplateSummary[];
   routes: RouteSummary[];
 }
@@ -280,8 +314,13 @@ export interface PlannerSupplyPayload {
   zone?: string;
 }
 
+export interface PlannerFleetAssumptions {
+  available_vehicle_ids?: string[];
+}
+
 export interface PlannerInputPayload {
   policy_version?: string;
+  scene_profile?: SceneProfile;
   target_item_type: ItemType;
   target_quantity: number;
   inputs: PlannerSupplyPayload[];
@@ -295,6 +334,10 @@ export interface PlannerInputPayload {
   max_nodes?: number;
   order_id?: string;
   order_version?: number;
+  transport_fleet?: TransportFleet;
+  fleet_assumptions?: PlannerFleetAssumptions;
+  strict_fleet?: boolean;
+  fleet_eta_ranking?: boolean;
 }
 
 export interface PlannerBranch {
@@ -310,6 +353,11 @@ export interface PlannerBranch {
   output_item_type: ItemType;
   output_zone: string;
   operation_count: number;
+  direct_input_ports?: Array<{
+    port_id: string;
+    zone: string;
+    item_type: ItemType;
+  }>;
 }
 
 export interface PlannerCandidate {
@@ -345,6 +393,8 @@ export interface PlannerDiagnostic {
 export interface PlannerResult {
   ok: boolean;
   policy_version: string;
+  scene_profile: SceneProfile;
+  profile_version: string;
   input: Record<string, unknown>;
   first_blocking_category: string;
   diagnostics: PlannerDiagnostic[];
@@ -367,6 +417,8 @@ export interface PlannerResult {
       inputs: Array<{
         port_id: string;
         item_type: ItemType;
+        source?: "input" | "node";
+        zone?: string;
         route_ids: string[];
         template_ids: string[];
       }>;
@@ -376,6 +428,24 @@ export interface PlannerResult {
     search: Record<string, unknown>;
     unmodeled_dimensions: string[];
     first_blocking_category: string;
+    fleet_context?: {
+      mode: TransportFleet;
+      policy_version: string;
+      assignment: Record<string, string>;
+      available_vehicle_ids: string[];
+      strict: boolean;
+      eta_ranking: boolean;
+      route_vehicles: Array<{
+        route_id: string;
+        template_id: string;
+        kind: string;
+        vehicle_id: string;
+      }>;
+      assumptions: string[];
+      penalized?: boolean;
+      issues?: Array<Record<string, string>>;
+      eta?: Record<string, unknown>;
+    };
   };
   search: Record<string, unknown>;
 }

@@ -1,0 +1,903 @@
+{
+  "case": "v1_full_flow_path_reuse_five_arms",
+  "date": "2026-11-21",
+  "simulator": "CoppeliaSim 4.10.0.0",
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "scenario": "full_flow",
+  "batch": {
+    "RAW_A": 1,
+    "RAW_B": 1,
+    "RAW_D": 1
+  },
+  "commands": {
+    "generation": "flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 --scenario full_flow --path-reuse PLAN_ONLY --path-library-root docs/path_library --run-records off",
+    "cache": "flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 --scenario full_flow --path-reuse CACHE_THEN_PLAN --path-library-root docs/path_library --run-records off"
+  },
+  "generation_run": {
+    "all_ok": true,
+    "steps": 6724,
+    "sim_time": 337.05,
+    "acceptance": {
+      "ok": true,
+      "any_safety_latch": false,
+      "frozen": false,
+      "tasks_done": true,
+      "final_count": 1,
+      "unpaired_semi_ce": 1,
+      "resources_released": true,
+      "route_ok": true
+    },
+    "path_reuse": {
+      "mode": "PLAN_ONLY",
+      "library_root": "docs\\path_library",
+      "scene": "v1/L5_UFLOW/v005_20261117_110924",
+      "record_count": 0,
+      "enabled_units": null,
+      "enabled_phases": [
+        "PLACING"
+      ],
+      "export": true,
+      "version": "v1_path_reuse_20261121",
+      "last_error": "",
+      "lookup": 0,
+      "replay": 0,
+      "fallback": 0,
+      "planner_calls": 9,
+      "export_saved": 9,
+      "lookup_wall_s": 0.0,
+      "planner_wall_s": 41.06,
+      "by_unit": {
+        "A": {
+          "lookup": 0,
+          "replay": 0,
+          "fallback": 0,
+          "planner_calls": 2,
+          "export_saved": 2,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 8.452,
+          "last_miss_reason": ""
+        },
+        "B": {
+          "lookup": 0,
+          "replay": 0,
+          "fallback": 0,
+          "planner_calls": 1,
+          "export_saved": 1,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 6.328,
+          "last_miss_reason": ""
+        },
+        "C": {
+          "lookup": 0,
+          "replay": 0,
+          "fallback": 0,
+          "planner_calls": 2,
+          "export_saved": 2,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 3.233,
+          "last_miss_reason": ""
+        },
+        "D": {
+          "lookup": 0,
+          "replay": 0,
+          "fallback": 0,
+          "planner_calls": 1,
+          "export_saved": 1,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 7.75,
+          "last_miss_reason": ""
+        },
+        "E": {
+          "lookup": 0,
+          "replay": 0,
+          "fallback": 0,
+          "planner_calls": 3,
+          "export_saved": 3,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 15.297,
+          "last_miss_reason": ""
+        }
+      },
+      "record_count_after": 7
+    },
+    "wall_s": 1158,
+    "placing": [
+      {
+        "unit": "A",
+        "task": "a_conveyor_uid1",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 4.312,
+        "plan_timings": {
+          "search_wall_s": 1.656,
+          "verify_wall_s": 1.344,
+          "postprocess_wall_s": 0.719
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.188605,
+          "max_step": 0.03754,
+          "points": 81,
+          "sim_duration": 4.0,
+          "steps": 81,
+          "commands": 20
+        },
+        "target_error": {
+          "pos": 0.000844,
+          "ang": 0.001364
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "B",
+        "task": "b_conveyor_uid2",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 6.328,
+        "plan_timings": {
+          "search_wall_s": 3.0,
+          "verify_wall_s": 1.64,
+          "postprocess_wall_s": 0.875
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.461226,
+          "max_step": 0.03719,
+          "points": 101,
+          "sim_duration": 5.0,
+          "steps": 101,
+          "commands": 25
+        },
+        "target_error": {
+          "pos": 0.000686,
+          "ang": 0.001162
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "C",
+        "task": "c_handoff_uid1",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 1.64,
+        "plan_timings": {
+          "search_wall_s": 0.672,
+          "verify_wall_s": 0.422,
+          "postprocess_wall_s": 0.328
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 0.498851,
+          "max_step": 0.034591,
+          "points": 27,
+          "sim_duration": 1.3,
+          "steps": 27,
+          "commands": 6
+        },
+        "target_error": {
+          "pos": 0.000469,
+          "ang": 0.00043
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_conveyor_uid1",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 4.391,
+        "plan_timings": {
+          "search_wall_s": 1.578,
+          "verify_wall_s": 1.468,
+          "postprocess_wall_s": 0.688
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.54727,
+          "max_step": 0.035922,
+          "points": 91,
+          "sim_duration": 4.5,
+          "steps": 91,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.000504,
+          "ang": 0.000686
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "A",
+        "task": "a_agv_uid2",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 4.14,
+        "plan_timings": {
+          "search_wall_s": 1.578,
+          "verify_wall_s": 1.281,
+          "postprocess_wall_s": 0.703
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.184331,
+          "max_step": 0.037537,
+          "points": 80,
+          "sim_duration": 3.95,
+          "steps": 80,
+          "commands": 20
+        },
+        "target_error": {
+          "pos": 0.000411,
+          "ang": 0.002295
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "C",
+        "task": "c_handoff_uid2",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 1.593,
+        "plan_timings": {
+          "search_wall_s": 0.64,
+          "verify_wall_s": 0.39,
+          "postprocess_wall_s": 0.36
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 0.499236,
+          "max_step": 0.034591,
+          "points": 27,
+          "sim_duration": 1.3,
+          "steps": 27,
+          "commands": 6
+        },
+        "target_error": {
+          "pos": 0.000421,
+          "ang": 0.000326
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "D",
+        "task": "d_conveyor_uid3",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 7.75,
+        "plan_timings": {
+          "search_wall_s": 3.828,
+          "verify_wall_s": 1.969,
+          "postprocess_wall_s": 1.015
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.507979,
+          "max_step": 0.038513,
+          "points": 103,
+          "sim_duration": 5.1,
+          "steps": 103,
+          "commands": 25
+        },
+        "target_error": {
+          "pos": 0.000685,
+          "ang": 0.000699
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_agv_uid3",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 5.547,
+        "plan_timings": {
+          "search_wall_s": 2.062,
+          "verify_wall_s": 1.781,
+          "postprocess_wall_s": 0.938
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.443621,
+          "max_step": 0.037166,
+          "points": 89,
+          "sim_duration": 4.4,
+          "steps": 89,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.000319,
+          "ang": 0.000723
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_conveyor_uid2",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 5.359,
+        "plan_timings": {
+          "search_wall_s": 1.953,
+          "verify_wall_s": 1.688,
+          "postprocess_wall_s": 0.953
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.548813,
+          "max_step": 0.035926,
+          "points": 91,
+          "sim_duration": 4.5,
+          "steps": 91,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.000502,
+          "ang": 0.000726
+        },
+        "replay_phases": [
+          "PR_DONE"
+        ]
+      }
+    ]
+  },
+  "cache_run": {
+    "all_ok": true,
+    "steps": 6728,
+    "sim_time": 337.25,
+    "acceptance": {
+      "ok": true,
+      "any_safety_latch": false,
+      "frozen": false,
+      "tasks_done": true,
+      "final_count": 1,
+      "unpaired_semi_ce": 1,
+      "resources_released": true,
+      "route_ok": true
+    },
+    "path_reuse": {
+      "mode": "CACHE_THEN_PLAN",
+      "library_root": "docs\\path_library",
+      "scene": "v1/L5_UFLOW/v005_20261117_110924",
+      "record_count": 7,
+      "enabled_units": null,
+      "enabled_phases": [
+        "PLACING"
+      ],
+      "export": false,
+      "version": "v1_path_reuse_20261121",
+      "last_error": "",
+      "lookup": 9,
+      "replay": 7,
+      "fallback": 2,
+      "planner_calls": 2,
+      "export_saved": 0,
+      "lookup_wall_s": 0.015,
+      "planner_wall_s": 12.953,
+      "by_unit": {
+        "A": {
+          "lookup": 2,
+          "replay": 2,
+          "fallback": 0,
+          "planner_calls": 0,
+          "export_saved": 0,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 0.0,
+          "last_miss_reason": ""
+        },
+        "B": {
+          "lookup": 1,
+          "replay": 0,
+          "fallback": 1,
+          "planner_calls": 1,
+          "export_saved": 0,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 6.578,
+          "last_miss_reason": "最近记录 7c6d41be057aef39 差异: targets_digest"
+        },
+        "C": {
+          "lookup": 2,
+          "replay": 2,
+          "fallback": 0,
+          "planner_calls": 0,
+          "export_saved": 0,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 0.0,
+          "last_miss_reason": ""
+        },
+        "D": {
+          "lookup": 1,
+          "replay": 0,
+          "fallback": 1,
+          "planner_calls": 1,
+          "export_saved": 0,
+          "lookup_wall_s": 0.0,
+          "planner_wall_s": 6.375,
+          "last_miss_reason": "最近记录 5f40cee06014b0f3 差异: start_digest,targets_digest"
+        },
+        "E": {
+          "lookup": 3,
+          "replay": 3,
+          "fallback": 0,
+          "planner_calls": 0,
+          "export_saved": 0,
+          "lookup_wall_s": 0.015,
+          "planner_wall_s": 0.0,
+          "last_miss_reason": ""
+        }
+      },
+      "record_count_after": 7
+    },
+    "wall_s": 1317,
+    "placing": [
+      {
+        "unit": "A",
+        "task": "a_conveyor_uid1",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.188455,
+          "max_step": 0.03754,
+          "points": 81,
+          "sim_duration": 4.0,
+          "steps": 81,
+          "commands": 20
+        },
+        "target_error": {
+          "pos": 0.000845,
+          "ang": 0.001376
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "C",
+        "task": "c_handoff_uid1",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 0.498238,
+          "max_step": 0.034591,
+          "points": 27,
+          "sim_duration": 1.3,
+          "steps": 27,
+          "commands": 6
+        },
+        "target_error": {
+          "pos": 0.000251,
+          "ang": 0.000596
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "B",
+        "task": "b_conveyor_uid2",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 6.578,
+        "plan_timings": {
+          "search_wall_s": 3.016,
+          "verify_wall_s": 1.781,
+          "postprocess_wall_s": 0.906
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.467809,
+          "max_step": 0.037258,
+          "points": 101,
+          "sim_duration": 5.0,
+          "steps": 101,
+          "commands": 25
+        },
+        "target_error": {
+          "pos": 0.000738,
+          "ang": 0.001328
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_PLAN_FALLBACK",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_conveyor_uid1",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.547212,
+          "max_step": 0.035923,
+          "points": 91,
+          "sim_duration": 4.5,
+          "steps": 91,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.000502,
+          "ang": 0.000699
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "A",
+        "task": "a_agv_uid2",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.186288,
+          "max_step": 0.037539,
+          "points": 80,
+          "sim_duration": 3.95,
+          "steps": 80,
+          "commands": 20
+        },
+        "target_error": {
+          "pos": 0.000416,
+          "ang": 0.002208
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "C",
+        "task": "c_handoff_uid2",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 0.49891,
+          "max_step": 0.034591,
+          "points": 27,
+          "sim_duration": 1.3,
+          "steps": 27,
+          "commands": 6
+        },
+        "target_error": {
+          "pos": 0.000469,
+          "ang": 0.000436
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "D",
+        "task": "d_conveyor_uid3",
+        "status": "DONE",
+        "plan_source": "online",
+        "plan_wall_s": 6.375,
+        "plan_timings": {
+          "search_wall_s": 3.031,
+          "verify_wall_s": 1.719,
+          "postprocess_wall_s": 0.828
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.533394,
+          "max_step": 0.034594,
+          "points": 107,
+          "sim_duration": 5.3,
+          "steps": 107,
+          "commands": 26
+        },
+        "target_error": {
+          "pos": 0.000729,
+          "ang": 9.1e-05
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_PLAN_FALLBACK",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_agv_uid3",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.0,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.444262,
+          "max_step": 0.037634,
+          "points": 87,
+          "sim_duration": 4.3,
+          "steps": 87,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.00079,
+          "ang": 0.00233
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      },
+      {
+        "unit": "E",
+        "task": "e_conveyor_uid2",
+        "status": "DONE",
+        "plan_source": "cache",
+        "plan_wall_s": 0.015,
+        "plan_timings": {
+          "search_wall_s": 0.0,
+          "verify_wall_s": 0.0,
+          "postprocess_wall_s": 0.0
+        },
+        "execution_totals": {
+          "segments": 1,
+          "tv_total": 1.547186,
+          "max_step": 0.035928,
+          "points": 91,
+          "sim_duration": 4.5,
+          "steps": 91,
+          "commands": 21
+        },
+        "target_error": {
+          "pos": 0.000497,
+          "ang": 0.000817
+        },
+        "replay_phases": [
+          "PR_LOOKUP",
+          "PR_REPLAY",
+          "PR_DONE"
+        ]
+      }
+    ]
+  },
+  "path_records": [
+    {
+      "path_id": "15ed9608464ca22b",
+      "format_version": "v1_path_record_20261121",
+      "unit": "A",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[SEMI_AB]",
+      "start_digest": [
+        -297,
+        -37,
+        -116,
+        -4,
+        157,
+        -454
+      ],
+      "targets_digest": "4b5a5323b4d57c16",
+      "waypoint_count": 21,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "lock:direct"
+    },
+    {
+      "path_id": "5f40cee06014b0f3",
+      "format_version": "v1_path_record_20261121",
+      "unit": "D",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[RAW_D]",
+      "start_digest": [
+        -448,
+        -14,
+        -145,
+        2,
+        157,
+        -605
+      ],
+      "targets_digest": "90f3eb7b11ddc748",
+      "waypoint_count": 26,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "free:direct"
+    },
+    {
+      "path_id": "7c6d41be057aef39",
+      "format_version": "v1_path_record_20261121",
+      "unit": "B",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[RAW_B]",
+      "start_digest": [
+        158,
+        -26,
+        -130,
+        -1,
+        157,
+        1
+      ],
+      "targets_digest": "425b1cb62e1185cf",
+      "waypoint_count": 26,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "free:direct"
+    },
+    {
+      "path_id": "80abb9fdb4ef03f6",
+      "format_version": "v1_path_record_20261121",
+      "unit": "A",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[RAW_A]",
+      "start_digest": [
+        -297,
+        -37,
+        -116,
+        -4,
+        157,
+        -454
+      ],
+      "targets_digest": "4b5a5323b4d57c16",
+      "waypoint_count": 21,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "lock:direct"
+    },
+    {
+      "path_id": "c2f4b5440921fc4d",
+      "format_version": "v1_path_record_20261121",
+      "unit": "E",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[PART_DE]",
+      "start_digest": [
+        -205,
+        -20,
+        178,
+        313,
+        157,
+        -362
+      ],
+      "targets_digest": "de6135d2d0934328",
+      "waypoint_count": 22,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "lock:direct"
+    },
+    {
+      "path_id": "f13627c92c54efcf",
+      "format_version": "v1_path_record_20261121",
+      "unit": "C",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[SEMI_AC]",
+      "start_digest": [
+        -455,
+        -40,
+        -111,
+        -6,
+        157,
+        -612
+      ],
+      "targets_digest": "43fdfd5b78721cdd",
+      "waypoint_count": 7,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "lock:direct"
+    },
+    {
+      "path_id": "ffc0a324bdad77c8",
+      "format_version": "v1_path_record_20261121",
+      "unit": "E",
+      "payload": "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[SEMI_CE]",
+      "start_digest": [
+        -110,
+        67,
+        -204,
+        -21,
+        157,
+        -267
+      ],
+      "targets_digest": "53657cf675ddbf9d",
+      "waypoint_count": 22,
+      "segment_names": [
+        "place"
+      ],
+      "branch_anchor": "positive",
+      "status": "DIRECT_OK",
+      "strategy": "lock:direct"
+    }
+  ],
+  "summary": {
+    "placing_plans": 9,
+    "plans_online_generation": 9,
+    "unique_records": 7,
+    "cache_lookup": 9,
+    "cache_replay": 7,
+    "cache_fallback": 2,
+    "cache_planner_calls": 2,
+    "placing_planner_wall_generation_s": 41.06,
+    "placing_planner_wall_cache_s": 12.953,
+    "placing_planner_wall_saved_s": 28.107,
+    "fixed_arm_hits": {
+      "A": 2,
+      "C": 2,
+      "E": 3
+    },
+    "agv_arm_fallbacks": {
+      "B": 1,
+      "D": 1
+    }
+  },
+  "limitations": [
+    "只扩展 PLACING; APPROACHING/LIFTING/TRANSFERRING/RETREATING 不缓存",
+    "B/D 目标是 AGV 实测托盘; 缓存运行的 targets_digest/start_digest 变化，CACHE_THEN_PLAN 回退在线规划",
+    "full_flow 墙钟受调度/非 PLACING 规划与执行波动影响; 不能从两次 run 推断全流程提速",
+    "订单 runner/HTTP API 未接入路径复用; P2/P3 未执行"
+  ]
+}

@@ -30,6 +30,8 @@ export function OrderDetailPage() {
   const [selectedVersion, setSelectedVersion] = useState(0);
   const [version, setVersion] = useState<OrderVersionDetail | null>(null);
   const [preview, setPreview] = useState<CompilePreview | null>(null);
+  const [previewArtifact, setPreviewArtifact] = useState("");
+  const [startArtifact, setStartArtifact] = useState("");
   const [runs, setRuns] = useState<RunMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [versionLoading, setVersionLoading] = useState(false);
@@ -75,16 +77,6 @@ export function OrderDetailPage() {
         if (!cancelled) {
           setVersionError(exc instanceof ApiError ? exc.message : String(exc));
         }
-      });
-    api
-      .previewVersion(orderId, selectedVersion)
-      .then((payload) => {
-        if (!cancelled) setPreview(payload.preview);
-      })
-      .catch((exc) => {
-        if (!cancelled) {
-          setVersionError(exc instanceof ApiError ? exc.message : String(exc));
-        }
       })
       .finally(() => {
         if (!cancelled) setVersionLoading(false);
@@ -93,6 +85,39 @@ export function OrderDetailPage() {
       cancelled = true;
     };
   }, [orderId, selectedVersion]);
+
+  useEffect(() => {
+    if (!orderId || !selectedVersion) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setVersionError("");
+      const requestedArtifact = startArtifact.trim();
+      api
+        .previewVersion(
+          orderId,
+          selectedVersion,
+          requestedArtifact || undefined,
+        )
+        .then((payload) => {
+          if (!cancelled) {
+            setPreview(payload.preview);
+            setPreviewArtifact(requestedArtifact);
+          }
+        })
+        .catch((exc) => {
+          if (!cancelled) {
+            setPreview(null);
+            setVersionError(
+              exc instanceof ApiError ? exc.message : String(exc),
+            );
+          }
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [orderId, selectedVersion, startArtifact]);
 
   if (!orderId) {
     return <InlineError message="缺少订单 ID" />;
@@ -225,17 +250,28 @@ export function OrderDetailPage() {
                   onSelect={() => undefined}
                   emptyLabel="没有诊断。"
                 />
-                {preview.ok ? (
-                  <StartRunDialog
-                    orderId={order.order_id}
-                    version={version.version}
-                    enabled
-                  />
-                ) : null}
               </>
             ) : (
-              <p className="muted">正在加载预览…</p>
+              <p className="muted">
+                {versionError ? "预览未完成；修正场景工件后重试。" : "正在加载预览…"}
+              </p>
             )}
+            {preview?.ok ? null : (
+              <p className="muted">
+                启动前可通过下方“场景工件”指定目标工件；预览会按该工件
+                profile 重新校验，未通过时不能启动。
+              </p>
+            )}
+            <StartRunDialog
+              orderId={order.order_id}
+              version={version.version}
+              enabled={
+                (preview?.ok ?? false) &&
+                previewArtifact === startArtifact.trim()
+              }
+              artifact={startArtifact}
+              onArtifactChange={setStartArtifact}
+            />
           </section>
         </div>
       ) : null}

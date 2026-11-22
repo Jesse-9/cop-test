@@ -631,20 +631,21 @@ class Stage2UnitController(Stage1UnitController):
         return str(getattr(self, "unit_id", "A"))
 
     def _tool_id(self) -> str:
-        """工具标识: 机械臂型号 + 实测杯口半径."""
-        return f"UR5+suction_pad:cup={float(self.runtime.cup_radius):.6f}"
+        """工具标识: 机械臂型号 + 实测杯口半径 (0.1 mm 量化)."""
+        cup = round(float(self.runtime.cup_radius), 4)
+        return f"UR5+suction_pad:cup={cup:.4f}"
 
     def _payload_id(self) -> str:
-        """载荷标识: 实测包围盒 + 期望物料类型; 无载荷时为 none."""
+        """载荷标识: 实测包围盒 (0.1 mm 量化) + 期望物料类型."""
         box = self._pick_box
         if box is None:
             return "none"
-        values = [round(float(v), 6)
+        values = [round(float(v), 4)
                   for v in (*box.minimum, *box.maximum)]
         types = ",".join(sorted(
             str(getattr(item, "value", item))
             for item in getattr(self, "expected_types", ())))
-        return (f"box[{','.join(f'{value:.6f}' for value in values)}];"
+        return (f"box[{','.join(f'{value:.4f}' for value in values)}];"
                 f"types[{types}]")
 
     def _build_plan(self) -> Optional[MotionPlan]:
@@ -1170,9 +1171,9 @@ class Stage2UnitController(Stage1UnitController):
             "plan": self._last_plan.as_dict() if self._last_plan else None,
             "motion": self._motion_reports,
             "motion_totals": _motion_totals(self._motion_reports),
-            "path_reuse": (getattr(self, "_path_reuse", None).stats()
-                           if getattr(self, "_path_reuse", None)
-                           is not None else None),
+            "path_reuse": (None if getattr(self, "_path_reuse", None) is None
+                           else self._path_reuse.stats(
+                               self._reuse_unit_id())),
             "branch_anchor": self._branch_anchor,
             "stop": (self._stop_monitor.measurement.as_dict()
                      if self._stop_monitor else None),

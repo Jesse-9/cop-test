@@ -52,8 +52,16 @@ WP0–WP3 的订单 fixture 和复现说明。图谱来源见
 ```text
 docs/scene_artifacts/experiments/assembly-mvp/
   v1/current.json
-  v1/L5_UFLOW/v001_<stamp>/
+  v1/L5_UFLOW/v001_20261114_120734/   # 历史工件, 保留
+  v1/L5_UFLOW/v002_20261121_152334/   # 当前工件 (当前 config)
 ```
+
+`v001` 的 manifest 使用 `v1_process_20261114a`/config `e292c37f…`，与
+2026-11-21 的当前代码 `v1_process_20261117a`/config `c132340c…` 不一致，
+`order start` 会在启动前只读校验拒绝（`v1_config_digest`、
+`v1_process_model_version`）。2026-11-21 已按当前配置从 stage3
+`L2_MIRROR/v008_20261029_112305` 重新 build/save 为 `v002`；它不包含
+`Cart2`，MVP 订单仍使用 `single`。旧 `v001` 未被覆盖。
 
 构建（需要 CoppeliaSim + ZMQ；先确认当前会话没有未保存的 GUI 改动）：
 

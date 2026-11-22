@@ -26,10 +26,11 @@ docs/
 │   ├── evidence/              # 报告引用的正式精简证据
 │   └── runs/                  # 被 Git 忽略的临时运行输出
 ├── scene_artifacts/           # v1 场景包、manifest、校验与生命周期数据（内部历史目录名）
+├── path_library/              # 固定动作关节路径记录；独立于 .ttt/场景工件
 └── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
 
-仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`；柔性车间业务目标、工艺路线和阶段规划保留在 `wiki/06-工业案例/柔性车间/`。v1 代码实施方案、基线、实施报告和证据分别归入 `implementation/plans/`、`governance/`、`reports/` 和 `evidence/`，具体对应见 `implementation/governance/project-document-register.md`。运行输出不得当作正式证据；临时输出归入被 Git 忽略的 `implementation/runs/`。
+仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`；柔性车间业务目标、工艺路线和阶段规划保留在 `wiki/06-工业案例/柔性车间/`。v1 代码实施方案、基线、实施报告和证据分别归入 `implementation/plans/`、`governance/`、`reports/` 和 `evidence/`，具体对应见 `implementation/governance/project-document-register.md`。运行输出不得当作正式证据；临时输出归入被 Git 忽略的 `implementation/runs/`。`path_library/` 保存固定动作关节路径记录，独立于场景工件，不参与 manifest/config_digest 校验。
 
 ## 文件命名规范
 

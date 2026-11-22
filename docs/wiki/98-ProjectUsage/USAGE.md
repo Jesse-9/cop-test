@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-14
+updated: 2026-11-21
 status: published
 sim_version: "4.10+"
 ---
@@ -107,6 +107,11 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 
     docs/scene_artifacts/experiments/assembly-mvp/v1/current.json
 
+当前指针指向 `v1/L5_UFLOW/v002_20261121_152334`（2026-11-21 按当前
+`v1_process_20261117a` config 重建）；历史 `v001_20261114_120734` 保留，
+但其旧 config digest 会被当前 `order start` 的启动前只读校验拒绝。
+该实验工件不包含 `Cart2`，MVP 订单使用 `single`。
+
 构建（需要 CoppeliaSim + ZMQ；先确认当前 GUI 没有未保存改动）：
 
     flexible-factory build --parent docs/scene_artifacts/stage3/L2_MIRROR/v008_20261029_112305 --profile assembly_mvp --artifact-root docs/scene_artifacts/experiments/assembly-mvp --save
@@ -125,7 +130,7 @@ manifest 或用 GUI 覆盖 `scene.ttt`。
 `order start` 都重新加载实验工件，不复用上一笔的输入/成品。首版不验证
 多订单并发、工位互斥、真实抓取或装配质量。
 
-## 订单 DAG（阶段 1–7）
+## 订单 DAG（阶段 1–9）
 
 自建订单把工序模板组合成声明式 DAG，经同一 validator/compiler 编译后在
 `L5_UFLOW` 中执行。阶段 1–5 已实现契约、编译、局部失败隔离、版本化持久化、
@@ -139,13 +144,26 @@ GLOBAL 停止验收，见
 dual planner 订单和真实 UI 双车启动已在 CoppeliaSim 限定验收中通过；路线并行、
 planner UI 启动仍未验证，见
 [阶段 7 实施报告](../../implementation/reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。
+阶段 9 让订单工作台按**实际工件 manifest** 发现场景 profile 能力：
+`/api/templates?artifact_id=...` 返回 `scene_profile`、目标/入口物料、模板和
+区域；`full_flow` 工件只提供 v1 五岛模板，`assembly_mvp` 工件同时提供 v1
+底图和两个直接来料装配模板。planner 支持 `scene_profile` 与已登记的
+`mvp_pair_assembly` 直接来料 join；保存的订单在启动时按工件 profile 再次
+校验，跨 profile 订单返回 422 且不产生 run。2026-11-21 已在 CoppeliaSim
+4.10 上完成 full_flow 直达/绕行和 MVP 压缩机/法兰四个 UI run，父子 UID
+均 `[1,2]`；本次 full_flow 因 single E 臂 AGV 托盘对位问题使用 dual，
+MVP 实验工件已按当前 config 重建为 `v002_20261121_152334`。见
+[阶段 9 实施报告](../../implementation/reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md)。
 本轮只准入 `NODE_PRECHECK_REJECTED`；真实 Arm/AGV 运动错误、连接断开等
 未验证类型仍是 GLOBAL，不能把纯逻辑或本报告范围外结果当作实机能力。
 
 订单 JSON 只允许 `order_id/version/scene_id/target/inputs/nodes/edges/source`
 字段；节点只引用已登记 `template_id`，边只引用端口 identity，不接受 Python/
 Lua 代码、CoppeliaSim 句柄或未登记执行器。示例见
-`tests/order_fixtures.py` 的 `full_flow_order()`。
+`tests/order_fixtures.py` 的 `full_flow_order()` 和
+`docs/implementation/reference/production-flow/assembly-mvp/` 的两份 MVP
+订单 fixture。`scene_id` 只标识仿真布局（`L5_UFLOW`），不等于工件 profile；
+profile 由启动工件的 manifest 决定。
 
 CLI（不需要 CoppeliaSim 的校验/预览/版本命令）：
 
@@ -177,7 +195,7 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
         --artifact-id current --run-records on
 
     GET  /api/health
-    GET  /api/templates
+    GET  /api/templates?artifact_id={ref}
     GET  /api/fleet?artifact_id={ref}
     GET/POST /api/orders
     GET  /api/orders/{order_id}
@@ -185,7 +203,7 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
     GET  /api/orders/{order_id}/versions/{version}
     POST /api/planner/plan
     POST /api/planner/drafts
-    POST /api/orders/preview
+    POST /api/orders/preview?artifact_id={ref}
     POST /api/orders/{order_id}/versions/{version}/preview
     POST /api/orders/{order_id}/versions/{version}/start
     GET  /api/orders/{order_id}/runs
@@ -197,6 +215,13 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
 - 创建/保存版本只做 JSON 字段校验；DAG 结构在预览和启动时由后端 validator/
   compiler 拒绝并返回定位诊断。`start` 绑定不可变版本、静态定义版本和具体
   场景包；`current` 会在服务端解析为具体的 `artifact_id`。
+- `/api/templates` 未带 `artifact_id` 时使用服务默认工件（`api serve
+  --artifact-id`，CLI 通常为 `current`）。响应中的 `profile_source` 为
+  `manifest`/`default`/`unbound`；`unbound` 只在服务未配置工件仓库时出现，
+  表示目录未绑定任何工件，不是“所有工件都可运行”。未知工件引用返回 422。
+- `/api/orders/preview` 可带 `artifact_id` 提前按目标工件 profile 校验；
+  未带时使用服务默认工件。`start` 仍以实际启动工件的 manifest 为权威，
+  跨 profile 的模板/目标/投料/区域返回 422 且不产生 run 记录。
 - `start` 可选 `transport_fleet`（`single` 缺省 / `dual`）。该值是**运行配置**，
   不修改订单版本与 DAG digest；未知值在创建 run 前拒绝。`dual` 启动前检查
   工件 manifest 必须含 `Cart2`、`Cart2_Tray`，目录必须登记 `cart_2`，否则
@@ -240,6 +265,7 @@ planner 根据目标物料/数量和可用投料，确定性地选择已登记�
     {"item_type": "RAW_A", "quantity": 1},
     {"item_type": "RAW_D", "quantity": 1}
   ],
+  "scene_profile": "full_flow",
   "order_id": "planner-draft",
   "order_version": 1
 }
@@ -251,10 +277,41 @@ planner 根据目标物料/数量和可用投料，确定性地选择已登记�
     # 规划并保存为 source=planner 的普通不可变订单版本
     flexible-factory order plan --file planner.json --save --note "golden"
 
-可选字段：`scene_id`、`allowed_template_ids`、`allowed_device_ids`、
-`preferred_route_ids`、`allow_high_risk`、`max_candidates`、`max_depth`、
-`max_nodes`、`policy_version`。首期 `allow_high_risk` 没有目录风险元数据，
-不改变候选集合。
+    # 在 assembly_mvp 工件上规划压缩机和法兰直接来料订单
+    flexible-factory order plan --file mvp_compressor.json \
+        --scene-profile assembly_mvp --save
+    flexible-factory order plan --file mvp_flange.json \
+        --scene-profile assembly_mvp --save
+
+    # 使用双车假设规划；车队假设不满足的路线默认只降权
+    flexible-factory order plan --file planner.json --transport-fleet dual
+    # 严格模式：车队假设不满足的路线直接拒绝
+    flexible-factory order plan --file planner.json --transport-fleet dual --strict-fleet
+    # 可选：离散事件 ETA 对同优先级候选排序（非物理验收）
+    flexible-factory order plan --file planner.json --fleet-eta-ranking
+
+可选字段：`scene_id`、`scene_profile`、`allowed_template_ids`、
+`allowed_device_ids`、`preferred_route_ids`、`allow_high_risk`、
+`max_candidates`、`max_depth`、`max_nodes`、`policy_version`、
+`transport_fleet`、`fleet_assumptions`、`strict_fleet`、
+`fleet_eta_ranking`。首期 `allow_high_risk` 没有目录风险元数据，不改变
+候选集合。
+
+`scene_profile` 取 `full_flow`（缺省）或 `assembly_mvp`；它只过滤 planner
+可见的静态模板。`assembly_mvp` 下 planner 可把
+`mvp_compressor_assembly`/`mvp_flange_assembly` 的两个端口直接物化为
+`OrderInput`（带 `node_id`/`port_id`，无虚构 route/前驱）。`full_flow`
+下目标 `COMPRESSOR_ASSY`/`FLANGE_ASSY` 会返回
+`PLANNER_TARGET_PROFILE_MISMATCH`；登记的 MVP join 模板会以
+`PLANNER_TEMPLATE_PROFILE_EXCLUDED` warning 记录。项目不为任意直接输入
+join 提供配方语言。
+
+planner 的车队字段只作为**规划假设**：`transport_fleet` 取
+`single`/`dual`，`fleet_assumptions.available_vehicle_ids` 是静态可用车辆
+集合（不是实时状态）。结果 `explanation.fleet_context` 记录模式、固定分工、
+路线车辆映射和假设；DAG 与 `OrderSpec` 不因假设改变。启动订单时仍独立
+选择运行模式；若 planner 假设与实际运行模式不一致，运行报告输出
+`fleet.planner_assumption_mismatch=true`，仍按实际模式派工。
 
 HTTP：
 
@@ -263,10 +320,10 @@ HTTP：
 
 planner 只建模静态工艺图和投料数量；设备健康、节拍、实时资源、AGV 排队、
 几何可达性、碰撞和运动可行性仍需运行期/阶段 6 验收。无解时
-`first_blocking_category` 给出 policy/scene/target/template/device/join/
-input/search_limit/compile 中最先阻断的类别。
+`first_blocking_category` 给出 policy/scene/profile/target/template/device/
+join/input/search_limit/compile 中最先阻断的类别。
 
-### 前端订单工作台（阶段 5）
+### 前端订单工作台（阶段 5/9）
 
 独立前端位于 `frontend/`（React + TypeScript + Vite + React Flow）。先启动
 本机订单 API，再启动前端；浏览器不直接控制 CoppeliaSim。
@@ -281,6 +338,12 @@ input/search_limit/compile 中最先阻断的类别。
 
 打开 `http://127.0.0.1:5173/orders`。页面包括订单列表、订单编辑器、自动规划
 和运行详情；编辑器的“服务端预览”是校验权威，保存总是创建新的不可变版本。
+编辑器与 planner 页的“场景工件”输入可直接加载具体 artifact 的 profile
+能力；物料/模板/区域下拉来自服务端目录，不再使用固定物料集合。切换工件
+后，与当前 profile 不兼容的节点/连线/投料会列入诊断并阻止保存，可点击
+“清理不兼容项”移除。
+planner 页可选择“规划车队假设”（single/dual）并查看候选的车队分工和降权
+标记；该假设不写入订单 DAG，启动时仍需选择实际运行模式。
 运行页只读显示服务端节点/事件快照，stop 按钮只发送受控停止请求。
 订单详情“确认启动”对话框可选单车/双车：默认单车；双车按钮按
 `GET /api/fleet` 的工件能力启用/禁用，运行详情显示本次模式、策略版本和
@@ -292,9 +355,10 @@ input/search_limit/compile 中最先阻断的类别。
 
 真实 CoppeliaSim 的 UI 验收入口见
 [frontend/README.md](../../../frontend/README.md) 的
-`e2e/real_acceptance.mjs`（`manual`/`planner`/`start`/`verify`）；该脚本不使用
-route mock，会实际启动订单运行。设置 `ACCEPT_FLEET=dual` 可在启动对话框
-选择双车，并断言运行页的车队模式、策略版本和实际选车。
+`e2e/real_acceptance.mjs`（`manual`/`planner`/`mvp-manual`/`mvp-planner`/
+`start`/`verify`）；该脚本不使用 route mock，会实际启动订单运行。设置
+`ACCEPT_FLEET=dual` 可在启动对话框选择双车，并断言运行页的车队模式、策略
+版本和实际选车；`ACCEPT_PRODUCT=FLANGE_ASSY` 可切换 MVP 验收产品。
 
 开发 API 目标可用 `VITE_DEV_API_TARGET` 覆盖；生产 API 基址可用
 `VITE_API_BASE_URL` 覆盖（默认 `/api`）。前端与 API 不同源部署时需使用
@@ -428,6 +492,49 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 
 `build` 加载父场景并增加 C/D/E 与物流线；`--save` 保存新 v1 版本。
 每次保存创建新版本，不覆盖已验收场景包。
+
+## 固定动作路径回放（五臂 PLACING）
+
+`run` 可选使用已通过最终复核的固定动作关节路径，跳过重复 IK/候选搜索。
+当前只接入五台臂的 `PLACING` 段；执行期碰撞、偏差、超时和腕部分支联锁
+不变。默认 `--path-reuse off`，不改变原有运行。
+
+生成路径记录（v005 工件，五臂在线规划并导出）：
+
+    flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 \
+        --scenario full_flow --path-reuse PLAN_ONLY \
+        --path-library-root docs/path_library --run-records off \
+        --out-dir docs/implementation/runs \
+        --log docs/implementation/runs/path_reuse_plan_only.log
+
+使用路径记录（全新 CoppeliaSim 进程，同一工件）：
+
+    flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 \
+        --scenario full_flow --path-reuse CACHE_THEN_PLAN \
+        --path-library-root docs/path_library --run-records off \
+        --out-dir docs/implementation/runs \
+        --log docs/implementation/runs/path_reuse_cache.log
+
+模式：
+
+| 模式 | 行为 |
+|---|---|
+| `off` | 默认；始终在线规划，不读写路径库 |
+| `PLAN_ONLY` | 始终在线规划；成功后导出 `PLACING` 记录 |
+| `CACHE_THEN_PLAN` | 先精确回放；未命中调用一次现有规划器（推荐日常使用） |
+| `CACHE_ONLY` | 只回放；未命中失败（固定动作回归；五臂全启时 B/D 可能按设计未命中） |
+
+- 路径库目录：`docs/path_library/<scene-slug>/PLACING_place/<path-id>.json`；
+  记录版本 `v1_path_record_20261121`，不保存 CoppeliaSim 句柄或旧 context。
+- 匹配键至少包含场景工件、臂、工具杯口半径、载荷、起始关节、目标摘要和
+  运动配置版本；任一项变化即未命中。
+- A/C/E 的汇是固定交接台/传送带/缓冲，预期精确命中；B/D 的汇是 AGV 实测
+  托盘位姿，托盘变化时 `CACHE_THEN_PLAN` 自动回退。本次不做托盘相对路径
+  变换或路径平移。
+- 运行报告和 `path_reuse` 统计包含每臂 `lookup/replay/fallback/
+  planner_calls`、查找/规划墙钟和 `last_miss_reason`。
+- 路径库不参与 `config_digest()`/`layout_digest()`；根目录不得位于
+  `docs/scene_artifacts/`。删除记录即可回退在线规划。
 
 ## 启动阶段计时（性能诊断）
 

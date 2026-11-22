@@ -27,7 +27,7 @@ START_Q = [0.10, -0.20, 0.30, 0.0, math.pi / 2, 0.0]
 START_POSE = [0.2, 0.1, 0.5, 0.0, 0.0, 0.0, 1.0]
 GOAL_POSE = [0.3, 0.1, 0.4, 0.0, 0.0, 0.0, 1.0]
 PAYLOAD = "box:test"
-TOOL = "UR5+suction_pad:cup=0.023580"
+TOOL = "UR5+suction_pad:cup=0.0236"
 
 
 def make_goal(pose=None, lock_joint=0):
@@ -330,18 +330,57 @@ def test_policy_applies_only_to_enabled_unit_and_phase(tmp_path):
     assert not policy_obj.applies("A", "LIFTING")
 
 
-def test_default_policy_is_limited_to_arm_a_placing(tmp_path):
+def test_default_policy_applies_to_all_units_placing(tmp_path):
     policy_obj = PathReusePolicy(PathLibrary(tmp_path), "CACHE_ONLY",
                                  scene_artifact_id=SCENE)
-    assert policy_obj.applies("A", "PLACING")
-    assert not policy_obj.applies("B", "PLACING")
-    assert not policy_obj.applies("C", "PLACING")
+    for unit_id in ("A", "B", "C", "D", "E"):
+        assert policy_obj.applies(unit_id, "PLACING")
+    assert not policy_obj.applies("A", "LIFTING")
 
 
 def test_policy_requires_scene_artifact_id(tmp_path):
     with pytest.raises(ValueError):
         PathReusePolicy(PathLibrary(tmp_path), "CACHE_ONLY",
                         scene_artifact_id="")
+
+
+def test_stats_are_split_by_unit(tmp_path):
+    library = PathLibrary(tmp_path)
+    planner = FakePlanner()
+    policy_obj = policy(library, "PLAN_ONLY", export=True,
+                        enabled_units=None)
+    run(policy_obj, planner, unit_id="A")
+    run(policy_obj, planner, unit_id="B")
+    stats = policy_obj.stats()
+    assert set(stats["by_unit"]) == {"A", "B"}
+    assert stats["by_unit"]["A"]["planner_calls"] == 1
+    assert stats["by_unit"]["B"]["planner_calls"] == 1
+    assert stats["lookup"] == 0
+    assert stats["planner_calls"] == 2
+
+
+def test_cache_then_plan_counts_are_per_unit(tmp_path):
+    library = PathLibrary(tmp_path)
+    exporter = policy(library, "PLAN_ONLY", export=True,
+                      enabled_units=("A",))
+    run(exporter, FakePlanner(), unit_id="A")
+
+    planner = FakePlanner()
+    policy_obj = policy(library, "CACHE_THEN_PLAN", enabled_units=None)
+    run(policy_obj, planner, unit_id="A")
+    run(policy_obj, planner, unit_id="B")
+    stats = policy_obj.stats()
+    assert stats["by_unit"]["A"]["lookup"] == 1
+    assert stats["by_unit"]["A"]["replay"] == 1
+    assert stats["by_unit"]["A"]["fallback"] == 0
+    assert stats["by_unit"]["A"]["planner_calls"] == 0
+    assert stats["by_unit"]["B"]["lookup"] == 1
+    assert stats["by_unit"]["B"]["replay"] == 0
+    assert stats["by_unit"]["B"]["fallback"] == 1
+    assert stats["by_unit"]["B"]["planner_calls"] == 1
+    assert "unit" in stats["by_unit"]["B"]["last_miss_reason"]
+    for row in stats["by_unit"].values():
+        assert row["lookup"] == row["replay"] + row["fallback"]
 
 
 def test_mark_replay_done_is_idempotent(tmp_path):
@@ -420,6 +459,13 @@ def controller_key(controller):
         start_digest=start_digest(START_Q),
         targets_digest=goals_digest([controller_goal()]),
         motion_version=motion_config_version())
+
+
+def test_controller_tool_and_payload_ids_use_stable_quantization():
+    controller = bare_controller()
+    assert controller._tool_id() == "UR5+suction_pad:cup=0.0236"
+    assert controller._payload_id() == (
+        "box[-0.0500,-0.0500,-0.0500,0.0500,0.0500,0.0500];types[]")
 
 
 def test_controller_placing_replays_before_calling_planner(tmp_path):

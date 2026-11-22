@@ -90,7 +90,7 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
   `TaskQueue` 只服务非配方任务（空载调机/兼容路径），直接赋值会抛
   `TaskError`。
-- 自建订单 DAG（阶段 1–7）：
+- 自建订单 DAG（阶段 1–9）：
   - `domain/orders.py` 只保存声明式 `OrderSpec`/节点/边/投料/目标，严格拒绝
     未知字段、代码字段和运行时句柄；`canonical_json()`/`dag_digest()` 是
     版本不可变性和运行关联的稳定摘要。
@@ -126,6 +126,10 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
     写 ORM/资源/仿真，不静默修补编译失败；`ORDER_PLANNER_POLICY_VERSION`
     在 `spec.py`，草稿由 `OrderService.plan_and_save()` 保存为普通不可变订单
     版本，planner 输入/explain/候选数写入 `order_version` 的 planner 元数据列。
+    阶段 8 起 planner 还接受 `transport_fleet`/静态 `fleet_assumptions`/
+    `strict_fleet`/可选 `fleet_eta_ranking`：用 `domain/fleet_policy.py`
+    的固定分工评估路线、降权候选并在 explain 输出 `fleet_context`，但
+    `OrderSpec`/DAG digest 不变，实际派车仍由运行期 coordinator 决定。
   - `api/server.py` 只是本地传输适配器，默认绑定 `127.0.0.1`；首期没有
     认证/TLS，不得直接暴露到非本机网络。
   - `frontend/` 是独立 React/TypeScript/Vite workspace，只通过 `/api` 读写
@@ -155,6 +159,26 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
     `cart_2` 是运动学执行器，不是物理轮式控制。CoppeliaSim 限定验收
     （`v005`）已通过 single 回归、dual 手工订单、dual planner 订单和真实 UI
     双车启动；路线并行与 planner UI 启动未验证，见阶段 7 报告。
+  - 阶段 9 增加 `domain/scene_profile.py`：profile 能力来自工件 manifest
+    的 `extra.v1.scene_profile`（旧工件回落到 `assembly_mvp` 扩展块/
+    `material_model.extension_types`，最后为 `full_flow`），未知 profile、
+    未知物料或 full_flow 工件声明 MVP 扩展类型在解析边界拒绝。`/api/templates`
+    与 `/api/orders/preview` 接受可选 `artifact_id`，返回/过滤
+    `scene_profile`、`profile_source`、目标/入口物料、区域和模板；
+    `OrderService.start()/run_sync()` 在创建 run 前按工件 profile 校验订单
+    模板/目标/投料，跨 profile 订单以 422 拒绝且不写运行记录；校验通过的
+    profile 写入 `OrderRunCommand`、运行报告和运行结果摘要。未配置
+    manifest loader 时目录返回显式 `profile_source=unbound`，不代表任何
+    工件可运行。planner 新增 `scene_profile` 输入，只把登记在
+    `DIRECT_INPUT_JOIN_HANDLERS` 的 MVP join 端口转为订单直接投料，不实现
+    通用直接输入 join 语言；`ORDER_PLANNER_POLICY_VERSION` 升至
+    `v1_planner_20261121b`，`SCENE_PROFILE_VERSION=v1_scene_profile_20261121`。
+    2026-11-21 实机验收：`v005` 上 full_flow 直达（手工 UI）与绕行
+    （planner UI）各 1 个 `FINAL`，MVP 工件 `v002_20261121_152334` 上压缩机
+    （手工 UI）/法兰（planner UI）各 1 个装配体，父子 UID 均 `[1,2]`；
+    full_flow 两例使用 `dual`（本次 single 在 E 臂 AGV 托盘对位出现既有
+    `GOAL_CONFIG_INVALID`）；MVP 订单在 `v005` 上启动返回 422 且不建 run。
+    证据见 `docs/implementation/evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json`。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -177,9 +201,12 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `plan_search` / `plan_postprocess` 的兼容导出层；拆分不得改变检查顺序、
   容差、预算或规划算法。
 - `simulation/motion/path_library.py` 只做固定动作关节路径的精确键匹配与
-  JSON 存取（记录版本 `v1_path_record_20261120`）；`path_reuse.py` 提供
+  JSON 存取（记录版本 `v1_path_record_20261121`）；`path_reuse.py` 提供
   可选 `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN` 策略
-  （`v1_path_reuse_20261120`），首版只接入 `PLACING` 单目标段。默认不注入，
+  （`v1_path_reuse_20261121`），五臂均只接入 `PLACING` 单目标段。
+  `run --path-reuse` 默认 `off`；启用时通过 `docs/path_library/` 精确匹配，
+  A/C/E 为固定汇，B/D 为 AGV 实测托盘汇、托盘变化时回退在线规划。
+  运行报告按臂记录 `lookup/replay/fallback/planner_calls` 和墙钟。
   不新增 `config*.py` 常量，不改 `config_digest()`/`layout_digest()`；
   记录不得保存 CoppeliaSim 句柄或旧 context，回放不得取消执行期联锁。
 - `simulation/device_handle_map.py` 已按“无生产消费者”删除；别名唯一性
@@ -331,13 +358,15 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   [知识图谱报告](docs/implementation/reports/data-platform/v1-knowledge-graph-import.md) 与
   [运行记录报告](docs/implementation/reports/data-platform/v1-run-record-persistence.md)。
 - 运动规划计时与路径复用：离线
-  `tests/test_v1_motion_path_reuse.py` 覆盖精确键、损坏记录、起点/分支
-  容差、三种模式和 `PLACING` 控制器接入；`MotionPlan.timings` 记录搜索/
-  复核/后处理墙钟。focused 仿真（需要 `FLEXIBLE_FACTORY_SIM=1` 和
-  CoppeliaSim 4.10）使用 `tests/test_v1_stage2_arm_sim.py -k path_reuse`；
-  2026-11-20 在 `v005` 上对同一固定 `PLACING` 段完成
-  `PLAN_ONLY` → `CACHE_ONLY` 对照（两次任务 `DONE`、无安全锁存、回放
-  规划器调用 0）。抓取/抬升/转运段、第二个固定动作和 P2/P3 未执行。
+  `tests/test_v1_motion_path_reuse.py`、`tests/test_v1_path_reuse_options.py`
+  覆盖精确键、损坏记录、起点/分支容差、三种模式、按臂统计、CLI/运行参数和
+  路径库预检；`tests/test_v1_path_library_artifacts.py` 校验
+  `docs/path_library` 的实际记录。`MotionPlan.timings` 记录搜索/复核/
+  后处理墙钟。focused 仿真（需要 `FLEXIBLE_FACTORY_SIM=1` 和
+  CoppeliaSim 4.10）保留 `tests/test_v1_stage2_arm_sim.py -k path_reuse`；
+  全臂 `full_flow` 由两次 CLI 运行承担（`PLAN_ONLY` 生成、`CACHE_THEN_PLAN`
+  使用）。A/C/E 固定汇预期精确命中；B/D AGV 托盘变化时回退。抓取/抬升/
+  转运段、动态目标和 P2/P3 未执行。
 - 订单 DAG 纯逻辑/API 测试（不需要 CoppeliaSim）：
   `tests/test_v1_order_foundation.py`（契约/校验/编译/digest）、
   `tests/test_v1_order_failure_isolation.py`（NODE/GLOBAL 与收敛）、
@@ -345,7 +374,10 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   `tests/test_v1_order_persistence.py`（不可变版本与运行关联）、
   `tests/test_v1_order_service.py`（service/worker/HTTP API）、
   `tests/test_v1_order_planner.py`（阶段 4 有界 planner、tie-break、
-  无解/搜索上限、草稿保存与 API）。订单夹具见 `tests/order_fixtures.py`。
+  无解/搜索上限、草稿保存与 API）、
+  `tests/test_v1_scene_profile.py`（manifest profile 判定/能力过滤、跨
+  profile preview/start 拒绝、目录 HTTP 返回）。订单夹具见
+  `tests/order_fixtures.py`。
   这些结果不能替代真实 CoppeliaSim 订单/故障验收；阶段 6 已执行的部分和
   未覆盖边界见
   [阶段 6 报告](docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。

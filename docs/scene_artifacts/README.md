@@ -9,33 +9,28 @@
 ```text
 v1/
   current.json
-  L5_UFLOW/v001_20261103_004317/
-    scene.ttt
-    manifest.json          # schema 2.0
-    validation.json        # 迁移时 452 项只读校验
-    lifecycle.jsonl
+  L5_UFLOW/v001_20261103_004317/   # 历史迁移工件
+  L5_UFLOW/v005_20261117_110924/   # 当前 (五岛 + Cart2, 双车可运行)
 experiments/
   assembly-mvp/v1/         # 混线装配 MVP 实验工件, 与 v1 current 独立
     current.json
-    L5_UFLOW/v001_20261114_120734/
+    L5_UFLOW/v001_20261114_120734/   # 历史 (旧 config)
+    L5_UFLOW/v002_20261121_152334/   # 当前 (v1_process_20261117a)
 ```
 
 ## 当前 v1 场景包
 
-- 场景包 ID（内部字段 `artifact_id`）：`v1/L5_UFLOW/v001_20261103_004317`
-- 来源：`stage4/L5_UFLOW/v004_20261029_133249`（只读迁移来源场景包）
-- 上游追溯：`stage3/L2_MIRROR/v008_20261029_112305`
+- 场景包 ID（内部字段 `artifact_id`）：`v1/L5_UFLOW/v005_20261117_110924`
+- 来源：`v1/L5_UFLOW/v004_20261116_234100`（同一五岛 + Cart2 场景；
+  phase 7 重新基线以登记 `cart_2` 运输设备）
+- 上游追溯：`stage4/L5_UFLOW/v004_20261029_133249` →
+  `stage3/L2_MIRROR/v008_20261029_112305`
 - schema：`2.0`；契约：`v1_contract_20261103`；产品版本 `1.0.0`
-- scene SHA-256：`bf7e4df6681abf8027e3f04e3bb214fc5a1f707d1be8922a733fce424a2a352c`
-  （与来源 stage4 场景逐字节一致）
-- 校验：迁移时保存的 `validation.json` 记录该场景包的只读校验结果；后续代码校验
-  结果以对应实施报告和当前 `flexible-factory validate` 输出为准。
-- 迁移命令：
-
-      flexible-factory migrate \
-        --source docs/scene_artifacts/stage4/L5_UFLOW/v004_20261029_133249
-
-  迁移幂等；current 已指向同一来源且摘要一致时不创建新版本。
+- scene SHA-256：`15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7`
+- 校验：`validation.json` 记录 `ok=true`；当前 `flexible-factory validate`
+  输出为准。
+- 历史 `v001_20261103_004317` 是首个迁移工件，保留作追溯；`current.json`
+  是当前指针的唯一权威来源。
 
 ## 保留的迁移来源
 
@@ -59,19 +54,23 @@ v1 运行期不读取它们，只读取 `v1/current.json`。
 ```text
 experiments/assembly-mvp/v1/
   current.json
-  L5_UFLOW/v001_20261114_120734/
+  L5_UFLOW/v001_20261114_120734/   # 历史, 旧 config, 保留
+  L5_UFLOW/v002_20261121_152334/   # 当前, 当前 config
     scene.ttt
     manifest.json          # extra.v1.scene_profile=assembly_mvp
     validation.json
     lifecycle.jsonl
 ```
 
-- 场景包 ID：`v1/L5_UFLOW/v001_20261114_120734`
+- 场景包 ID：`v1/L5_UFLOW/v002_20261121_152334`（`current.json` 指针）
 - 构建来源：`stage3/L2_MIRROR/v008_20261029_112305`
 - profile：`assembly_mvp`；扩展契约 `v1_assembly_mvp_20261114`
-- 内容：v1 五岛底图 + 2 个独立岛、4 个来料槽、2 个逻辑装配位、2 个成品位
-- 校验：保存后重载 `validation.json` `ok=true`；manifest 构建契约含 308 项
-  MVP 扩展检查
+- 内容：v1 五岛底图 + 2 个独立岛、4 个来料槽、2 个逻辑装配位、2 个成品位；
+  不含 `Cart2`，MVP 订单使用 `single`
+- 校验：保存后重载 `validation.json` `ok=true`
+- 历史 `v001_20261114_120734` 使用 `v1_process_20261114a`/config
+  `e292c37f…`，与当前 `v1_process_20261117a`/config `c132340c…` 不一致，
+  启动前只读校验会拒绝；不覆盖该历史版本。
 - 命令：
 
       flexible-factory build \

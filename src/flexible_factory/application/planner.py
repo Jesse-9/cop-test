@@ -1,16 +1,21 @@
-"""planner.py — 有界、确定性的订单 DAG 自主编排器 (阶段 4).
+"""planner.py — 有界、确定性的订单 DAG 自主编排器 (阶段 4/8).
 
 planner 只读静态目录, 不申请资源、不操作 CoppeliaSim、不写数据库:
-输入目标物料/数量、可用投料和允许范围; 输出 `OrderSpec` 草稿、编译预览和
-候选解释. 搜索空间只包含:
+输入目标物料/数量、可用投料、允许范围和可选车队假设; 输出 `OrderSpec`
+草稿、编译预览和候选解释. 搜索空间只包含:
 
   - 目录中已登记的 `RouteVariant` 线性路线 (route macro);
   - 已登记 `join_handler_id` 的逻辑合流 (join macro);
-  - 允许的 template/device 过滤.
+  - 允许的 template/device 过滤;
+  - 阶段 8: single/dual 车队假设、固定分工/静态可用性诊断与可选静态
+    ETA 排序.
 
 planner 不把单道工序的端口兼容性当作可自由拼接的边: route macro 保留静态
 目录中已验证的工序链, 避免跳过 AGV 运输等中间工序. 生成结果仍调用阶段 1
 validator/compiler; 编译失败作为 planner 缺陷返回, 不静默修补.
+
+车队假设只影响候选可行性/排序和 explain, 不写入 `OrderSpec`/DAG digest;
+实际派车、资源锁与故障语义仍由 coordinator 在运行时决定.
 """
 
 from __future__ import annotations
@@ -21,12 +26,21 @@ from itertools import product
 from typing import Iterable, Optional
 
 from .. import spec
+from ..domain.fleet_policy import (DEFAULT_FLEET_MODE, FLEET_MODES,
+                                   FLEET_POLICY_VERSION, FleetConfig,
+                                   normalize_fleet_mode)
 from ..domain.materials import ItemType
 from ..domain.order_compiler import CompilePreview, OrderDagCompiler
 from ..domain.orders import (ORDER_CONTRACT_VERSION, OrderEdge, OrderInput,
                              OrderNode, OrderSpec, OrderSpecError, OrderTarget)
-from ..domain.process_model import (JOIN_HANDLERS, RUNTIME_JOIN_HANDLERS,
+from ..domain.process_model import (DIRECT_INPUT_JOIN_HANDLERS,
+                                    JOIN_HANDLERS, RUNTIME_JOIN_HANDLERS,
                                     OperationTemplate, ProcessCatalog)
+from ..domain.scene_profile import (DEFAULT_SCENE_PROFILE, SCENE_PROFILES,
+                                    SCENE_PROFILE_VERSION,
+                                    SceneCapabilities,
+                                    capabilities_for_profile,
+                                    normalize_scene_profile)
 
 PLANNER_POLICY_VERSION = spec.ORDER_PLANNER_POLICY_VERSION
 DEFAULT_MAX_CANDIDATES = 64
@@ -46,14 +60,15 @@ _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _CATEGORY_ORDER = {
     "policy": 0,
     "scene": 1,
-    "target": 2,
-    "template": 3,
-    "device": 4,
-    "join": 5,
-    "input": 6,
-    "search_limit": 7,
-    "compile": 8,
-    "preference": 9,
+    "profile": 2,
+    "target": 3,
+    "template": 4,
+    "device": 5,
+    "join": 6,
+    "input": 7,
+    "search_limit": 8,
+    "compile": 9,
+    "preference": 10,
 }
 
 
@@ -83,6 +98,22 @@ class PlannerSupply:
 
 
 @dataclass(frozen=True)
+class PlannerFleetAssumptions:
+    """planner 的**静态**车队假设, 不是实时车辆状态.
+
+    ``available_vehicle_ids`` 为空表示使用该编制包含的全部车辆; 非空时
+    规划阶段只把这些车辆视为可参与运输。它不改变运行时 coordinator 的
+    实际派车。
+    """
+
+    available_vehicle_ids: tuple[str, ...] = ()
+
+    def as_dict(self) -> dict:
+        return {"available_vehicle_ids": list(
+            sorted(self.available_vehicle_ids))}
+
+
+@dataclass(frozen=True)
 class PlannerInput:
     target_item_type: ItemType
     target_quantity: int
@@ -98,6 +129,15 @@ class PlannerInput:
     order_id: str = "planner-draft"
     order_version: int = 1
     policy_version: str = PLANNER_POLICY_VERSION
+    #: full_flow | assembly_mvp; 只过滤静态能力, 不绑定具体工件.
+    scene_profile: str = DEFAULT_SCENE_PROFILE
+    #: single | dual; 仅作为规划假设, 不写入订单/DAG.
+    transport_fleet: str = DEFAULT_FLEET_MODE
+    fleet_assumptions: PlannerFleetAssumptions = PlannerFleetAssumptions()
+    #: true 时车队假设不满足的路线直接拒绝; 默认只降权并记录 warning.
+    strict_fleet: bool = False
+    #: 可选: 对同优先级候选使用离散事件 ETA 模型做 tie-breaker.
+    fleet_eta_ranking: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -118,6 +158,11 @@ class PlannerInput:
             "max_nodes": int(self.max_nodes),
             "order_id": self.order_id,
             "order_version": int(self.order_version),
+            "scene_profile": self.scene_profile,
+            "transport_fleet": self.transport_fleet,
+            "fleet_assumptions": self.fleet_assumptions.as_dict(),
+            "strict_fleet": bool(self.strict_fleet),
+            "fleet_eta_ranking": bool(self.fleet_eta_ranking),
         }
 
     @classmethod
@@ -129,7 +174,8 @@ class PlannerInput:
             "inputs", "scene_id", "allowed_template_ids",
             "allowed_device_ids", "preferred_route_ids", "allow_high_risk",
             "max_candidates", "max_depth", "max_nodes", "order_id",
-            "order_version",
+            "order_version", "scene_profile", "transport_fleet",
+            "fleet_assumptions", "strict_fleet", "fleet_eta_ranking",
         }
         unknown = sorted(set(payload) - allowed)
         if unknown:
@@ -152,6 +198,20 @@ class PlannerInput:
             zone = _text(row.get("zone"), path=f"inputs[{index}].zone",
                          default="")
             supplies.append(PlannerSupply(item_type, quantity, zone))
+        try:
+            fleet_mode = normalize_fleet_mode(
+                payload.get("transport_fleet"))
+        except ValueError as exc:
+            raise PlannerInputError(
+                f"transport_fleet: {exc}") from exc
+        try:
+            profile = normalize_scene_profile(
+                payload.get("scene_profile"))
+        except ValueError as exc:
+            raise PlannerInputError(
+                f"scene_profile: {exc}") from exc
+        assumptions = _fleet_assumptions(
+            payload.get("fleet_assumptions", {}))
         return cls(
             target_item_type=_item_type(payload.get("target_item_type"),
                                         path="target_item_type"),
@@ -188,7 +248,29 @@ class PlannerInput:
             policy_version=_text(
                 payload.get("policy_version"), path="policy_version",
                 default=PLANNER_POLICY_VERSION),
+            scene_profile=profile,
+            transport_fleet=fleet_mode,
+            fleet_assumptions=assumptions,
+            strict_fleet=_boolean(payload.get("strict_fleet"),
+                                  path="strict_fleet"),
+            fleet_eta_ranking=_boolean(
+                payload.get("fleet_eta_ranking"),
+                path="fleet_eta_ranking"),
         )
+
+
+def _fleet_assumptions(value) -> PlannerFleetAssumptions:
+    if value is None:
+        return PlannerFleetAssumptions()
+    if not isinstance(value, dict):
+        raise PlannerInputError("fleet_assumptions: 必须是对象")
+    unknown = sorted(set(value) - {"available_vehicle_ids"})
+    if unknown:
+        raise PlannerInputError(
+            f"fleet_assumptions 包含未知字段: {unknown}")
+    vehicles = _text_tuple(value.get("available_vehicle_ids", ()),
+                           path="fleet_assumptions.available_vehicle_ids")
+    return PlannerFleetAssumptions(tuple(sorted(set(vehicles))))
 
 
 def _item_type(value, *, path: str) -> ItemType:
@@ -280,6 +362,7 @@ class _RouteMacro:
     template_ids: tuple[str, ...]
     operation_count: int
     signature: tuple
+    fleet_penalty: int = 0
 
     def as_dict(self) -> dict:
         return {
@@ -301,6 +384,8 @@ class _JoinMacro:
     output_item_type: ItemType
     join_handler_id: str
     signature: tuple
+    #: True 表示该 join 的端口可由订单直接投料供给 (MVP 直接来料合流).
+    direct_input: bool = False
 
     def as_dict(self) -> dict:
         return {
@@ -312,6 +397,7 @@ class _JoinMacro:
             "output_zone": self.output_zone,
             "output_item_type": self.output_item_type.value,
             "join_handler_id": self.join_handler_id,
+            "direct_input": bool(self.direct_input),
         }
 
 
@@ -329,6 +415,9 @@ class _Branch:
     children: tuple["_Branch", ...] = ()
     join_ports: tuple[tuple[str, int], ...] = ()
     join_template_id: str = ""
+    #: 直接来料 join 的端口; 非空时 children/join_ports 为空, 投料绑定端口.
+    direct_input_ports: tuple[tuple[str, str, ItemType], ...] = ()
+    fleet_penalty: int = 0
 
     @property
     def node_count(self) -> int:
@@ -345,6 +434,10 @@ class _Branch:
             "output_item_type": self.output_item_type.value,
             "output_zone": self.output_zone,
             "operation_count": int(self.operation_count),
+            "direct_input_ports": [
+                {"port_id": port_id, "zone": zone,
+                 "item_type": item_type.value}
+                for port_id, zone, item_type in self.direct_input_ports],
         }
 
 
@@ -360,6 +453,7 @@ class _Candidate:
     preview: Optional[CompilePreview] = None
     input_usage: tuple[dict, ...] = ()
     score: tuple = ()
+    fleet: Optional[dict] = None
 
     def as_dict(self) -> dict:
         return {
@@ -374,6 +468,7 @@ class _Candidate:
             "digest": self.digest,
             "score": list(self.score),
             "input_usage": list(self.input_usage),
+            "fleet": dict(self.fleet or {}),
         }
 
 
@@ -401,6 +496,8 @@ class PlannerResult:
             "ok": bool(self.ok),
             "policy_version": self.policy_version,
             "input": self.input.as_dict(),
+            "scene_profile": self.input.scene_profile,
+            "profile_version": SCENE_PROFILE_VERSION,
             "first_blocking_category": self.first_blocking_category,
             "diagnostics": [row.as_dict() for row in self.diagnostics],
             "selected": None if self.selected is None
@@ -430,6 +527,67 @@ class OrderPlanner:
 
     def plan(self, request: PlannerInput) -> PlannerResult:
         diagnostics: list[PlannerDiagnostic] = []
+        fleet_invalid = False
+        try:
+            fleet = FleetConfig(request.transport_fleet)
+        except ValueError:
+            diagnostics.append(PlannerDiagnostic(
+                "PLANNER_FLEET_MODE_INVALID",
+                f"未知车队模式 {request.transport_fleet!r}; 允许值 "
+                f"{list(FLEET_MODES)}", "policy"))
+            fleet = FleetConfig(DEFAULT_FLEET_MODE)
+            fleet_invalid = True
+        self._fleet = fleet
+        self._fleet_available = set(
+            request.fleet_assumptions.available_vehicle_ids)
+        known_vehicles = {
+            device.id: device for device in self.catalog.devices
+            if device.kind == "agv"}
+        if self._fleet_available:
+            unknown = sorted(self._fleet_available - set(known_vehicles))
+            if unknown:
+                diagnostics.append(PlannerDiagnostic(
+                    "PLANNER_FLEET_ASSIGNMENT_UNAVAILABLE",
+                    f"车队假设包含未知/非 AGV 车辆: {unknown}", "device"))
+                fleet_invalid = True
+            diagnostics.append(PlannerDiagnostic(
+                "PLANNER_FLEET_ASSUMPTION_ONLY",
+                "available_vehicle_ids 是静态规划假设, 不读取实时车辆状态",
+                "device", severity="warning"))
+        self._route_by_template = {}
+        for recipe in self.catalog.recipes:
+            for route in recipe.route_variants:
+                for operation_id in route.operation_ids:
+                    self._route_by_template.setdefault(
+                        operation_id, route.id)
+        profile_invalid = False
+        try:
+            profile_name = normalize_scene_profile(request.scene_profile)
+        except ValueError:
+            diagnostics.append(PlannerDiagnostic(
+                "PLANNER_SCENE_PROFILE_UNKNOWN",
+                f"未知场景 profile {request.scene_profile!r}; 允许值 "
+                f"{list(SCENE_PROFILES)}", "profile"))
+            profile_name = DEFAULT_SCENE_PROFILE
+            profile_invalid = True
+        self._profile = profile_name
+        self._profile_caps: SceneCapabilities = capabilities_for_profile(
+            profile_name, self.catalog)
+        catalog_targets = {
+            operation.output.item_type
+            for recipe in self.catalog.recipes
+            for operation in recipe.operations
+            if operation.output is not None}
+        if not self._profile_caps.allows_target(request.target_item_type) \
+                and request.target_item_type in catalog_targets:
+            # 只有“目录能生产但当前 profile 不允许”才报 profile 错配;
+            # 目录本身不生产的物料仍走 PLANNER_TARGET_UNREACHABLE.
+            diagnostics.append(PlannerDiagnostic(
+                "PLANNER_TARGET_PROFILE_MISMATCH",
+                f"目标物料 {request.target_item_type.value} 不在场景 profile "
+                f"{profile_name!r} 的可生产类型 "
+                f"{[row.value for row in self._profile_caps.target_item_types]}"
+                f" 中", "target", item_type=request.target_item_type.value))
         if request.policy_version != PLANNER_POLICY_VERSION:
             diagnostics.append(PlannerDiagnostic(
                 "PLANNER_POLICY_VERSION",
@@ -498,12 +656,19 @@ class OrderPlanner:
                     f"{request.max_nodes}", "search_limit"))
                 continue
             usage, missing = self._check_supply(branch, request)
+            fleet_evidence = self._candidate_fleet_evidence(branch, request)
+            eta_component = ()
+            if request.fleet_eta_ranking:
+                eta = fleet_evidence.get("eta") or {}
+                eta_component = (float(eta.get("makespan_s") or 0.0),)
             score = (
                 min((preference_rank.get(route_id,
                                          len(preference_rank))
                      for route_id in branch.route_ids),
                     default=len(preference_rank)),
+                int(branch.fleet_penalty),
                 int(branch.operation_count),
+                *eta_component,
                 "|".join(str(item) for item in branch.signature),
             )
             if missing:
@@ -513,7 +678,8 @@ class OrderPlanner:
                     rejection_reason="; ".join(
                         f"{row['item_type']}@{row['zone']} 缺 "
                         f"{row['missing']}" for row in missing),
-                    input_usage=tuple(usage), score=score))
+                    input_usage=tuple(usage), score=score,
+                    fleet=fleet_evidence))
                 blocking_diagnostics.append(PlannerDiagnostic(
                     "PLANNER_INPUT_INSUFFICIENT",
                     "投料不足: " + ", ".join(
@@ -530,7 +696,7 @@ class OrderPlanner:
                     candidate_id="", branch=branch, feasible=False,
                     rejection_code="PLANNER_MATERIALIZE_FAILED",
                     rejection_reason=str(exc), input_usage=tuple(usage),
-                    score=score))
+                    score=score, fleet=fleet_evidence))
                 blocking_diagnostics.append(PlannerDiagnostic(
                     "PLANNER_MATERIALIZE_FAILED", str(exc), "compile",
                     template_id=branch.label))
@@ -543,7 +709,7 @@ class OrderPlanner:
                     rejection_reason="; ".join(
                         row.message for row in preview.diagnostics[:3]),
                     order=order, preview=preview, input_usage=tuple(usage),
-                    score=score))
+                    score=score, fleet=fleet_evidence))
                 blocking_diagnostics.append(PlannerDiagnostic(
                     "PLANNER_COMPILE_FAILED",
                     "候选订单未通过 validator/compiler: " + "; ".join(
@@ -553,7 +719,8 @@ class OrderPlanner:
             candidates.append(_Candidate(
                 candidate_id="", branch=branch, feasible=True,
                 order=order, digest=order.dag_digest(), preview=preview,
-                input_usage=tuple(usage), score=score))
+                input_usage=tuple(usage), score=score,
+                fleet=fleet_evidence))
 
         candidates.sort(key=lambda row: (not row.feasible, row.score))
         for index, candidate in enumerate(candidates):
@@ -562,9 +729,10 @@ class OrderPlanner:
         feasible = [row for row in candidates if row.feasible]
         rejected = [row for row in candidates if not row.feasible]
         selected = feasible[0] if feasible else None
-        fatal = any(row.code in ("PLANNER_POLICY_VERSION",
-                                 "PLANNER_SCENE_UNKNOWN")
-                    for row in diagnostics)
+        fatal = fleet_invalid or profile_invalid or any(
+            row.code in ("PLANNER_POLICY_VERSION",
+                         "PLANNER_SCENE_UNKNOWN")
+            for row in diagnostics)
         if fatal:
             selected = None
         if selected is None and self._search["truncated"]:
@@ -609,6 +777,139 @@ class OrderPlanner:
 
     # ── 搜索空间 ────────────────────────────────────────────
 
+    def _fleet_route_assessment(
+            self, templates: list[OperationTemplate],
+            request: PlannerInput) -> tuple[int, list[dict], list[dict]]:
+        """按车队假设评估一条路线; 只返回证据, 不修改订单.
+
+        返回 ``(penalty, issues, vehicles)``:
+          - penalty: 1 表示路线可行但车队假设不满足, 仅降权;
+          - issues: 每个问题含 template/kind/vehicle/reason;
+          - vehicles: 该路线实际涉及的车辆映射, 供 explain 使用.
+        """
+        issues: list[dict] = []
+        vehicles: list[dict] = []
+        seen_templates: set[str] = set()
+        for template in templates:
+            if template.id in seen_templates:
+                continue
+            seen_templates.add(template.id)
+            involves_vehicle = (
+                template.executor_kind == "agv"
+                or template.source_kind == "agv"
+                or template.sink_kind == "agv")
+            if not involves_vehicle:
+                continue
+            vehicle_id = self._fleet.vehicle_for(template.kind)
+            vehicles.append({
+                "route_id": self._route_by_template.get(template.id, ""),
+                "template_id": template.id,
+                "kind": template.kind,
+                "vehicle_id": vehicle_id,
+            })
+            if template.executor_kind == "agv" and \
+                    vehicle_id not in template.candidate_devices:
+                issues.append({
+                    "template_id": template.id, "kind": template.kind,
+                    "vehicle_id": vehicle_id,
+                    "reason": "FLEET_VEHICLE_NOT_IN_CANDIDATES",
+                })
+            if self._fleet_available and \
+                    vehicle_id not in self._fleet_available:
+                issues.append({
+                    "template_id": template.id, "kind": template.kind,
+                    "vehicle_id": vehicle_id,
+                    "reason": "FLEET_VEHICLE_UNAVAILABLE",
+                })
+        return (1 if issues else 0), issues, vehicles
+
+    def _candidate_fleet_evidence(self, branch: _Branch,
+                                  request: PlannerInput) -> dict:
+        """候选的只读车队证据; 不参与订单/DAG 生成."""
+        templates = [self.catalog.operation(template_id)
+                     for template_id in dict.fromkeys(branch.template_ids)]
+        _penalty, issues, vehicles = self._fleet_route_assessment(
+            templates, request)
+        evidence = {
+            "mode": self._fleet.mode,
+            "policy_version": FLEET_POLICY_VERSION,
+            "assignment": self._fleet.as_dict()["assignment"],
+            "available_vehicle_ids": sorted(
+                self._fleet_available or set(self._fleet.vehicles())),
+            "strict": bool(request.strict_fleet),
+            "penalized": bool(branch.fleet_penalty),
+            "issues": list(issues),
+            "route_vehicles": list(vehicles),
+            "assumptions": [
+                "static_catalog_assignment",
+                "no_realtime_vehicle_state",
+            ],
+        }
+        if self._fleet_available:
+            evidence["assumptions"].append("static_availability_assumption")
+        if request.fleet_eta_ranking:
+            evidence["eta"] = self._fleet_eta(templates, request)
+        return evidence
+
+    def _fleet_eta(self, templates: list[OperationTemplate],
+                   request: PlannerInput) -> dict:
+        """离散事件运输 ETA; 仅作同分候选 tie-breaker, 不是物理验收."""
+        from ..simulation.transport_schedule import (AGV_1, CART_2,
+                                                     DualCartSimulator,
+                                                     TransportJob)
+        jobs: list[TransportJob] = []
+        seen: set[str] = set()
+        serial = 0
+        for template in templates:
+            if template.executor_kind != "agv" or template.id in seen:
+                continue
+            seen.add(template.id)
+            origin = template.route_origin_dock
+            destination = template.route_destination_dock
+            if not origin or not destination:
+                continue
+            item_type = (template.output.item_type.value
+                         if template.output is not None else "")
+            for _unit in range(int(request.target_quantity)):
+                serial += 1
+                jobs.append(TransportJob(
+                    job_id=f"planner_{serial:03d}",
+                    item_type=item_type, origin=origin,
+                    destination=destination,
+                    priority=int(template.priority)))
+        vehicles = [AGV_1] if not self._fleet.dual else [AGV_1, CART_2]
+        if self._fleet_available:
+            vehicles = [row for row in vehicles
+                        if row.vehicle_id in self._fleet_available]
+        model = {
+            "model": "transport_schedule",
+            "policy": "single" if not self._fleet.dual else "fixed",
+            "assumption": "discrete_event_not_physics",
+            "jobs": [row.as_dict() for row in jobs],
+            "vehicles": [row.as_dict() for row in vehicles],
+        }
+        if not jobs:
+            model.update({"makespan_s": 0.0, "available": True})
+            return model
+        if not vehicles:
+            model.update({
+                "makespan_s": 0.0, "available": False,
+                "error": "NO_AVAILABLE_VEHICLE",
+            })
+            return model
+        result = DualCartSimulator(
+            vehicles, jobs, policy=model["policy"]).run()
+        model.update({
+            "makespan_s": result["makespan_s"],
+            "completed": result["completed"],
+            "pending": result["pending"],
+            "avg_wait_s": result["avg_wait_s"],
+            "max_wait_s": result["max_wait_s"],
+            "utilization": result["utilization"],
+            "available": result["pending"] == 0,
+        })
+        return model
+
     def _route_macros(self, request: PlannerInput
                       ) -> tuple[list[_RouteMacro], list[PlannerDiagnostic]]:
         diagnostics: list[PlannerDiagnostic] = []
@@ -624,6 +925,16 @@ class OrderPlanner:
                         operation_id, recipe.id)
                         for operation_id in route.operation_ids]
                 except Exception:
+                    continue
+                if any(template.id
+                       not in self._profile_caps.allowed_template_ids
+                       for template in templates):
+                    diagnostics.append(PlannerDiagnostic(
+                        "PLANNER_TEMPLATE_PROFILE_EXCLUDED",
+                        f"路线 {route.id!r} 含不属于场景 profile "
+                        f"{self._profile!r} 的模板",
+                        "template", severity="warning",
+                        route_id=route.id))
                     continue
                 if any(not template.orchestratable for template in templates):
                     continue
@@ -675,6 +986,30 @@ class OrderPlanner:
                         "template", severity="warning",
                         route_id=route.id))
                     continue
+                fleet_penalty, fleet_issues, _fleet_vehicles = \
+                    self._fleet_route_assessment(templates, request)
+                if fleet_issues and request.strict_fleet:
+                    diagnostics.append(PlannerDiagnostic(
+                        "PLANNER_FLEET_ASSIGNMENT_UNAVAILABLE",
+                        f"路线 {route.id!r} 的车队假设不满足: " + "; ".join(
+                            f"{row['template_id']}→{row['vehicle_id']} "
+                            f"({row['reason']})" for row in fleet_issues),
+                        "device", route_id=route.id))
+                    continue
+                if fleet_issues:
+                    for row in fleet_issues:
+                        diagnostics.append(PlannerDiagnostic(
+                            "PLANNER_FLEET_ASSIGNMENT_UNAVAILABLE",
+                            f"路线 {route.id!r} 的 {row['template_id']} "
+                            f"分配 {row['vehicle_id']} 不满足车队假设 "
+                            f"({row['reason']})",
+                            "device", severity="warning",
+                            route_id=route.id,
+                            template_id=row["template_id"]))
+                    diagnostics.append(PlannerDiagnostic(
+                        "PLANNER_FLEET_ROUTE_PENALIZED",
+                        f"路线 {route.id!r} 因车队假设降权但保留",
+                        "device", severity="warning", route_id=route.id))
                 routes.append(_RouteMacro(
                     route_id=route.id, group=route.group,
                     entry_zone=route.entry_zone,
@@ -685,7 +1020,8 @@ class OrderPlanner:
                     template_ids=tuple(row.id for row in templates),
                     operation_count=len(templates),
                     signature=("route", route.id,
-                               tuple(route.operation_ids))))
+                               tuple(route.operation_ids)),
+                    fleet_penalty=fleet_penalty))
         routes.sort(key=lambda row: (
             int(row.operation_count), row.route_id, row.signature))
         return routes, diagnostics
@@ -712,6 +1048,14 @@ class OrderPlanner:
             for template in recipe.operations:
                 if template.executor_kind != "logic" \
                         or not template.orchestratable:
+                    continue
+                if template.id not in \
+                        self._profile_caps.allowed_template_ids:
+                    diagnostics.append(PlannerDiagnostic(
+                        "PLANNER_TEMPLATE_PROFILE_EXCLUDED",
+                        f"合流 {template.id!r} 不属于场景 profile "
+                        f"{self._profile!r}", "template",
+                        severity="warning", template_id=template.id))
                     continue
                 if template.join_handler_id not in JOIN_HANDLERS:
                     continue
@@ -752,7 +1096,9 @@ class OrderPlanner:
                     output_zone=template.output.zone,
                     output_item_type=template.output.item_type,
                     join_handler_id=template.join_handler_id,
-                    signature=("join", template.id, ports)))
+                    signature=("join", template.id, ports),
+                    direct_input=(template.join_handler_id
+                                  in DIRECT_INPUT_JOIN_HANDLERS)))
         joins.sort(key=lambda row: row.template_id)
         return joins, diagnostics
 
@@ -788,11 +1134,34 @@ class OrderPlanner:
                 output_item_type=route.exit_item_type,
                 output_zone=route.exit_zone,
                 operation_count=route.operation_count,
-                signature=route.signature))
+                signature=route.signature,
+                fleet_penalty=route.fleet_penalty))
         for join in joins:
             if join.output_item_type != item_type:
                 continue
             if zone and join.output_zone != zone:
+                continue
+            if join.direct_input:
+                # 已登记的直接来料合流: 端口需求转为订单投料, 不虚构
+                # route/predecessor; 物料/区域/数量检查仍走同一 _check_supply.
+                if 1 > request.max_nodes:
+                    self._mark_limit("max_nodes")
+                    continue
+                branches.append(_Branch(
+                    kind="join", label=join.template_id,
+                    route_ids=(),
+                    template_ids=(join.template_id,),
+                    input_requirements=tuple(
+                        (port_type.value, port_zone, 1)
+                        for _port_id, port_zone, port_type
+                        in join.input_ports),
+                    output_item_type=join.output_item_type,
+                    output_zone=join.output_zone,
+                    operation_count=1,
+                    signature=("join_direct", join.template_id,
+                               join.input_ports),
+                    join_template_id=join.template_id,
+                    direct_input_ports=join.input_ports))
                 continue
             option_lists = []
             failed = False
@@ -846,6 +1215,8 @@ class OrderPlanner:
                         child.operation_count for child in children),
                     signature=("join", join.template_id,
                                tuple(child.signature for child in children)),
+                    fleet_penalty=sum(
+                        child.fleet_penalty for child in children),
                     children=children,
                     join_ports=tuple(
                         (port_id, index)
@@ -978,6 +1349,10 @@ class OrderPlanner:
             for child in current.children:
                 child_terminals.append(visit(child))
             node_id = next_node(current.join_template_id)
+            if current.direct_input_ports:
+                for port_id, zone, item_type in current.direct_input_ports:
+                    next_input(item_type, zone, node_id, port_id)
+                return node_id
             for index, (port_id, _child_index) in enumerate(
                     current.join_ports):
                 edges.append(OrderEdge(
@@ -996,6 +1371,35 @@ class OrderPlanner:
 
     # ── 解释 ────────────────────────────────────────────────
 
+    def _fleet_context(self, request: PlannerInput,
+                       selected: Optional[_Candidate]) -> dict:
+        context = {
+            "mode": self._fleet.mode,
+            "policy_version": FLEET_POLICY_VERSION,
+            "assignment": self._fleet.as_dict()["assignment"],
+            "available_vehicle_ids": sorted(
+                self._fleet_available or set(self._fleet.vehicles())),
+            "strict": bool(request.strict_fleet),
+            "eta_ranking": bool(request.fleet_eta_ranking),
+            "route_vehicles": [],
+            "assumptions": [
+                "static_catalog_assignment",
+                "no_realtime_vehicle_state",
+            ],
+        }
+        if self._fleet_available:
+            context["assumptions"].append("static_availability_assumption")
+        if selected is not None and selected.fleet:
+            context.update({
+                "route_vehicles": list(selected.fleet.get(
+                    "route_vehicles") or []),
+                "penalized": bool(selected.fleet.get("penalized")),
+                "issues": list(selected.fleet.get("issues") or []),
+            })
+            if selected.fleet.get("eta"):
+                context["eta"] = selected.fleet["eta"]
+        return context
+
     def _explain(self, request: PlannerInput, selected: Optional[_Candidate],
                  candidates: Iterable[_Candidate], search: dict,
                  diagnostics: list[PlannerDiagnostic]) -> dict:
@@ -1004,7 +1408,16 @@ class OrderPlanner:
             join_bindings = _join_bindings(selected.branch)
         return {
             "policy_version": PLANNER_POLICY_VERSION,
+            "scene_profile": self._profile,
+            "scene_profile_version": SCENE_PROFILE_VERSION,
+            "profile_templates": sorted(
+                self._profile_caps.allowed_template_ids),
+            "profile_targets": [
+                row.value for row in self._profile_caps.target_item_types],
+            "profile_inputs": [
+                row.value for row in self._profile_caps.input_item_types],
             "input_summary": request.as_dict(),
+            "fleet_context": self._fleet_context(request, selected),
             "selected_candidate_id": None if selected is None
             else selected.candidate_id,
             "selected_branch": None if selected is None
@@ -1094,14 +1507,27 @@ def _join_bindings(branch: _Branch) -> list[dict]:
     bindings: list[dict] = []
     if branch.kind == "join":
         ports = []
-        for index, (port_id, child_index) in enumerate(branch.join_ports):
-            child = branch.children[child_index]
-            ports.append({
-                "port_id": port_id,
-                "item_type": child.output_item_type.value,
-                "route_ids": list(child.route_ids),
-                "template_ids": list(child.template_ids),
-            })
+        if branch.direct_input_ports:
+            for port_id, zone, item_type in branch.direct_input_ports:
+                ports.append({
+                    "port_id": port_id,
+                    "item_type": item_type.value,
+                    "source": "input",
+                    "zone": zone,
+                    "route_ids": [],
+                    "template_ids": [],
+                })
+        else:
+            for index, (port_id, child_index) in enumerate(branch.join_ports):
+                child = branch.children[child_index]
+                ports.append({
+                    "port_id": port_id,
+                    "item_type": child.output_item_type.value,
+                    "source": "node",
+                    "zone": child.output_zone,
+                    "route_ids": list(child.route_ids),
+                    "template_ids": list(child.template_ids),
+                })
         bindings.append({
             "join_template_id": branch.join_template_id,
             "inputs": ports,

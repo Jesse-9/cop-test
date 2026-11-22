@@ -283,6 +283,26 @@ def test_service_fleet_status_reports_dual_availability(database):
     assert "Cart2" in unavailable["dual"]["reason"]
 
 
+def test_service_marks_planner_fleet_assumption_mismatch(database):
+    service = _service(database, lambda command, stop: _success_summary(command))
+    saved = service.plan_and_save({
+        "target_item_type": "FINAL",
+        "target_quantity": 1,
+        "inputs": [{"item_type": "RAW_A", "quantity": 1},
+                   {"item_type": "RAW_D", "quantity": 1}],
+        "order_id": "planner-fleet-check",
+        "transport_fleet": "dual",
+    })
+    assert saved["ok"]
+    run = service.start("planner-fleet-check", 1,
+                        artifact_id="artifact-test",
+                        transport_fleet="single")
+    service.worker.wait(run["run_id"], timeout=5)
+    live = service.status(run["run_id"])["live"]
+    assert live["planner_transport_fleet"] == "dual"
+    assert live["planner_assumption_mismatch"] is True
+
+
 def test_cli_fleet_checker_requires_cart2_objects(tmp_path):
     from flexible_factory.artifacts.store import ArtifactStore
     from flexible_factory.cli import _fleet_artifact_checker

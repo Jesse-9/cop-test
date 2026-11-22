@@ -9,14 +9,20 @@ export function StartRunDialog({
   version,
   enabled,
   onClose,
+  artifact: artifactProp,
+  onArtifactChange,
 }: {
   orderId: string;
   version: number;
   enabled: boolean;
   onClose?: () => void;
+  artifact?: string;
+  onArtifactChange?: (value: string) => void;
 }) {
   const navigate = useNavigate();
-  const [artifact, setArtifact] = useState("current");
+  const [artifactInternal, setArtifactInternal] = useState("current");
+  const artifact = artifactProp ?? artifactInternal;
+  const setArtifact = onArtifactChange ?? setArtifactInternal;
   const [maxSimTime, setMaxSimTime] = useState(1200);
   const [fleetMode, setFleetMode] = useState<TransportFleet>("single");
   const [fleetInfo, setFleetInfo] = useState<FleetStatus | null>(null);
@@ -56,10 +62,6 @@ export function StartRunDialog({
     (fleetInfo ? "" : "正在检查场景工件的双车能力…");
 
   const start = async () => {
-    if (!artifact.trim()) {
-      setError("必须指定场景工件引用");
-      return;
-    }
     if (fleetMode === "dual" && !dualAvailable) {
       setError(dualReason || "当前工件不支持双车运行");
       return;
@@ -99,7 +101,7 @@ export function StartRunDialog({
         <Field
           label="场景工件"
           htmlFor="start-artifact"
-          hint="可填具体 artifact ID；current 由服务端解析。"
+          hint="留空使用服务默认工件；也可填具体 artifact ID 或 current。"
         >
           <input
             id="start-artifact"

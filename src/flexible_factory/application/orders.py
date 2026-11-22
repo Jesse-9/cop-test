@@ -52,6 +52,10 @@ class OrderRunCommand:
     max_sim_time: float = 1200.0
     #: 本次运行的运输车队模式: single | dual; 不写入不可变订单版本/DAG.
     transport_fleet: str = "single"
+    #: 启动工件 manifest 判定的场景 profile; 仅用于运行报告追溯.
+    scene_profile: str = ""
+    #: planner 草稿保存时的车队假设 (可为空); 仅用于运行报告对照.
+    planner_transport_fleet: str = ""
     progress: Optional[Callable[[dict], None]] = field(
         default=None, compare=False, repr=False)
 
@@ -64,6 +68,8 @@ class OrderRunCommand:
             "artifact_id": self.artifact_id,
             "max_sim_time": float(self.max_sim_time),
             "transport_fleet": self.transport_fleet,
+            "scene_profile": self.scene_profile,
+            "planner_transport_fleet": self.planner_transport_fleet,
         }
 
 
@@ -226,6 +232,13 @@ class OrderSimulationWorker:
         return {
             "run_id": state.run_id,
             "transport_fleet": state.command.transport_fleet,
+            "scene_profile": state.command.scene_profile,
+            "planner_transport_fleet":
+                state.command.planner_transport_fleet,
+            "planner_assumption_mismatch": bool(
+                state.command.planner_transport_fleet
+                and state.command.planner_transport_fleet
+                != state.command.transport_fleet),
             "fleet": (state.progress_data.get("fleet")
                       or (state.summary or {}).get("fleet")),
             "status": (state.status if finished else
@@ -257,6 +270,8 @@ class OrderService:
                  worker: Optional[OrderSimulationWorker] = None,
                  runner: Optional[Runner] = None,
                  artifact_resolver: Optional[Callable[[str], str]] = None,
+                 artifact_manifest_loader: Optional[
+                     Callable[[str], dict]] = None,
                  fleet_artifact_checker: Optional[
                      Callable[[str, str], None]] = None,
                  logger: Optional[logging.Logger] = None) -> None:
@@ -264,6 +279,9 @@ class OrderService:
         self.catalog = catalog if catalog is not None else default_catalog()
         self.artifact_id = str(artifact_id or "")
         self.artifact_resolver = artifact_resolver
+        # 读取工件 manifest 中的 scene_profile 与声明物料类型; 未配置时
+        # 目录查询返回 unbound 能力, 不假定任何工件 profile.
+        self.artifact_manifest_loader = artifact_manifest_loader
         # 启动前检查工件是否支持所选车队 (例如 dual 需要 Cart2/Cart2_Tray).
         # 检查失败抛 OrderRunConfigError; 未配置时由 coordinator 在加载后
         # 再显式拒绝, 不会静默退回单车.
@@ -284,9 +302,45 @@ class OrderService:
 
     # ── 目录 ────────────────────────────────────────────────
 
-    def templates(self) -> dict:
+    def scene_capabilities(self, artifact_id: str = ""):
+        """返回工件 profile 对应的静态能力目录.
+
+        未配置 manifest loader 时返回 ``unbound`` 能力 (全部目录模板),
+        这是只读查询的兼容模式; 一旦配置, 工件 manifest 就是权威来源,
+        未知 profile/非法物料声明在查询边界拒绝.
+        """
+        from ..domain import scene_profile
+        if self.artifact_manifest_loader is None:
+            if str(artifact_id or "").strip():
+                raise OrderRunConfigError(
+                    "服务未配置工件 manifest 读取器; 不能查询指定 "
+                    "artifact 的场景 profile")
+            return scene_profile.unbound_capabilities(self.catalog)
+        reference = str(artifact_id or self.artifact_id or "").strip()
+        if not reference:
+            raise OrderRunConfigError(
+                "场景能力查询需要显式 artifact_id 或服务默认工件")
+        try:
+            resolved = self._resolve_artifact(reference)
+        except OrderStateError as exc:
+            raise OrderRunConfigError(str(exc)) from exc
+        try:
+            manifest = self.artifact_manifest_loader(resolved)
+        except Exception as exc:
+            raise OrderRunConfigError(
+                f"工件 {resolved!r} manifest 无法读取: "
+                f"{type(exc).__name__}: {exc}") from exc
+        try:
+            return scene_profile.capabilities_from_manifest(
+                manifest, self.catalog, artifact_id=resolved)
+        except scene_profile.SceneProfileError as exc:
+            raise OrderRunConfigError(
+                f"工件 {resolved!r} 场景 profile 非法: {exc}") from exc
+
+    def templates(self, artifact_id: str = "") -> dict:
+        capabilities = self.scene_capabilities(artifact_id)
         rows = []
-        for template in self.catalog.orchestratable_operations():
+        for template in capabilities.templates:
             rows.append({
                 "template_id": template.id,
                 "kind": template.kind,
@@ -317,6 +371,18 @@ class OrderService:
             "catalog_version": self.catalog.version,
             "contract_version": ORDER_CONTRACT_VERSION,
             "scene_id": spec.LAYOUT_NAME,
+            "artifact_id": capabilities.artifact_id,
+            "scene_profile": capabilities.scene_profile,
+            "profile_source": capabilities.source,
+            "profile_version": capabilities.profile_version,
+            "profiles": list(capabilities.profiles),
+            "item_types": {
+                "targets": [row.value
+                            for row in capabilities.target_item_types],
+                "inputs": [row.value
+                           for row in capabilities.input_item_types],
+            },
+            "zones": [row.as_dict() for row in capabilities.zones],
             "templates": rows,
             "routes": [
                 {
@@ -327,8 +393,7 @@ class OrderService:
                     "entry_zone": route.entry_zone,
                     "exit_zone": route.exit_zone,
                 }
-                for recipe in self.catalog.recipes
-                for route in recipe.route_variants
+                for route in capabilities.routes
             ],
         }
 
@@ -337,11 +402,20 @@ class OrderService:
     def parse(self, payload: dict) -> OrderSpec:
         return OrderSpec.from_dict(payload)
 
-    def preview(self, payload: dict) -> CompilePreview:
-        return self.compiler.preview(self.parse(payload))
+    def preview(self, payload: dict, *, artifact_id: str = "") -> CompilePreview:
+        return self.preview_spec(self.parse(payload), artifact_id=artifact_id)
 
-    def preview_spec(self, order: OrderSpec) -> CompilePreview:
-        return self.compiler.preview(order)
+    def preview_spec(self, order: OrderSpec, *,
+                     artifact_id: str = "") -> CompilePreview:
+        from ..domain import scene_profile
+        preview = self.compiler.preview(order)
+        capabilities = self.scene_capabilities(artifact_id)
+        issues = scene_profile.order_profile_diagnostics(order, capabilities)
+        if issues:
+            preview = replace(
+                preview, ok=False,
+                diagnostics=tuple(issues) + tuple(preview.diagnostics))
+        return preview
 
     # ── 自主编排 (阶段 4) ───────────────────────────────────
 
@@ -509,6 +583,35 @@ class OrderService:
                 f"当前目录 {self.catalog.version!r}; 拒绝用不同目录启动")
         return self.repository.get_spec(order_id, version)
 
+    def _planner_fleet_assumption(self, order_id: str, version: int) -> str:
+        """planner 草稿记录的车队假设; 普通订单返回空串."""
+        meta = self.repository.get_version(order_id, version)
+        planner = meta.get("planner") or {}
+        payload = planner.get("input") or {}
+        return str(payload.get("transport_fleet") or "")
+
+    def _validate_order_for_artifact(self, order: OrderSpec,
+                                     artifact_id: str):
+        """启动前按工件 manifest profile 校验订单模板/目标/投料.
+
+        返回实际工件能力 (未配置 manifest loader 时返回 None). 没有 loader
+        时保持既有行为 (unbound 不做过滤); 配置后跨 profile 订单在创建 run
+        之前以 422 拒绝, 不写入运行记录.
+        """
+        from ..domain import scene_profile
+        if self.artifact_manifest_loader is None:
+            return None
+        capabilities = self.scene_capabilities(artifact_id)
+        issues = scene_profile.order_profile_diagnostics(order, capabilities)
+        if issues:
+            detail = "; ".join(
+                f"[{row.code}] {row.message}" for row in issues[:5])
+            raise OrderRunConfigError(
+                f"订单 {order.order_id}@{order.version} 与工件 "
+                f"{artifact_id!r} 的场景 profile "
+                f"{capabilities.scene_profile!r} 不兼容: {detail}")
+        return capabilities
+
     def start(self, order_id: str, version: int, *,
               artifact_id: str = "", max_sim_time: float = 1200.0,
               transport_fleet: str = "single") -> dict:
@@ -518,6 +621,8 @@ class OrderService:
         artifact_id = self._resolve_artifact(artifact_id)
         self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
+        capabilities = self._validate_order_for_artifact(order, artifact_id)
+        planner_fleet = self._planner_fleet_assumption(order_id, version)
         run_id = _new_run_id(order_id)
         compiled = self.compiler.compile(order, run_id=run_id)
         self.repository.create_run(
@@ -529,7 +634,10 @@ class OrderService:
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
-            transport_fleet=fleet_mode)
+            transport_fleet=fleet_mode,
+            scene_profile=("" if capabilities is None
+                           else capabilities.scene_profile),
+            planner_transport_fleet=planner_fleet)
         try:
             self.worker.start(command)
         except Exception as exc:
@@ -554,6 +662,8 @@ class OrderService:
         artifact_id = self._resolve_artifact(artifact_id)
         self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
+        capabilities = self._validate_order_for_artifact(order, artifact_id)
+        planner_fleet = self._planner_fleet_assumption(order_id, version)
         run_id = _new_run_id(order_id)
         compiled = self.compiler.compile(order, run_id=run_id)
         self.repository.create_run(
@@ -565,7 +675,10 @@ class OrderService:
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
-            transport_fleet=fleet_mode)
+            transport_fleet=fleet_mode,
+            scene_profile=("" if capabilities is None
+                           else capabilities.scene_profile),
+            planner_transport_fleet=planner_fleet)
         summary: Optional[dict] = None
         error = ""
         try:
@@ -715,7 +828,8 @@ def _compact_result(summary: Optional[dict], status: str,
     keys = ("scenario", "fault", "sim_time", "aborted", "frozen",
             "stop_reason", "order_status", "batch", "metrics",
             "active_unit_ids", "runtime_destroy", "failure_summary",
-            "transport_fleet", "fleet", "acceptance")
+            "transport_fleet", "scene_profile", "fleet",
+            "planner_fleet_assumption", "acceptance")
     compact = {key: summary[key] for key in keys if key in summary}
     compact["status"] = status
     if error:

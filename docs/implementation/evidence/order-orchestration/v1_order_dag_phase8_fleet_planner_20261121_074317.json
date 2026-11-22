@@ -1,0 +1,335 @@
+{
+  "evidence_id": "v1_order_dag_phase8_fleet_planner_20261121_074317",
+  "phase": "order-dag-phase-8",
+  "case": "fleet-aware planner: dual assumption and assumption/run mismatch",
+  "executed_at": "2026-11-21T07:43:17+08:00",
+  "environment": {
+    "source_revision": "04eeaca362dee2ec3e2c3b8f85971f91572bc434",
+    "source_revision_note": "acceptance ran on HEAD + uncommitted phase 8 changes",
+    "simulator": "CoppeliaSim 4.10.0",
+    "transport": "ZeroMQ Remote API 23000",
+    "coppelia": {
+      "version": "4.10.0.0",
+      "zmq": "localhost:23000"
+    },
+    "artifact": {
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "protected": true,
+      "manifest_digest": "70457326be098844fe778f3f1962a61763352e27d7a461a63d7b1b7d9f8274f1",
+      "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+      "validation_ok": true
+    }
+  },
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "order": {
+    "order_id": "phase8-dual-planner",
+    "version": 1,
+    "dag_digest": "219c97b6fa05e113d4ab061df5a7d3ed13ddb6bf12d16fa32e1c18147a3563b4",
+    "source": "planner",
+    "planner_policy_version": "v1_planner_20261121",
+    "planner_candidate_count": 2
+  },
+  "catalog_version": "v1_process_20261117a",
+  "fleet_policy_version": "v1_fleet_20261119",
+  "planner_context": {
+    "mode": "dual",
+    "policy_version": "v1_fleet_20261119",
+    "assignment": {
+      "b_conveyor": "agv_1",
+      "a_agv": "agv_1",
+      "transport_ba": "agv_1",
+      "d_conveyor": "cart_2",
+      "e_agv": "cart_2",
+      "transport_de": "cart_2"
+    },
+    "available_vehicle_ids": [
+      "agv_1",
+      "cart_2"
+    ],
+    "strict": false,
+    "eta_ranking": true,
+    "route_vehicles": [
+      {
+        "route_id": "bracket_route",
+        "template_id": "bracket_process",
+        "kind": "d_conveyor",
+        "vehicle_id": "cart_2"
+      },
+      {
+        "route_id": "bracket_route",
+        "template_id": "transport_DE",
+        "kind": "transport_de",
+        "vehicle_id": "cart_2"
+      },
+      {
+        "route_id": "bracket_route",
+        "template_id": "bracket_to_E",
+        "kind": "e_agv",
+        "vehicle_id": "cart_2"
+      }
+    ],
+    "assumptions": [
+      "static_catalog_assignment",
+      "no_realtime_vehicle_state"
+    ],
+    "penalized": false,
+    "issues": [],
+    "eta": {
+      "model": "transport_schedule",
+      "policy": "fixed",
+      "assumption": "discrete_event_not_physics",
+      "jobs": [
+        {
+          "job_id": "planner_001",
+          "item_type": "PART_DE",
+          "origin": "D",
+          "destination": "E",
+          "created_at": 0.0,
+          "priority": 1,
+          "category": "bracket_supply"
+        }
+      ],
+      "vehicles": [
+        {
+          "vehicle_id": "agv_1",
+          "home": "A",
+          "speed": 0.12,
+          "turn_time": 0.4,
+          "load_time": 1.5,
+          "unload_time": 1.5
+        },
+        {
+          "vehicle_id": "cart_2",
+          "home": "D",
+          "speed": 0.1,
+          "turn_time": 0.5,
+          "load_time": 2.0,
+          "unload_time": 2.0
+        }
+      ],
+      "makespan_s": 31.0,
+      "avg_wait_s": 31.0,
+      "max_wait_s": 31.0,
+      "utilization": {
+        "agv_1": 0.0,
+        "cart_2": 1.0
+      },
+      "available": true
+    }
+  },
+  "runs": {
+    "dual_assumption_dual_run": {
+      "run_id": "order_phase8-dual-planner_20261120_231945_a106b5",
+      "transport_fleet": "dual",
+      "planner_transport_fleet": "dual",
+      "order_status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 136.4,
+      "steps": 2728,
+      "acceptance": {
+        "ok": true,
+        "final_count": 1,
+        "final_parents": [
+          [
+            1,
+            2
+          ]
+        ],
+        "order_target_count": 1,
+        "graph_complete": true,
+        "any_task_failed": false,
+        "any_task_blocked": false,
+        "resources_released": true,
+        "route_ok": true,
+        "scheduler_ok": true,
+        "priority_ok": true
+      },
+      "fleet": {
+        "mode": "dual",
+        "policy_version": "v1_fleet_20261119",
+        "assignment": {
+          "b_conveyor": "agv_1",
+          "a_agv": "agv_1",
+          "transport_ba": "agv_1",
+          "d_conveyor": "cart_2",
+          "e_agv": "cart_2",
+          "transport_de": "cart_2"
+        },
+        "planner_assumption": "dual",
+        "planner_assumption_mismatch": false,
+        "transport_selections": [
+          {
+            "instance_id": "order_phase8-dual-planner_20261120_231945_a106b5:transport_DE-04:2",
+            "task_id": "transport_de_uid2_transport_DE-04",
+            "template_id": "transport_DE",
+            "kind": "transport_de",
+            "selected_device_id": "cart_2",
+            "execution_id": "cart_2#1"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "vehicle_id": "cart_2",
+          "route_id": "D->E",
+          "loaded": true,
+          "metrics": {
+            "stop_error": 0.0,
+            "heading_error": 0.0,
+            "material_slip": 0.0
+          }
+        }
+      ],
+      "failures": []
+    },
+    "dual_assumption_single_run": {
+      "run_id": "order_phase8-dual-planner_20261120_233206_3e611f",
+      "transport_fleet": "single",
+      "planner_transport_fleet": "dual",
+      "order_status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 163.1,
+      "steps": 3262,
+      "acceptance": {
+        "ok": true,
+        "final_count": 1,
+        "final_parents": [
+          [
+            1,
+            2
+          ]
+        ],
+        "order_target_count": 1,
+        "graph_complete": true,
+        "any_task_failed": false,
+        "any_task_blocked": false,
+        "resources_released": true,
+        "route_ok": true,
+        "scheduler_ok": true,
+        "priority_ok": true
+      },
+      "fleet": {
+        "mode": "single",
+        "policy_version": "v1_fleet_20261119",
+        "assignment": {},
+        "planner_assumption": "dual",
+        "planner_assumption_mismatch": true,
+        "transport_selections": [
+          {
+            "instance_id": "order_phase8-dual-planner_20261120_233206_3e611f:transport_DE-04:2",
+            "task_id": "transport_de_uid2_transport_DE-04",
+            "template_id": "transport_DE",
+            "kind": "transport_de",
+            "selected_device_id": "agv_1",
+            "execution_id": "agv_1#2"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "vehicle_id": "agv_1",
+          "route_id": "A_to_D_empty",
+          "loaded": false,
+          "metrics": {
+            "route_id": "A_to_D_empty",
+            "loaded": false,
+            "start_pose": [
+              0.4,
+              0.7,
+              0.138786,
+              0.0,
+              0.0,
+              -0.707107,
+              0.707107
+            ],
+            "end_pose": [
+              2.900178,
+              -1.369613,
+              0.138651,
+              -0.001037,
+              -0.000983,
+              -0.707087,
+              0.707125
+            ],
+            "target_pose": null,
+            "stop_error": 0.019614,
+            "heading_error": -5.4e-05,
+            "duration_s": 61.5,
+            "max_speed": 0.0,
+            "mean_speed": 0.0,
+            "samples": 0,
+            "stable_samples": 0,
+            "stable_fraction": 0.0,
+            "material_slip": null,
+            "material_relative_start": null,
+            "material_relative_end": null,
+            "blocked": {},
+            "resumed": []
+          }
+        },
+        {
+          "vehicle_id": "agv_1",
+          "route_id": "D_to_E_loaded",
+          "loaded": true,
+          "metrics": {
+            "route_id": "D_to_E_loaded",
+            "loaded": true,
+            "start_pose": [
+              2.899768,
+              -1.357263,
+              0.13865,
+              -0.001045,
+              -0.000989,
+              -0.707184,
+              0.707028
+            ],
+            "end_pose": [
+              2.89975,
+              1.330235,
+              0.13865,
+              -0.00105,
+              -0.000995,
+              -0.707061,
+              0.707151
+            ],
+            "target_pose": null,
+            "stop_error": 0.019766,
+            "heading_error": -0.000128,
+            "duration_s": 23.05,
+            "max_speed": 0.0,
+            "mean_speed": 0.0,
+            "samples": 0,
+            "stable_samples": 0,
+            "stable_fraction": 0.0,
+            "material_slip": 0.009188,
+            "material_relative_start": [
+              -0.017147,
+              -0.004087,
+              0.168191
+            ],
+            "material_relative_end": [
+              -0.026251,
+              -0.005332,
+              0.168164
+            ],
+            "blocked": {},
+            "resumed": []
+          }
+        }
+      ],
+      "failures": []
+    }
+  },
+  "observations": [
+    "Both runs generated exactly one FINAL with parent UIDs [1,2] and no failures.",
+    "Dual run selected cart_2 for transport_DE; single run selected agv_1 and parked cart_2.",
+    "The planner DAG digest is identical for both runs; only runtime fleet mode changed.",
+    "planner_assumption_mismatch=true on the single run, and the run still followed the requested single mode.",
+    "ETA ranking evidence is in planner explain; it is a discrete-event model, not physical acceptance."
+  ],
+  "uncovered": [
+    "No real-time vehicle state or dynamic reassignment.",
+    "No parallel route/conflict proof.",
+    "cart_2 remains a kinematic executor."
+  ]
+}

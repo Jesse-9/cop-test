@@ -3,10 +3,13 @@ title: v1 自建订单与工序 DAG 自主编排总体方案
 type: plan
 status: implemented
 created: 2026-11-06
-updated: 2026-11-20
+updated: 2026-11-21
 scope: v1 UFLOW / L5_UFLOW / 自建订单
 related:
   - v1-order-dag-phase-07-dual-fleet.md
+  - v1-order-dag-phase-08-fleet-aware-planner.md
+  - v1-order-dag-phase-09-scene-profile-order-catalog.md
+  - ../../reports/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../reports/production-flow/v1-stage-03-operation-dag.md
   - ../../reports/production-flow/v1-stage-04-capability-scheduling.md
@@ -110,7 +113,7 @@ related:
 
 ## 6. 分阶段实施工作包
 
-按依赖顺序推进以下七个阶段。工作量为相对估计，用于拆分审查和排期，不代表日历工期；阶段 2、6 的物理风险最高，阶段 7 是已完成首期订单链路后的双车运行扩展。详细步骤、代码落点和验收见各阶段文档。
+按依赖顺序推进以下阶段（阶段 1–9 已实施）。工作量为相对估计，用于拆分审查和排期，不代表日历工期；阶段 2、6 的物理风险最高，阶段 7 是已完成首期订单链路后的双车运行扩展，阶段 9 是场景 profile 能力目录与直接来料规划的收口。
 
 | 顺序 | 阶段与工作量 | 主要交付 | 进入下一阶段的条件 | 详细方案 |
 |---|---|---|---|---|
@@ -121,10 +124,12 @@ related:
 | 5 | 前端编排（大） | 订单工作台、DAG 编辑、planner 结果预览和运行 trace | 手工与自动订单共享 API，运行状态与服务端一致 | [阶段 5](v1-order-dag-phase-05-frontend.md) |
 | 6 | 仿真验收（中，依赖 CoppeliaSim） | 默认回归、自建订单、planner 订单、局部/全局故障证据 | 真实运行通过；未验证故障保持 GLOBAL | [阶段 6](v1-order-dag-phase-06-simulation-acceptance.md) |
 | 7 | 双车订单运行接入（中到大，依赖双车仿真环境） | 订单启动配置透传、固定分工派车一致性、路线资源边界、手工/planner 共用双车运行 | single 兼容；dual 订单由正确车辆执行；真实并行仅在路线冲突验收通过后声明 | [阶段 7](v1-order-dag-phase-07-dual-fleet.md) |
+| 8 | 车队感知的自主规划（中，已实施） | planner 接收 single/dual 假设、固定分工/车辆能力诊断、explain 与候选排序；DAG/订单契约不变 | planner 假设可追溯；DAG digest 不随模式漂移；运行仍由 coordinator 权威派工 | [阶段 8](v1-order-dag-phase-08-fleet-aware-planner.md) |
+| 9 | 场景 profile 感知的订单目录与组合规划（中，已实施） | 工作台按已加载工件展示可用目标/模板；自主规划覆盖 full-flow 两条 FINAL 路线与 assembly_mvp 两种直接来料装配 | 四种订单蓝图均能从工作台或 planner 生成普通订单，并在匹配工件上真实运行；单目标订单边界保持清晰 | [阶段 9](v1-order-dag-phase-09-scene-profile-order-catalog.md) |
 
 阶段 1–2 的稳定契约和失败语义是 API/UI 的前置条件；阶段 3 是 planner 和前端共用的服务边界；阶段 4、5 可在 API 冻结后并行实现，但发布验收必须覆盖两者。测试保持聚焦：每阶段运行受影响测试；新增测试只覆盖关键正例、核心负例和新失败边界；最后跑一次全量纯测试及上述有限的实机验收矩阵，不重复生成同义测试。
 
-实施状态（2026-11-20）：阶段 1–6 已实施。阶段 1–5 通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)；阶段 6 已在受保护 `L5_UFLOW` 工件上完成手工/planner UI 订单、NODE 前置拒绝和安全锁存全局停止验收，见[阶段 6 实施报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 7 已把 `single/dual` 车队作为运行选项接入订单 API/worker/coordinator 与启动 UI，并完成派工一致性和迁移测试；CoppeliaSim 限定验收（`v005`）已通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动，均生成 1 个 `FINAL`，路线并行与 planner UI 启动仍未验证，不能表述为并行提速或轮式物理控制已验收，详见[阶段 7 方案](v1-order-dag-phase-07-dual-fleet.md)与[阶段 7 实施报告](../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。未验证的真实运动/连接故障仍为 GLOBAL；本文其余部分保留原始总体设计。
+实施状态（2026-11-21）：阶段 1–6 已实施。阶段 1–5 通过纯逻辑/API/记录型执行与前端 E2E 测试，见[阶段 1–3 实施报告](../../reports/order-orchestration/v1-order-dag-phase-01-03.md)、[阶段 4 实施报告](../../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 与[阶段 5 实施报告](../../reports/order-orchestration/v1-order-dag-phase-05-frontend.md)；阶段 6 已在受保护 `L5_UFLOW` 工件上完成手工/planner UI 订单、NODE 前置拒绝和安全锁存全局停止验收，见[阶段 6 实施报告](../../reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)。阶段 7 已把 `single/dual` 车队作为运行选项接入订单 API/worker/coordinator 与启动 UI，并完成派工一致性和迁移测试；CoppeliaSim 限定验收（`v005`）已通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动，均生成 1 个 `FINAL`，路线并行与 planner UI 启动仍未验证，不能表述为并行提速或轮式物理控制已验收，详见[阶段 7 方案](v1-order-dag-phase-07-dual-fleet.md)与[阶段 7 实施报告](../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。阶段 8 已实施：planner 使用 single/dual 假设、固定分工和可选静态 ETA 做候选可行性/排序与 explain，订单 DAG 和运行时派工边界不变，见[阶段 8 方案](v1-order-dag-phase-08-fleet-aware-planner.md)与[阶段 8 实施报告](../../reports/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md)。阶段 9 已实施：工件 manifest 驱动 `/api/templates` 的 profile/物料/模板/区域过滤，前端移除固定物料集合并在切换工件后阻断或清理跨 profile 草稿；planner 新增 `scene_profile` 和已登记 MVP 直接来料 join；启动前按工件 profile 拒绝跨 profile 订单。2026-11-21 实机完成 full_flow 直达/绕行与 MVP 压缩机/法兰四个 UI run（父子 UID 均 `[1,2]`）；full_flow 因本次 single E 臂托盘对位问题使用 dual，MVP 旧工件按当前 config 重建为 v002。代码、测试与实机覆盖范围见[阶段 9 方案](v1-order-dag-phase-09-scene-profile-order-catalog.md)与[阶段 9 实施报告](../../reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md)。未验证的真实运动/连接故障仍为 GLOBAL；本文其余部分保留原始总体设计。
 
 ## 7. 首期验收场景
 

@@ -1,0 +1,214 @@
+{
+  "evidence_id": "v1_order_dag_phase9_scene_profile_20261121_153000",
+  "phase": "order-dag-phase-9",
+  "case": "scene profile catalog, direct-input MVP planning, workbench runs and cross-profile rejection",
+  "executed_at": "2026-11-21T15:29:30+08:00",
+  "environment": {
+    "source_revision": "04eeaca362dee2ec3e2c3b8f85971f91572bc434",
+    "source_revision_note": "acceptance ran on HEAD + uncommitted phase 9 changes (and the existing path-reuse working tree changes)",
+    "simulator": "CoppeliaSim 4.10.0.0",
+    "transport": "ZeroMQ Remote API 23000",
+    "api_base": "http://127.0.0.1:8081",
+    "ui_base": "http://127.0.0.1:5174",
+    "route_mock": false,
+    "acceptance_script": "frontend/e2e/real_acceptance.mjs"
+  },
+  "versions": {
+    "order_contract": "v1_order_20261106",
+    "planner_policy": "v1_planner_20261121b",
+    "scene_profile": "v1_scene_profile_20261121",
+    "catalog": "v1_process_20261117a",
+    "fleet_policy": "v1_fleet_20261119",
+    "coppelia": "4.10.0.0"
+  },
+  "artifacts": {
+    "full_flow": {
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "root": "docs/scene_artifacts",
+      "scene_profile": "full_flow",
+      "profile_source": "default",
+      "manifest_digest": "70457326be098844fe778f3f1962a61763352e27d7a461a63d7b1b7d9f8274f1",
+      "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+      "validation_ok": true
+    },
+    "assembly_mvp": {
+      "artifact_id": "v1/L5_UFLOW/v002_20261121_152334",
+      "root": "docs/scene_artifacts/experiments/assembly-mvp",
+      "scene_profile": "assembly_mvp",
+      "profile_source": "manifest",
+      "manifest_digest": "c86311c958c5c91f0578f816577d9f6bcc607e33e83905e53d8b71498d20dfce",
+      "scene_sha256": "2f6ac4e6f09936e1da8d45d6e9a236deac72dbf7eb8fc6eeb47a200ee3fd8209",
+      "config_digest": "c132340c0cdbbbfcb8ebf10a0f42a73d260d14d2aa267801c676e8ba30a5ae9d",
+      "validation_ok": true,
+      "rebuild_note": "旧实验工件 v001_20261114_120734 的 manifest 使用 v1_process_20261114a/config e292c37f…，与当前 v1_process_20261117a/config c132340c… 不匹配，start 前只读校验失败（v1_config_digest 与 v1_process_model_version）。使用当前配置从 stage3/L2_MIRROR/v008_20261029_112305 重新 build/save 为 v002；旧 v001 保留未覆盖。"
+    }
+  },
+  "cases": [
+    {
+      "case": "full_flow housing_direct + bracket, manual DAG from UI, dual",
+      "workflow": "manual",
+      "launch": "UI start dialog (Playwright real_acceptance.mjs manual, ACCEPT_FLEET=dual)",
+      "order_id": "accept-ui-manual-1795242936443",
+      "order_version": 1,
+      "dag_digest": "f43be3e2560f257912a74a8851851dc9f3523336dfcaf4ea3916da0ba5835413",
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "scene_profile": "full_flow",
+      "transport_fleet": "dual",
+      "run_id": "order_accept-ui-manual-1795242936443_20261121_063539_a31a53",
+      "status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 136.45,
+      "node_count": 7,
+      "input_uids": [1, 2],
+      "output_uids": [3],
+      "target": "FINAL",
+      "final_uids": [3],
+      "final_parents": [[1, 2]],
+      "final_materials": {
+        "1": "SEMI_CE",
+        "2": "PART_DE",
+        "3": "FINAL"
+      },
+      "transport_de_device": "cart_2",
+      "ui_status": "成功",
+      "ui_reload_status": "成功",
+      "run_report": "docs/implementation/runs/phase9/v1_order_run_20261121_144451.json"
+    },
+    {
+      "case": "full_flow housing_alt + bracket, planner from UI, dual",
+      "workflow": "planner",
+      "launch": "UI planner save + start dialog (Playwright real_acceptance.mjs planner, ACCEPT_ROUTE=alt, ACCEPT_FLEET=dual)",
+      "order_id": "planner-draft",
+      "order_version": 9,
+      "dag_digest": "8d797e94f95ea0224438e9dfaf2aa0da2b34b7febd0010e72f76ad78f6f87252",
+      "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+      "scene_profile": "full_flow",
+      "transport_fleet": "dual",
+      "run_id": "order_planner-draft_20261121_065851_8483a9",
+      "status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 293.85,
+      "node_count": 9,
+      "input_uids": [1, 2],
+      "output_uids": [3],
+      "target": "FINAL",
+      "final_uids": [3],
+      "final_parents": [[1, 2]],
+      "final_materials": {
+        "1": "SEMI_CE",
+        "2": "PART_DE",
+        "3": "FINAL"
+      },
+      "route_ids": ["housing_alt", "bracket_route"],
+      "transport_de_device": "cart_2",
+      "ui_status": "成功",
+      "ui_reload_status": "成功",
+      "run_report": "docs/implementation/runs/phase9/v1_order_run_20261121_151309.json"
+    },
+    {
+      "case": "assembly_mvp COMPRESSOR + BASEPLATE, manual DAG from UI",
+      "workflow": "manual",
+      "launch": "UI start dialog (Playwright real_acceptance.mjs mvp-manual)",
+      "order_id": "accept-ui-mvp-compressor_assy-1795245941174",
+      "order_version": 1,
+      "dag_digest": "2d25e0b7062dc5312d38d7090052552937c70505413e6f90530cc1c84fc38995",
+      "artifact_id": "v1/L5_UFLOW/v002_20261121_152334",
+      "scene_profile": "assembly_mvp",
+      "transport_fleet": "single",
+      "run_id": "order_accept-ui-mvp-compressor_assy-17_20261121_072543_17d3d6",
+      "status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 0.05,
+      "node_count": 1,
+      "input_uids": [1, 2],
+      "output_uids": [3],
+      "target": "COMPRESSOR_ASSY",
+      "final_uids": [3],
+      "final_parents": [[1, 2]],
+      "final_materials": {
+        "1": "COMPRESSOR",
+        "2": "BASEPLATE",
+        "3": "COMPRESSOR_ASSY"
+      },
+      "join_handler": "mvp_pair_assembly",
+      "input_ports": ["compressor-in", "baseplate-in"],
+      "ui_status": "成功",
+      "ui_reload_status": "成功",
+      "run_report": "docs/implementation/runs/phase9/v1_order_run_20261121_152653.json"
+    },
+    {
+      "case": "assembly_mvp FRONT_FLANGE + REAR_FLANGE, planner from UI",
+      "workflow": "planner",
+      "launch": "UI planner save + start dialog (Playwright real_acceptance.mjs mvp-planner, ACCEPT_PRODUCT=FLANGE_ASSY)",
+      "order_id": "planner-draft",
+      "order_version": 10,
+      "dag_digest": "c7d68f2a64482e09f16931b247bc7ad1a9f30a949602dd4968af67bd6f94333b",
+      "artifact_id": "v1/L5_UFLOW/v002_20261121_152334",
+      "scene_profile": "assembly_mvp",
+      "transport_fleet": "single",
+      "run_id": "order_planner-draft_20261121_072721_3bc7f3",
+      "status": "SUCCEEDED",
+      "all_ok": true,
+      "sim_time": 0.05,
+      "node_count": 1,
+      "input_uids": [1, 2],
+      "output_uids": [3],
+      "target": "FLANGE_ASSY",
+      "final_uids": [3],
+      "final_parents": [[1, 2]],
+      "final_materials": {
+        "1": "FRONT_FLANGE",
+        "2": "REAR_FLANGE",
+        "3": "FLANGE_ASSY"
+      },
+      "join_handler": "mvp_pair_assembly",
+      "input_ports": ["front-in", "rear-in"],
+      "ui_status": "成功",
+      "ui_reload_status": "成功",
+      "run_report": "docs/implementation/runs/phase9/v1_order_run_20261121_152833.json"
+    }
+  ],
+  "negative": {
+    "case": "MVP order started on full_flow artifact",
+    "order_id": "phase9-mvp-negative",
+    "order_version": 1,
+    "dag_digest": "3c0e1f9d35f12e3818ad83410d74f1d972b31403f175974b6ca1199f6fc370e9",
+    "target": "COMPRESSOR_ASSY",
+    "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+    "http_status": 422,
+    "error_code": "ORDER_RUN_CONFIG",
+    "diagnostic_codes": [
+      "ORDER_TEMPLATE_PROFILE_MISMATCH",
+      "ORDER_TARGET_PROFILE_MISMATCH",
+      "ORDER_INPUT_PROFILE_MISMATCH",
+      "ORDER_INPUT_ZONE_PROFILE_MISMATCH"
+    ],
+    "runs_after_rejection": []
+  },
+  "excluded_attempts": [
+    {
+      "order_id": "accept-ui-manual-1795241136952",
+      "reason": "CoppeliaSim GUI 进程在运行中退出；run 无终态，未作为证据"
+    },
+    {
+      "order_id": "accept-ui-manual-1795241764422",
+      "reason": "single fleet 在 bracket_to_E 的 E 臂 AGV 托盘取料后 GOAL_CONFIG_INVALID（lateral=0.0251 m），按既有 GLOBAL 语义 ABORTED"
+    },
+    {
+      "order_id": "accept-ui-manual-1795242366581",
+      "reason": "复现相同 single E 臂 plan q 后主动 STOP_REQUESTED；不作为通过证据"
+    },
+    {
+      "order_id": "planner-draft",
+      "order_version": 8,
+      "reason": "single alt route 在相同 E 臂 plan q 前主动 STOP_REQUESTED；不作为通过证据"
+    }
+  ],
+  "unverified": [
+    "quantity>1 的 full_flow/MVP 实机运行",
+    "single fleet 下 full_flow 两者的成功路径（本轮 single 在 bracket_to_E 的 E 臂托盘对位失败；阶段 7 single 回归是既有基线）",
+    "路线并行/吞吐提升",
+    "真实 Arm/AGV 运动故障与 ZMQ/step 断连",
+    "跨 profile 的其它数量/模板组合"
+  ]
+}

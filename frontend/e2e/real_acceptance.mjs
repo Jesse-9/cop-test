@@ -195,10 +195,10 @@ async function createManualOrder(page) {
   }
   await page.getByRole("button", { name: "返回订单设置" }).click();
   await page.locator("#new-input-type").selectOption("RAW_A");
-  await page.locator("#new-input-zone").fill("line_s1a");
+  await page.locator("#new-input-zone").selectOption("line_s1a");
   await page.getByRole("button", { name: "添加入口投料" }).click();
+  await page.locator("#new-input-zone").selectOption("line_s2d");
   await page.locator("#new-input-type").selectOption("RAW_D");
-  await page.locator("#new-input-zone").fill("line_s2d");
   await page.getByRole("button", { name: "添加入口投料" }).click();
   await connect(page, "housing_direct_A-01", "housing_finish-01", "input-0");
   await connect(page, "housing_finish-01", "housing_to_E_buffer-01",
@@ -220,6 +220,11 @@ async function createManualOrder(page) {
 
 async function createPlannerOrder(page) {
   await page.goto(`${BASE}/planner`);
+  if (process.env.ACCEPT_ROUTE === "alt") {
+    // 绕行壳体路线: RAW_B@line_s1b + RAW_D@line_s2d.
+    await page.locator("#supply-type-0").selectOption("RAW_B");
+    await page.locator("#supply-zone-0").selectOption("line_s1b");
+  }
   await page.getByRole("button", { name: "生成候选" }).click();
   await page.getByText("找到可行候选").waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "保存草稿并编辑" }).click();
@@ -227,6 +232,75 @@ async function createPlannerOrder(page) {
   const match = page.url().match(/\/orders\/([^/]+)\/edit$/);
   const orderId = match ? decodeURIComponent(match[1]) : "";
   console.log(`ORDER_ID=${orderId}`);
+  if (process.env.NO_START === "1") return;
+  await page.goto(`${BASE}/orders/${encodeURIComponent(orderId)}`);
+  await startRun(page);
+}
+
+async function createMvpManualOrder(page) {
+  const product =
+    process.env.ACCEPT_PRODUCT === "FLANGE_ASSY"
+      ? "FLANGE_ASSY"
+      : "COMPRESSOR_ASSY";
+  const recipe =
+    product === "FLANGE_ASSY"
+      ? {
+          template: "mvp_flange_assembly",
+          inputs: [
+            ["FRONT_FLANGE", "mvp_source_front_flange", "front-in"],
+            ["REAR_FLANGE", "mvp_source_rear_flange", "rear-in"],
+          ],
+        }
+      : {
+          template: "mvp_compressor_assembly",
+          inputs: [
+            ["COMPRESSOR", "mvp_source_compressor", "compressor-in"],
+            ["BASEPLATE", "mvp_source_baseplate", "baseplate-in"],
+          ],
+        };
+  const nodeId = `${recipe.template}-01`;
+  const orderId = `accept-ui-mvp-${product.toLowerCase()}-${Date.now()}`;
+  await page.goto(`${BASE}/orders/new`);
+  await page.getByRole("heading", { name: "新建订单" }).waitFor();
+  await page.locator("#order-id").fill(orderId);
+  await page.locator("#editor-target").selectOption(product);
+  await page
+    .getByRole("button", { name: `添加模板 ${recipe.template}` })
+    .click();
+  await page.getByRole("button", { name: "返回订单设置" }).click();
+  for (const [itemType, zone, port] of recipe.inputs) {
+    await page.locator("#new-input-zone").selectOption(zone);
+    await page.locator("#new-input-type").selectOption(itemType);
+    await page.locator("#new-input-node").selectOption(nodeId);
+    await page.locator("#new-input-port").selectOption(port);
+    await page.getByRole("button", { name: "添加入口投料" }).click();
+  }
+  await waitForPreview(page);
+  await page.getByRole("button", { name: "保存订单" }).click();
+  await page.waitForURL(new RegExp(`/orders/${orderId}$`), {
+    timeout: 60_000,
+  });
+  console.log(`ORDER_ID=${orderId}`);
+  console.log(`ORDER_PRODUCT=${product}`);
+  if (process.env.NO_START === "1") return;
+  await startRun(page);
+}
+
+async function createMvpPlannerOrder(page) {
+  const product =
+    process.env.ACCEPT_PRODUCT === "FLANGE_ASSY"
+      ? "FLANGE_ASSY"
+      : "COMPRESSOR_ASSY";
+  await page.goto(`${BASE}/planner`);
+  await page.locator("#planner-target").selectOption(product);
+  await page.getByRole("button", { name: "生成候选" }).click();
+  await page.getByText("找到可行候选").waitFor({ timeout: 60_000 });
+  await page.getByRole("button", { name: "保存草稿并编辑" }).click();
+  await page.waitForURL(/\/orders\/[^/]+\/edit$/, { timeout: 60_000 });
+  const match = page.url().match(/\/orders\/([^/]+)\/edit$/);
+  const orderId = match ? decodeURIComponent(match[1]) : "";
+  console.log(`ORDER_ID=${orderId}`);
+  console.log(`ORDER_PRODUCT=${product}`);
   if (process.env.NO_START === "1") return;
   await page.goto(`${BASE}/orders/${encodeURIComponent(orderId)}`);
   await startRun(page);
@@ -241,6 +315,10 @@ try {
     await createManualOrder(page);
   } else if (MODE === "planner") {
     await createPlannerOrder(page);
+  } else if (MODE === "mvp-manual") {
+    await createMvpManualOrder(page);
+  } else if (MODE === "mvp-planner") {
+    await createMvpPlannerOrder(page);
   } else if (MODE === "start") {
     const orderId = process.env.ORDER_ID;
     if (!orderId) throw new Error("start 模式需要 ORDER_ID");

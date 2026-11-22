@@ -21,7 +21,7 @@ test("手工订单：添加节点、连接、预览并保存", async ({ page }) 
   await page.getByRole("button", { name: "添加模板 c" }).click();
   await page.getByRole("button", { name: "返回订单设置" }).click();
 
-  await page.locator("#new-input-zone").fill("line_s1a");
+  await page.locator("#new-input-zone").selectOption("line_s1a");
   await page.getByRole("button", { name: "添加入口投料" }).click();
 
   await page.locator("#connect-source").selectOption({ index: 1 });

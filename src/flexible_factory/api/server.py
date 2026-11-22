@@ -103,7 +103,8 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         if parts == ["health"] and method == "GET":
             return self._health()
         if parts == ["templates"] and method == "GET":
-            return self.service.templates()
+            artifact = (query.get("artifact_id") or [""])[0]
+            return self.service.templates(artifact)
         if parts == ["fleet"] and method == "GET":
             artifact = (query.get("artifact_id") or [""])[0]
             return {"fleet": self.service.fleet_status(artifact)}
@@ -151,10 +152,12 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             return self._version_route(method, parts[1], parts[3], query)
         if len(parts) == 5 and parts[0] == "orders" \
                 and parts[2] == "versions":
-            return self._version_action(method, parts[1], parts[3], parts[4])
+            return self._version_action(
+                method, parts[1], parts[3], parts[4], query)
         if parts == ["orders", "preview"] and method == "POST":
+            artifact = (query.get("artifact_id") or [""])[0]
             return {"preview": self.service.preview(
-                self._read_json()).as_dict()}
+                self._read_json(), artifact_id=artifact).as_dict()}
         if len(parts) >= 2 and parts[0] == "runs":
             return self._run_route(method, parts[1], parts[2:], query)
         raise ApiError(404, "NOT_FOUND", f"未知路径 {split.path!r}")
@@ -170,13 +173,16 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         raise self._method_not_allowed("GET")
 
     def _version_action(self, method: str, order_id: str,
-                        raw_version: str, action: str) -> dict:
+                        raw_version: str, action: str,
+                        query: dict) -> dict:
         version = _parse_version(raw_version)
         if method != "POST":
             raise self._method_not_allowed("POST")
         if action == "preview":
             order = self.service.repository.get_spec(order_id, version)
-            return {"preview": self.service.preview_spec(order).as_dict()}
+            artifact = (query.get("artifact_id") or [""])[0]
+            return {"preview": self.service.preview_spec(
+                order, artifact_id=artifact).as_dict()}
         if action == "start":
             body = self._read_json(optional=True)
             try:
@@ -233,12 +239,29 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         except Exception:
             FLEET_MODES = ("single", "dual")
             FLEET_POLICY_VERSION = ""
+        try:
+            from ..domain.scene_profile import (SCENE_PROFILES,
+                                                SCENE_PROFILE_VERSION)
+        except Exception:
+            SCENE_PROFILES = ("full_flow", "assembly_mvp")
+            SCENE_PROFILE_VERSION = ""
+        try:
+            capabilities = self.service.scene_capabilities()
+            scene_profile = capabilities.scene_profile
+            profile_source = capabilities.source
+        except Exception as exc:
+            scene_profile = ""
+            profile_source = f"error: {type(exc).__name__}"
         return {
             "service": "order",
             "contract_version": ORDER_CONTRACT_VERSION,
             "planner_policy_version": PLANNER_POLICY_VERSION,
             "catalog_version": self.service.catalog.version,
             "scene_id": "L5_UFLOW",
+            "scene_profile": scene_profile,
+            "profile_source": profile_source,
+            "scene_profiles": list(SCENE_PROFILES),
+            "scene_profile_version": SCENE_PROFILE_VERSION,
             "transport_fleets": list(FLEET_MODES),
             "fleet_policy_version": FLEET_POLICY_VERSION,
         }

@@ -158,9 +158,16 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                     abort=True)
                 break
         summary = coordinator.summary()
+        assumption = str(command.planner_transport_fleet or "")
+        summary["planner_fleet_assumption"] = assumption
+        fleet_summary = summary.setdefault("fleet", {})
+        fleet_summary["planner_assumption"] = assumption
+        fleet_summary["planner_assumption_mismatch"] = bool(
+            assumption and assumption != command.transport_fleet)
         summary["steps"] = steps
         summary["run_id"] = command.run_id
         summary["artifact_id"] = command.artifact_id
+        summary["scene_profile"] = command.scene_profile
         summary["active_unit_ids"] = list(unit_ids)
         summary["all_ok"] = bool(
             (summary.get("acceptance") or {}).get("ok"))

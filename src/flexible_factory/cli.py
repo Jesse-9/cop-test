@@ -32,7 +32,8 @@ from .application.report import (report_genealogy, report_run, report_runs,
 from .application.lifecycle import (LifecycleError, LifecycleManager,
                                     ValidationFailedError)
 from .application.orders import OrderService
-from .application.run import REPORT_DIR, run_loaded_scene_v1, setup_logger
+from .application.run import (PATH_REUSE_MODES, REPORT_DIR,
+                              run_loaded_scene_v1, setup_logger)
 from .api.server import OrderApiServer
 from .artifacts import migration
 from .artifacts import store as sa
@@ -307,15 +308,18 @@ def _order_service(ns, *, runner=None) -> OrderService:
     initialize_database(database)
     catalog = _order_catalog(ns)
     resolver = None
+    loader = None
     checker = None
     if hasattr(ns, "artifact_root"):
         store = _store(ns)
         resolver = lambda ref: store.find(ref).artifact_id
+        loader = lambda ref: store.find(ref).manifest
         checker = _fleet_artifact_checker(store)
     return OrderService(
         database, catalog=catalog,
         artifact_id=getattr(ns, "artifact_id", "") or "current",
         runner=runner, artifact_resolver=resolver,
+        artifact_manifest_loader=loader,
         fleet_artifact_checker=checker)
 
 
@@ -380,6 +384,14 @@ def cmd_order_preview(ns) -> int:
 def cmd_order_plan(ns) -> int:
     service = _order_service(ns)
     payload = _read_spec(ns)
+    if ns.scene_profile:
+        payload["scene_profile"] = ns.scene_profile
+    if ns.transport_fleet:
+        payload["transport_fleet"] = ns.transport_fleet
+    if ns.strict_fleet:
+        payload["strict_fleet"] = True
+    if ns.fleet_eta_ranking:
+        payload["fleet_eta_ranking"] = True
     if ns.save:
         result = service.plan_and_save(payload, note=ns.note)
         _print(result)
@@ -483,7 +495,9 @@ def cmd_run(ns) -> int:
             catalog=catalog, run_record_db=run_record_db,
             run_record_source=ns.catalog_source,
             run_id=prepared["run_id"],
-            artifact_id=manager.session.artifact_id)
+            artifact_id=manager.session.artifact_id,
+            path_reuse_mode=ns.path_reuse,
+            path_library_root=ns.path_library_root)
     except Exception as exc:
         logger.exception("[TASK][v1] 运行异常: %s", exc)
         error = f"{type(exc).__name__}: {exc}"
@@ -701,6 +715,17 @@ def build_parser() -> argparse.ArgumentParser:
     p = _order_command("plan", "根据目标/投料自主生成订单草稿")
     p.add_argument("--file", required=True,
                    help="planner 输入 JSON, 或 '-' 从 stdin 读取")
+    p.add_argument("--scene-profile",
+                   choices=["full_flow", "assembly_mvp"], default=None,
+                   help="规划使用的场景 profile; 缺省沿用输入文件或 "
+                        "full_flow. assembly_mvp 允许 MVP 直接来料合流")
+    p.add_argument("--transport-fleet", choices=["single", "dual"],
+                   default=None,
+                   help="规划时采用的车队假设; 缺省沿用输入文件或 single")
+    p.add_argument("--strict-fleet", action="store_true",
+                   help="车队假设不满足的路线直接拒绝 (默认只降权)")
+    p.add_argument("--fleet-eta-ranking", action="store_true",
+                   help="用离散事件 ETA 模型对同分候选排序 (非物理验收)")
     p.add_argument("--save", action="store_true",
                    help="保存为 source=planner 的订单版本")
     p.add_argument("--note", default="")
@@ -806,6 +831,13 @@ def build_parser() -> argparse.ArgumentParser:
                    default="single",
                    help="车队编制: single=只用 agv_1 (默认, 既有验收基线); "
                         "dual=agv_1 跑 B→A、cart_2 跑 D→E (需场景含 Cart2)")
+    p.add_argument("--path-reuse", choices=["off", *PATH_REUSE_MODES],
+                   default="off",
+                   help="固定动作关节路径复用: off 默认; PLAN_ONLY 只规划并"
+                        "导出; CACHE_ONLY 只回放; CACHE_THEN_PLAN 先回放再"
+                        "回退规划. 五臂 PLACING 试点")
+    p.add_argument("--path-library-root", default=str(spec.PATH_LIBRARY_ROOT),
+                   help="路径记录根目录; 不得位于场景工件目录内")
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
     p.add_argument("--catalog-source", choices=["code", "db"],

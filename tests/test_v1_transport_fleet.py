@@ -58,6 +58,17 @@ def test_unknown_mode_is_rejected():
         tf.FleetConfig("triple")
 
 
+def test_fleet_policy_is_shared_with_domain_contract():
+    from flexible_factory.domain import fleet_policy
+
+    assert tf.FleetConfig is fleet_policy.FleetConfig
+    assert tf.normalize_fleet_mode is fleet_policy.normalize_fleet_mode
+    assert tf.FLEET_POLICY_VERSION == fleet_policy.FLEET_POLICY_VERSION
+    assert fleet_policy.FleetConfig(tf.FLEET_SINGLE).vehicles() == ("agv_1",)
+    assert fleet_policy.FleetConfig(tf.FLEET_DUAL).vehicles() == (
+        "agv_1", "cart_2")
+
+
 def test_normalize_fleet_mode_defaults_and_rejects_unknown():
     assert tf.normalize_fleet_mode(None) == tf.FLEET_SINGLE
     assert tf.normalize_fleet_mode("") == tf.FLEET_SINGLE
