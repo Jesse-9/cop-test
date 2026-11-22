@@ -1,7 +1,7 @@
 {
-  "artifact_id": "v1/L5_UFLOW/v001_20261114_120734",
-  "path": "L5_UFLOW/v001_20261114_120734",
-  "manifest_digest": "33dc2d54c207f4c486e29c01f00c59cd59481cbe8f843b986f07befe0f58dd3a",
-  "scene_sha256": "e7653ececf2867f0f8e2c30a61b5d282058b07074a6a6c6835fcb01786e88646",
-  "updated_at": "2026-11-14T12:09:13+08:00"
+  "artifact_id": "v1/L5_UFLOW/v002_20261121_152334",
+  "path": "L5_UFLOW/v002_20261121_152334",
+  "manifest_digest": "c86311c958c5c91f0578f816577d9f6bcc607e33e83905e53d8b71498d20dfce",
+  "scene_sha256": "2f6ac4e6f09936e1da8d45d6e9a236deac72dbf7eb8fc6eeb47a200ee3fd8209",
+  "updated_at": "2026-11-21T15:24:33+08:00"
 }

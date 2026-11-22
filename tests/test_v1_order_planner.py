@@ -13,7 +13,8 @@ from flexible_factory.api.server import OrderApiServer
 from flexible_factory.application.orders import OrderService
 from flexible_factory.application.planner import (PLANNER_POLICY_VERSION,
                                                   OrderPlanner, PlannerInput,
-                                                  PlannerInputError)
+                                                  PlannerInputError,
+                                                  PlannerSupply)
 from flexible_factory.domain.default_process import default_catalog
 from flexible_factory.domain.materials import ItemType
 from flexible_factory.domain.order_compiler import OrderDagCompiler
@@ -216,6 +217,106 @@ def test_planner_input_is_strict():
 
 
 # ═══════════════════════════════════════════════════════════════
+# 车队假设 (阶段 8)
+# ═══════════════════════════════════════════════════════════════
+
+def test_default_fleet_context_is_single_and_does_not_change_dag():
+    default = _plan(_payload())
+    explicit = _plan(_payload(transport_fleet="single"))
+    assert default.ok and explicit.ok
+    assert default.digest == explicit.digest
+    context = default.explanation["fleet_context"]
+    assert context["mode"] == "single"
+    assert context["assignment"] == {}
+    assert context["available_vehicle_ids"] == ["agv_1"]
+    assert any(row["template_id"] == "transport_DE"
+               and row["vehicle_id"] == "agv_1"
+               for row in context["route_vehicles"])
+
+
+def test_dual_fleet_assumption_records_assignment_without_dag_change():
+    single = _plan(_payload())
+    dual = _plan(_payload(transport_fleet="dual"))
+    assert single.ok and dual.ok
+    assert dual.digest == single.digest
+    context = dual.explanation["fleet_context"]
+    assert context["mode"] == "dual"
+    assert context["assignment"]["transport_de"] == "cart_2"
+    assert any(row["template_id"] == "transport_DE"
+               and row["vehicle_id"] == "cart_2"
+               for row in context["route_vehicles"])
+    assert dual.selected.fleet["mode"] == "dual"
+
+
+def test_static_unavailable_vehicle_penalizes_then_strict_rejects():
+    payload = _payload(
+        transport_fleet="dual",
+        fleet_assumptions={"available_vehicle_ids": ["agv_1"]})
+    relaxed = _plan(payload)
+    assert relaxed.ok
+    assert relaxed.selected.fleet["penalized"] is True
+    assert any(row.code == "PLANNER_FLEET_ASSIGNMENT_UNAVAILABLE"
+               for row in relaxed.diagnostics)
+    assert any(row.code == "PLANNER_FLEET_ROUTE_PENALIZED"
+               for row in relaxed.diagnostics)
+
+    strict = _plan({**payload, "strict_fleet": True})
+    assert not strict.ok
+    assert any(row.code == "PLANNER_FLEET_ASSIGNMENT_UNAVAILABLE"
+               and row.severity == "error" for row in strict.diagnostics)
+
+
+def test_invalid_fleet_mode_is_rejected_at_input_boundary():
+    with pytest.raises(PlannerInputError, match="车队模式"):
+        PlannerInput.from_dict(_payload(transport_fleet="triple"))
+    request = PlannerInput(
+        target_item_type=ItemType.FINAL, target_quantity=1,
+        inputs=(PlannerSupply(ItemType.RAW_A, 1),
+                PlannerSupply(ItemType.RAW_D, 1)),
+        transport_fleet="triple")
+    result = PLANNER.plan(request)
+    assert not result.ok
+    assert any(row.code == "PLANNER_FLEET_MODE_INVALID"
+               for row in result.diagnostics)
+
+
+def test_fleet_eta_ranking_adds_static_evidence_only():
+    baseline = _plan(_payload(transport_fleet="dual"))
+    ranked = _plan(_payload(transport_fleet="dual",
+                            fleet_eta_ranking=True))
+    assert ranked.ok
+    assert ranked.digest == baseline.digest
+    eta = ranked.explanation["fleet_context"]["eta"]
+    assert eta["assumption"] == "discrete_event_not_physics"
+    assert eta["policy"] == "fixed"
+    assert eta["makespan_s"] > 0
+    assert eta["utilization"]["cart_2"] > 0
+    assert eta["utilization"]["agv_1"] == 0
+
+
+def test_fleet_eta_marks_unserved_jobs_unavailable():
+    result = _plan(_payload(
+        transport_fleet="dual",
+        fleet_assumptions={"available_vehicle_ids": ["agv_1"]},
+        fleet_eta_ranking=True))
+    assert result.ok
+    eta = result.explanation["fleet_context"]["eta"]
+    assert eta["available"] is False
+    assert eta["pending"] >= 1
+    assert eta["completed"] == 0
+
+
+def test_plan_and_save_records_fleet_assumption(database):
+    service = OrderService(database)
+    saved = service.plan_and_save(
+        _payload(order_id="planner-fleet", transport_fleet="dual"))
+    assert saved["ok"]
+    version = service.get_version("planner-fleet", 1)
+    assert version["planner"]["input"]["transport_fleet"] == "dual"
+    assert version["planner"]["explain"]["fleet_context"]["mode"] == "dual"
+
+
+# ═══════════════════════════════════════════════════════════════
 # 服务/API 草稿保存
 # ═══════════════════════════════════════════════════════════════
 
@@ -276,6 +377,133 @@ def test_planner_draft_is_an_ordinary_order_and_compiles(database):
 
 
 # ═══════════════════════════════════════════════════════════════
+# 场景 profile 与直接来料 join (阶段 9)
+# ═══════════════════════════════════════════════════════════════
+
+def _mvp_payload(*, target: str = "COMPRESSOR_ASSY", supplies=(
+        ("COMPRESSOR", 1), ("BASEPLATE", 1)), **extra) -> dict:
+    payload = _payload(target=target, supplies=supplies,
+                       scene_profile="assembly_mvp", **extra)
+    return payload
+
+
+@pytest.mark.parametrize(("target", "template_id", "inputs"), [
+    ("COMPRESSOR_ASSY", "mvp_compressor_assembly",
+     (("COMPRESSOR", "mvp_source_compressor", "compressor-in"),
+      ("BASEPLATE", "mvp_source_baseplate", "baseplate-in"))),
+    ("FLANGE_ASSY", "mvp_flange_assembly",
+     (("FRONT_FLANGE", "mvp_source_front_flange", "front-in"),
+      ("REAR_FLANGE", "mvp_source_rear_flange", "rear-in"))),
+])
+def test_mvp_direct_input_plans_compile(target, template_id, inputs):
+    result = _plan(_mvp_payload(target=target, supplies=tuple(
+        (item_type, 1) for item_type, _zone, _port in inputs)))
+    assert result.ok
+    assert result.first_blocking_category == ""
+    branch = result.selected.branch
+    assert branch.kind == "join"
+    assert branch.route_ids == ()
+    assert branch.template_ids == (template_id,)
+    assert branch.direct_input_ports == tuple(
+        (port_id, zone, ItemType(item_type))
+        for item_type, zone, port_id in inputs)
+    assert result.order is not None
+    assert result.order.edges == ()
+    assert len(result.order.nodes) == 1
+    assert {
+        (row.item_type.value, row.zone, row.node_id, row.port_id)
+        for row in result.order.inputs
+    } == {(item_type, zone, result.order.nodes[0].node_id, port_id)
+          for item_type, zone, port_id in inputs}
+    assert OrderValidator(CATALOG).validate(result.order) == ()
+    compiled = OrderDagCompiler(CATALOG).compile(
+        result.order, run_id="planner-mvp")
+    assert len(compiled.target_instance_ids) == 1
+    assert [row.template_id for row in compiled.instances] == [template_id]
+    assert result.preview is not None and result.preview.ok
+    binding = result.explanation["join_bindings"][0]
+    assert binding["join_template_id"] == template_id
+    assert [row["source"] for row in binding["inputs"]] == ["input", "input"]
+    assert [row["port_id"] for row in binding["inputs"]] == [
+        port_id for _item, _zone, port_id in inputs]
+
+
+def test_mvp_plan_quantity_creates_one_join_and_two_inputs_per_unit():
+    result = _plan(_mvp_payload(
+        target_quantity=2,
+        supplies=(("COMPRESSOR", 2), ("BASEPLATE", 2))))
+    assert result.ok
+    assert len(result.order.nodes) == 2
+    assert len(result.order.inputs) == 4
+    assert len({row.node_id for row in result.order.nodes}) == 2
+    compiled = OrderDagCompiler(CATALOG).compile(
+        result.order, run_id="planner-mvp-qty")
+    assert len(compiled.target_instance_ids) == 2
+
+
+@pytest.mark.parametrize(("supplies", "missing_type"), [
+    ((("COMPRESSOR", 1),), "BASEPLATE"),
+    ((("BASEPLATE", 1),), "COMPRESSOR"),
+    ((("COMPRESSOR", 1), ("FRONT_FLANGE", 1)), "BASEPLATE"),
+])
+def test_mvp_missing_or_wrong_pair_reports_input(supplies, missing_type):
+    result = _plan(_mvp_payload(supplies=supplies))
+    assert not result.ok
+    assert result.first_blocking_category == "input"
+    assert any(row.code == "PLANNER_INPUT_INSUFFICIENT"
+               and missing_type in row.message
+               for row in result.diagnostics)
+
+
+def test_mvp_target_requires_assembly_profile():
+    full_flow = _plan(_payload(
+        target="COMPRESSOR_ASSY",
+        supplies=(("COMPRESSOR", 1), ("BASEPLATE", 1))))
+    assert not full_flow.ok
+    assert full_flow.first_blocking_category == "target"
+    codes = {row.code for row in full_flow.diagnostics}
+    assert "PLANNER_TARGET_PROFILE_MISMATCH" in codes
+    assert "PLANNER_TEMPLATE_PROFILE_EXCLUDED" in codes
+
+
+def test_scene_profile_is_rejected_at_input_boundary():
+    with pytest.raises(PlannerInputError, match="scene_profile"):
+        PlannerInput.from_dict(_payload(scene_profile="unknown"))
+    request = PlannerInput(
+        target_item_type=ItemType.COMPRESSOR_ASSY, target_quantity=1,
+        inputs=(PlannerSupply(ItemType.COMPRESSOR, 1),
+                PlannerSupply(ItemType.BASEPLATE, 1)),
+        scene_profile="unknown")
+    result = PLANNER.plan(request)
+    assert not result.ok
+    assert any(row.code == "PLANNER_SCENE_PROFILE_UNKNOWN"
+               for row in result.diagnostics)
+
+
+def test_full_flow_plan_with_explicit_profile_is_unchanged():
+    implicit = _plan(_payload())
+    explicit = _plan(_payload(scene_profile="full_flow"))
+    assert implicit.ok and explicit.ok
+    assert implicit.digest == explicit.digest
+    assert implicit.selected.branch.route_ids == (
+        "housing_direct", "bracket_route")
+
+
+def test_mvp_plan_and_save_creates_ordinary_order(database):
+    service = OrderService(database)
+    saved = service.plan_and_save(
+        _mvp_payload(order_id="planner-mvp"))
+    assert saved["ok"]
+    version = service.get_version("planner-mvp", 1)
+    assert version["source"] == "planner"
+    assert version["planner"]["input"]["scene_profile"] == "assembly_mvp"
+    assert version["planner"]["explain"]["scene_profile"] == "assembly_mvp"
+    stored = service.repository.get_spec("planner-mvp", 1)
+    assert service.preview_spec(stored).ok
+    assert stored.nodes[0].template_id == "mvp_compressor_assembly"
+
+
+# ═══════════════════════════════════════════════════════════════
 # HTTP API
 # ═══════════════════════════════════════════════════════════════
 
@@ -309,6 +537,20 @@ def test_planner_http_api_plan_and_draft(database):
         assert payload["plan"]["ok"] is True
         assert payload["plan"]["selected"]["branch"]["route_ids"] == [
             "housing_direct", "bracket_route"]
+
+        status, payload = _request(
+            server.base_url, "POST", "/api/planner/plan",
+            _payload(order_id="api-planner-dual", transport_fleet="dual"))
+        assert status == 200, payload
+        context = payload["plan"]["explanation"]["fleet_context"]
+        assert context["mode"] == "dual"
+        assert context["assignment"]["transport_de"] == "cart_2"
+
+        status, payload = _request(
+            server.base_url, "POST", "/api/planner/plan",
+            _payload(transport_fleet="triple"))
+        assert status == 422
+        assert payload["error"]["code"] == "PLANNER_INPUT"
 
         status, payload = _request(
             server.base_url, "POST", "/api/planner/drafts",

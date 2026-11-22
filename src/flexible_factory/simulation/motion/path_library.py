@@ -26,7 +26,7 @@ from typing import Optional, Sequence
 from .. import config_motion as cfg
 from .plan_types import Goal, MotionPlan, PlanStatus, _OK_STATUSES
 
-PATH_RECORD_VERSION = "v1_path_record_20261120"
+PATH_RECORD_VERSION = "v1_path_record_20261121"
 PATH_REUSE_MODES = ("PLAN_ONLY", "CACHE_ONLY", "CACHE_THEN_PLAN")
 
 # 复用阶段名称 (不是业务运动状态); 只写入计划回放证据.
@@ -445,8 +445,20 @@ class PathLibrary:
         self.root = Path(root)
         self.last_error = ""
 
+    def scene_dir(self, scene_id: str) -> Path:
+        """场景工件对应的路径库子目录 (扁平 slug, 不含阶段)."""
+        return self.root / _slug(scene_id)
+
+    def count_records(self, scene_id: str) -> int:
+        """场景目录下现有 JSON 记录数; 只用于运行前预检, 不校验键."""
+        directory = self.scene_dir(scene_id)
+        if not directory.is_dir():
+            return 0
+        return sum(1 for path in directory.glob("*/*.json")
+                   if path.is_file())
+
     def path_for(self, key: PathKey) -> Path:
-        return (self.root / _slug(key.scene) / _slug(key.phase) /
+        return (self.scene_dir(key.scene) / _slug(key.phase) /
                 f"{key.path_id()}.json")
 
     def get_exact(self, key: PathKey) -> Optional[PathRecord]:
@@ -470,6 +482,38 @@ class PathLibrary:
             self.last_error = "路径键与请求不一致"
             return None
         return record
+
+    def explain_miss(self, key: PathKey) -> str:
+        """只读诊断: 比较同场景/阶段记录的键差异, 不改变匹配规则.
+
+        只在未命中路径调用; 返回空字符串表示没有可比记录. 诊断不读取
+        句柄, 只读取记录文件中的静态键字段.
+        """
+        directory = self.path_for(key).parent
+        if not directory.is_dir():
+            return "场景/阶段目录无记录"
+        best: Optional[tuple[str, list[str]]] = None
+        for path in sorted(directory.glob("*.json")):
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    record = PathRecord.from_dict(json.load(handle))
+            except (OSError, TypeError, ValueError):
+                continue
+            differences = [
+                field for field in ("scene", "phase", "unit", "robot",
+                                    "tool", "payload", "motion_version")
+                if getattr(record.key, field) != getattr(key, field)]
+            if record.key.start_digest != key.start_digest:
+                differences.append("start_digest")
+            if record.key.targets_digest != key.targets_digest:
+                differences.append("targets_digest")
+            if not differences:
+                return f"同键记录 {path.stem} 无法读取"
+            if best is None or len(differences) < len(best[1]):
+                best = (path.stem, differences)
+        if best is None:
+            return "场景/阶段目录无可用记录"
+        return f"最近记录 {best[0]} 差异: {','.join(best[1])}"
 
     def put(self, record: PathRecord) -> Path:
         """原子写入一条已通过最终复核的记录; 同键记录会被替换."""

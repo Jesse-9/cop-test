@@ -5,9 +5,10 @@ import type {
   ItemType,
   PlannerInputPayload,
   PlannerResult,
+  SceneProfile,
   TemplateCatalog,
+  TransportFleet,
 } from "../api/types";
-import { ITEM_TYPES } from "../api/types";
 import {
   Badge,
   EmptyState,
@@ -25,11 +26,52 @@ interface SupplyRow {
   zone: string;
 }
 
+/**
+ * 目标对应的推荐投料只是编辑器便利, 不是能力假设: 每一项都会先按
+ * 目录 `item_types.inputs` 和可生成来料区域过滤。
+ */
+const TARGET_SUPPLIES: Record<string, string[]> = {
+  FINAL: ["RAW_A", "RAW_D"],
+  COMPRESSOR_ASSY: ["COMPRESSOR", "BASEPLATE"],
+  FLANGE_ASSY: ["FRONT_FLANGE", "REAR_FLANGE"],
+};
+
+function zoneForItem(itemType: string, catalog: TemplateCatalog): string {
+  const zone = catalog.zones.find(
+    (row) => row.spawnable && row.item_types.includes(itemType),
+  );
+  return zone?.id ?? "";
+}
+
+function suggestedSupplies(
+  target: string,
+  catalog: TemplateCatalog,
+): SupplyRow[] {
+  const allowed = new Set<string>(catalog.item_types.inputs);
+  const rows = (TARGET_SUPPLIES[target] ?? [])
+    .filter((item) => allowed.has(item))
+    .map((item) => ({
+      item_type: item as ItemType,
+      quantity: 1,
+      zone: zoneForItem(item, catalog),
+    }));
+  if (rows.length > 0) return rows;
+  const fallback = catalog.item_types.inputs[0];
+  return fallback
+    ? [{ item_type: fallback, quantity: 1, zone: zoneForItem(fallback, catalog) }]
+    : [];
+}
+
 export function PlannerPage() {
   const navigate = useNavigate();
   const [catalog, setCatalog] = useState<TemplateCatalog | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [artifactInput, setArtifactInput] = useState("");
+  const [artifact, setArtifact] = useState("");
+  const [catalogBusy, setCatalogBusy] = useState(false);
+  const [plannerProfile, setPlannerProfile] =
+    useState<SceneProfile>("full_flow");
 
   const [targetItem, setTargetItem] = useState<ItemType>("FINAL");
   const [targetQuantity, setTargetQuantity] = useState(1);
@@ -44,6 +86,8 @@ export function PlannerPage() {
   const [maxDepth, setMaxDepth] = useState(12);
   const [maxNodes, setMaxNodes] = useState(64);
   const [allowHighRisk, setAllowHighRisk] = useState(false);
+  const [transportFleet, setTransportFleet] = useState<TransportFleet>("single");
+  const [strictFleet, setStrictFleet] = useState(false);
 
   const [result, setResult] = useState<PlannerResult | null>(null);
   const [requestError, setRequestError] = useState("");
@@ -72,6 +116,27 @@ export function PlannerPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!catalog) return;
+    const targets = catalog.item_types.targets;
+    const nextTarget = targets.includes(targetItem)
+      ? targetItem
+      : targets[0];
+    if (nextTarget && nextTarget !== targetItem) {
+      setTargetItem(nextTarget);
+      setSupplies(suggestedSupplies(nextTarget, catalog));
+      setResult(null);
+      return;
+    }
+    const allowed = new Set<string>(catalog.item_types.inputs);
+    setSupplies((rows) => {
+      const kept = rows.filter((row) => allowed.has(row.item_type));
+      return kept.length > 0
+        ? kept
+        : suggestedSupplies(nextTarget ?? targetItem, catalog);
+    });
+  }, [catalog]);
+
   const deviceOptions = useMemo(() => {
     const values = new Set<string>();
     for (const template of catalog?.templates ?? []) {
@@ -79,6 +144,9 @@ export function PlannerPage() {
     }
     return [...values].sort();
   }, [catalog]);
+
+  const effectiveProfile: SceneProfile =
+    (catalog?.scene_profile as SceneProfile | "") || plannerProfile;
 
   const payload = (): PlannerInputPayload => ({
     target_item_type: targetItem,
@@ -89,6 +157,7 @@ export function PlannerPage() {
       zone: supply.zone || undefined,
     })),
     scene_id: catalog?.scene_id ?? "L5_UFLOW",
+    scene_profile: effectiveProfile,
     allowed_template_ids: allowedTemplates,
     allowed_device_ids: allowedDevices,
     preferred_route_ids: preferredRoutes,
@@ -96,6 +165,8 @@ export function PlannerPage() {
     max_candidates: maxCandidates,
     max_depth: maxDepth,
     max_nodes: maxNodes,
+    transport_fleet: transportFleet,
+    strict_fleet: strictFleet,
   });
 
   const generate = async () => {
@@ -130,10 +201,45 @@ export function PlannerPage() {
 
   const updateSupply = (index: number, changes: Partial<SupplyRow>) => {
     setSupplies((rows) =>
-      rows.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, ...changes } : row,
-      ),
+      rows.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        const next = { ...row, ...changes };
+        if (!catalog) return next;
+        const zone = catalog.zones.find((item) => item.id === next.zone);
+        if (zone && zone.item_types.length > 0) {
+          if (!zone.item_types.includes(next.item_type)) {
+            const allowed = catalog.item_types.inputs.filter((item) =>
+              zone.item_types.includes(item),
+            );
+            if (allowed.length > 0) next.item_type = allowed[0];
+          }
+        }
+        return next;
+      }),
     );
+  };
+
+  const changeTarget = (itemType: ItemType) => {
+    setTargetItem(itemType);
+    setResult(null);
+    if (catalog) {
+      setSupplies(suggestedSupplies(itemType, catalog));
+    }
+  };
+
+  const reloadCatalog = async () => {
+    setCatalogBusy(true);
+    setCatalogError("");
+    try {
+      const payload = await api.templates(artifactInput.trim() || undefined);
+      setCatalog(payload);
+      setArtifact(artifactInput.trim());
+      setResult(null);
+    } catch (exc) {
+      setCatalogError(exc instanceof ApiError ? exc.message : String(exc));
+    } finally {
+      setCatalogBusy(false);
+    }
   };
 
   if (loading) return <LoadingState label="加载模板目录…" />;
@@ -151,6 +257,66 @@ export function PlannerPage() {
         title="自主规划订单"
         description="planner 只读静态目录和投料约束，生成普通订单草稿；物理可行性仍由运行验收决定。"
       />
+      <div className="editor-meta">
+        <Field label="场景工件" htmlFor="planner-artifact">
+          <div className="inline-controls">
+            <input
+              id="planner-artifact"
+              value={artifactInput}
+              onChange={(event) => setArtifactInput(event.target.value)}
+              placeholder="current 或具体 artifact_id"
+            />
+            <button
+              type="button"
+              className="button button-quiet button-small"
+              onClick={() => void reloadCatalog()}
+              disabled={catalogBusy}
+            >
+              {catalogBusy ? "加载中…" : "加载能力"}
+            </button>
+          </div>
+        </Field>
+        <Field label="场景 profile" htmlFor="planner-profile">
+          {catalog?.profile_source === "unbound" ? (
+            <select
+              id="planner-profile"
+              value={plannerProfile}
+              onChange={(event) =>
+                setPlannerProfile(event.target.value as SceneProfile)
+              }
+            >
+              {(catalog?.profiles ?? ["full_flow", "assembly_mvp"]).map(
+                (profile) => (
+                  <option key={profile} value={profile}>
+                    {profile}
+                  </option>
+                ),
+              )}
+            </select>
+          ) : (
+            <input
+              id="planner-profile"
+              readOnly
+              value={catalog?.scene_profile || "unbound"}
+            />
+          )}
+        </Field>
+        <span className="muted editor-meta-summary">
+          工件 {catalog?.artifact_id || "未绑定"} · profile 来源{" "}
+          {catalog?.profile_source ?? "加载中"}
+        </span>
+      </div>
+      {catalog?.profile_source === "unbound" ? (
+        <InlineNotice tone="warning">
+          当前服务未绑定场景工件；请显式选择规划 profile，规划结果仍需在
+          匹配 profile 的工件上启动。
+        </InlineNotice>
+      ) : null}
+      {artifactInput.trim() !== artifact.trim() ? (
+        <InlineNotice tone="warning">
+          场景工件输入已修改；点击“加载能力”后才会按新工件过滤目标和投料。
+        </InlineNotice>
+      ) : null}
       <div className="planner-layout">
         <section className="panel planner-form">
           <SectionTitle title="目标与约束" />
@@ -160,10 +326,10 @@ export function PlannerPage() {
                 id="planner-target"
                 value={targetItem}
                 onChange={(event) =>
-                  setTargetItem(event.target.value as ItemType)
+                  changeTarget(event.target.value as ItemType)
                 }
               >
-                {ITEM_TYPES.map((item) => (
+                {catalog?.item_types.targets.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -183,6 +349,22 @@ export function PlannerPage() {
                 }
               />
             </Field>
+            <Field
+              label="规划车队假设"
+              htmlFor="planner-fleet"
+              hint="仅影响候选可行性与解释，不写入订单 DAG；启动时仍单独选择运行模式。"
+            >
+              <select
+                id="planner-fleet"
+                value={transportFleet}
+                onChange={(event) =>
+                  setTransportFleet(event.target.value as TransportFleet)
+                }
+              >
+                <option value="single">单车（agv_1）</option>
+                <option value="dual">双车（agv_1 + cart_2）</option>
+              </select>
+            </Field>
           </div>
           <h3 className="subhead">可用投料</h3>
           <div className="supply-list">
@@ -198,7 +380,7 @@ export function PlannerPage() {
                       })
                     }
                   >
-                    {ITEM_TYPES.map((item) => (
+                    {catalog?.item_types.inputs.map((item) => (
                       <option key={item} value={item}>
                         {item}
                       </option>
@@ -222,14 +404,22 @@ export function PlannerPage() {
                   />
                 </Field>
                 <Field label="区域（可选）" htmlFor={`supply-zone-${index}`}>
-                  <input
+                  <select
                     id={`supply-zone-${index}`}
                     value={supply.zone}
-                    placeholder="任意入口"
                     onChange={(event) =>
                       updateSupply(index, { zone: event.target.value })
                     }
-                  />
+                  >
+                    <option value="">任意入口</option>
+                    {(catalog?.zones ?? [])
+                      .filter((zone) => zone.spawnable)
+                      .map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.id} · {zone.item_types.join("/") || "任意"}
+                        </option>
+                      ))}
+                  </select>
                 </Field>
                 <button
                   type="button"
@@ -248,12 +438,17 @@ export function PlannerPage() {
           <button
             type="button"
             className="button button-secondary"
-            onClick={() =>
+            onClick={() => {
+              const item = catalog?.item_types.inputs[0] ?? "RAW_A";
               setSupplies((rows) => [
                 ...rows,
-                { item_type: "RAW_A", quantity: 1, zone: "" },
-              ])
-            }
+                {
+                  item_type: item,
+                  quantity: 1,
+                  zone: catalog ? zoneForItem(item, catalog) : "",
+                },
+              ]);
+            }}
           >
             添加投料
           </button>
@@ -369,6 +564,14 @@ export function PlannerPage() {
                   />
                   允许高风险候选（首期目录无风险元数据）
                 </label>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={strictFleet}
+                    onChange={(event) => setStrictFleet(event.target.checked)}
+                  />
+                  车队假设不满足的路线直接拒绝（默认仅降权）
+                </label>
               </div>
             </div>
           </details>
@@ -401,9 +604,9 @@ export function PlannerPage() {
             <>
               <SectionTitle
                 title={result.ok ? "找到可行候选" : "没有可行解"}
-                description={`策略 ${result.policy_version} · 最先阻断类别 ${
-                  result.first_blocking_category || "无"
-                }`}
+                description={`策略 ${result.policy_version} · profile ${
+                  result.scene_profile || "unbound"
+                } · 最先阻断类别 ${result.first_blocking_category || "无"}`}
                 actions={
                   <Badge tone={result.ok ? "success" : "failure"}>
                     {result.ok ? "可保存" : "需修改约束"}
@@ -429,7 +632,9 @@ export function PlannerPage() {
                 <div className="planner-selected">
                   <h3>选中候选</h3>
                   <p className="mono">
-                    {result.selected.branch.route_ids.join(" → ")}
+                    {result.selected.branch.route_ids.length > 0
+                      ? result.selected.branch.route_ids.join(" → ")
+                      : result.selected.branch.template_ids.join(" → ")}
                   </p>
                   <div className="preview-facts">
                     <Badge tone="accent">
@@ -446,6 +651,30 @@ export function PlannerPage() {
                         .join("，")}
                     </span>
                   </div>
+                  {result.explanation.fleet_context ? (
+                    <div className="preview-facts">
+                      <Badge tone="accent">
+                        规划车队 {result.explanation.fleet_context.mode}
+                      </Badge>
+                      <span className="mono">
+                        策略 {result.explanation.fleet_context.policy_version}
+                      </span>
+                      <span>
+                        {Object.entries(
+                          result.explanation.fleet_context.assignment,
+                        ).length > 0
+                          ? Object.entries(
+                              result.explanation.fleet_context.assignment,
+                            )
+                              .map(([kind, vehicle]) => `${kind}→${vehicle}`)
+                              .join("，")
+                          : "全运输走 agv_1"}
+                      </span>
+                      {result.explanation.fleet_context.penalized ? (
+                        <Badge tone="warning">车队假设降权</Badge>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <h4>join 绑定</h4>
                   {result.explanation.join_bindings.length === 0 ? (
                     <p className="muted">该候选不包含逻辑合流。</p>
@@ -458,9 +687,11 @@ export function PlannerPage() {
                             {binding.inputs
                               .map(
                                 (input) =>
-                                  `${input.port_id}: ${input.item_type} ← ${input.route_ids.join(
-                                    "+",
-                                  )}`,
+                                  input.source === "input"
+                                    ? `${input.port_id}: ${input.item_type} ← 直接投料@${input.zone}`
+                                    : `${input.port_id}: ${input.item_type} ← ${input.route_ids.join(
+                                        "+",
+                                      )}`,
                               )
                               .join("；")}
                           </span>

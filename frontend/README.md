@@ -61,24 +61,34 @@ npm run e2e:install
 
 E2E 使用 Playwright route mock 固定 API 响应，不需要 CoppeliaSim 或真实
 订单服务。真实 API/planner 的集成验证另行用本机 API 执行；真实仿真订单与
-故障准入由阶段 6/7 验收，结果见
-[阶段 6 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)
-与[阶段 7 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)。
+故障准入由阶段 6/7/9 验收，结果见
+[阶段 6 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)、
+[阶段 7 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)
+与[阶段 9 实施报告](../docs/implementation/reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md)。
 
-阶段 6/7 的真实 UI 验收脚本（需要 API、Vite、CoppeliaSim）：
+阶段 6/7/9 的真实 UI 验收脚本（需要 API、Vite、CoppeliaSim）：
 
 ```powershell
 $env:ACCEPT_ARTIFACT_ID = "v1/L5_UFLOW/v005_20261117_110924"
-node e2e/real_acceptance.mjs manual   # 通过真实 UI 创建订单并启动
+node e2e/real_acceptance.mjs manual   # 通过真实 UI 创建 full_flow 订单并启动
 $env:ACCEPT_FLEET = "dual"            # 在启动对话框选择双车并断言运行页
 node e2e/real_acceptance.mjs manual
 node e2e/real_acceptance.mjs planner  # 通过 planner UI 保存草稿并启动
+
+# assembly_mvp 工件：API/Vite 都要指向实验工件根
+#   flexible-factory api serve --artifact-root docs/scene_artifacts/experiments/assembly-mvp
+$env:ACCEPT_ARTIFACT_ID = "v1/L5_UFLOW/v001_20261114_120734"
+node e2e/real_acceptance.mjs mvp-manual   # 手工创建压缩机订单并启动
+node e2e/real_acceptance.mjs mvp-planner  # planner 生成压缩机订单并启动
+$env:ACCEPT_PRODUCT = "FLANGE_ASSY"       # 切换到法兰产品
+node e2e/real_acceptance.mjs mvp-manual
+node e2e/real_acceptance.mjs mvp-planner
+
 node e2e/real_acceptance.mjs start    # 重新启动 ORDER_ID 指定的订单
 RUN_ID=<run_id> node e2e/real_acceptance.mjs verify  # 刷新前后状态恢复核验
 ```
 
-`EXPECT_NODES=7` 可在刷新核验时等待节点表加载完成（不设置则只核对状态徽标）。
-
+`EXPECT_NODES=7` 可在刷新核验时等待节点表加载完成；MVP 订单设为 `1`。
 脚本不使用 route mock；`NO_START=1` 可只创建/保存订单而不启动仿真。
 
 ## 页面
@@ -95,6 +105,12 @@ RUN_ID=<run_id> node e2e/real_acceptance.mjs verify  # 刷新前后状态恢复�
 ## 边界
 
 - 浏览器只做即时编辑提示；服务端 `POST /api/orders/preview` 是校验权威。
+- 物料/模板/区域下拉来自 `/api/templates` 的 `scene_profile` 能力；页面不再
+  假定固定物料集合。切换“场景工件”后，跨 profile 草稿会显示诊断并阻止保存，
+  可手动清理不兼容节点/投料。`profile_source=unbound` 只表示 API 未绑定工件。
+- MVP 直接来料逻辑节点没有“自动按区域/类型”入口：新增投料表单和每笔投料行
+  都提供显式 `node_id`/`port_id` 选择；未绑定时 preview 会返回
+  `ORDER_INPUT_NO_PORT`，不会静默猜测。
 - 画布位置不属于 `OrderSpec`；自动布局只改视图，不改变节点/边语义。
 - 运行页只显示服务端返回的字段；缺失字段显示“未记录”，不推断成功/安全。
 - 订单版本不可变；编辑器保存总是创建新版本。

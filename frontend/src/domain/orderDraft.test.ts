@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { TemplateSummary } from "../api/types";
+import type { TemplateCatalog, TemplateSummary } from "../api/types";
 import {
   addEdge,
   addInput,
   addNode,
   blankDraft,
+  draftProfileIssues,
   fromSpec,
   localDiagnostics,
+  pruneForCatalog,
   removeNode,
   templateMap,
   toSpec,
@@ -44,6 +46,29 @@ const TEMPLATES = [
   template("c", "handoff_ac", "SEMI_AC", "output_e", "FINAL"),
 ];
 const MAP = templateMap(TEMPLATES);
+
+const CATALOG: TemplateCatalog = {
+  catalog_version: "v1_process_test",
+  contract_version: "v1_order_test",
+  scene_id: "L5_UFLOW",
+  artifact_id: "v1/L5_UFLOW/v005",
+  scene_profile: "full_flow",
+  profile_source: "manifest",
+  profile_version: "v1_scene_profile_test",
+  profiles: ["full_flow", "assembly_mvp"],
+  item_types: { targets: ["SEMI_AC"], inputs: ["RAW_A"] },
+  zones: [
+    {
+      id: "line_s1a",
+      capacity: 1,
+      description: "S1→A 输入带",
+      spawnable: true,
+      item_types: ["RAW_A"],
+    },
+  ],
+  templates: [TEMPLATES[0]],
+  routes: [],
+};
 
 describe("order draft model", () => {
   it("adds stable unique node IDs for repeated templates", () => {
@@ -164,5 +189,31 @@ describe("order draft model", () => {
         "DRAFT_INPUT_QUANTITY",
       ]),
     );
+  });
+
+  it("blocks cross-profile drafts and prunes incompatible content", () => {
+    const withNode = addNode(blankDraft("profile"), "c", { x: 0, y: 0 });
+    const draft = addInput(withNode.draft, {
+      item_type: "RAW_B",
+      quantity: 1,
+      zone: "line_s2d",
+      node_id: withNode.nodeId,
+      port_id: "input-0",
+    });
+    const issues = draftProfileIssues(draft, CATALOG);
+    expect(issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "DRAFT_TARGET_PROFILE",
+        "DRAFT_TEMPLATE_PROFILE",
+        "DRAFT_INPUT_PROFILE",
+        "DRAFT_INPUT_ZONE_PROFILE",
+      ]),
+    );
+
+    const pruned = pruneForCatalog(draft, CATALOG);
+    expect(pruned.nodes).toHaveLength(0);
+    expect(pruned.inputs).toHaveLength(0);
+    expect(pruned.target.item_type).toBe("SEMI_AC");
+    expect(draftProfileIssues(pruned, CATALOG)).toEqual([]);
   });
 });

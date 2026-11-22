@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   Diagnostic,
   ItemType,
   OrderEdge,
+  SceneZoneSummary,
   TemplateSummary,
 } from "../api/types";
-import { ITEM_TYPES } from "../api/types";
 import {
   addInput,
   addEdge,
@@ -71,26 +71,70 @@ function portsSummary(template: TemplateSummary): string {
 function OrderSettings({
   draft,
   templates,
+  targetTypes,
+  inputTypes,
+  zones,
   onChange,
 }: {
   draft: DraftState;
   templates: TemplateSummary[];
+  targetTypes: ItemType[];
+  inputTypes: ItemType[];
+  zones: SceneZoneSummary[];
   onChange: (draft: DraftState) => void;
 }) {
   const map = useMemo(() => templateMap(templates), [templates]);
+  const spawnableZones = useMemo(
+    () => zones.filter((zone) => zone.spawnable),
+    [zones],
+  );
+  const defaultItemType = inputTypes[0] ?? "RAW_A";
   const [newInput, setNewInput] = useState({
-    item_type: "RAW_A" as ItemType,
+    item_type: defaultItemType,
     quantity: 1,
-    zone: "",
+    zone: spawnableZones[0]?.id ?? "",
     node_id: "",
     port_id: "",
   });
+  useEffect(() => {
+    setNewInput((current) => ({
+      ...current,
+      item_type: inputTypes.includes(current.item_type)
+        ? current.item_type
+        : defaultItemType,
+    }));
+  }, [inputTypes, defaultItemType]);
   const nodeTemplate = (nodeId: string) =>
     draft.nodes.find((node) => node.node_id === nodeId);
   const portOptions = (nodeId: string): string[] => {
     const node = nodeTemplate(nodeId);
     if (!node) return [];
     return map[node.template_id]?.inputs.map((port) => port.port_id) ?? [];
+  };
+  const zoneFor = (zoneId: string) =>
+    spawnableZones.find((zone) => zone.id === zoneId);
+  const itemTypesForZone = (zoneId: string): ItemType[] => {
+    const zone = zoneFor(zoneId);
+    if (!zone || zone.item_types.length === 0) return inputTypes;
+    const allowed = inputTypes.filter((item) =>
+      zone.item_types.includes(item),
+    );
+    return allowed.length > 0 ? allowed : inputTypes;
+  };
+  const reconcileInput = <T extends { item_type: ItemType; zone: string }>(
+    input: T,
+    changes: Partial<{ item_type: ItemType; zone: string }>,
+  ): T => {
+    const zone = changes.zone ?? input.zone;
+    const allowed = itemTypesForZone(zone);
+    const requested = changes.item_type ?? input.item_type;
+    return {
+      ...input,
+      ...changes,
+      item_type: allowed.includes(requested)
+        ? requested
+        : (allowed[0] ?? requested),
+    };
   };
 
   return (
@@ -109,7 +153,7 @@ function OrderSettings({
               )
             }
           >
-            {ITEM_TYPES.map((item) => (
+            {targetTypes.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
@@ -139,6 +183,7 @@ function OrderSettings({
         <div className="input-list">
           {draft.inputs.map((input) => {
             const options = portOptions(input.node_id);
+            const allowedTypes = itemTypesForZone(input.zone);
             return (
               <div className="input-row" key={input.input_id}>
                 <div className="input-row-title">
@@ -158,13 +203,17 @@ function OrderSettings({
                       value={input.item_type}
                       onChange={(event) =>
                         onChange(
-                          updateInput(draft, input.input_id, {
-                            item_type: event.target.value as ItemType,
-                          }),
+                          updateInput(
+                            draft,
+                            input.input_id,
+                            reconcileInput(input, {
+                              item_type: event.target.value as ItemType,
+                            }),
+                          ),
                         )
                       }
                     >
-                      {ITEM_TYPES.map((item) => (
+                      {allowedTypes.map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
@@ -190,18 +239,27 @@ function OrderSettings({
                     />
                   </Field>
                   <Field label="区域" htmlFor={`${input.input_id}-zone`}>
-                    <input
+                    <select
                       id={`${input.input_id}-zone`}
                       value={input.zone}
-                      placeholder="line_s1a"
                       onChange={(event) =>
                         onChange(
-                          updateInput(draft, input.input_id, {
-                            zone: event.target.value,
-                          }),
+                          updateInput(
+                            draft,
+                            input.input_id,
+                            reconcileInput(input, {
+                              zone: event.target.value,
+                            }),
+                          ),
                         )
                       }
-                    />
+                    >
+                      {spawnableZones.map((zone) => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.id} · 容量 {zone.capacity}
+                        </option>
+                      ))}
+                    </select>
                   </Field>
                   <Field label="入口节点（可选）" htmlFor={`${input.input_id}-node`}>
                     <select
@@ -238,11 +296,21 @@ function OrderSettings({
                       }
                     >
                       <option value="">自动匹配</option>
-                      {options.map((portId) => (
-                        <option key={portId} value={portId}>
-                          {portId}
-                        </option>
-                      ))}
+                      {options.map((portId) => {
+                        const node = nodeTemplate(input.node_id);
+                        const template = node ? map[node.template_id] : null;
+                        const port = template?.inputs.find(
+                          (row) => row.port_id === portId,
+                        );
+                        return (
+                          <option key={portId} value={portId}>
+                            {portId}
+                            {port
+                              ? ` · ${port.zone}/${port.item_type}`
+                              : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                   </Field>
                 </div>
@@ -258,13 +326,14 @@ function OrderSettings({
               id="new-input-type"
               value={newInput.item_type}
               onChange={(event) =>
-                setNewInput({
-                  ...newInput,
-                  item_type: event.target.value as ItemType,
-                })
+                setNewInput(
+                  reconcileInput(newInput, {
+                    item_type: event.target.value as ItemType,
+                  }),
+                )
               }
             >
-              {ITEM_TYPES.map((item) => (
+              {itemTypesForZone(newInput.zone).map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -286,14 +355,63 @@ function OrderSettings({
             />
           </Field>
           <Field label="区域" htmlFor="new-input-zone">
-            <input
+            <select
               id="new-input-zone"
               value={newInput.zone}
-              placeholder="line_s1a"
               onChange={(event) =>
-                setNewInput({ ...newInput, zone: event.target.value })
+                setNewInput(
+                  reconcileInput(newInput, {
+                    zone: event.target.value,
+                  }),
+                )
               }
-            />
+            >
+              {spawnableZones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.id} · {zone.item_types.join("/") || "任意"} · 容量{" "}
+                  {zone.capacity}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="入口节点（可选）" htmlFor="new-input-node">
+            <select
+              id="new-input-node"
+              value={newInput.node_id}
+              onChange={(event) =>
+                setNewInput({
+                  ...newInput,
+                  node_id: event.target.value,
+                  port_id: "",
+                })
+              }
+            >
+              <option value="">按区域/类型自动匹配</option>
+              {draft.nodes.map((node) => (
+                <option key={node.node_id} value={node.node_id}>
+                  {node.node_id} · {node.template_id}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="入口端口（可选）" htmlFor="new-input-port">
+            <select
+              id="new-input-port"
+              value={newInput.port_id}
+              disabled={!newInput.node_id}
+              onChange={(event) =>
+                setNewInput({ ...newInput, port_id: event.target.value })
+              }
+            >
+              <option value="">自动匹配</option>
+              {(newInput.node_id ? portOptions(newInput.node_id) : []).map(
+                (portId) => (
+                  <option key={portId} value={portId}>
+                    {portId}
+                  </option>
+                ),
+              )}
+            </select>
           </Field>
         </div>
         <button
@@ -592,12 +710,18 @@ function ConnectionForm({
 export function Inspector({
   draft,
   templates,
+  targetTypes,
+  inputTypes,
+  zones,
   selection,
   onChange,
   onSelect,
 }: {
   draft: DraftState;
   templates: TemplateSummary[];
+  targetTypes: ItemType[];
+  inputTypes: ItemType[];
+  zones: SceneZoneSummary[];
   selection: Selection;
   onChange: (draft: DraftState) => void;
   onSelect: (selection: Selection) => void;
@@ -628,7 +752,14 @@ export function Inspector({
           onSelect={onSelect}
         />
       ) : (
-        <OrderSettings draft={draft} templates={templates} onChange={onChange} />
+        <OrderSettings
+          draft={draft}
+          templates={templates}
+          targetTypes={targetTypes}
+          inputTypes={inputTypes}
+          zones={zones}
+          onChange={onChange}
+        />
       )}
       <ConnectionForm
         draft={draft}

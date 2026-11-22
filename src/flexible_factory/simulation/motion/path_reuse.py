@@ -29,22 +29,22 @@ from .plan_types import (Goal, MotionContext, MotionPlan, MotionSegment,
                          PlanStatus)
 from .trajectory import joint_distance
 
-PATH_REUSE_VERSION = "v1_path_reuse_20261120"
+PATH_REUSE_VERSION = "v1_path_reuse_20261121"
 
 
 class PathReusePolicy:
     """在规划器调用点外层执行的路径复用策略.
 
-    ``enabled_phases``/``enabled_units`` 只用于把首版限定在试点动作:
-    默认只对 A 臂 ``PLACING`` 生效; 控制器仍保留全部原有规划路径,
-    未启用的状态不会调用本策略。
+    ``enabled_phases``/``enabled_units`` 用于限定启用范围:
+    默认五臂 ``PLACING`` 全部启用; 传入 ``enabled_units=("A",)`` 可退回
+    单臂试点, 未启用的状态不会调用本策略。
     """
 
     def __init__(self, library: PathLibrary, mode: str = "PLAN_ONLY", *,
                  scene_artifact_id: str, robot: str = "UR5",
                  export: bool = False,
                  enabled_phases: Sequence[str] = ("PLACING",),
-                 enabled_units: Optional[Sequence[str]] = ("A",),
+                 enabled_units: Optional[Sequence[str]] = None,
                  clock: Callable[[], float] = time.monotonic) -> None:
         if mode not in PATH_REUSE_MODES:
             raise ValueError(
@@ -64,6 +64,8 @@ class PathReusePolicy:
         self.replay_count = 0
         self.fallback_count = 0
         self.planner_calls = 0
+        self.export_saved = 0
+        self._stats_by_unit: dict[str, dict] = {}
 
     # ── 适用范围 ────────────────────────────────────────────
 
@@ -74,17 +76,66 @@ class PathReusePolicy:
             return False
         return str(state_name) in self.enabled_phases
 
-    def stats(self) -> dict:
+    @staticmethod
+    def _empty_unit_stats() -> dict:
         return {
+            "lookup": 0,
+            "replay": 0,
+            "fallback": 0,
+            "planner_calls": 0,
+            "export_saved": 0,
+            "lookup_wall_s": 0.0,
+            "planner_wall_s": 0.0,
+            "last_miss_reason": "",
+        }
+
+    def _unit_row(self, unit_id: str) -> dict:
+        return self._stats_by_unit.setdefault(
+            str(unit_id), self._empty_unit_stats())
+
+    @staticmethod
+    def _unit_payload(row: dict) -> dict:
+        return {
+            "lookup": int(row["lookup"]),
+            "replay": int(row["replay"]),
+            "fallback": int(row["fallback"]),
+            "planner_calls": int(row["planner_calls"]),
+            "export_saved": int(row["export_saved"]),
+            "lookup_wall_s": round(float(row["lookup_wall_s"]), 6),
+            "planner_wall_s": round(float(row["planner_wall_s"]), 6),
+            "last_miss_reason": str(row["last_miss_reason"]),
+        }
+
+    def stats(self, unit_id: Optional[str] = None) -> dict:
+        base = {
             "version": PATH_REUSE_VERSION,
             "mode": self.mode,
             "scene": self.scene_artifact_id,
+            "export": self.export,
+            "last_error": self.library.last_error,
+        }
+        if unit_id is not None:
+            return {
+                **base,
+                "unit": str(unit_id),
+                **self._unit_payload(
+                    self._stats_by_unit.get(str(unit_id),
+                                            self._empty_unit_stats())),
+            }
+        rows = {unit: self._unit_payload(row)
+                for unit, row in sorted(self._stats_by_unit.items())}
+        return {
+            **base,
             "lookup": self.lookup_count,
             "replay": self.replay_count,
             "fallback": self.fallback_count,
             "planner_calls": self.planner_calls,
-            "export": self.export,
-            "last_error": self.library.last_error,
+            "export_saved": self.export_saved,
+            "lookup_wall_s": round(sum(
+                row["lookup_wall_s"] for row in rows.values()), 6),
+            "planner_wall_s": round(sum(
+                row["planner_wall_s"] for row in rows.values()), 6),
+            "by_unit": rows,
         }
 
     # ── 规划入口 ────────────────────────────────────────────
@@ -108,16 +159,27 @@ class PathReusePolicy:
             motion_version=motion_config_version(),
         )
         phases: list[str] = []
+        unit = str(unit_id)
+        row = self._unit_row(unit)
         miss_reason = ""
         if self.mode != "PLAN_ONLY":
             phases.append(PR_LOOKUP)
             self.lookup_count += 1
+            row["lookup"] += 1
+            lookup_started = self._clock()
             record = self.library.get_exact(key)
+            lookup_elapsed = max(0.0, self._clock() - lookup_started)
+            row["lookup_wall_s"] += lookup_elapsed
             if record is None:
-                miss_reason = self.library.last_error or "未找到匹配路径记录"
+                miss_reason = (self.library.last_error or
+                               self.library.explain_miss(key) or
+                               "未找到匹配路径记录")
+                row["last_miss_reason"] = miss_reason
             else:
                 ready, miss_reason = self._replay_ready(
                     record, start_q, context, goals)
+                if not ready:
+                    row["last_miss_reason"] = miss_reason
                 if ready:
                     plan = self._plan_from_record(record, goals, context)
                     elapsed = max(0.0, self._clock() - started)
@@ -130,10 +192,11 @@ class PathReusePolicy:
                         "record_path": str(self.library.path_for(key)),
                         "original_strategy": record.strategy,
                         "original_status": record.status,
-                        "lookup_wall_s": round(elapsed, 6),
+                        "lookup_wall_s": round(lookup_elapsed, 6),
                         "phases": phases + [PR_REPLAY],
                     }
                     self.replay_count += 1
+                    row["replay"] += 1
                     return plan
             if self.mode == "CACHE_ONLY":
                 elapsed = max(0.0, self._clock() - started)
@@ -152,11 +215,18 @@ class PathReusePolicy:
                     })
             phases.append(PR_PLAN_FALLBACK)
             self.fallback_count += 1
+            row["fallback"] += 1
 
         # 在线规划: 仍只调用一次现有 LocalPlanner, 保持原搜索/检查行为.
         self.planner_calls += 1
-        plan = planner.plan(start_q, goals, context,
-                            start_pose=start_pose, **plan_kwargs)
+        row["planner_calls"] += 1
+        planner_started = self._clock()
+        try:
+            plan = planner.plan(start_q, goals, context,
+                                start_pose=start_pose, **plan_kwargs)
+        finally:
+            row["planner_wall_s"] += max(
+                0.0, self._clock() - planner_started)
         plan.plan_source = "online"
         export_info = {"enabled": self.export, "saved": False}
         if self.export and plan.ok and len(goals) == 1:
@@ -166,6 +236,8 @@ class PathReusePolicy:
                     path = self.library.put(record)
                     export_info.update(saved=True, record_id=key.path_id(),
                                        path=str(path))
+                    self.export_saved += 1
+                    row["export_saved"] += 1
             except (OSError, PathRecordError) as exc:
                 export_info["error"] = f"{type(exc).__name__}: {exc}"
         plan.replay = {

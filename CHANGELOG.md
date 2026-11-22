@@ -2,6 +2,62 @@
 
 ## Unreleased
 
+- 五臂固定路径回放扩展：`run --path-reuse` 默认 `off`，可选
+  `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN` + `--path-library-root`
+  （默认 `docs/path_library`）。五臂 `PLACING` 均接入；A/C/E 固定汇、
+  B/D AGV 托盘变化时自动回退。记录/策略版本升级为
+  `v1_path_record_20261121` / `v1_path_reuse_20261121`；新增按臂
+  lookup/replay/fallback/planner 墙钟统计和 `explain_miss` 诊断。
+  v005 full_flow：`PLAN_ONLY` 9 次规划/7 条唯一记录；`CACHE_THEN_PLAN`
+  9 次查找、7 次回放（A/C/E `planner_calls=0`）、2 次 B/D 回退，
+  两次 acceptance/安全锁存一致；`PLACING` 规划墙钟 41.06→12.95 s，
+  但 full_flow 墙钟受其他阶段波动未下降，不能宣称全流程提速。
+  全量离线回归 773 passed / 8 skipped；路径记录位于 `docs/path_library`，生成/验收见
+  `docs/implementation/reports/simulation/v1-all-arm-path-reuse.md` 和
+  `docs/implementation/evidence/simulation/v1_full_flow_path_reuse_20261121.json`。
+  其他运动段、订单 runner/API 和 P2/P3 未纳入。
+
+- 自建订单 DAG 阶段 9（场景 profile 感知的订单组合）：新增
+  `domain/scene_profile.py`，从工件 manifest 的 `extra.v1` 判定
+  `full_flow`/`assembly_mvp` 并生成目标物料、入口物料、模板、区域能力；
+  `/api/templates`、`/api/orders/preview` 支持可选 `artifact_id`，返回
+  `scene_profile`/`profile_source`/zone 元数据。`OrderService.start()`/
+  `run_sync()` 在创建 run 前按工件 profile 拒绝跨 profile 订单（422，不写
+  run 记录）。planner 新增 `scene_profile`，只把已登记的
+  `mvp_pair_assembly` 直接来料端口物化为 `OrderInput`，覆盖
+  `COMPRESSOR_ASSY`/`FLANGE_ASSY`；不再需要伪造 route/前置工序。前端订单
+  编辑器/Inspector/planner 页移除固定 `ITEM_TYPES` 运行时假设，改由服务端
+  目录驱动目标、投料、区域和模板选择；切换工件后不兼容草稿显示诊断并阻止
+  保存，可显式清理。新增 `SCENE_PROFILE_VERSION=v1_scene_profile_20261121`，
+  `ORDER_PLANNER_POLICY_VERSION` 升至 `v1_planner_20261121b`；订单
+  `OrderSpec` 契约、DAG digest 与运行时派工语义不变。新增
+  `tests/test_v1_scene_profile.py`；后端 773 passed / 8 skipped，前端
+  16 passed、E2E 4 passed、typecheck/build 通过。CoppeliaSim 4.10 实机完成
+  四个正式 UI run：full_flow 直达（7 节点）与 planner 绕行（9 节点）各生成
+  1 个 `FINAL`，MVP 压缩机（手工）与法兰（planner）各生成 1 个装配体，父子
+  UID 均为 `[1,2]`；MVP 订单在 full_flow 工件上启动返回 422 且不建 run。
+  两条 full_flow 使用 `dual`（`cart_2` D→E），因本次 single 在 E 臂 AGV
+  托盘对位出现既有 `GOAL_CONFIG_INVALID`（阶段 7 single 回归仍是基线）。
+  MVP 旧实验工件 v001 的 config digest 与当前代码不一致，已按当前配置重建
+  为 `v002_20261121_152334` 后再验收；旧工件保留。证据见
+  `docs/implementation/evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json`，
+  报告见
+  `docs/implementation/reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md`。
+
+- 自建订单 DAG 阶段 8（车队感知的自主规划）：planner 输入新增
+  `transport_fleet`、静态 `fleet_assumptions.available_vehicle_ids`、
+  `strict_fleet` 和可选 `fleet_eta_ranking`；用纯 `domain/fleet_policy.py`
+  评估路线固定分工，输出 `fleet_context`/车队诊断并对不满足假设的候选降权
+  或严格拒绝；可选 ETA 用 `transport_schedule` 离散事件模型做 tie-breaker。
+  订单 DAG/`OrderSpec` digest 不随假设变化，实际派车仍由 coordinator 决定。
+  运行报告记录 planner 假设，并在与实际模式不一致时输出
+  `planner_assumption_mismatch`。`ORDER_PLANNER_POLICY_VERSION` 升至
+  `v1_planner_20261121`；CLI `order plan` 与前端 planner 页增加对应入口。
+  后端 737 passed / 8 skipped，前端 13 passed、E2E 4 passed、build 通过；
+  `v005` 上 planner dual 假设 + dual/single 运行均生成 1 个 FINAL，后者正确
+  标记不一致。见
+  `docs/implementation/reports/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md`。
+
 - 仿真与运动规划 P0/P1：`MotionPlan` 新增 `timings`（搜索/最终复核/
   后处理墙钟）、`plan_source` 与 `replay`；成功计划 `wall_s` 改为覆盖
   后处理和最终复核。新增 `motion/path_library.py`

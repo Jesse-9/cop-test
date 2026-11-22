@@ -6,6 +6,7 @@ import type {
   OrderNode,
   OrderSpec,
   OrderTarget,
+  TemplateCatalog,
   TemplateSummary,
 } from "../api/types";
 
@@ -365,4 +366,119 @@ export function applyLayout(
     ...cloneDraft(draft),
     positions: { ...positions },
   };
+}
+
+// ── 场景 profile 兼容性 ───────────────────────────────────────
+// 目录返回的模板/物料/区域是当前工件 profile 的权威能力。切换工件后
+// 不兼容内容必须显式清理或阻断保存, 不能静默保存为另一个 profile.
+
+function profileDiagnostic(
+  code: string,
+  message: string,
+  locator: Partial<Diagnostic> = {},
+): Diagnostic {
+  return {
+    code,
+    message,
+    node_id: locator.node_id ?? "",
+    input_id: locator.input_id ?? "",
+    edge_index: locator.edge_index ?? -1,
+    port_id: locator.port_id ?? "",
+  };
+}
+
+export function draftProfileIssues(
+  draft: DraftState,
+  catalog: TemplateCatalog,
+): Diagnostic[] {
+  if (catalog.profile_source === "unbound") return [];
+  const issues: Diagnostic[] = [];
+  const templateIds = new Set(
+    catalog.templates.map((template) => template.template_id),
+  );
+  const targetTypes = new Set<string>(catalog.item_types.targets);
+  const inputTypes = new Set<string>(catalog.item_types.inputs);
+  const zones = new Map(catalog.zones.map((zone) => [zone.id, zone]));
+  if (!targetTypes.has(draft.target.item_type)) {
+    issues.push(
+      profileDiagnostic(
+        "DRAFT_TARGET_PROFILE",
+        `目标物料 ${draft.target.item_type} 不属于 profile ${catalog.scene_profile}`,
+      ),
+    );
+  }
+  for (const node of draft.nodes) {
+    if (!templateIds.has(node.template_id)) {
+      issues.push(
+        profileDiagnostic(
+          "DRAFT_TEMPLATE_PROFILE",
+          `节点 ${node.node_id} 的模板 ${node.template_id} 不属于 profile ${catalog.scene_profile}`,
+          { node_id: node.node_id },
+        ),
+      );
+    }
+  }
+  for (const input of draft.inputs) {
+    if (!inputTypes.has(input.item_type)) {
+      issues.push(
+        profileDiagnostic(
+          "DRAFT_INPUT_PROFILE",
+          `投料 ${input.input_id} 的物料 ${input.item_type} 不属于 profile ${catalog.scene_profile}`,
+          { input_id: input.input_id },
+        ),
+      );
+    }
+    const zone = zones.get(input.zone);
+    if (!zone || !zone.spawnable) {
+      issues.push(
+        profileDiagnostic(
+          "DRAFT_INPUT_ZONE_PROFILE",
+          `投料 ${input.input_id} 的区域 ${input.zone} 不是 profile ${catalog.scene_profile} 的可生成来料区域`,
+          { input_id: input.input_id },
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+export function pruneForCatalog(
+  draft: DraftState,
+  catalog: TemplateCatalog,
+): DraftState {
+  if (catalog.profile_source === "unbound") return draft;
+  const templateIds = new Set(
+    catalog.templates.map((template) => template.template_id),
+  );
+  const inputTypes = new Set<string>(catalog.item_types.inputs);
+  const spawnableZones = new Set(
+    catalog.zones.filter((zone) => zone.spawnable).map((zone) => zone.id),
+  );
+  const next = cloneDraft(draft);
+  next.nodes = next.nodes.filter((node) =>
+    templateIds.has(node.template_id),
+  );
+  const nodeIds = new Set(next.nodes.map((node) => node.node_id));
+  next.edges = next.edges.filter(
+    (edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to),
+  );
+  next.inputs = next.inputs.filter(
+    (input) =>
+      inputTypes.has(input.item_type) &&
+      spawnableZones.has(input.zone) &&
+      (!input.node_id || nodeIds.has(input.node_id)),
+  );
+  for (const nodeId of Object.keys(next.positions)) {
+    if (!nodeIds.has(nodeId)) delete next.positions[nodeId];
+  }
+  if (
+    catalog.item_types.targets.length > 0 &&
+    !catalog.item_types.targets.includes(next.target.item_type)
+  ) {
+    next.target = {
+      ...next.target,
+      item_type: catalog.item_types.targets[0],
+    };
+  }
+  return next;
 }

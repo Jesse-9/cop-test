@@ -6,6 +6,21 @@ const catalog: TemplateCatalog = {
   catalog_version: "v1_process_test",
   contract_version: "v1_order_test",
   scene_id: "L5_UFLOW",
+  artifact_id: "v1/L5_UFLOW/v005",
+  scene_profile: "full_flow",
+  profile_source: "manifest",
+  profile_version: "v1_scene_profile_test",
+  profiles: ["full_flow", "assembly_mvp"],
+  item_types: { targets: ["FINAL"], inputs: ["RAW_A"] },
+  zones: [
+    {
+      id: "line_s1a",
+      capacity: 1,
+      description: "S1→A 输入带",
+      spawnable: true,
+      item_types: ["RAW_A"],
+    },
+  ],
   templates: [],
   routes: [],
 };
@@ -31,10 +46,44 @@ describe("order API client", () => {
     const result = await api.templates();
 
     expect(result.catalog_version).toBe("v1_process_test");
+    expect(result.scene_profile).toBe("full_flow");
+    expect(result.item_types.targets).toEqual(["FINAL"]);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/templates",
       expect.objectContaining({ method: "GET" }),
     );
+  });
+
+  it("queries the template catalog for a specific artifact", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ ok: true, ...catalog }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.templates("v1/L5_UFLOW/v005");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/templates?artifact_id=v1%2FL5_UFLOW%2Fv005",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("rejects catalogs with unknown item types at the parse boundary", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          ok: true,
+          ...catalog,
+          item_types: { targets: ["UNOBTAINIUM"], inputs: ["RAW_A"] },
+        }),
+      ),
+    );
+
+    await expect(api.templates()).rejects.toMatchObject({
+      status: 200,
+      code: "INVALID_RESPONSE",
+    });
   });
 
   it("queries fleet availability for a specific artifact", async () => {

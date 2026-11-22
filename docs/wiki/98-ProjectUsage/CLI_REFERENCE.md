@@ -5,7 +5,7 @@ tags:
   - 类别/案例
   - 难度/中级
 created: 2026-11-10
-updated: 2026-11-14
+updated: 2026-11-21
 status: published
 ---
 
@@ -149,6 +149,8 @@ flexible-factory stop --timeout 20
 | `--catalog-source TEXT` | `code`                     | `code` 使用代码内静态工艺与资源定义（`ProcessCatalog`）；`db` 使用 SQLite 已发布定义，并要求与代码定义等价。                                 |
 | `--catalog-db PATH`     | `var/catalog/catalog.db`   | 目录/运行记录数据库路径。                                                                                            |
 | `--run-records TEXT`    | `on`                       | `on` 或 `off`；控制是否批量写入运行记录。                                                                               |
+| `--path-reuse TEXT`     | `off`                      | `off`、`PLAN_ONLY`、`CACHE_ONLY`、`CACHE_THEN_PLAN`；五臂 `PLACING` 固定路径回放，默认关闭。                              |
+| `--path-library-root PATH` | `docs/path_library`     | 路径记录根目录；不得位于 `docs/scene_artifacts/`。                                                                     |
 
 ```powershell
 flexible-factory run --scenario full_flow --time 700
@@ -285,6 +287,10 @@ flexible-factory report timeline --run-id run-123 --instance-id op-1
 | `order show` | `--order-id TEXT` | 必填 | `--version INT` 默认 `0`；`0` 表示查看订单，否则查看指定版本。 |
 | `order preview` | `--order-id TEXT`、`--version INT` | 均必填 | 预览已保存版本的编译结果。 |
 | `order plan` | `--file PATH` | 必填 | Planner 输入 JSON；`-` 从 stdin 读取。 |
+|  | `--scene-profile TEXT` | 输入文件或 `full_flow`；`full_flow`、`assembly_mvp` | 规划可见场景 profile；`assembly_mvp` 允许 MVP 直接来料 join。 |
+|  | `--transport-fleet TEXT` | 输入文件或 `single`；`single`、`dual` | 规划车队假设；不写入订单 DAG。 |
+|  | `--strict-fleet` | 关闭 | 车队假设不满足的路线直接拒绝；默认只降权。 |
+|  | `--fleet-eta-ranking` | 关闭 | 用离散事件 ETA 对同分候选排序；不是物理验收。 |
 |  | `--save` | 关闭 | 保存为 `source=planner` 的订单版本；省略时只规划并输出结果。 |
 |  | `--note TEXT` | 空字符串 | 保存草稿时的版本备注。 |
 | `order start` | `--order-id TEXT`、`--version INT` | 均必填 | 同步运行指定订单版本。 |
@@ -323,8 +329,8 @@ flexible-factory order start --order-id order-1 --version 1 --time 700
 | `--sim-port INT` | `23000` | CoppeliaSim ZMQ 端口。 |
 | `--db PATH` | `var/catalog/catalog.db` | SQLite 数据库路径。 |
 | `--catalog-source TEXT` | `code`；`code`、`db` | 订单模板定义来源；`db` 要求数据库发布定义与代码定义等价。 |
-| `--artifact-root PATH` | 程序默认 v1 场景包根目录 | v1 场景包根目录。 |
-| `--artifact-id TEXT` | `current` | 运行绑定的场景包。 |
+| `--artifact-root PATH` | 程序默认 v1 场景包根目录 | v1 场景包根目录；也可指向实验工件根（如 assembly_mvp）。 |
+| `--artifact-id TEXT` | `current` | 目录能力查询和运行绑定的默认场景包。 |
 | `--run-records TEXT` | `on`；`on`、`off` | 是否保存运行记录。 |
 | `--log PATH` | `flexible_factory.log` | 日志路径。 |
 | `--out-dir PATH` | `docs/implementation/runs` | 报告输出目录。 |

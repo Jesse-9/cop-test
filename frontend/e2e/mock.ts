@@ -46,6 +46,28 @@ export const catalog: TemplateCatalog = {
   catalog_version: "v1_process_mock",
   contract_version: "v1_order_20261106",
   scene_id: "L5_UFLOW",
+  artifact_id: "v1/L5_UFLOW/mock",
+  scene_profile: "full_flow",
+  profile_source: "manifest",
+  profile_version: "v1_scene_profile_20261121",
+  profiles: ["full_flow", "assembly_mvp"],
+  item_types: { targets: ["FINAL", "SEMI_AC"], inputs: ["RAW_A"] },
+  zones: [
+    {
+      id: "line_s1a",
+      capacity: 1,
+      description: "S1→A 输入带",
+      spawnable: true,
+      item_types: ["RAW_A"],
+    },
+    {
+      id: "handoff_ac",
+      capacity: 1,
+      description: "A→C 固定交接台",
+      spawnable: false,
+      item_types: ["SEMI_AC"],
+    },
+  ],
   templates: [
     template("a", "line_s1a", "RAW_A", "handoff_ac", "SEMI_AC", "arm_A"),
     template("c", "handoff_ac", "SEMI_AC", "output_e", "FINAL", "arm_C"),
@@ -109,7 +131,7 @@ function versionMeta(
     catalog_version: "v1_process_mock",
     parent_version: version > 1 ? version - 1 : null,
     planner_policy_version:
-      source === "planner" ? "v1_planner_20261107" : "",
+      source === "planner" ? "v1_planner_20261121b" : "",
     planner_candidate_count: source === "planner" ? 1 : null,
     created_at: "2026-11-07T10:00:00+00:00",
     note: "",
@@ -160,7 +182,7 @@ export function versionDetail(
     planner:
       source === "planner"
         ? {
-            policy_version: "v1_planner_20261107",
+            policy_version: "v1_planner_20261121b",
             input: {},
             explain: { selected_branch: { route_ids: ["route_a"] } },
             candidate_count: 1,
@@ -243,7 +265,9 @@ const candidate = {
 
 export const plannerResult: PlannerResult = {
   ok: true,
-  policy_version: "v1_planner_20261107",
+  policy_version: "v1_planner_20261121b",
+  scene_profile: "full_flow",
+  profile_version: "v1_scene_profile_20261121",
   input: {},
   first_blocking_category: "",
   diagnostics: [],
@@ -254,7 +278,7 @@ export const plannerResult: PlannerResult = {
   candidates: [candidate],
   rejected: [],
   explanation: {
-    policy_version: "v1_planner_20261107",
+    policy_version: "v1_planner_20261121b",
     input_summary: {},
     selected_candidate_id: "cand-000",
     selected_branch: candidate.branch,
@@ -397,7 +421,7 @@ export async function installMocks(page: Page): Promise<void> {
         ok: true,
         service: "order",
         contract_version: "v1_order_20261106",
-        planner_policy_version: "v1_planner_20261107",
+        planner_policy_version: "v1_planner_20261121b",
         catalog_version: "v1_process_mock",
         scene_id: "L5_UFLOW",
       });

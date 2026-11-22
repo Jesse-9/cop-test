@@ -2656,6 +2656,8 @@ class Stage4Coordinator:
             "batch": dict(self._batch),
             "batch_input_version": spec.BATCH_INPUT_VERSION,
             "batch_expectation": batch_expectation,
+            "path_reuse": (None if self.path_reuse is None
+                           else self.path_reuse.stats()),
             "spawned": list(self.spawned),
         }
         common = (not any_latch and resources_released and route_ok
@@ -2863,6 +2865,8 @@ class Stage4Coordinator:
             "source_counts": dict(self._source_count),
             "transport_fleet": self.fleet_config.mode,
             "fleet": self.fleet_summary(),
+            "path_reuse": (None if self.path_reuse is None
+                           else self.path_reuse.stats()),
             "agv_at_dock": self.agv_at_dock,
             "order": None if self.order is None else self.order.as_dict(),
             "order_plan": (None if self.order_plan is None else {

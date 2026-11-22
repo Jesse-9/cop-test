@@ -28,7 +28,11 @@ RESOURCE_POLICY_VERSION = "v1_resources_20261103"
 SCHEDULER_POLICY_VERSION = "v1_scheduler_20261104"
 # 订单自主编排策略版本; 只随 planner 搜索空间/选择规则/explain 语义变化
 # 递增. 版本写入订单版本元数据, 不改变场景工件 config_digest.
-ORDER_PLANNER_POLICY_VERSION = "v1_planner_20261107"
+# 20261121b: 增加场景 profile 过滤与直接来料 join (assembly_mvp).
+ORDER_PLANNER_POLICY_VERSION = "v1_planner_20261121b"
+# 场景 profile 能力目录版本; 只随 profile 判定/能力过滤规则变化递增.
+# 它不写入订单 DAG digest, 也不是工件 config_digest 的一部分.
+SCENE_PROFILE_VERSION = "v1_scene_profile_20261121"
 # 订单运行车队固定分工策略版本; 只随 single/dual 分工表或已验证组合变化
 # 递增. 版本写入订单运行元数据, 不写入订单版本或 DAG digest.
 FLEET_POLICY_VERSION = "v1_fleet_20261119"
@@ -50,6 +54,8 @@ LAYOUT_NAME = "L5_UFLOW"
 # 工件命名空间与默认输出位置.
 ARTIFACT_ROOT = Path("docs") / "scene_artifacts"
 REPORT_DIR = Path("docs") / "implementation" / "runs"
+# 固定动作关节路径库: 独立于 .ttt/场景工件, 不作为受保护工件校验.
+PATH_LIBRARY_ROOT = Path("docs") / "path_library"
 DEFAULT_LOG_FILE = "flexible_factory.log"
 
 # 目录数据库默认位置: 本地运行数据, 不写入受保护的场景工件目录.

@@ -38,13 +38,13 @@
 
 ### 订单编排
 
-订单契约、失败隔离、API/持久化、确定性 planner、前端和限定范围的仿真实机验收。阶段 1–6 的限制和未准入故障以各阶段报告为准；阶段 7 已接入双车运行配置、派工一致性和启动 UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行与 planner UI 启动未验证。
+订单契约、失败隔离、API/持久化、确定性 planner、前端和限定范围的仿真实机验收。阶段 1–6 的限制和未准入故障以各阶段报告为准；阶段 7 已接入双车运行配置、派工一致性和启动 UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；路线并行与 planner UI 启动未验证。阶段 8 已让 planner 使用 single/dual 假设、固定分工和可选静态 ETA 做候选评估与 explain，DAG/运行派工边界不变。阶段 9 增加场景 profile 能力目录、前端按工件过滤物料/模板、planner 直接来料 join 和跨 profile 启动拒绝；CoppeliaSim 实机完成 full_flow 两路线和两个 MVP 产品的 UI run（full_flow 因 single E 臂托盘对位问题使用 dual）。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) |
-| 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) |
-| 证据 | [订单编排阶段 6 验收证据](evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json) |
+| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) · [阶段 8 车队感知 planner](plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md) · [阶段 9 场景 profile 目录](plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md) |
+| 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) · [阶段 8 车队感知 planner](reports/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md) · [阶段 9 场景 profile 目录](reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md) |
+| 证据 | [订单编排阶段 6 验收证据](evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json) · [阶段 9 场景 profile 验收证据](evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json) |
 
 ### 数据平台
 
@@ -59,12 +59,12 @@
 
 ### 仿真工程
 
-仿真模块职责、代码拆分、运动规划性能与路径回放、启动性能计时。
+仿真模块职责、代码拆分、运动规划性能、五臂路径回放扩展与启动性能计时。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能与路径回放](plans/simulation/simulation-motion-planning-performance.md) · [启动性能优化](plans/simulation/v1-startup-performance-optimization.md) |
-| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [运动规划性能报告](reports/simulation/v1-motion-planning-performance.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
+| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能与路径回放](plans/simulation/simulation-motion-planning-performance.md) · [五臂路径回放扩展](plans/simulation/v1-all-arm-path-reuse-extension.md) · [启动性能优化](plans/simulation/v1-startup-performance-optimization.md) |
+| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [运动规划性能报告](reports/simulation/v1-motion-planning-performance.md) · [五臂路径回放扩展报告](reports/simulation/v1-all-arm-path-reuse.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
 | 参考 | [仿真模块清单](reference/simulation/simulation-module-inventory.md) |
 | 证据 | [仿真工程证据](evidence/simulation/) |
 
