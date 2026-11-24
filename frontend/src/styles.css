@@ -1345,3 +1345,76 @@ summary {
     scroll-behavior: auto !important;
   }
 }
+
+/* 订单方案目录 (阶段 10) */
+.variant-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.variant-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.variant-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variant-section h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.variant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.variant-card {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.variant-card .button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.variant-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.variant-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.variant-difference {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--accent);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.variant-catalog .start-panel {
+  margin: 4px 0;
+}

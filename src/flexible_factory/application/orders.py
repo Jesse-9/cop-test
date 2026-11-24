@@ -24,6 +24,7 @@ from typing import Callable, Optional
 from .. import spec
 from ..domain.default_process import default_catalog
 from ..domain.failures import NODE_FAILURE_ALLOWLIST
+from ..domain.materials import ItemType
 from ..domain.order_compiler import CompiledOrder, CompilePreview, \
     OrderDagCompiler
 from ..domain.orders import (ORDER_CONTRACT_VERSION, OrderSpec,
@@ -52,6 +53,8 @@ class OrderRunCommand:
     max_sim_time: float = 1200.0
     #: 本次运行的运输车队模式: single | dual; 不写入不可变订单版本/DAG.
     transport_fleet: str = "single"
+    #: 固定动作关节路径复用模式; 运行选项, 不写入订单版本/DAG.
+    path_reuse_mode: str = "off"
     #: 启动工件 manifest 判定的场景 profile; 仅用于运行报告追溯.
     scene_profile: str = ""
     #: planner 草稿保存时的车队假设 (可为空); 仅用于运行报告对照.
@@ -68,6 +71,7 @@ class OrderRunCommand:
             "artifact_id": self.artifact_id,
             "max_sim_time": float(self.max_sim_time),
             "transport_fleet": self.transport_fleet,
+            "path_reuse_mode": self.path_reuse_mode,
             "scene_profile": self.scene_profile,
             "planner_transport_fleet": self.planner_transport_fleet,
         }
@@ -465,6 +469,114 @@ class OrderService:
             },
         }
 
+    # ── 订单方案目录 (阶段 10) ───────────────────────────────
+
+    def order_variants(self, artifact_id: str = "", *, scope: str = "",
+                       target_item_type: str = "") -> dict:
+        """返回当前工件 profile 可展示的内置订单方案目录."""
+        from ..domain import order_variants
+        capabilities = self.scene_capabilities(artifact_id)
+        if scope and scope not in order_variants.SCOPES:
+            raise order_variants.OrderVariantError(
+                f"未知方案层级 {scope!r}; 允许值 "
+                f"{list(order_variants.SCOPES)}")
+        target = str(target_item_type or "").strip()
+        if target:
+            try:
+                ItemType(target)
+            except ValueError as exc:
+                raise order_variants.OrderVariantError(
+                    f"未知目标物料 {target!r}") from exc
+        rows = []
+        for variant in order_variants.build_order_variants(self.catalog):
+            if not order_variants.variant_profile_allowed(
+                    variant, capabilities):
+                continue
+            if scope and variant.scope != scope:
+                continue
+            if target and variant.target_item_type.value != target:
+                continue
+            available, reason = order_variants.variant_availability(
+                variant, self.catalog, capabilities)
+            rows.append(variant.as_dict(
+                available=available, unavailable_reason=reason))
+        return {
+            "artifact_id": capabilities.artifact_id,
+            "scene_profile": capabilities.scene_profile,
+            "profile_source": capabilities.source,
+            "variant_version": order_variants.VARIANT_VERSION,
+            "variants": rows,
+        }
+
+    def create_order_from_variant(self, variant_id: str, payload: dict, *,
+                                  artifact_id: str = "") -> dict:
+        """由内置方案生成普通订单版本; 不启动仿真、不申请资源."""
+        from ..domain import order_variants
+        capabilities = self.scene_capabilities(artifact_id)
+        variant = order_variants.find_order_variant(
+            self.catalog, variant_id)
+        if not order_variants.variant_profile_allowed(
+                variant, capabilities):
+            raise order_variants.OrderVariantUnavailableError(
+                f"方案 {variant.variant_id!r} 的 profile "
+                f"{variant.scene_profile!r} 与当前工件 "
+                f"{capabilities.scene_profile!r} 不匹配")
+        available, reason = order_variants.variant_availability(
+            variant, self.catalog, capabilities)
+        if not available:
+            raise order_variants.OrderVariantUnavailableError(
+                f"方案 {variant.variant_id!r} 不可用: {reason}")
+        if not isinstance(payload, dict):
+            raise order_variants.OrderVariantError("请求体必须是 JSON 对象")
+        quantity = payload.get("quantity", variant.target_quantity)
+        if isinstance(quantity, bool) or not isinstance(quantity, int) \
+                or quantity <= 0:
+            raise order_variants.OrderVariantError(
+                "quantity 必须是正整数")
+        note = str(payload.get("note") or "").strip()
+        order = order_variants.materialize_variant(
+            variant, self.catalog,
+            order_id=str(payload.get("order_id") or "").strip(),
+            version=1, quantity=int(quantity))
+        preview = self.compiler.preview(order)
+        if not preview.ok:
+            detail = "; ".join(
+                f"{row.code}: {row.message}"
+                for row in preview.diagnostics[:3])
+            raise order_variants.OrderVariantCompileError(
+                f"方案 {variant.variant_id!r} 未通过 validator/compiler: "
+                f"{detail}")
+        saved_note = f"variant:{variant.variant_id}"
+        if note:
+            saved_note = f"{saved_note} | {note}"
+        try:
+            existing = self.repository.get_order(order.order_id)
+        except OrderNotFoundError:
+            existing = None
+        if existing is None:
+            saved = self.repository.create_order(
+                order, source="manual", note=saved_note,
+                catalog_version=self.catalog.version)
+            version = 1
+        else:
+            current = int(existing["current_version"])
+            order = replace(order, version=current + 1)
+            saved = self.repository.create_version(
+                order, expected_version=current, note=saved_note,
+                catalog_version=self.catalog.version)
+            version = current + 1
+        return {
+            "ok": True,
+            "variant_id": variant.variant_id,
+            "saved_order": {
+                "order_id": order.order_id,
+                "version": int(version),
+                "dag_digest": order.dag_digest(),
+            },
+            "order": saved,
+            "preview": preview.as_dict(),
+        }
+
     # ── 订单版本 ────────────────────────────────────────────
 
     def create_order(self, payload: dict, *, source: str = "manual",
@@ -512,6 +624,17 @@ class OrderService:
             return normalize_fleet_mode(value)
         except ValueError as exc:
             raise OrderRunConfigError(str(exc)) from exc
+
+    @staticmethod
+    def normalize_path_reuse(value: object) -> str:
+        """校验并规范化路径复用模式; 非法值在创建 run 前拒绝."""
+        from ..simulation.motion.path_library import PATH_REUSE_MODES
+        mode = str(value or "off").strip() or "off"
+        if mode not in ("off", *PATH_REUSE_MODES):
+            raise OrderRunConfigError(
+                f"未知路径复用模式 {value!r}; "
+                f"可选 off/{'/'.join(PATH_REUSE_MODES)}")
+        return mode
 
     @staticmethod
     def _fleet_policy_version() -> str:
@@ -614,10 +737,12 @@ class OrderService:
 
     def start(self, order_id: str, version: int, *,
               artifact_id: str = "", max_sim_time: float = 1200.0,
-              transport_fleet: str = "single") -> dict:
+              transport_fleet: str = "single",
+              path_reuse: str = "off") -> dict:
         if self.worker is None:
             raise OrderStateError("订单 worker 未配置")
         fleet_mode = self.normalize_transport_fleet(transport_fleet)
+        path_reuse_mode = self.normalize_path_reuse(path_reuse)
         artifact_id = self._resolve_artifact(artifact_id)
         self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
@@ -634,7 +759,7 @@ class OrderService:
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
-            transport_fleet=fleet_mode,
+            transport_fleet=fleet_mode, path_reuse_mode=path_reuse_mode,
             scene_profile=("" if capabilities is None
                            else capabilities.scene_profile),
             planner_transport_fleet=planner_fleet)
@@ -656,9 +781,11 @@ class OrderService:
     def run_sync(self, order_id: str, version: int, runner: Runner, *,
                  artifact_id: str = "",
                  max_sim_time: float = 1200.0,
-                 transport_fleet: str = "single") -> dict:
+                 transport_fleet: str = "single",
+                 path_reuse: str = "off") -> dict:
         """CLI/维护入口: 在当前进程同步执行一次订单运行."""
         fleet_mode = self.normalize_transport_fleet(transport_fleet)
+        path_reuse_mode = self.normalize_path_reuse(path_reuse)
         artifact_id = self._resolve_artifact(artifact_id)
         self._validate_fleet_for_artifact(artifact_id, fleet_mode)
         order = self._load_version_for_run(order_id, version)
@@ -675,7 +802,7 @@ class OrderService:
         command = OrderRunCommand(
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
-            transport_fleet=fleet_mode,
+            transport_fleet=fleet_mode, path_reuse_mode=path_reuse_mode,
             scene_profile=("" if capabilities is None
                            else capabilities.scene_profile),
             planner_transport_fleet=planner_fleet)

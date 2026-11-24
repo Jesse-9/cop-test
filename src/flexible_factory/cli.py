@@ -329,11 +329,14 @@ def _order_runner(ns):
     record_db = Path(ns.db) if ns.run_records == "on" else None
     sim_host = getattr(ns, "sim_host", None) or ns.host
     sim_port = getattr(ns, "sim_port", None) or ns.port
+    path_library_root = getattr(ns, "path_library_root", None)
     return make_order_runner(OrderRunnerConfig(
         host=sim_host, port=int(sim_port),
         artifact_root=(Path(ns.artifact_root) if ns.artifact_root else None),
         record_db=record_db, run_records=(ns.run_records == "on"),
         catalog_source=ns.catalog_source,
+        path_library_root=(Path(path_library_root)
+                           if path_library_root else None),
         log=ns.log, out_dir=Path(ns.out_dir)), catalog=_order_catalog(ns))
 
 
@@ -406,7 +409,7 @@ def cmd_order_start(ns) -> int:
     result = service.run_sync(
         ns.order_id, ns.version, _order_runner(ns),
         artifact_id=ns.artifact_id, max_sim_time=ns.max_time,
-        transport_fleet=ns.transport_fleet)
+        transport_fleet=ns.transport_fleet, path_reuse=ns.path_reuse)
     _print(result)
     return 0 if result.get("status") == "SUCCEEDED" else 1
 
@@ -444,7 +447,8 @@ def cmd_order_stop(ns) -> int:
 
 def cmd_api_serve(ns) -> int:
     service = _order_service(ns, runner=_order_runner(ns))
-    server = OrderApiServer(service, host=ns.host, port=ns.port)
+    server = OrderApiServer(service, host=ns.host, port=ns.port,
+                            default_path_reuse=ns.path_reuse)
     logger = setup_logger(ns.log)
     logger.info("[API] order service listening on %s", server.base_url)
     print(json.dumps({"ok": True, "base_url": server.base_url},
@@ -740,6 +744,14 @@ def build_parser() -> argparse.ArgumentParser:
                    default="single",
                    help="车队编制: single=只用 agv_1 (默认); "
                         "dual=agv_1 跑 B→A、cart_2 跑 D→E (需场景含 Cart2)")
+    p.add_argument("--path-reuse", choices=["off", *PATH_REUSE_MODES],
+                   default="off",
+                   help="固定动作关节路径复用: off 默认; PLAN_ONLY 只规划并"
+                        "导出; CACHE_ONLY 只回放; CACHE_THEN_PLAN 先回放再"
+                        "回退规划. 五臂 PLACING 试点")
+    p.add_argument("--path-library-root",
+                   default=str(spec.PATH_LIBRARY_ROOT),
+                   help="路径记录根目录; 不得位于场景工件目录内")
     p.add_argument("--run-records", choices=["on", "off"], default="on")
     _add_common(p)
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
@@ -784,6 +796,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--artifact-root", default=None)
     p.add_argument("--artifact-id", default="current")
     p.add_argument("--run-records", choices=["on", "off"], default="on")
+    p.add_argument("--path-reuse", choices=["off", *PATH_REUSE_MODES],
+                   default="off",
+                   help="订单运行固定路径复用默认值: off | PLAN_ONLY | "
+                        "CACHE_ONLY | CACHE_THEN_PLAN; 启动请求可覆盖")
+    p.add_argument("--path-library-root",
+                   default=str(spec.PATH_LIBRARY_ROOT),
+                   help="路径记录根目录; 不得位于场景工件目录内")
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
     p.set_defaults(func=cmd_api_serve)

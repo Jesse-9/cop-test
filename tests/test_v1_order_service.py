@@ -249,6 +249,52 @@ def test_service_rejects_unknown_fleet_before_creating_run(database):
     assert service.list_runs(order_id="order-full-flow-001") == []
 
 
+def test_service_passes_path_reuse_mode_to_command(database):
+    seen = {}
+
+    def runner(command, stop):
+        seen["mode"] = command.path_reuse_mode
+        seen["payload"] = command.as_dict()
+        return _success_summary(command)
+
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    run = service.start("order-full-flow-001", 1,
+                        artifact_id="artifact-test",
+                        path_reuse="CACHE_THEN_PLAN")
+    service.worker.wait(run["run_id"], timeout=5)
+    assert seen["mode"] == "CACHE_THEN_PLAN"
+    assert seen["payload"]["path_reuse_mode"] == "CACHE_THEN_PLAN"
+    # 路径复用是运行选项, 不进入订单版本或 DAG digest.
+    status = service.status(run["run_id"])
+    assert status["dag_digest"] == full_flow_order().dag_digest()
+
+
+def test_service_defaults_path_reuse_off(database):
+    seen = {}
+
+    def runner(command, stop):
+        seen["mode"] = command.path_reuse_mode
+        return _success_summary(command)
+
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    run = service.start("order-full-flow-001", 1,
+                        artifact_id="artifact-test")
+    service.worker.wait(run["run_id"], timeout=5)
+    assert seen["mode"] == "off"
+
+
+def test_service_rejects_unknown_path_reuse_before_creating_run(database):
+    service = _service(database, lambda command, stop: _success_summary(command))
+    service.create_order(full_flow_order().as_dict())
+    with pytest.raises(OrderRunConfigError, match="路径复用"):
+        service.start("order-full-flow-001", 1,
+                      artifact_id="artifact-test",
+                      path_reuse="BOGUS")
+    assert service.list_runs(order_id="order-full-flow-001") == []
+
+
 def test_service_rejects_dual_when_artifact_lacks_cart2(database):
     def checker(artifact_id, fleet_mode):
         raise OrderRunConfigError(f"{artifact_id} 缺少 Cart2")
@@ -450,6 +496,55 @@ def test_http_api_contract_and_run_query(database):
             server.base_url, "POST", "/api/orders",
             {"order_id": "bad", "nodes": []})
         assert status == 422
+    finally:
+        server.shutdown()
+        if service.worker is not None:
+            service.worker.shutdown()
+
+
+def test_http_api_path_reuse_default_and_override(database):
+    seen: list[str] = []
+
+    def runner(command, stop):
+        seen.append(command.path_reuse_mode)
+        return _success_summary(command)
+
+    service = _service(database, runner)
+    server = OrderApiServer(
+        service, host="127.0.0.1", port=0,
+        default_path_reuse="CACHE_THEN_PLAN")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        service.create_order(full_flow_order().as_dict())
+
+        status, payload = _request(server.base_url, "GET", "/api/health")
+        assert status == 200, payload
+        assert payload["default_path_reuse"] == "CACHE_THEN_PLAN"
+        assert payload["path_reuse_modes"][0] == "off"
+        assert "CACHE_THEN_PLAN" in payload["path_reuse_modes"]
+
+        status, payload = _request(
+            server.base_url, "POST",
+            "/api/orders/order-full-flow-001/versions/1/start",
+            {"artifact_id": "artifact-test"})
+        assert status == 200, payload
+        _wait_status(server.base_url, payload["run"]["run_id"])
+
+        status, payload = _request(
+            server.base_url, "POST",
+            "/api/orders/order-full-flow-001/versions/1/start",
+            {"artifact_id": "artifact-test", "path_reuse": "off"})
+        assert status == 200, payload
+        _wait_status(server.base_url, payload["run"]["run_id"])
+        assert seen == ["CACHE_THEN_PLAN", "off"]
+
+        status, payload = _request(
+            server.base_url, "POST",
+            "/api/orders/order-full-flow-001/versions/1/start",
+            {"artifact_id": "artifact-test", "path_reuse": "BOGUS"})
+        assert status == 422
+        assert payload["error"]["code"] == "ORDER_RUN_CONFIG"
     finally:
         server.shutdown()
         if service.worker is not None:

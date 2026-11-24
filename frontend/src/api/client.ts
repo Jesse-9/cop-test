@@ -7,6 +7,15 @@ import type {
   OrderHeader,
   OrderSpec,
   OrderSummary,
+  OrderTarget,
+  OrderVariantBranch,
+  OrderVariantCatalog,
+  OrderVariantCreateBody,
+  OrderVariantCreateResponse,
+  OrderVariantDirectInput,
+  OrderVariantScope,
+  OrderVariantSummary,
+  OrderVariantVerification,
   OrderVersionDetail,
   PlannerDraftResponse,
   PlannerInputPayload,
@@ -21,6 +30,7 @@ import type {
   StartRunBody,
   TemplateCatalog,
   TemplateSummary,
+  TransportFleet,
   VersionMeta,
 } from "./types";
 import { KNOWN_ITEM_TYPES, SCENE_PROFILES } from "./types";
@@ -163,8 +173,11 @@ export interface HealthResponse {
   profile_source?: string;
   scene_profiles?: string[];
   scene_profile_version?: string;
+  order_variant_version?: string;
   transport_fleets?: string[];
   fleet_policy_version?: string;
+  path_reuse_modes?: string[];
+  default_path_reuse?: string;
 }
 
 // ── 目录解析边界 ──────────────────────────────────────────────
@@ -398,6 +411,238 @@ export function parseTemplateCatalog(payload: unknown): TemplateCatalog {
   };
 }
 
+// ── 订单方案目录解析边界 ────────────────────────────────────
+
+function variantScope(value: unknown, path: string): OrderVariantScope {
+  const text = catalogString(value, path);
+  if (!["production", "intermediate", "transit"].includes(text)) {
+    throw invalidCatalog(`${path} 未知方案层级 ${text}`);
+  }
+  return text as OrderVariantScope;
+}
+
+function variantVerification(
+  value: unknown,
+  path: string,
+): OrderVariantVerification {
+  const text = catalogString(value, path);
+  if (!["real_run", "planner_test", "compiler_only"].includes(text)) {
+    throw invalidCatalog(`${path} 未知验证级别 ${text}`);
+  }
+  return text as OrderVariantVerification;
+}
+
+function variantTransportFleet(
+  value: unknown,
+  path: string,
+): TransportFleet | "" {
+  const text = catalogString(value, path, { allowEmpty: true });
+  if (text !== "" && text !== "single" && text !== "dual") {
+    throw invalidCatalog(`${path} 未知车队提示 ${text}`);
+  }
+  return text;
+}
+
+function variantTarget(value: unknown, path: string): OrderTarget {
+  const row = catalogRecord(value, path);
+  return {
+    item_type: catalogItemType(row.item_type, `${path}.item_type`),
+    quantity: catalogInteger(row.quantity, `${path}.quantity`),
+  };
+}
+
+function variantBranch(value: unknown, path: string): OrderVariantBranch {
+  const row = catalogRecord(value, path);
+  const outputType = row.output_item_type;
+  return {
+    branch_id: catalogString(row.branch_id, `${path}.branch_id`),
+    entry_item_type: catalogItemType(
+      row.entry_item_type,
+      `${path}.entry_item_type`,
+    ),
+    entry_zone: catalogString(row.entry_zone, `${path}.entry_zone`),
+    steps: catalogArray(row.steps, `${path}.steps`).map((step, index) => {
+      const item = catalogRecord(step, `${path}.steps[${index}]`);
+      return {
+        template_id: catalogString(
+          item.template_id,
+          `${path}.steps[${index}].template_id`,
+        ),
+        to_port: catalogString(
+          item.to_port,
+          `${path}.steps[${index}].to_port`,
+        ),
+      };
+    }),
+    template_ids: catalogStringArray(
+      row.template_ids,
+      `${path}.template_ids`,
+    ),
+    output_zone: catalogString(row.output_zone, `${path}.output_zone`),
+    output_item_type:
+      outputType === null || outputType === undefined
+        ? null
+        : catalogItemType(outputType, `${path}.output_item_type`),
+  };
+}
+
+function variantDirectInput(
+  value: unknown,
+  path: string,
+): OrderVariantDirectInput {
+  const row = catalogRecord(value, path);
+  return {
+    port_id: catalogString(row.port_id, `${path}.port_id`),
+    item_type: catalogItemType(row.item_type, `${path}.item_type`),
+    zone: catalogString(row.zone, `${path}.zone`),
+  };
+}
+
+function parseOrderVariantSummary(
+  value: unknown,
+  path: string,
+): OrderVariantSummary {
+  const row = catalogRecord(value, path);
+  return {
+    variant_id: catalogString(row.variant_id, `${path}.variant_id`),
+    display_name: catalogString(row.display_name, `${path}.display_name`),
+    description: catalogString(row.description, `${path}.description`, {
+      allowEmpty: true,
+    }),
+    scene_profile: catalogProfile(row.scene_profile, `${path}.scene_profile`),
+    scope: variantScope(row.scope, `${path}.scope`),
+    verification: variantVerification(
+      row.verification,
+      `${path}.verification`,
+    ),
+    target: variantTarget(row.target, `${path}.target`),
+    inputs: catalogArray(row.inputs, `${path}.inputs`).map((input, index) => {
+      const item = catalogRecord(input, `${path}.inputs[${index}]`);
+      return {
+        item_type: catalogItemType(
+          item.item_type,
+          `${path}.inputs[${index}].item_type`,
+        ),
+        zone: catalogString(item.zone, `${path}.inputs[${index}].zone`),
+        quantity: catalogInteger(
+          item.quantity,
+          `${path}.inputs[${index}].quantity`,
+        ),
+      };
+    }),
+    branches: catalogArray(row.branches, `${path}.branches`).map(
+      (branch, index) =>
+        variantBranch(branch, `${path}.branches[${index}]`),
+    ),
+    direct_inputs: catalogArray(
+      row.direct_inputs,
+      `${path}.direct_inputs`,
+    ).map((input, index) =>
+      variantDirectInput(input, `${path}.direct_inputs[${index}]`),
+    ),
+    template_ids: catalogStringArray(
+      row.template_ids,
+      `${path}.template_ids`,
+    ),
+    route_ids: catalogStringArray(row.route_ids, `${path}.route_ids`),
+    join_template_id: catalogString(
+      row.join_template_id,
+      `${path}.join_template_id`,
+      { allowEmpty: true },
+    ),
+    join_ports: catalogArray(row.join_ports, `${path}.join_ports`).map(
+      (port, index) => {
+        const item = catalogRecord(
+          port,
+          `${path}.join_ports[${index}]`,
+        );
+        return {
+          branch_id: catalogString(
+            item.branch_id,
+            `${path}.join_ports[${index}].branch_id`,
+          ),
+          port_id: catalogString(
+            item.port_id,
+            `${path}.join_ports[${index}].port_id`,
+          ),
+        };
+      },
+    ),
+    output_zone: catalogString(row.output_zone, `${path}.output_zone`),
+    used_arms: catalogStringArray(row.used_arms, `${path}.used_arms`),
+    used_transports: catalogStringArray(
+      row.used_transports,
+      `${path}.used_transports`,
+    ),
+    difference_from: catalogString(
+      row.difference_from,
+      `${path}.difference_from`,
+      { allowEmpty: true },
+    ),
+    difference_summary: catalogString(
+      row.difference_summary,
+      `${path}.difference_summary`,
+      { allowEmpty: true },
+    ),
+    recommended_transport_fleet: variantTransportFleet(
+      row.recommended_transport_fleet,
+      `${path}.recommended_transport_fleet`,
+    ),
+    route_complete: catalogBoolean(
+      row.route_complete,
+      `${path}.route_complete`,
+    ),
+    available: catalogBoolean(row.available, `${path}.available`),
+    unavailable_reason: catalogString(
+      row.unavailable_reason,
+      `${path}.unavailable_reason`,
+      { allowEmpty: true },
+    ),
+  };
+}
+
+export function parseOrderVariantCatalog(
+  payload: unknown,
+): OrderVariantCatalog {
+  const row = catalogRecord(payload, "variants");
+  const profileSource = catalogString(
+    row.profile_source,
+    "variants.profile_source",
+  );
+  if (!["manifest", "default", "unbound"].includes(profileSource)) {
+    throw invalidCatalog(
+      `variants.profile_source 未知值 ${profileSource}`,
+    );
+  }
+  const sceneProfileRaw = catalogString(
+    row.scene_profile,
+    "variants.scene_profile",
+    { allowEmpty: true },
+  );
+  const sceneProfile =
+    sceneProfileRaw === ""
+      ? ""
+      : catalogProfile(sceneProfileRaw, "variants.scene_profile");
+  return {
+    artifact_id: catalogString(row.artifact_id, "variants.artifact_id", {
+      allowEmpty: true,
+    }),
+    scene_profile: sceneProfile,
+    profile_source: profileSource as OrderVariantCatalog["profile_source"],
+    variant_version: catalogString(
+      row.variant_version,
+      "variants.variant_version",
+    ),
+    variants: catalogArray(row.variants, "variants.variants").map(
+      (variant, index) =>
+        parseOrderVariantSummary(
+          variant,
+          `variants.variants[${index}]`,
+        ),
+    ),
+  };
+}
+
 export const api = {
   health: () => request<HealthResponse>("/health"),
   templates: async (artifact?: string) => {
@@ -406,6 +651,26 @@ export const api = {
       : "";
     const payload = await request<unknown>(`/templates${query}`);
     return parseTemplateCatalog(payload);
+  },
+  orderVariants: async (artifact?: string) => {
+    const query = artifact
+      ? `?artifact_id=${encodeURIComponent(artifact)}`
+      : "";
+    const payload = await request<unknown>(`/order-variants${query}`);
+    return parseOrderVariantCatalog(payload);
+  },
+  createOrderFromVariant: (
+    variantId: string,
+    body: OrderVariantCreateBody,
+    artifact?: string,
+  ) => {
+    const query = artifact
+      ? `?artifact_id=${encodeURIComponent(artifact)}`
+      : "";
+    return request<OrderVariantCreateResponse>(
+      `/order-variants/${encodeURIComponent(variantId)}/orders${query}`,
+      { method: "POST", body },
+    );
   },
   fleet: (artifact?: string) => {
     const query = artifact ? `?artifact_id=${encodeURIComponent(artifact)}` : "";

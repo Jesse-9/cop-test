@@ -33,6 +33,9 @@ ORDER_PLANNER_POLICY_VERSION = "v1_planner_20261121b"
 # 场景 profile 能力目录版本; 只随 profile 判定/能力过滤规则变化递增.
 # 它不写入订单 DAG digest, 也不是工件 config_digest 的一部分.
 SCENE_PROFILE_VERSION = "v1_scene_profile_20261121"
+# 订单方案目录版本; 只随内置 OrderVariant 定义/生成/分类规则变化递增.
+# 方案创建仍生成普通订单, 不写入 OrderSpec 或 DAG digest.
+ORDER_VARIANT_VERSION = "v1_order_variants_20261122"
 # 订单运行车队固定分工策略版本; 只随 single/dual 分工表或已验证组合变化
 # 递增. 版本写入订单运行元数据, 不写入订单版本或 DAG digest.
 FLEET_POLICY_VERSION = "v1_fleet_20261119"

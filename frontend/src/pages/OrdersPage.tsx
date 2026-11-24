@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import type { OrderSummary, OrderTarget } from "../api/types";
+import { OrderVariantCatalog } from "../components/OrderVariantCatalog";
 import {
   ORDER_STATUS_LABELS,
   SOURCE_LABELS,
@@ -15,6 +16,7 @@ interface OrderRow {
   order: OrderSummary;
   target: OrderTarget | null;
   digest: string;
+  variantId: string;
 }
 
 export function OrdersPage() {
@@ -38,13 +40,18 @@ export function OrdersPage() {
               order.order_id,
               order.current_version,
             );
+            const note = version.version.note ?? "";
+            const variantId = note.startsWith("variant:")
+              ? note.slice("variant:".length).split("|")[0].trim()
+              : "";
             return {
               order,
               target: version.version.spec.target,
               digest: version.version.dag_digest,
+              variantId,
             };
           } catch {
-            return { order, target: null, digest: "" };
+            return { order, target: null, digest: "", variantId: "" };
           }
         }),
       );
@@ -99,6 +106,7 @@ export function OrdersPage() {
           </>
         }
       />
+      <OrderVariantCatalog />
       {error ? (
         <InlineError message={error} onRetry={() => void load()} />
       ) : null}
@@ -168,7 +176,7 @@ export function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(({ order, target, digest }) => {
+              {filtered.map(({ order, target, digest, variantId }) => {
                 const run = order.latest_run;
                 return (
                   <tr key={order.order_id}>
@@ -186,9 +194,16 @@ export function OrdersPage() {
                         : "未记录"}
                     </td>
                     <td>
-                      <Badge tone={order.source === "planner" ? "accent" : "neutral"}>
-                        {SOURCE_LABELS[order.source]}
-                      </Badge>
+                      <div className="stack-tight">
+                        <Badge tone={order.source === "planner" ? "accent" : "neutral"}>
+                          {SOURCE_LABELS[order.source]}
+                        </Badge>
+                        {variantId ? (
+                          <Badge tone="accent" title={`variant:${variantId}`}>
+                            方案
+                          </Badge>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="mono">v{order.current_version}</td>
                     <td>
