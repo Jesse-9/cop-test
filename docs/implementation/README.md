@@ -59,12 +59,12 @@
 
 ### 仿真工程
 
-仿真模块职责、代码拆分、运动规划性能、五臂路径回放扩展与启动性能计时。
+仿真模块职责、代码拆分、运动规划性能、五臂路径回放扩展、运行录像与启动性能计时。
 
 | 类型 | 文档 |
 |---|---|
 | 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能与路径回放](plans/simulation/simulation-motion-planning-performance.md) · [五臂路径回放扩展](plans/simulation/v1-all-arm-path-reuse-extension.md) · [启动性能优化](plans/simulation/v1-startup-performance-optimization.md) |
-| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [运动规划性能报告](reports/simulation/v1-motion-planning-performance.md) · [五臂路径回放扩展报告](reports/simulation/v1-all-arm-path-reuse.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
+| 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [运动规划性能报告](reports/simulation/v1-motion-planning-performance.md) · [五臂路径回放扩展报告](reports/simulation/v1-all-arm-path-reuse.md) · [运行录像报告](reports/simulation/v1-simulation-recording.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
 | 参考 | [仿真模块清单](reference/simulation/simulation-module-inventory.md) |
 | 证据 | [仿真工程证据](evidence/simulation/) |
 

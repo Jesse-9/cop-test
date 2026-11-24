@@ -63,6 +63,7 @@ status: published
 | [五臂固定路径回放扩展](../plans/simulation/v1-all-arm-path-reuse-extension.md) | [实施报告](../reports/simulation/v1-all-arm-path-reuse.md)、[full_flow 证据](../evidence/simulation/v1_full_flow_path_reuse_20261121.json) | implemented；五臂 `PLACING`、`run --path-reuse`、`docs/path_library`；v005 full_flow 9 次查找/7 次回放/2 次 B/D 回退，A/C/E `planner_calls=0`，两次 acceptance 均通过；离线 773 passed / 8 skipped；其他运动段、订单 runner、P2/P3 未纳入 |
 | [v1 启动性能优化](../plans/simulation/v1-startup-performance-optimization.md) | [启动阶段计时工具](../../../tools/measure_startup_stages.py)、[实施报告](../reports/simulation/v1-startup-performance-optimization.md)、[计时证据](../evidence/simulation/)、[使用指南](../../wiki/98-ProjectUsage/USAGE.md) | partially-implemented；P1/P2 已实施并完成启动计时（prepare 12.1–12.2 s，alias 缓存后 8.5–9.6 s；shadow 20.3–21.4 s；最新 `startup_total_wall` 79.97–88.61 s）；pytest 615 passed / 7 skipped；full_flow 功能验收通过（1 FINAL/343.85 s），清理修复复测 leftover=[]；P3 4 臂子集订单通过（B 跳过，1 FINAL，leftover=[]）；P4 未实施 |
 | [仿真模块代码优化](../plans/simulation/simulation-code-optimization-plan.md) | [实施报告](../reports/simulation/v1-simulation-code-optimization.md)、[模块清单](../reference/simulation/simulation-module-inventory.md) | P1/P2、P3 5.1/5.3 与第 6 节已实施并离线验证；5.2 未实施 |
+| [v1 运行录像](../reports/simulation/v1-simulation-recording.md) | [使用指南](../../wiki/98-ProjectUsage/USAGE.md) | implemented（离线）；`run`/`order start`/`api serve` 的 `--record*` 与前端启动开关、Range 视频接口；后端 813 passed / 8 skipped，前端 16 passed；已完成 20 s 实机短片验证，完整 full_flow 录像未执行 |
 
 ## 命名约定
 

@@ -15,6 +15,7 @@ import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from .. import spec
 from ..application.orders import OrderService
 from ..domain.order_variants import (OrderVariantError,
                                      OrderVariantNotFoundError)
@@ -49,6 +50,7 @@ class ApiError(RuntimeError):
 class OrderApiHandler(BaseHTTPRequestHandler):
     service: OrderService
     default_path_reuse = "off"
+    default_record = False
     server_version = "flexible-factory-order-api/1.0"
 
     # ── 路由 ────────────────────────────────────────────────
@@ -61,6 +63,11 @@ class OrderApiHandler(BaseHTTPRequestHandler):
 
     def _handle(self, method: str) -> None:
         try:
+            if method == "GET":
+                run_id = _video_run_id(self.path)
+                if run_id:
+                    self._serve_video(run_id)
+                    return
             payload = self._dispatch(method)
             self._json(200, {"ok": True, **payload})
         except ApiError as exc:
@@ -212,13 +219,18 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             if max_sim_time <= 0:
                 raise ApiError(400, "INVALID_MAX_SIM_TIME",
                                "max_sim_time 必须是正数")
+            record = body.get("record", self.default_record)
+            if not isinstance(record, bool):
+                raise ApiError(400, "INVALID_RECORD",
+                               "record 必须是布尔值")
             result = self.service.start(
                 order_id, version,
                 artifact_id=str(body.get("artifact_id") or ""),
                 max_sim_time=max_sim_time,
                 transport_fleet=str(body.get("transport_fleet") or "single"),
                 path_reuse=str(body.get("path_reuse")
-                               or self.default_path_reuse or "off"))
+                               or self.default_path_reuse or "off"),
+                record=record)
             return {"run": result}
         raise ApiError(404, "NOT_FOUND", f"未知订单动作 {action!r}")
 
@@ -296,6 +308,8 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             "fleet_policy_version": FLEET_POLICY_VERSION,
             "path_reuse_modes": ["off", *PATH_REUSE_MODES],
             "default_path_reuse": self.default_path_reuse,
+            "recording_version": spec.RECORDING_VERSION,
+            "default_record": bool(self.default_record),
         }
 
     @staticmethod
@@ -337,6 +351,58 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _serve_video(self, run_id: str) -> None:
+        """按 Range 返回运行录像; 供浏览器 <video> 播放与拖动."""
+        try:
+            path = self.service.video_path(run_id)
+        except OrderStateError as exc:
+            self._json(409, _domain_error("VIDEO_NOT_READY", exc))
+            return
+        except _NOT_FOUND_ERRORS as exc:
+            self._json(404, _domain_error(
+                getattr(exc, "code", "NOT_FOUND"), exc))
+            return
+        size = int(path.stat().st_size)
+        start, end, status = 0, max(size - 1, 0), 200
+        raw_range = (self.headers.get("Range") or "").strip()
+        if raw_range.startswith("bytes="):
+            spec_range = raw_range[len("bytes="):].split(",")[0].strip()
+            first, _, last = spec_range.partition("-")
+            try:
+                if first:
+                    start = int(first)
+                    end = int(last) if last else size - 1
+                elif last:
+                    start = max(size - int(last), 0)
+                    end = size - 1
+            except ValueError:
+                start, end = 0, size - 1
+            if start >= size or end < start:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            end = min(end, size - 1)
+            status = 206
+        length = end - start + 1
+        self.send_response(status)
+        self.send_header("Content-Type", "video/mp4")
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(length))
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        with path.open("rb") as handle:
+            handle.seek(start)
+            remaining = length
+            while remaining > 0:
+                chunk = handle.read(min(65536, remaining))
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                remaining -= len(chunk)
+
     def log_message(self, fmt: str, *args) -> None:
         LOGGER.info("[API] %s - %s", self.address_string(), fmt % args)
 
@@ -352,6 +418,15 @@ def _domain_error(code: str, exc: Exception, *, path: str = "",
             "diagnostics": list(diagnostics or []),
         },
     }
+
+
+def _video_run_id(path: str) -> str:
+    """``/api/runs/<run_id>/video`` → run_id; 其他路径返回空串."""
+    parts = [unquote(part) for part in urlsplit(path).path.split("/") if part]
+    if len(parts) == 4 and parts[0] == "api" and parts[1] == "runs" \
+            and parts[3] == "video":
+        return parts[2]
+    return ""
 
 
 def _parse_version(raw: str) -> int:
@@ -382,10 +457,12 @@ class OrderApiServer:
 
     def __init__(self, service: OrderService, *, host: str = "127.0.0.1",
                  port: int = 8080,
-                 default_path_reuse: str = "off") -> None:
+                 default_path_reuse: str = "off",
+                 default_record: bool = False) -> None:
         handler = type("BoundOrderApiHandler", (OrderApiHandler,),
                        {"service": service,
-                        "default_path_reuse": str(default_path_reuse or "off")})
+                        "default_path_reuse": str(default_path_reuse or "off"),
+                        "default_record": bool(default_record)})
         self._httpd = ThreadingHTTPServer((str(host), int(port)), handler)
         self._httpd.daemon_threads = True
         self.host = str(host)

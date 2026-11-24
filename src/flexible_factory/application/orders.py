@@ -19,6 +19,7 @@ import threading
 import uuid
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable, Optional
 
 from .. import spec
@@ -55,6 +56,8 @@ class OrderRunCommand:
     transport_fleet: str = "single"
     #: 固定动作关节路径复用模式; 运行选项, 不写入订单版本/DAG.
     path_reuse_mode: str = "off"
+    #: 本次运行是否录制视频; 运行选项, 不写入订单版本/DAG.
+    record: bool = False
     #: 启动工件 manifest 判定的场景 profile; 仅用于运行报告追溯.
     scene_profile: str = ""
     #: planner 草稿保存时的车队假设 (可为空); 仅用于运行报告对照.
@@ -72,6 +75,7 @@ class OrderRunCommand:
             "max_sim_time": float(self.max_sim_time),
             "transport_fleet": self.transport_fleet,
             "path_reuse_mode": self.path_reuse_mode,
+            "record": bool(self.record),
             "scene_profile": self.scene_profile,
             "planner_transport_fleet": self.planner_transport_fleet,
         }
@@ -245,6 +249,8 @@ class OrderSimulationWorker:
                 != state.command.transport_fleet),
             "fleet": (state.progress_data.get("fleet")
                       or (state.summary or {}).get("fleet")),
+            "recording": ((state.summary or {}).get("recording")
+                          or state.progress_data.get("recording")),
             "status": (state.status if finished else
                        state.progress_data.get("status") or state.status),
             "order_status": ("" if finished else
@@ -637,6 +643,17 @@ class OrderService:
         return mode
 
     @staticmethod
+    def _validate_record(record: object) -> None:
+        """显式请求录制时在创建 run 前检查 ffmpeg; 不可用直接拒绝."""
+        if not record:
+            return
+        from .recording import RecordingError, ensure_available
+        try:
+            ensure_available()
+        except RecordingError as exc:
+            raise OrderRunConfigError(f"录制不可用: {exc}") from exc
+
+    @staticmethod
     def _fleet_policy_version() -> str:
         from ..simulation.transport_fleet import FLEET_POLICY_VERSION
         return FLEET_POLICY_VERSION
@@ -738,9 +755,10 @@ class OrderService:
     def start(self, order_id: str, version: int, *,
               artifact_id: str = "", max_sim_time: float = 1200.0,
               transport_fleet: str = "single",
-              path_reuse: str = "off") -> dict:
+              path_reuse: str = "off", record: bool = False) -> dict:
         if self.worker is None:
             raise OrderStateError("订单 worker 未配置")
+        self._validate_record(record)
         fleet_mode = self.normalize_transport_fleet(transport_fleet)
         path_reuse_mode = self.normalize_path_reuse(path_reuse)
         artifact_id = self._resolve_artifact(artifact_id)
@@ -760,6 +778,7 @@ class OrderService:
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
             transport_fleet=fleet_mode, path_reuse_mode=path_reuse_mode,
+            record=bool(record),
             scene_profile=("" if capabilities is None
                            else capabilities.scene_profile),
             planner_transport_fleet=planner_fleet)
@@ -782,8 +801,9 @@ class OrderService:
                  artifact_id: str = "",
                  max_sim_time: float = 1200.0,
                  transport_fleet: str = "single",
-                 path_reuse: str = "off") -> dict:
+                 path_reuse: str = "off", record: bool = False) -> dict:
         """CLI/维护入口: 在当前进程同步执行一次订单运行."""
+        self._validate_record(record)
         fleet_mode = self.normalize_transport_fleet(transport_fleet)
         path_reuse_mode = self.normalize_path_reuse(path_reuse)
         artifact_id = self._resolve_artifact(artifact_id)
@@ -803,6 +823,7 @@ class OrderService:
             order=order, compiled=compiled, run_id=run_id,
             artifact_id=artifact_id, max_sim_time=float(max_sim_time),
             transport_fleet=fleet_mode, path_reuse_mode=path_reuse_mode,
+            record=bool(record),
             scene_profile=("" if capabilities is None
                            else capabilities.scene_profile),
             planner_transport_fleet=planner_fleet)
@@ -820,6 +841,8 @@ class OrderService:
         live = self.worker.status(run_id) if self.worker is not None else None
         persisted = dict(persisted)
         result = persisted.get("result") or {}
+        persisted["recording"] = ((live or {}).get("recording")
+                                  or result.get("recording"))
         persisted["fleet"] = ((live or {}).get("fleet")
                               or result.get("fleet"))
         if live is not None and not live.get("finished_at"):
@@ -857,6 +880,20 @@ class OrderService:
 
     def list_runs(self, *, order_id: str = "", limit: int = 50) -> list[dict]:
         return self.repository.list_runs(order_id=order_id, limit=limit)
+
+    def video_path(self, run_id: str) -> Path:
+        """返回已完成运行的录像文件; 未录制或未生成时抛 OrderStateError."""
+        run = self.repository.get_run(run_id)
+        result = run.get("result") or {}
+        recording = result.get("recording") or {}
+        raw = str(recording.get("path") or "")
+        if not raw:
+            raise OrderStateError(f"运行 {run_id} 没有录像")
+        path = Path(raw)
+        if not path.is_file():
+            raise OrderStateError(
+                f"运行 {run_id} 的录像文件不存在: {path}")
+        return path
 
     def stop(self, run_id: str) -> dict:
         live = self.worker.status(run_id) if self.worker is not None else None
@@ -956,7 +993,7 @@ def _compact_result(summary: Optional[dict], status: str,
             "stop_reason", "order_status", "batch", "metrics",
             "active_unit_ids", "runtime_destroy", "failure_summary",
             "transport_fleet", "scene_profile", "fleet",
-            "planner_fleet_assumption", "acceptance")
+            "planner_fleet_assumption", "acceptance", "recording")
     compact = {key: summary[key] for key in keys if key in summary}
     compact["status"] = status
     if error:

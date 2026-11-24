@@ -330,6 +330,48 @@ export function RunPage() {
         </aside>
       </div>
 
+      {run.recording ? (
+        <section className="panel">
+          <SectionTitle
+            title="运行录像"
+            description="可选旁路；录制失败只标记本面板，不改变运行状态与结果。"
+          />
+          {run.recording.status === "recording" ? (
+            <p className="muted">
+              录制中 · 已采集 {run.recording.frames ?? 0} 帧…
+            </p>
+          ) : run.recording.status === "ok" ||
+            run.recording.status === "partial" ? (
+            <>
+              <video
+                className="run-video"
+                controls
+                preload="metadata"
+                src={`/api/runs/${encodeURIComponent(run.run_id)}/video`}
+              />
+              <p className="muted">
+                {run.recording.frames ?? 0} 帧 · 视频{" "}
+                {(run.recording.video_seconds ?? 0).toFixed(1)} s
+                {run.recording.status === "partial"
+                  ? " · 运行中止，录像为部分内容"
+                  : ""}
+                {" · "}
+                <a
+                  href={`/api/runs/${encodeURIComponent(run.run_id)}/video`}
+                  download
+                >
+                  下载 MP4
+                </a>
+              </p>
+            </>
+          ) : (
+            <InlineNotice tone="warning">
+              录像不可用：{run.recording.error || "录制失败"}（运行结果不受影响）
+            </InlineNotice>
+          )}
+        </section>
+      ) : null}
+
       <section className="panel">
         <SectionTitle
           title="节点表"

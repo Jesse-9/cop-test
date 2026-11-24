@@ -42,6 +42,9 @@ FLEET_POLICY_VERSION = "v1_fleet_20261119"
 # 运行边界有限批次输入版本; 只随 profile 表或校验规则变化递增. 批次只
 # 影响单次运行, 不写入场景/manifest, 也不改变冻结的 config_digest.
 BATCH_INPUT_VERSION = "v1_batch_20261105"
+# 运行录像版本; 只随抽帧/编码/元数据语义变化递增. 录制是运行旁路,
+# 不写入场景工件、订单版本或 DAG digest.
+RECORDING_VERSION = "v1_recording_20261124"
 AGV_ROUTE_VERSION = "v1_agv_route_20261103"
 MATERIAL_MODEL_VERSION = "v1_materials_20261103"
 METRICS_VERSION = "v1_metrics_20261103"
@@ -63,6 +66,9 @@ DEFAULT_LOG_FILE = "flexible_factory.log"
 
 # 目录数据库默认位置: 本地运行数据, 不写入受保护的场景工件目录.
 CATALOG_DB = Path("var") / "catalog" / "catalog.db"
+
+# 运行录像默认位置: 本地运行产物, 不写入受保护的场景工件目录.
+RECORDING_DIR = Path("var") / "recordings"
 
 # CoppeliaSim 内置模型 (与已有实测基线一致; 不随 v1 改名).
 MODEL_BASE = r"C:\Program Files\CoppeliaRobotics\CoppeliaSimEdu\models"

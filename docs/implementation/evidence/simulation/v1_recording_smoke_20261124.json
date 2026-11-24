@@ -1,0 +1,36 @@
+{
+  "evidence_id": "v1_recording_smoke_20261124",
+  "recorded_at": "2026-11-24",
+  "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+  "recording_version": "v1_recording_20261124",
+  "command": "flexible-factory run --scenario full_flow --no-load --record on",
+  "runs": [
+    {
+      "max_sim_time": 20.0,
+      "resolution": [640, 360],
+      "sample_dt": 0.2,
+      "status": "ok",
+      "frames": 99,
+      "duplicated_frames": 0,
+      "sim_seconds": 19.6,
+      "video_seconds": 4.95,
+      "run_report": "docs/implementation/runs/v1_run_full_flow_20261124_101600.json"
+    },
+    {
+      "max_sim_time": 10.0,
+      "resolution": [1280, 720],
+      "sample_dt": 0.1,
+      "status": "ok",
+      "frames": 99,
+      "duplicated_frames": 0,
+      "sim_seconds": 9.8,
+      "video_seconds": 4.95,
+      "run_report": "docs/implementation/runs/v1_run_full_flow_20261124_103319.json"
+    }
+  ],
+  "notes": [
+    "两次运行均在 max_sim_time 上限处结束，all_ok=false 属预期，不是录制失败",
+    "录像文件位于 Git 忽略的 var/recordings/，本证据只保留元数据",
+    "完整 full_flow 录像、掉帧率和每步渲染开销尚未测量"
+  ]
+}

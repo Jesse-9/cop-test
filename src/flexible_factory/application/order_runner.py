@@ -25,6 +25,8 @@ from ..domain.process_model import ProcessCatalog
 from ..persistence.db import CatalogDatabase
 from ..persistence.runs import RunRecorder
 from ..simulation import config as cfg
+from .recording import (DEFAULT_SAMPLE_DT, DEFAULT_SIZE, RecordingOptions,
+                        make_recorder, parse_size)
 
 if TYPE_CHECKING:
     from .orders import OrderRunCommand
@@ -42,6 +44,10 @@ class OrderRunnerConfig:
     out_dir: Path = spec.REPORT_DIR
     #: 路径库根目录; None 时使用 spec.PATH_LIBRARY_ROOT (docs/path_library).
     path_library_root: Optional[Path] = None
+    #: 录像输出目录与编码参数; 单次请求只切换是否录制.
+    record_dir: Path = spec.RECORDING_DIR
+    record_size: str = DEFAULT_SIZE
+    record_sample_dt: float = DEFAULT_SAMPLE_DT
 
 
 def required_arm_units(compiled) -> tuple[str, ...]:
@@ -61,6 +67,34 @@ def required_arm_units(compiled) -> tuple[str, ...]:
             if text.startswith("arm_"):
                 wanted.add(text[len("arm_"):])
     return tuple(unit_id for unit_id in cfg.UNIT_IDS if unit_id in wanted)
+
+
+def recording_options(config: OrderRunnerConfig) -> RecordingOptions:
+    """由服务级配置构造单次运行的录制选项; 非法值抛 ValueError."""
+    width, height = parse_size(config.record_size)
+    options = RecordingOptions(
+        enabled=True, out_dir=Path(config.record_dir), width=width,
+        height=height, sample_dt=float(config.record_sample_dt))
+    options.validate()
+    return options
+
+
+def _start_video(sim, command: "OrderRunCommand",
+                 config: OrderRunnerConfig, scene, logger):
+    """按命令开关启动录制; 配置非法或启动失败时本次不录, 运行继续."""
+    if not command.record:
+        return None
+    try:
+        options = recording_options(config)
+    except ValueError as exc:
+        logger.warning("[RECORDING] 配置无效, 本次不录制: %s", exc)
+        return None
+    recorder = make_recorder(
+        sim, command.run_id, options,
+        layout=getattr(scene, "stage4_layout", None), logger=logger)
+    if recorder is not None:
+        recorder.start()
+    return recorder
 
 
 def make_order_runner(config: OrderRunnerConfig,
@@ -107,6 +141,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         sim, simIK, host=config.host, port=config.port, actor="order",
         artifact_root=config.artifact_root, report_dir=Path(config.out_dir))
     recorder = None
+    video = None
     coordinator = None
     summary: Optional[dict] = None
     try:
@@ -136,6 +171,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         comp = build_components_v1(
             sim, simIK, manager.scene, logger, unit_ids=unit_ids)
         start_stepping(sim)
+        video = _start_video(sim, command, config, manager.scene, logger)
         coordinator = Stage4Coordinator(
             sim, manager.scene, comp, scenario=cfg.SCENARIO_FULL_FLOW,
             catalog=catalog, order_plan=command.compiled,
@@ -153,6 +189,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                 break
             coordinator.step()
             steps += 1
+            if video is not None:
+                video.capture_if_due()
             if command.progress is not None:
                 # 仅内存快照, 不写数据库; HTTP 查询从 worker 读取.
                 command.progress({
@@ -161,6 +199,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                     "sim_time": round(float(sim.getSimulationTime()), 4),
                     "transport_fleet": coordinator.fleet_config.mode,
                     "fleet": coordinator.fleet_summary(),
+                    "recording": (None if video is None
+                                  else video.status()),
                     "nodes": [row.as_dict()
                               for row in coordinator.op_runtime.instances()],
                     "events": list(coordinator.events[-500:]),
@@ -177,6 +217,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                     "WALL_CLOCK_TIMEOUT", coordinator._sim_time(),
                     abort=True)
                 break
+        video_info = None if video is None else video.close()
         summary = coordinator.summary()
         if reuse is not None:
             reuse_summary = dict(reuse_info)
@@ -197,6 +238,7 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         summary["artifact_id"] = command.artifact_id
         summary["scene_profile"] = command.scene_profile
         summary["active_unit_ids"] = list(unit_ids)
+        summary["recording"] = video_info
         summary["all_ok"] = bool(
             (summary.get("acceptance") or {}).get("ok"))
         summary["lifecycle"] = manager.finish_run(
@@ -208,6 +250,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
         logger.exception("[ORDER] run %s 失败: %s", command.run_id, error)
+        if video is not None:
+            video.close(error=error)
         if recorder is not None:
             recorder.finish(coordinator, summary, error=error)
         try:
@@ -220,6 +264,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
             stop_simulation(sim)
         except Exception:
             logger.exception("[ORDER] stop_simulation 失败")
+        if video is not None:
+            video.close()
         if coordinator is not None:
             try:
                 destroy_report = coordinator.runtime.destroy()

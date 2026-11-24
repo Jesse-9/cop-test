@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- 运行录像：新增 `application/recording.py`（`v1_recording_20261124`），在
+  worker 启动点校验后创建临时 vision sensor，按仿真时间抽帧并由
+  `imageio-ffmpeg` 编码 MP4，输出 `var/recordings/<run_id>.mp4` 和同名
+  `.json`；编码/写盘/相机失败只标记 `recording.status=failed/partial`，
+  不改变运行结果或退出码。`run`/`order start`/`api serve` 共用
+  `--record {on,off}`、`--record-dir`、`--record-size`、`--record-sample-dt`
+  （`api serve` 用 `--record-default`），`OrderRunCommand.record` 与
+  `OrderService.start()/run_sync(record=...)` 透传到 worker。API 启动 body
+  接受 `record`，运行详情返回 `recording`，新增
+  `GET /api/runs/{run_id}/video`（Range/206）；前端启动对话框增加录制开关，
+  运行页增加播放/下载面板。`imageio-ffmpeg` 移入运行时依赖；无 DB 迁移，
+  不写场景工件，不改 `config_digest()`/`layout_digest()`。后端 813 passed /
+  8 skipped，前端 16 passed、typecheck/build 通过；已在 v005 上完成 20 s
+  实机短片验证（99 帧 / 4.95 s，`status=ok`），完整 `full_flow` 录像与
+  性能开销未测。
+  见 `docs/implementation/reports/simulation/v1-simulation-recording.md`。
+
 - 订单运行路径复用接入：`OrderRunCommand.path_reuse_mode`、
   `OrderService.start()/run_sync()` 的模式校验、API start body
   `path_reuse`、`api serve`/`order start` 的 `--path-reuse` /

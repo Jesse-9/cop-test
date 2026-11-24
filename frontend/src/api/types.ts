@@ -558,7 +558,27 @@ export interface RunDetail extends RunMeta {
   cancelled_count: number;
   nodes: RunNode[];
   fleet?: FleetSummary | null;
+  recording?: RunRecording | null;
   live?: Record<string, unknown> | null;
+}
+
+export type RecordingStatus =
+  | "idle"
+  | "recording"
+  | "ok"
+  | "partial"
+  | "failed";
+
+/** 运行录像元数据；录制是旁路，失败不影响运行结果. */
+export interface RunRecording {
+  version?: string;
+  run_id?: string;
+  status: RecordingStatus;
+  path?: string;
+  frames?: number;
+  sim_seconds?: number;
+  video_seconds?: number;
+  error?: string;
 }
 
 export interface RunEvent {
@@ -582,6 +602,7 @@ export interface StartRunBody {
   max_sim_time?: number;
   transport_fleet?: TransportFleet;
   path_reuse?: PathReuseMode;
+  record?: boolean;
 }
 
 export interface PlannerDraftResponse {

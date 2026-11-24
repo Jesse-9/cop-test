@@ -41,7 +41,8 @@ src/flexible_factory/
                      catalog seed 导入/发布/只读仓储、知识图谱导入、运行记录、
                      版本化订单仓储
   application/       lifecycle, coordinator, run, batch, catalog, knowledge,
-                     report, orders (service/worker), order_runner, planner
+                     report, orders (service/worker), order_runner, planner,
+                     recording（运行录像旁路）
   api/               本地订单 HTTP adapter（仅传输层）
   cli.py             唯一命令入口
 frontend/            独立 React/TypeScript 订单工作台 (阶段 5);
@@ -228,6 +229,15 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   运行报告按臂记录 `lookup/replay/fallback/planner_calls` 和墙钟。
   不新增 `config*.py` 常量，不改 `config_digest()`/`layout_digest()`；
   记录不得保存 CoppeliaSim 句柄或旧 context，回放不得取消执行期联锁。
+- `application/recording.py` 是运行录像的唯一边路（版本
+  `v1_recording_20261124`）：只使用 worker 持有的 `sim`，在启动点校验和
+  `start_stepping()` 之后创建临时 vision sensor，按固定仿真时间抽帧，
+  由 `imageio-ffmpeg` 编码为 MP4；输出 `var/recordings/<run_id>.mp4` 与
+  同名 `.json`。相机不写入场景工件，录制失败只标记
+  `failed`/`partial`，不得改变运行结果、退出码或运行记录。`run`、
+  `order start`、`api serve` 共用 `--record*`，前端启动开关经 API 启动
+  body 的 `record` 透传；`GET /api/runs/{run_id}/video` 支持 Range。
+  录像不参与 `config_digest()`/`layout_digest()`，不写入订单版本/DAG。
 - `simulation/device_handle_map.py` 已按“无生产消费者”删除；别名唯一性
   仍由场景解析与 `contract.py` 校验，不引入第二套句柄表。
 - `unit_controller_motion.ConveyorPickContext` 是运动层与 UFLOW 层共享的

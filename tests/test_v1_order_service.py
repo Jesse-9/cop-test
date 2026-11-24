@@ -549,3 +549,40 @@ def test_http_api_path_reuse_default_and_override(database):
         server.shutdown()
         if service.worker is not None:
             service.worker.shutdown()
+
+
+def test_record_flag_reaches_runner_command(database, monkeypatch):
+    seen: list[bool] = []
+
+    def runner(command, stop):
+        seen.append(command.record)
+        return _success_summary(command)
+
+    monkeypatch.setattr(OrderService, "_validate_record",
+                        staticmethod(lambda record: None))
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    started = service.start("order-full-flow-001", 1,
+                            artifact_id="artifact-test", record=True)
+    service.worker.wait(started["run_id"], timeout=5)
+    assert seen == [True]
+    assert service.worker.status(started["run_id"])["status"] == "SUCCEEDED"
+    service.worker.shutdown()
+
+
+def test_status_projects_recording_from_summary(database):
+    def runner(command, stop):
+        summary = _success_summary(command)
+        summary["recording"] = {"status": "ok", "frames": 3,
+                                "path": "var/recordings/x.mp4"}
+        return summary
+
+    service = _service(database, runner)
+    service.create_order(full_flow_order().as_dict())
+    started = service.start("order-full-flow-001", 1,
+                            artifact_id="artifact-test")
+    service.worker.wait(started["run_id"], timeout=5)
+    status = service.status(started["run_id"])
+    assert status["recording"]["status"] == "ok"
+    assert status["result"]["recording"]["frames"] == 3
+    service.worker.shutdown()
