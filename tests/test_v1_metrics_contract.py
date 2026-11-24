@@ -7,7 +7,8 @@ import json
 from flexible_factory.simulation.conveyor import BeltGeometry, transport_step
 from flexible_factory.simulation.motion.conveyor_safety import bounded_transport_step
 from flexible_factory.simulation import config as cfg
-from flexible_factory.domain.metrics import recompute_metrics
+from flexible_factory.domain.metrics import (recompute_metrics,
+                                             recompute_order_metrics)
 from flexible_factory.simulation.contract import (
     build_contract_extra as build_stage4_extra,
     config_digest as stage4_config_digest,
@@ -156,3 +157,82 @@ def test_x_oriented_belt_transport_unchanged():
     step = transport_step((-0.5, 0.02, 0.50), geometry, 0.2, 0.05)
     assert abs(step.new_position[0] - (-0.5 + step.delta)) < 1e-9
     assert abs(step.new_position[1] - 0.02) < 1e-9
+
+
+# ═══════════════════════════════════════════════════════════════
+# 阶段 5 WP1: 订单级调度指标可从事件重算
+# ═══════════════════════════════════════════════════════════════
+
+def test_order_metrics_recompute_is_deterministic_and_scoped():
+    events = [
+        _event("TASK_CREATED", 0.0, task_id="a", uid=1,
+               detail={"task_kind": "a_conveyor", "order_id": "o1"}),
+        _event("TASK_WAIT", 0.5, task_id="a", uid=1,
+               detail={"reason": "handoff busy", "order_id": "o1"}),
+        _event("TASK_START", 1.0, task_id="a", uid=1, device="arm_A",
+               detail={"task_kind": "a_conveyor", "order_id": "o1"}),
+        _event("TASK_DONE", 6.0, task_id="a", uid=1, device="arm_A",
+               detail={"task_kind": "a_conveyor", "order_id": "o1"}),
+        _event("SCHEDULE_DECISION", 1.0, task_id="a", uid=1,
+               device="arm_A",
+               detail={"order_id": "o1", "selected_device_id": "arm_A",
+                       "policy_version": "v1_scheduler_test"}),
+        _event("SCHEDULE_WAIT", 0.2, task_id="a", uid=1,
+               detail={"order_id": "o1",
+                       "reason": "DEST_ZONE_OCCUPIED"}),
+        _event("JOIN_COMMIT", 9.0, uid=9, item_type="FINAL"),
+        # 另一订单的事件必须被过滤.
+        _event("TASK_CREATED", 0.0, task_id="b", uid=2,
+               detail={"task_kind": "b_conveyor", "order_id": "o2"}),
+        _event("TASK_DONE", 100.0, task_id="b", uid=2,
+               detail={"task_kind": "b_conveyor", "order_id": "o2"}),
+    ]
+    metrics = recompute_order_metrics(
+        events, order_id="o1", due_time=10.0, target_quantity=1)
+    assert metrics["recomputed_from_events"] is True
+    assert metrics["order_id"] == "o1"
+    assert metrics["completion"] == {
+        "completed": True, "finals": 1,
+        "completion_sim_time_s": 9.0, "completion_s": 9.0,
+        "overdue_s": 0.0, "due_met": True,
+    }
+    assert metrics["tasks"]["total"] == 1
+    assert metrics["tasks"]["done"] == 1
+    assert metrics["tasks"]["wait_s"] == 0.5
+    assert metrics["tasks"]["processing_s"] == 5.0
+    assert metrics["tasks"]["cycle_s"] == 6.0
+    assert metrics["dispatch"]["count"] == 1
+    assert metrics["dispatch"]["wait_count"] == 1
+    assert metrics["dispatch"]["selected_devices"] == {"arm_A": 1}
+    assert metrics["dispatch"]["defer_reasons"] == {
+        "DEST_ZONE_OCCUPIED": 1}
+    assert metrics["policy_versions"] == ["v1_scheduler_test"]
+    assert metrics["queues"]["peak_active"] == 1
+
+    again = recompute_order_metrics(
+        events, order_id="o1", due_time=10.0, target_quantity=1)
+    assert json.dumps(metrics, sort_keys=True) == \
+        json.dumps(again, sort_keys=True)
+
+    all_orders = recompute_order_metrics(events)
+    assert all_orders["tasks"]["total"] == 2
+
+
+def test_order_metrics_incomplete_and_overdue():
+    events = [
+        _event("TASK_CREATED", 0.0, task_id="t", uid=1,
+               detail={"task_kind": "transport_de", "order_id": "o1"}),
+        _event("TASK_START", 1.0, task_id="t", uid=1, device="cart_2",
+               detail={"order_id": "o1"}),
+        _event("TASK_FAILED", 4.0, task_id="t", uid=1, device="cart_2",
+               detail={"order_id": "o1", "reason": "NODE_PRECHECK_REJECTED"}),
+    ]
+    metrics = recompute_order_metrics(
+        events, order_id="o1", due_time=3.0, target_quantity=1)
+    assert metrics["completion"]["completed"] is False
+    assert metrics["completion"]["finals"] == 0
+    assert metrics["completion"]["completion_sim_time_s"] is None
+    assert metrics["completion"]["overdue_s"] == 1.0
+    assert metrics["completion"]["due_met"] is False
+    assert metrics["tasks"]["failed"] == 1
+    assert metrics["tasks"]["failed_task_ids"] == ["t"]

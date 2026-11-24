@@ -9,13 +9,13 @@ scope: flexible-factory v1 -> v2
 
 # v2 启动准备度与 v1 阶段盘点
 
-本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-24 已归档资料（含阶段 7/8 实现记录）；启动性能部分只有计时记录，功能验收仍未执行。
+本文是启动 v2 规划时的当前状态总表。它汇总 v1 报告和验收证据，不替代各专题报告；具体测试结果、运行条件和原始证据以链接报告为准。当前盘点基于截至 2026-11-24 已归档资料（含阶段 7/8 实现记录与阶段 5 WP0/WP1 离线基线）；启动性能部分只有计时记录，功能验收仍未执行。
 
 ## 总体判断
 
 v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件支持 `full_flow`、静态工艺目录、工序 DAG、确定性能力筛选、订单 API/持久化、planner 草稿和前端；阶段 6 已在 CoppeliaSim 4.10 上完成限定矩阵的实机验收。可进入 v2 需求与基线阶段，但不应把 v1 的限定验收扩展解释为通用工厂调度或自动恢复能力。
 
-业务阶段编号与订单 DAG 实施阶段编号是两套序列：业务阶段 0–4 已实现，业务阶段 5（调度优化与有限恢复）暂缓；订单 DAG 实施阶段 1–6 已完成各自限定交付和报告，阶段 7（双车订单运行接入）已实施运行配置/派工一致性/UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；阶段 8 已让 planner 使用车队假设/固定分工/可选静态 ETA 做候选评估与 explain；阶段 9 已实施工件 manifest 驱动的 profile 能力目录、前端目录过滤、planner 直接来料 join 和跨 profile 启动拒绝。订单方案目录阶段 10 已实施：15 个内置 OrderVariant、确定性 materializer、API 和订单列表目录，不自动启动、无 DB 迁移。订单运行路径复用已接入订单 API/CLI/前端启动：前端默认 `CACHE_THEN_PLAN`，`api serve`/`order start` 默认 `off`；策略只覆盖五臂 `PLACING`，运行 summary 记录 lookup/replay/fallback，未新增实机验收。路线并行、planner UI 启动和动态派车仍未验证。两者不可用同一个“阶段 5/6”状态替代。
+业务阶段编号与订单 DAG 实施阶段编号是两套序列：业务阶段 0–4 已实现；业务阶段 5（调度优化与有限恢复）已实施 WP0/WP1（`cart_2` 不可用业务用例、冻结基线与订单级调度观测），WP2–WP6 未实施，实机故障复现未执行；订单 DAG 实施阶段 1–6 已完成各自限定交付和报告，阶段 7（双车订单运行接入）已实施运行配置/派工一致性/UI，并在 `v005` 上通过 single 回归、dual 手工订单、dual planner 订单和真实 UI 双车启动；阶段 8 已让 planner 使用车队假设/固定分工/可选静态 ETA 做候选评估与 explain；阶段 9 已实施工件 manifest 驱动的 profile 能力目录、前端目录过滤、planner 直接来料 join 和跨 profile 启动拒绝。订单方案目录阶段 10 已实施：15 个内置 OrderVariant、确定性 materializer、API 和订单列表目录，不自动启动、无 DB 迁移。订单运行路径复用已接入订单 API/CLI/前端启动：前端默认 `CACHE_THEN_PLAN`，`api serve`/`order start` 默认 `off`；策略只覆盖五臂 `PLACING`，运行 summary 记录 lookup/replay/fallback，未新增实机验收。路线并行、planner UI 启动和动态派车仍未验证。两者不可用同一个“阶段 5/6”状态替代。
 
 ## 阶段盘点
 
@@ -26,7 +26,7 @@ v1 已形成可运行产品和订单工作台：受保护的 `L5_UFLOW` 工件�
 | 业务阶段 2：设备执行适配 | 已实现并 focused 验收 | 设备静态绑定、Arm/AGV executor 适配；不代表所有设备和运动故障都已验证 | [阶段 2 报告](../reports/production-flow/v1-stage-02-device-executor.md) |
 | 业务阶段 3：工序 DAG | 已实现并 `full_flow` 验收 | 默认配方实例化、依赖/ready 集合、提交后解锁；尚无任意循环、返工或通用恢复 | [阶段 3 报告](../reports/production-flow/v1-stage-03-operation-dag.md) |
 | 业务阶段 4：能力匹配调度 | 已实现并 `full_flow` 验收 | 确定性筛选、拒绝原因、设备选择和资源记录；默认 recipe 仍为固定路线/单设备候选 | [阶段 4 报告](../reports/production-flow/v1-stage-04-capability-scheduling.md) |
-| 业务阶段 5：调度优化与有限恢复 | 暂缓，未实施 | 缺少业务批准的用例/比较基线；设备状态权威来源、尚未启动工序改派和现场恢复协议未具备 | [阶段 5 规划](../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md) |
+| 业务阶段 5：调度优化与有限恢复 | 部分实施（WP0/WP1），纯逻辑验证 | 已选定 `cart_2` 不可用时改派未启动 `transport_DE` 至 `agv_1` 的业务用例；冻结 `v005` 基线与 300 s 交期口径，订单级指标可从事件重算（9 任务、等待 177.75 s、WIP 峰值 1、8 次派工、1 FINAL/293.7 s）；WP2–WP6（设备状态、未启动工序改派、现场安全停止/恢复、规则代价）未实施，未实机故障复现，`bound=False` 只是静态代理 | [阶段 5 方案](../plans/production-flow/v1-stage-05-finite-recovery-implementation.md)、[阶段 5 报告](../reports/production-flow/v1-stage-05-finite-recovery.md)、[业务规划](../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md) |
 | 订单 DAG 阶段 1–3 | 已实现，逻辑/API/记录型执行验证 | 契约、校验与编译、失败隔离、版本化订单、worker/API 和 coordinator 执行 | [阶段 1–3 报告](../reports/order-orchestration/v1-order-dag-phase-01-03.md) |
 | 订单 DAG 阶段 4：planner | 已实现，逻辑/API 验证 | 有界确定性 planner 生成并保存草稿；不自行启动仿真或选择未登记的工艺/设备 | [阶段 4 报告](../reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) |
 | 订单 DAG 阶段 5：前端 | 已实现并集成验证 | 订单编辑、planner、运行查看；独立本机 API 消费端 | [阶段 5 报告](../reports/order-orchestration/v1-order-dag-phase-05-frontend.md) |

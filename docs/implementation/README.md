@@ -27,14 +27,14 @@
 
 ### 生产流程
 
-业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 的调度优化与恢复仍暂缓，见[阶段 5 业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
+业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 已实施 WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测），WP2–WP6（设备状态、改派、故障停止/恢复、规则代价）未实施，见[阶段 5 实施方案](plans/production-flow/v1-stage-05-finite-recovery-implementation.md) · [阶段 5 实施报告](reports/production-flow/v1-stage-05-finite-recovery.md) · [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) |
-| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) |
+| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 有限恢复](plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
+| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 有限恢复](reports/production-flow/v1-stage-05-finite-recovery.md) |
 | 参考 | [assembly_mvp 订单 fixture 与复现](reference/production-flow/assembly-mvp/README.md) |
-| 证据 | [生产流程验收证据目录](evidence/README.md) |
+| 证据 | [生产流程验收证据目录](evidence/README.md) · [阶段 5 基线证据](evidence/production-flow/v1_stage5_baseline_20261124.json) |
 
 ### 订单编排
 

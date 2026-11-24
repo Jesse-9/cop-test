@@ -18,6 +18,10 @@ from typing import Iterable, Optional
 from . import rules as cfg
 
 
+#: 订单级调度基线 schema 版本; 只随字段/重算口径变化递增. 它不进入
+#: ``simulation/config.py`` 的冻结摘要, 因而不改变场景工件 config_digest.
+ORDER_METRICS_VERSION = "v1_order_metrics_20261124"
+
 TERMINAL = {"TASK_DONE", "TASK_FAILED"}
 BUSY_START = "TASK_START"
 WAIT_START = "TASK_WAIT"
@@ -284,5 +288,164 @@ def recompute_metrics(events: list[dict], *,
             "wip": wip or {},
         },
         "events": len(events),
+        "recomputed_from_events": True,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 订单级调度基线 (阶段 5 WP1)
+# ═══════════════════════════════════════════════════════════════
+
+def event_order_id(event: dict) -> str:
+    """事件归属的订单 ID; 协调器在 ``detail.order_id`` 写入稳定值.
+
+    物料事件 (``MATERIAL_SPAWN``/``JOIN_COMMIT``) 目前不带订单字段.
+    v1 一次运行只允许一个订单, 因此这些未标记事件仍属于当前订单.
+    """
+    detail = event.get("detail") or {}
+    return str(event.get("order_id") or detail.get("order_id") or "")
+
+
+def _belongs_to_order(event: dict, order_id: str) -> bool:
+    if not order_id:
+        return True
+    scoped = event_order_id(event)
+    return not scoped or scoped == str(order_id)
+
+
+def _round_or_none(value: Optional[float]) -> Optional[float]:
+    return None if value is None else round(float(value), 4)
+
+
+def recompute_order_metrics(
+        events: Iterable[dict], *,
+        order_id: str = "",
+        due_time: Optional[float] = None,
+        target_quantity: int = 1,
+        policy_version: str = "",
+        window_start: Optional[float] = None,
+        window_end: Optional[float] = None,
+        wip: Optional[dict] = None) -> dict:
+    """从事件重算单订单的完成/逾期/等待/阻塞/WIP 与派工统计.
+
+    输入是协调器事件与物料事件的普通字典列表. 订单过滤只保留
+    ``detail.order_id`` 匹配或未标记的事件; ``order_id`` 为空时统计全部
+    事件 (兼容既有无订单字段的历史证据). 本函数不改写事件、不依赖
+    CoppeliaSim; 相同事件重复调用必须返回相同结果.
+    """
+    scoped = [event for event in events
+              if _belongs_to_order(event, str(order_id))]
+    base = recompute_metrics(scoped, window_start=window_start,
+                             window_end=window_end, wip=wip)
+    windows = collect_task_windows(scoped)
+    task_rows = base["tasks"]["by_kind"]
+
+    wait_s = round(sum(float(row["wait_s"]) for row in task_rows.values()), 4)
+    block_s = round(sum(float(row["block_s"]) for row in task_rows.values()),
+                    4)
+    processing_s = round(sum(
+        float(value) for row in task_rows.values()
+        for value in row["processing_s"] if value is not None), 4)
+    cycle_s = round(sum(
+        float(value) for row in task_rows.values()
+        for value in row["cycle_s"] if value is not None), 4)
+
+    finals = int(base["throughput"]["finals"])
+    final_times = [float(value)
+                   for value in base["throughput"]["final_times_s"]]
+    target = max(1, int(target_quantity))
+    completed = finals >= target
+    completion_sim_time = (final_times[target - 1] if completed else None)
+    span_start = float(base["window"]["start_s"])
+    span_end = float(base["window"]["end_s"])
+    completion_s = (None if completion_sim_time is None
+                    else round(max(0.0, completion_sim_time - span_start), 4))
+
+    overdue_s: Optional[float] = None
+    due_met: Optional[bool] = None
+    if due_time is not None:
+        reference = (completion_sim_time if completed else span_end)
+        overdue_s = round(max(0.0, float(reference) - float(due_time)), 4)
+        due_met = bool(completed and overdue_s == 0.0)
+
+    decisions = [event for event in scoped
+                 if event.get("kind") == "SCHEDULE_DECISION"]
+    waits = [event for event in scoped
+             if event.get("kind") == "SCHEDULE_WAIT"]
+    reassignments = [event for event in scoped
+                     if event.get("kind") == "SCHEDULE_REASSIGN"]
+
+    def _detail(event: dict) -> dict:
+        return event.get("detail") or {}
+
+    selected_devices: dict[str, int] = {}
+    for event in decisions:
+        device = str(event.get("device")
+                     or _detail(event).get("selected_device_id") or "")
+        if device:
+            selected_devices[device] = selected_devices.get(device, 0) + 1
+    defer_reasons: dict[str, int] = {}
+    for event in waits:
+        reason = str(_detail(event).get("reason") or "")
+        if reason:
+            defer_reasons[reason] = defer_reasons.get(reason, 0) + 1
+    reassignment_reasons: dict[str, int] = {}
+    for event in reassignments:
+        reason = str(_detail(event).get("reason") or "")
+        if reason:
+            reassignment_reasons[reason] = \
+                reassignment_reasons.get(reason, 0) + 1
+    policy_versions = sorted({
+        str(_detail(event).get("policy_version") or "")
+        for event in [*decisions, *waits]
+        if _detail(event).get("policy_version")
+    })
+    if not policy_versions and policy_version:
+        policy_versions = [str(policy_version)]
+
+    failed_tasks = [window.task_id for window in windows.values()
+                    if window.status == "FAILED"]
+    blocked_tasks = [window.task_id for window in windows.values()
+                     if window.status == "BLOCKED"]
+
+    return {
+        "version": ORDER_METRICS_VERSION,
+        "order_id": str(order_id),
+        "target_quantity": target,
+        "due_time_s": _round_or_none(due_time),
+        "policy_version": (policy_versions[-1] if policy_versions
+                           else str(policy_version)),
+        "policy_versions": policy_versions,
+        "completion": {
+            "completed": bool(completed),
+            "finals": finals,
+            "completion_sim_time_s": _round_or_none(completion_sim_time),
+            "completion_s": completion_s,
+            "overdue_s": overdue_s,
+            "due_met": due_met,
+        },
+        "tasks": {
+            "total": int(base["tasks"]["total"]),
+            "done": sum(int(row["done"]) for row in task_rows.values()),
+            "failed": sum(int(row["failed"]) for row in task_rows.values()),
+            "blocked": sum(int(row["blocked"]) for row in task_rows.values()),
+            "failed_task_ids": failed_tasks,
+            "blocked_task_ids": blocked_tasks,
+            "wait_s": wait_s,
+            "block_s": block_s,
+            "processing_s": processing_s,
+            "cycle_s": cycle_s,
+        },
+        "dispatch": {
+            "count": len(decisions),
+            "wait_count": len(waits),
+            "defer_reasons": dict(sorted(defer_reasons.items())),
+            "selected_devices": dict(sorted(selected_devices.items())),
+            "reassignment_count": len(reassignments),
+            "reassignment_reasons": dict(sorted(reassignment_reasons.items())),
+        },
+        "queues": dict(base["queues"]),
+        "window": dict(base["window"]),
+        "events": len(scoped),
         "recomputed_from_events": True,
     }

@@ -39,6 +39,24 @@ def test_compiled_order_runs_end_to_end_with_recording_executors():
     assert join is not None and join.state is TaskStatus.DONE
     assert join.output_uids == [3]
     assert coordinator.summary()["order_plan"]["digest"] == order.dag_digest()
+    summary = coordinator.summary()
+    order_metrics = summary["metrics"]["order"]
+    assert order_metrics["order_id"] == order.order_id
+    assert order_metrics["completion"]["completed"] is True
+    assert order_metrics["completion"]["finals"] == 1
+    assert order_metrics["target_quantity"] == 1
+    assert order_metrics["dispatch"]["count"] >= 1
+    decisions = [event for event in coordinator.events
+                 if event["kind"] == "SCHEDULE_DECISION"]
+    assert decisions
+    assert all(event["detail"]["order_id"] == order.order_id
+               for event in decisions)
+    assert all(event["detail"]["snapshot_digest"]
+               for event in decisions)
+    assert all(event["detail"]["snapshot_summary"]["ready"] >= 1
+               for event in decisions)
+    assert all(event["detail"]["sort_key"]["priority"] >= 0
+               for event in decisions)
     assert all(owner is None
                for owner in coordinator.resources.owners.values())
     assert [row["kind"] for row in coordinator.events

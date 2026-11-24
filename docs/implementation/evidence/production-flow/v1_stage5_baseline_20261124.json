@@ -1,0 +1,122 @@
+{
+  "evidence_id": "v1_stage5_baseline_20261124",
+  "phase": "business-stage-05-wp0-wp1",
+  "kind": "offline_baseline_recompute_and_pure_scheduling",
+  "executed_at": "2026-11-24T23:52:12+08:00",
+  "environment": {
+    "source_revision": "5b400eb",
+    "source_revision_note": "stage 5 WP0/WP1 changes in working tree; no commit yet",
+    "simulator": "not used",
+    "note": "baseline metrics recomputed from an archived 2026-11-20 dual run; fault baseline is a pure SchedulingSnapshot, not a real fault injection"
+  },
+  "use_case": {
+    "id": "cart2_unavailable_reassign_transport_de_to_agv1",
+    "business_problem": "dual 固定分工下 transport_DE 只由 cart_2 承运; cart_2 在启动前不可用时当前策略没有替代候选, 支架分支不能启动, 订单目标无法达成",
+    "target_behavior_not_implemented": "仅对尚未启动的 transport_DE 撤销 cart_2 选择并改派给 recipe 已允许且已验收的 agv_1; 不触碰 RUNNING 工序, 不改物料账本",
+    "fault_scope": "设备不可用/停用, 仅在 transport_DE 未启动时; 无设备健康事实源",
+    "recovery_owner": "固定试验输入 + 操作员确认; 不做自动恢复/重试/换车"
+  },
+  "baseline_source": {
+    "run_id": "order_phase7-dual-manual_20261119_162821_96004c",
+    "order_id": "phase7-dual-manual",
+    "order_version": 1,
+    "dag_digest": "3fd961b4851b3abef06500bb6d28e6a4530de3e8b4ee84526efd38426c04cd85",
+    "archived_summary": "docs/implementation/runs/phase7/v1_order_run_20261120_004442.json",
+    "archived_summary_git_ignored": true,
+    "trimmed_events_fixture": "tests/fixtures/stage5_baseline_events.json",
+    "trimmed_events_count": 39,
+    "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+    "config_digest": "c132340c0cdbbbfcb8ebf10a0f42a73d260d14d2aa267801c676e8ba30a5ae9d",
+    "layout_digest": "ed7759fddfc55eb546fd29363cea003898236cac6a85b32f2cf9717b72afddef",
+    "scene_sha256": "15be9723ccc8a49554218af1f516427655239e7dc871d7d237a1b7c5202ef7d7",
+    "simulator": "4.10.0.0",
+    "transport_fleet": "dual",
+    "random_seed": "none (deterministic SIM_STEP and policy)",
+    "fixed_inputs": [
+      {"source": "raw-b-1", "item_type": "RAW_B", "uid": 1},
+      {"source": "raw-d-1", "item_type": "RAW_D", "uid": 2}
+    ],
+    "sim_time_s": 293.75,
+    "steps": 5875,
+    "note": "not re-executed in this round; metrics recomputed from archived summary.events"
+  },
+  "baseline": {
+    "due_time_s": 300.0,
+    "target_quantity": 1,
+    "completion": {
+      "completed": true,
+      "finals": 1,
+      "final_parents": [[1, 2]],
+      "completion_sim_time_s": 293.7,
+      "completion_s": 293.7,
+      "overdue_s": 0.0,
+      "due_met": true
+    },
+    "tasks": {
+      "total": 9,
+      "done": 9,
+      "failed": 0,
+      "blocked": 0,
+      "wait_s": 177.75,
+      "block_s": 0.0,
+      "processing_s": 293.75,
+      "cycle_s": 471.5
+    },
+    "queues": {
+      "active_at_end": 0,
+      "peak_active": 1
+    },
+    "dispatch": {
+      "count": 8,
+      "wait_count": 0,
+      "selected_devices": {
+        "agv_1": 1,
+        "arm_A": 1,
+        "arm_B": 1,
+        "arm_C": 1,
+        "arm_D": 1,
+        "arm_E": 2,
+        "cart_2": 1
+      },
+      "reassignment_count": 0
+    },
+    "policy_version": "v1_scheduler_20261104",
+    "events": 2537,
+    "failures": [],
+    "safety_latch": false,
+    "resources_released": true
+  },
+  "fault_baseline": {
+    "method": "pure SchedulingSnapshot, no CoppeliaSim",
+    "candidate_device_ids": ["cart_2"],
+    "cart_2_bound": false,
+    "selected_device_id": "",
+    "defer_reason": "NO_FEASIBLE_CANDIDATE",
+    "candidate_reasons": ["DEVICE_NOT_BOUND"],
+    "fallback_with_full_recipe_candidates": {
+      "candidate_device_ids": ["agv_1", "cart_2"],
+      "selected_device_id": "agv_1",
+      "note": "策略输入可行, 但运行时改派/车辆调度未实现"
+    }
+  },
+  "versions": {
+    "order_metrics": "v1_order_metrics_20261124",
+    "scheduler_policy": "v1_scheduler_20261104",
+    "fleet_policy": "v1_fleet_20261119",
+    "process_model": "v1_process_20261117a",
+    "order_contract": "v1_order_20261106"
+  },
+  "tests": {
+    "targeted": "30 passed",
+    "backend": "820 passed / 8 skipped",
+    "frontend": "not rerun (no frontend changes)",
+    "coppeliasim": "not used"
+  },
+  "boundaries": [
+    "未启动 CoppeliaSim; 基线是归档运行事件重算, 不是新一轮实机验收",
+    "无设备健康事实源; bound=False 只是静态代理",
+    "未实现设备状态、改派、SCHEDULE_REASSIGN、自动恢复、重试或换车",
+    "真实 Arm/AGV 运动故障与 ZMQ/step 断连仍按 GLOBAL 处理",
+    "指标仅覆盖单订单事件流; 多订单并发/Q5/Q6 未实现"
+  ]
+}

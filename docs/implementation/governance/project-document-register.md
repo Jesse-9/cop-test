@@ -42,7 +42,7 @@ status: published
 | `06-20` 阶段 2 设备目录与执行适配器 | [阶段 2 实施方案](../plans/production-flow/v1-stage-02-device-executor-implementation.md)、[阶段 2 报告](../reports/production-flow/v1-stage-02-device-executor.md) | 实施与报告完成 |
 | `06-21` 阶段 3 配方实例化与工序 DAG | [阶段 3 报告](../reports/production-flow/v1-stage-03-operation-dag.md) | 实施与报告完成 |
 | `06-22` 阶段 4 产品变体与能力匹配调度 | [阶段 4 实施方案](../plans/production-flow/v1-stage-04-capability-scheduling-implementation.md)、[阶段 4 报告](../reports/production-flow/v1-stage-04-capability-scheduling.md) | 已实施；默认工艺仍使用固定设备候选 |
-| `06-23` 业务阶段 5 调度优化与有限恢复 | 暂无实施报告 | 暂缓；v2 是否实施须由具体业务用例和基线重新立项 |
+| `06-23` 业务阶段 5 调度优化与有限恢复 | [阶段 5 实施方案](../plans/production-flow/v1-stage-05-finite-recovery-implementation.md)、[阶段 5 实施报告](../reports/production-flow/v1-stage-05-finite-recovery.md) | WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测）已实施并通过纯测试；WP2–WP6（设备状态、未启动工序改派、故障停止/恢复、规则代价）未实施，实机故障复现未执行 |
 | `06-24` 术语与对象模型、`06-25` 工艺流程映射 | [混线生产业务与代码运行说明](../../wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明.md)、相关阶段报告 | 参考资料，不单独作为验收证据 |
 
 ## 后续产品能力提案

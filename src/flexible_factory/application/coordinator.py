@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import Mapping, Optional
 
 from .. import spec
+from ..util import stable_digest
 
 from ..simulation import config_base as base
 from ..simulation import physics as phys
@@ -613,6 +614,15 @@ class Stage4Coordinator:
         if not ready:
             return
         snapshot = self._scheduling_snapshot(sim_time, ready)
+        # 快照摘要只在真正发出决策/等待/拒绝事件时计算, 避免在无状态
+        # 变化的 tick 上重复哈希全部候选.
+        digest_cache: list[str] = []
+
+        def snapshot_digest() -> str:
+            if not digest_cache:
+                digest_cache.append(stable_digest(snapshot.as_dict()))
+            return digest_cache[0]
+
         result = plan_ready(snapshot)
         for decision in result.decisions:
             instance = self.op_runtime.instance(
@@ -621,12 +631,39 @@ class Stage4Coordinator:
                 continue
             template = self._template(instance.template_id)
             record = self._decision_record(decision, instance)
+            record["order_id"] = str(instance.order_id)
+            record["order_version"] = int(instance.order_version)
+            record["snapshot_summary"] = {
+                "ready": len(snapshot.operations),
+                "devices": len(snapshot.devices),
+                "materials": len(snapshot.materials),
+                "free_zones": len(snapshot.free_zones),
+                "resource_owners": len(snapshot.resource_owners),
+                "busy_devices": len(snapshot.busy_devices),
+                "verified_pairs": len(snapshot.verified_pairs),
+            }
+            record["wait_s"] = round(max(
+                0.0, float(decision.sim_time)
+                - float(decision.ready_sim_time)), 4)
+            record["sort_key"] = {
+                "priority": int(decision.priority),
+                "wait_s": record["wait_s"],
+                "ready_sim_time": round(
+                    float(decision.ready_sim_time), 4),
+                "instance_id": decision.operation_instance_id,
+            }
+            accepted = [row for row in decision.candidates
+                        if row.accepted]
+            record["selected_candidate_index"] = next(
+                (index for index, row in enumerate(accepted)
+                 if row.device_id == decision.selected_device_id), -1)
             if not decision.selected_device_id:
                 previous = self._schedule_wait_reason.get(
                     instance.instance_id)
                 self._schedule_wait_reason[instance.instance_id] = \
                     decision.defer_reason
                 if previous != decision.defer_reason:
+                    record["snapshot_digest"] = snapshot_digest()
                     self.schedule_waits.append(record)
                     self._event("SCHEDULE_WAIT", task_id=instance.task_id,
                                 uid=instance.uid,
@@ -634,6 +671,7 @@ class Stage4Coordinator:
                                         "decision": record})
                 continue
             self._schedule_wait_reason.pop(instance.instance_id, None)
+            record["snapshot_digest"] = snapshot_digest()
             try:
                 self.op_runtime.claim_instance(instance.instance_id,
                                                sim_time)
@@ -2843,12 +2881,19 @@ class Stage4Coordinator:
     # ═══════════════════════════════════════════════════════
 
     def summary(self) -> dict:
-        from ..domain.metrics import recompute_metrics
+        from ..domain.metrics import (recompute_metrics,
+                                      recompute_order_metrics)
         material_events = [event.as_dict() for event in self.flow.events]
         all_events = sorted([*self.events, *material_events],
                             key=lambda event: event.get("sim_time") or 0.0)
         metrics = recompute_metrics(
             all_events, wip=self.flow.wip())
+        if self.order is not None:
+            metrics["order"] = recompute_order_metrics(
+                all_events, order_id=self.order.order_id,
+                target_quantity=self.order.target_quantity,
+                policy_version=SCHEDULER_POLICY_VERSION,
+                wip=self.flow.wip())
         return {
             "scenario": self.scenario,
             "fault": self.fault,
@@ -2922,6 +2967,12 @@ class Stage4Coordinator:
                detail: Optional[dict] = None) -> None:
         self._evidence_seq += 1
         payload = dict(detail or {})
+        if self.order is not None:
+            # 稳定订单归属: 所有协调器事件的 detail 都带同一个 order_id,
+            # 供阶段 5 订单级指标重算; 物料事件仍由 MaterialRegistry 管理.
+            payload.setdefault("order_id", self.order.order_id)
+            payload.setdefault("order_version",
+                               int(self.order.order_version))
         if failure_scope:
             payload.setdefault("failure_scope", failure_scope)
         if node_id:

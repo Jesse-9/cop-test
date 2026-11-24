@@ -1,0 +1,619 @@
+{
+ "source_run_id": "order_phase7-dual-manual_20261119_162821_96004c",
+ "order_id": "phase7-dual-manual",
+ "artifact_id": "v1/L5_UFLOW/v005_20261117_110924",
+ "window_end_s": 293.75,
+ "due_time_s": 300.0,
+ "target_quantity": 1,
+ "note": "trimmed from the archived phase7-dual-manual run: TASK_* (first TASK_WAIT per task), JOIN_COMMIT, SCHEDULE_DECISION only; no handles or poses",
+ "events": [
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 0.0,
+   "task_id": "d_conveyor_uid2_bracket-start",
+   "uid": 2,
+   "item_type": "RAW_D",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev00004",
+   "detail": {
+    "kind": "d_conveyor"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 0.0,
+   "task_id": "d_conveyor_uid2_bracket-start",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_D",
+   "evidence_id": "ev00005",
+   "detail": {
+    "kind": "d_conveyor",
+    "selected_device_id": "arm_D",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 0.0,
+   "task_id": "b_conveyor_uid1_housing-start",
+   "uid": 1,
+   "item_type": "RAW_B",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev00006",
+   "detail": {
+    "kind": "b_conveyor"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 0.0,
+   "task_id": "b_conveyor_uid1_housing-start",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_B",
+   "evidence_id": "ev00007",
+   "detail": {
+    "kind": "b_conveyor",
+    "selected_device_id": "arm_B",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_WAIT",
+   "sim_time": 0.0,
+   "task_id": "b_conveyor_uid1_housing-start",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev00008",
+   "detail": {
+    "reason": "车辆 agv_1 不在 dock B"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 0.0,
+   "task_id": "d_conveyor_uid2_bracket-start",
+   "uid": 2,
+   "item_type": "RAW_D",
+   "zone": "line_s2d",
+   "source": "",
+   "destination": "",
+   "device": "arm_D",
+   "evidence_id": "ev00009",
+   "detail": {
+    "kind": "d_conveyor"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 0.0,
+   "task_id": "reposition_uid1_toB_leg1",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev00010",
+   "detail": {
+    "kind": "reposition"
+   }
+  },
+  {
+   "kind": "TASK_WAIT",
+   "sim_time": 0.0,
+   "task_id": "reposition_uid1_toB_leg1",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev00011",
+   "detail": {
+    "reason": "资源等待: dock_D"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 49.3,
+   "task_id": "d_conveyor_uid2_bracket-start",
+   "uid": 2,
+   "item_type": "RAW_D",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_D",
+   "evidence_id": "ev01983",
+   "detail": {
+    "reason": "d_conveyor 交接确认 (UID/类型/位置/物理属性)"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 49.3,
+   "task_id": "transport_de_uid2_bracket-transport",
+   "uid": 2,
+   "item_type": "PART_DE",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev01985",
+   "detail": {
+    "kind": "transport_de"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 49.3,
+   "task_id": "transport_de_uid2_bracket-transport",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "cart_2",
+   "evidence_id": "ev01986",
+   "detail": {
+    "kind": "transport_de",
+    "selected_device_id": "cart_2",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 49.3,
+   "task_id": "reposition_uid1_toB_leg1",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "A",
+   "destination": "B",
+   "device": "agv_1",
+   "evidence_id": "ev01988",
+   "detail": {
+    "kind": "reposition"
+   }
+  },
+  {
+   "kind": "TASK_WAIT",
+   "sim_time": 49.3,
+   "task_id": "transport_de_uid2_bracket-transport",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev01990",
+   "detail": {
+    "reason": "资源等待: dock_A"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 61.7,
+   "task_id": "reposition_uid1_toB_leg1",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "agv_1",
+   "evidence_id": "ev02487",
+   "detail": {
+    "kind": "reposition",
+    "reason": "route metrics within limits"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 61.7,
+   "task_id": "transport_de_uid2_bracket-transport",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "D",
+   "destination": "E",
+   "device": "cart_2",
+   "evidence_id": "ev02488",
+   "detail": {
+    "kind": "transport_de"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 88.8,
+   "task_id": "transport_de_uid2_bracket-transport",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "cart_2",
+   "evidence_id": "ev02491",
+   "detail": {
+    "reason": "route metrics within limits"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 88.8,
+   "task_id": "e_agv_uid2_bracket-buffer",
+   "uid": 2,
+   "item_type": "PART_DE",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev02492",
+   "detail": {
+    "kind": "e_agv"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 88.8,
+   "task_id": "e_agv_uid2_bracket-buffer",
+   "uid": 2,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02493",
+   "detail": {
+    "kind": "e_agv",
+    "selected_device_id": "arm_E",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 88.8,
+   "task_id": "e_agv_uid2_bracket-buffer",
+   "uid": 2,
+   "item_type": "PART_DE",
+   "zone": "agv",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02494",
+   "detail": {
+    "kind": "e_agv"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 116.05,
+   "task_id": "e_agv_uid2_bracket-buffer",
+   "uid": 2,
+   "item_type": "PART_DE",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02495",
+   "detail": {
+    "reason": "e_agv 交接确认 (UID/类型/位置/物理属性)"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 116.05,
+   "task_id": "b_conveyor_uid1_housing-start",
+   "uid": 1,
+   "item_type": "RAW_B",
+   "zone": "line_s1b",
+   "source": "",
+   "destination": "",
+   "device": "arm_B",
+   "evidence_id": "ev02497",
+   "detail": {
+    "kind": "b_conveyor"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 161.55,
+   "task_id": "b_conveyor_uid1_housing-start",
+   "uid": 1,
+   "item_type": "RAW_B",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_B",
+   "evidence_id": "ev02498",
+   "detail": {
+    "reason": "b_conveyor 交接确认 (UID/类型/位置/物理属性)"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 161.55,
+   "task_id": "transport_ba_uid1_housing-transport",
+   "uid": 1,
+   "item_type": "SEMI_AB",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev02500",
+   "detail": {
+    "kind": "transport_ba"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 161.55,
+   "task_id": "transport_ba_uid1_housing-transport",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "agv_1",
+   "evidence_id": "ev02501",
+   "detail": {
+    "kind": "transport_ba",
+    "selected_device_id": "agv_1",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 161.55,
+   "task_id": "transport_ba_uid1_housing-transport",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "B",
+   "destination": "A",
+   "device": "agv_1",
+   "evidence_id": "ev02502",
+   "detail": {
+    "kind": "transport_ba"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 173.4,
+   "task_id": "transport_ba_uid1_housing-transport",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "agv_1",
+   "evidence_id": "ev02505",
+   "detail": {
+    "reason": "route metrics within limits"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 173.4,
+   "task_id": "a_agv_uid1_housing-a",
+   "uid": 1,
+   "item_type": "SEMI_AB",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev02506",
+   "detail": {
+    "kind": "a_agv"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 173.4,
+   "task_id": "a_agv_uid1_housing-a",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_A",
+   "evidence_id": "ev02507",
+   "detail": {
+    "kind": "a_agv",
+    "selected_device_id": "arm_A",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 173.4,
+   "task_id": "a_agv_uid1_housing-a",
+   "uid": 1,
+   "item_type": "SEMI_AB",
+   "zone": "agv",
+   "source": "",
+   "destination": "",
+   "device": "arm_A",
+   "evidence_id": "ev02508",
+   "detail": {
+    "kind": "a_agv"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 216.25,
+   "task_id": "a_agv_uid1_housing-a",
+   "uid": 1,
+   "item_type": "SEMI_AB",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_A",
+   "evidence_id": "ev02509",
+   "detail": {
+    "reason": "a_agv 交接确认 (UID/类型/位置/物理属性)"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 216.25,
+   "task_id": "c_handoff_uid1_housing-finish",
+   "uid": 1,
+   "item_type": "SEMI_AC",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev02511",
+   "detail": {
+    "kind": "c_handoff"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 216.25,
+   "task_id": "c_handoff_uid1_housing-finish",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_C",
+   "evidence_id": "ev02512",
+   "detail": {
+    "kind": "c_handoff",
+    "selected_device_id": "arm_C",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 216.25,
+   "task_id": "c_handoff_uid1_housing-finish",
+   "uid": 1,
+   "item_type": "SEMI_AC",
+   "zone": "handoff_ac",
+   "source": "",
+   "destination": "",
+   "device": "arm_C",
+   "evidence_id": "ev02513",
+   "detail": {
+    "kind": "c_handoff"
+   }
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 261.45,
+   "task_id": "c_handoff_uid1_housing-finish",
+   "uid": 1,
+   "item_type": "SEMI_AC",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_C",
+   "evidence_id": "ev02514",
+   "detail": {
+    "reason": "c_handoff 交接确认 (UID/类型/位置/物理属性)"
+   }
+  },
+  {
+   "kind": "TASK_CREATED",
+   "sim_time": 261.45,
+   "task_id": "e_conveyor_uid1_housing-buffer",
+   "uid": 1,
+   "item_type": "SEMI_CE",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "",
+   "evidence_id": "ev02516",
+   "detail": {
+    "kind": "e_conveyor"
+   }
+  },
+  {
+   "kind": "SCHEDULE_DECISION",
+   "sim_time": 261.45,
+   "task_id": "e_conveyor_uid1_housing-buffer",
+   "uid": 1,
+   "item_type": "",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02517",
+   "detail": {
+    "kind": "e_conveyor",
+    "selected_device_id": "arm_E",
+    "defer_reason": "",
+    "policy_version": "v1_scheduler_20261104"
+   }
+  },
+  {
+   "kind": "TASK_START",
+   "sim_time": 261.45,
+   "task_id": "e_conveyor_uid1_housing-buffer",
+   "uid": 1,
+   "item_type": "SEMI_CE",
+   "zone": "line_ce",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02518",
+   "detail": {
+    "kind": "e_conveyor"
+   }
+  },
+  {
+   "kind": "JOIN_COMMIT",
+   "sim_time": 293.7,
+   "task_id": "join_kit_join",
+   "uid": 3,
+   "item_type": "FINAL",
+   "zone": "output_e",
+   "source": "logic_E",
+   "destination": "output_e",
+   "device": "",
+   "evidence_id": "1+2",
+   "detail": {}
+  },
+  {
+   "kind": "TASK_DONE",
+   "sim_time": 293.75,
+   "task_id": "e_conveyor_uid1_housing-buffer",
+   "uid": 1,
+   "item_type": "SEMI_CE",
+   "zone": "",
+   "source": "",
+   "destination": "",
+   "device": "arm_E",
+   "evidence_id": "ev02519",
+   "detail": {
+    "reason": "e_conveyor 交接确认 (UID/类型/位置/物理属性)"
+   }
+  }
+ ]
+}

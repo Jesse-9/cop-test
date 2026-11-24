@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- 业务阶段 5 WP0/WP1：冻结 `cart_2` 在 `transport_DE` 启动前不可用的业务
+  用例（目标为改派未启动运输到已验收 `agv_1`，本轮未实现改派）与 `v005`
+  dual 基线（订单 `phase7-dual-manual`、300 s 交期、1 FINAL/293.7 s、
+  9 任务、等待 177.75 s、WIP 峰值 1、8 次派工）。新增
+  `domain/metrics.recompute_order_metrics()`（`v1_order_metrics_20261124`），
+  从事件重算完成/逾期/等待/阻塞/WIP/派工统计；协调器在订单模式事件
+  `detail` 写入 `order_id`/`order_version`，调度记录增加
+  `snapshot_digest`、`snapshot_summary`、`wait_s`、`sort_key`、
+  `selected_candidate_index`，
+  `summary()["metrics"]["order"]` 输出订单级指标。基线由 2026-11-20 归档
+  运行事件重算，未启动 CoppeliaSim；WP2–WP6（设备状态、改派、现场停止/
+  恢复、规则代价）未实施，真实故障仍按 GLOBAL 处理。后端 820 passed /
+  8 skipped。见
+  `docs/implementation/plans/production-flow/v1-stage-05-finite-recovery-implementation.md`、
+  `docs/implementation/reports/production-flow/v1-stage-05-finite-recovery.md`
+  和
+  `docs/implementation/evidence/production-flow/v1_stage5_baseline_20261124.json`。
+
 - 运行录像：新增 `application/recording.py`（`v1_recording_20261124`），在
   worker 启动点校验后创建临时 vision sensor，按仿真时间抽帧并由
   `imageio-ffmpeg` 编码 MP4，输出 `var/recordings/<run_id>.mp4` 和同名
