@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+- 订单运行路径复用接入：`OrderRunCommand.path_reuse_mode`、
+  `OrderService.start()/run_sync()` 的模式校验、API start body
+  `path_reuse`、`api serve`/`order start` 的 `--path-reuse` /
+  `--path-library-root`，以及前端启动对话框（默认 `CACHE_THEN_PLAN`）。
+  `OrderRunnerConfig` 接收路径库根目录，`run_order_once()` 构造
+  `PathReusePolicy` 传给 `Stage4Coordinator`，运行 summary/report 记录
+  lookup/replay/fallback/planner 墙钟和 by_unit 统计。`off` 保持原行为；
+  无 DB 迁移、无新路径记录格式，不改变 `OrderSpec`/DAG digest；仅覆盖
+  五臂 `PLACING`。后端 793 passed / 8 skipped，前端 16 passed、
+  E2E 6 passed、typecheck/build 通过；未新增 CoppeliaSim 实机验收。见
+  `docs/implementation/reports/order-orchestration/v1-order-run-path-reuse.md`
+  和
+  `docs/implementation/evidence/order-orchestration/v1_order_run_path_reuse_20261124.json`。
+
+- 订单方案目录（阶段 10）：新增 `domain/order_variants.py`，从已登记路线/
+  前缀/FINAL 合流/MVP 直接来料派生 15 个内置 `OrderVariant`（7 个完整
+  路线 + 8 个工序前缀/运输变体），按 production/intermediate/transit 和
+  real_run/planner_test/compiler_only 分类；相邻前缀只差一个工序，提供
+  `difference_from`/`difference_summary`。新增确定性线性分支/join
+  materializer，仍走现有 validator/compiler。`OrderService.order_variants()`
+  与 `create_order_from_variant()` 保存普通 `source=manual` 订单
+  （`note=variant:<id>`），不自动启动、不新增 DB 表/列/`OrderSource`。
+  `GET /api/order-variants`、`POST /api/order-variants/{id}/orders` 和
+  `/api/health.order_variant_version` 已接入；OrdersPage 增加方案目录
+  （机械臂 A–E/运输 B→A、D→E chips、差异、层级/验证、车队提示、筛选和
+  创建面板）。`ORDER_VARIANT_VERSION=v1_order_variants_20261122`；
+  后端 785 passed / 8 skipped，前端 16 passed、E2E 5 passed、
+  typecheck/build 通过。生产变体复用阶段 7/9 实机证据，前缀/运输变体
+  标 compiler-only；v005 显示 13 个 full-flow 变体，v002 显示全部 15 个；
+  只有 `final_alt_kit` + v005 + `dual` 同时使用 `agv_1` 与 `cart_2` 载货。
+  见
+  `docs/implementation/reports/order-orchestration/v1-order-variant-catalog-workbench.md`
+  和
+  `docs/implementation/evidence/order-orchestration/v1_order_variant_catalog_20261122.json`。
+
 - 五臂固定路径回放扩展：`run --path-reuse` 默认 `off`，可选
   `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN` + `--path-library-root`
   （默认 `docs/path_library`）。五臂 `PLACING` 均接入；A/C/E 固定汇、
@@ -15,7 +50,7 @@
   全量离线回归 773 passed / 8 skipped；路径记录位于 `docs/path_library`，生成/验收见
   `docs/implementation/reports/simulation/v1-all-arm-path-reuse.md` 和
   `docs/implementation/evidence/simulation/v1_full_flow_path_reuse_20261121.json`。
-  其他运动段、订单 runner/API 和 P2/P3 未纳入。
+  其他运动段和 P2/P3 未纳入；订单 runner/API 的接入见上方“订单运行路径复用接入”。
 
 - 自建订单 DAG 阶段 9（场景 profile 感知的订单组合）：新增
   `domain/scene_profile.py`，从工件 manifest 的 `extra.v1` 判定

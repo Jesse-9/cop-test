@@ -1,7 +1,7 @@
 ---
 title: v1 订单方案目录与工作台直连方案
 type: plan
-status: planned
+status: implemented
 created: 2026-11-22
 updated: 2026-11-22
 scope: v1 UFLOW / order workbench / order variants / planner / scene profile / fleet config
@@ -9,6 +9,8 @@ related:
   - v1-order-dag-phase-09-scene-profile-order-catalog.md
   - v1-order-dag-phase-08-fleet-aware-planner.md
   - v1-order-dag-phase-07-dual-fleet.md
+  - ../../reports/order-orchestration/v1-order-variant-catalog-workbench.md
+  - ../../evidence/order-orchestration/v1_order_variant_catalog_20261122.json
   - ../../reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../production-flow/v1-neo4j-assembly-mixed-line-mvp.md

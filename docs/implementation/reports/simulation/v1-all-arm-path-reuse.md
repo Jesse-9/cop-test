@@ -3,7 +3,7 @@ title: 五臂固定路径回放扩展实施报告
 type: report
 status: review
 created: 2026-11-21
-updated: 2026-11-21
+updated: 2026-11-24
 scope: v1 运动规划（五臂 PLACING 路径回放）
 ---
 
@@ -150,5 +150,7 @@ flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 \
 - 只扩展 `PLACING`；其他运动段未接入缓存。
 - B/D 的 AGV 托盘位姿变化时精确键未命中，`CACHE_THEN_PLAN` 回退在线规划；
   本次不做托盘相对路径/平移/局部修复。
-- 订单 runner/HTTP API 尚未接入路径复用配置。
+- 当时订单 runner/HTTP API 尚未接入路径复用配置；2026-11-24 已由
+  [订单运行路径复用接入报告](../order-orchestration/v1-order-run-path-reuse.md)
+  补齐运行选项，但未重新执行本报告的实机验收。
 - 未做 P2 热点优化或 P3 Bézier；未改用放宽安全容差换取命中。
