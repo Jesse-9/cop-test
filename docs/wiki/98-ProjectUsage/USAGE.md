@@ -6,7 +6,7 @@ tags:
   - 类别/基础知识
   - 难度/初级
 created: 2026-10-26
-updated: 2026-11-21
+updated: 2026-11-24
 status: published
 sim_version: "4.10+"
 ---
@@ -188,14 +188,22 @@ CLI（不需要 CoppeliaSim 的校验/预览/版本命令）：
         --artifact-id v1/L5_UFLOW/v005_20261117_110924 \
         --transport-fleet dual
 
+    # 可选路径复用 (仅五臂 PLACING; v005 已有记录)
+    flexible-factory order start --order-id <id> --version 1 \
+        --artifact-id v1/L5_UFLOW/v005_20261117_110924 \
+        --path-reuse CACHE_THEN_PLAN
+
 HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）：
 
     flexible-factory api serve --host 127.0.0.1 --port 8080 \
         --sim-host localhost --sim-port 23000 \
-        --artifact-id current --run-records on
+        --artifact-id current --run-records on \
+        --path-reuse off --path-library-root docs/path_library
 
     GET  /api/health
     GET  /api/templates?artifact_id={ref}
+    GET  /api/order-variants?artifact_id={ref}&scope={scope}&target={item}
+    POST /api/order-variants/{variant_id}/orders
     GET  /api/fleet?artifact_id={ref}
     GET/POST /api/orders
     GET  /api/orders/{order_id}
@@ -226,6 +234,11 @@ HTTP 服务（worker 独占 CoppeliaSim stepping；默认只绑定 127.0.0.1）�
   不修改订单版本与 DAG digest；未知值在创建 run 前拒绝。`dual` 启动前检查
   工件 manifest 必须含 `Cart2`、`Cart2_Tray`，目录必须登记 `cart_2`，否则
   返回 422 且不产生 run 记录。
+- `start` 可选 `path_reuse`（`off` / `PLAN_ONLY` / `CACHE_ONLY` /
+  `CACHE_THEN_PLAN`）。优先级为请求 body > `api serve --path-reuse` >
+  `off`；前端启动对话框默认 `CACHE_THEN_PLAN`。该值同样是运行配置，不写入
+  订单版本或 DAG digest；未知值返回 422 且不产生 run 记录。路径库根目录
+  只由 `api serve --path-library-root` 配置，客户端不能提交路径。
 - 双车固定分工：`agv_1` 承运壳体 B→A 相关物流，`cart_2` 承运支架 D→E 相关
   物流。运行记录/状态/报告返回实际生效的 `transport_fleet`、
   `fleet_policy_version`、车辆分工和每个运输实例选中的车辆。路线资源仍按
@@ -323,7 +336,36 @@ planner 只建模静态工艺图和投料数量；设备健康、节拍、实时
 `first_blocking_category` 给出 policy/scene/profile/target/template/device/
 join/input/search_limit/compile 中最先阻断的类别。
 
-### 前端订单工作台（阶段 5/9）
+### 订单方案目录（阶段 10）
+
+订单工作台内置 15 个只读 `OrderVariant`：7 个完整路线（两个 FINAL、两个
+`SEMI_CE`、一个 `PART_DE`、两个 MVP）和 8 个工序前缀/运输变体（A、A+C、
+B、B+BA、B+BA+A、绕行 A+C、D、D+DE）。每个方案标注
+`production`/`intermediate`/`transit` 和
+`real_run`/`planner_test`/`compiler_only`；前缀/运输变体只表示编译通过，
+不是实机验收。
+
+    GET  /api/order-variants?artifact_id=current
+    POST /api/order-variants/final_direct_kit/orders \
+         -d '{"order_id":"variant-direct-1","quantity":1}'
+
+- 创建只保存普通 `source=manual` 订单版本，`note="variant:<id>"`，不自动
+  启动仿真；启动仍由订单详情对话框选择工件和 `single/dual`。
+- 无 DB 表/列迁移、无 DB 可编辑方案、无新增 `OrderSource`；订单
+  `OrderSpec`/DAG digest/compiler/validator 不变。
+- 方案目录按当前工件 profile 过滤：`v005` 显示 13 个 full-flow 方案，
+  `v002` 显示全部 15 个；MVP 方案不会出现在 full-flow 工件列表。
+- 车队只是展示提示，不写入订单。只有 `final_alt_kit` + v005 + `dual`
+  同时使用 `agv_1`（B→A）和 `cart_2`（D→E）载货；`final_direct_kit`
+  `dual` 只用 `cart_2`，`single` 只用 `agv_1`；MVP 不使用 AGV。
+- 前缀/运输变体（例如 `semi_ac_direct_a`、`semi_ab_alt_ba`）是中间态/
+  运输演示，目标可能停在工位、传送带或 AGV 上；不要把它们当作最终产品
+  已验收能力。
+
+方案与验收边界见
+[订单方案目录实施报告](../../implementation/reports/order-orchestration/v1-order-variant-catalog-workbench.md)。
+
+### 前端订单工作台（阶段 5/9/10）
 
 独立前端位于 `frontend/`（React + TypeScript + Vite + React Flow）。先启动
 本机订单 API，再启动前端；浏览器不直接控制 CoppeliaSim。
@@ -338,6 +380,9 @@ join/input/search_limit/compile 中最先阻断的类别。
 
 打开 `http://127.0.0.1:5173/orders`。页面包括订单列表、订单编辑器、自动规划
 和运行详情；编辑器的“服务端预览”是校验权威，保存总是创建新的不可变版本。
+订单列表顶部的“订单方案目录”按机械臂 chips（A–E）、运输 chips（B→A、
+D→E）、差异、层级/验证和车队提示展示 15 个方案；可筛选并一键创建普通订单，
+创建后跳转订单详情，不自动启动。已保存的方案订单显示“方案”徽标。
 编辑器与 planner 页的“场景工件”输入可直接加载具体 artifact 的 profile
 能力；物料/模板/区域下拉来自服务端目录，不再使用固定物料集合。切换工件
 后，与当前 profile 不兼容的节点/连线/投料会列入诊断并阻止保存，可点击
@@ -495,9 +540,12 @@ Browser 使用本地 Neo4j 容器的用户名/密码；SQLite 仪表盘不需要
 
 ## 固定动作路径回放（五臂 PLACING）
 
-`run` 可选使用已通过最终复核的固定动作关节路径，跳过重复 IK/候选搜索。
-当前只接入五台臂的 `PLACING` 段；执行期碰撞、偏差、超时和腕部分支联锁
-不变。默认 `--path-reuse off`，不改变原有运行。
+`run`、`order start` 和 `api serve`（含前端订单启动）可选使用已通过最终
+复核的固定动作关节路径，跳过重复 IK/候选搜索。当前只接入五台臂的
+`PLACING` 段；执行期碰撞、偏差、超时和腕部分支联锁不变。命令行默认
+`--path-reuse off`，不改变原有运行；前端启动对话框默认
+`CACHE_THEN_PLAN`。订单运行 summary 的 `path_reuse` 字段记录
+lookup/replay/fallback/planner 墙钟和按臂统计，`off` 时为 `null`。
 
 生成路径记录（v005 工件，五臂在线规划并导出）：
 

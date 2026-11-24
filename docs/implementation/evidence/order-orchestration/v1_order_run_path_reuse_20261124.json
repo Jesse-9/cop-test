@@ -1,0 +1,85 @@
+{
+  "evidence_id": "v1_order_run_path_reuse_20261124",
+  "phase": "order-run-path-reuse",
+  "kind": "pure_logic_api_cli_frontend",
+  "executed_at": "2026-11-24T09:15:00+08:00",
+  "environment": {
+    "source_revision": "cc22b61",
+    "source_revision_note": "implementation + docs changes in working tree; no CoppeliaSim used for this evidence",
+    "simulator": "not used",
+    "note": "service/API/runner unit tests and mocked frontend E2E only; no order-level physical cache-hit acceptance"
+  },
+  "versions": {
+    "order_contract": "v1_order_20261106",
+    "planner_policy": "v1_planner_20261121b",
+    "catalog": "v1_process_20261117a",
+    "scene_profile": "v1_scene_profile_20261121",
+    "fleet_policy": "v1_fleet_20261119",
+    "path_reuse": "v1_path_reuse_20261121",
+    "path_record": "v1_path_record_20261121"
+  },
+  "entrypoints": {
+    "frontend_start_dialog": {
+      "default": "CACHE_THEN_PLAN",
+      "modes": [
+        "off",
+        "PLAN_ONLY",
+        "CACHE_ONLY",
+        "CACHE_THEN_PLAN"
+      ],
+      "sends": "POST /api/orders/{order_id}/versions/{version}/start body.path_reuse"
+    },
+    "http_api": {
+      "default": "api serve --path-reuse",
+      "override": "body.path_reuse",
+      "path_library_root": "server-only"
+    },
+    "cli": {
+      "api serve": [
+        "--path-reuse",
+        "--path-library-root"
+      ],
+      "order start": [
+        "--path-reuse",
+        "--path-library-root"
+      ]
+    }
+  },
+  "path_library": {
+    "root": "docs/path_library",
+    "scene": "v1/L5_UFLOW/v005_20261117_110924",
+    "record_count": 7,
+    "enabled_phases": [
+      "PLACING"
+    ],
+    "other_artifacts": "no records; CACHE_THEN_PLAN falls back to online planning"
+  },
+  "runtime_summary_fields": [
+    "mode",
+    "library_root",
+    "scene",
+    "record_count",
+    "lookup",
+    "replay",
+    "fallback",
+    "planner_calls",
+    "lookup_wall_s",
+    "planner_wall_s",
+    "by_unit",
+    "record_count_after"
+  ],
+  "tests": {
+    "backend": "793 passed / 8 skipped",
+    "frontend_unit": "16 passed",
+    "frontend_e2e": "6 passed",
+    "typecheck": "pass",
+    "build": "pass"
+  },
+  "boundaries": [
+    "只覆盖五臂 PLACING 单目标段",
+    "CACHE_ONLY 缺记录时运行 FAILED, 不自动规划",
+    "前端不能指定路径库根目录",
+    "本轮未重新执行 CoppeliaSim 订单验收",
+    "不新增路径记录格式、数据库表/列或 OrderSpec 字段"
+  ]
+}

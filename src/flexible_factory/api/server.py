@@ -16,6 +16,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from ..application.orders import OrderService
+from ..domain.order_variants import (OrderVariantError,
+                                     OrderVariantNotFoundError)
 from ..domain.orders import (ORDER_CONTRACT_VERSION, OrderSpecError,
                              OrderValidationError)
 from ..persistence.errors import (OrderIntegrityError, OrderNotFoundError,
@@ -46,6 +48,7 @@ class ApiError(RuntimeError):
 
 class OrderApiHandler(BaseHTTPRequestHandler):
     service: OrderService
+    default_path_reuse = "off"
     server_version = "flexible-factory-order-api/1.0"
 
     # ── 路由 ────────────────────────────────────────────────
@@ -72,6 +75,10 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             })
         except OrderSpecError as exc:
             self._json(422, _domain_error("ORDER_SPEC", exc, path=exc.path))
+        except OrderVariantNotFoundError as exc:
+            self._json(404, _domain_error(exc.code, exc))
+        except OrderVariantError as exc:
+            self._json(422, _domain_error(exc.code, exc))
         except OrderValidationError as exc:
             self._json(422, _domain_error(
                 "ORDER_VALIDATION", exc, diagnostics=[
@@ -105,6 +112,17 @@ class OrderApiHandler(BaseHTTPRequestHandler):
         if parts == ["templates"] and method == "GET":
             artifact = (query.get("artifact_id") or [""])[0]
             return self.service.templates(artifact)
+        if parts == ["order-variants"] and method == "GET":
+            artifact = (query.get("artifact_id") or [""])[0]
+            scope = (query.get("scope") or [""])[0]
+            target = (query.get("target") or [""])[0]
+            return self.service.order_variants(
+                artifact, scope=scope, target_item_type=target)
+        if len(parts) == 3 and parts[0] == "order-variants" \
+                and parts[2] == "orders" and method == "POST":
+            artifact = (query.get("artifact_id") or [""])[0]
+            return self.service.create_order_from_variant(
+                parts[1], self._read_json(), artifact_id=artifact)
         if parts == ["fleet"] and method == "GET":
             artifact = (query.get("artifact_id") or [""])[0]
             return {"fleet": self.service.fleet_status(artifact)}
@@ -198,7 +216,9 @@ class OrderApiHandler(BaseHTTPRequestHandler):
                 order_id, version,
                 artifact_id=str(body.get("artifact_id") or ""),
                 max_sim_time=max_sim_time,
-                transport_fleet=str(body.get("transport_fleet") or "single"))
+                transport_fleet=str(body.get("transport_fleet") or "single"),
+                path_reuse=str(body.get("path_reuse")
+                               or self.default_path_reuse or "off"))
             return {"run": result}
         raise ApiError(404, "NOT_FOUND", f"未知订单动作 {action!r}")
 
@@ -246,6 +266,15 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             SCENE_PROFILES = ("full_flow", "assembly_mvp")
             SCENE_PROFILE_VERSION = ""
         try:
+            from ..simulation.motion.path_library import PATH_REUSE_MODES
+        except Exception:
+            PATH_REUSE_MODES = ("PLAN_ONLY", "CACHE_ONLY",
+                                "CACHE_THEN_PLAN")
+        try:
+            from ..domain.order_variants import VARIANT_VERSION
+        except Exception:
+            VARIANT_VERSION = ""
+        try:
             capabilities = self.service.scene_capabilities()
             scene_profile = capabilities.scene_profile
             profile_source = capabilities.source
@@ -262,8 +291,11 @@ class OrderApiHandler(BaseHTTPRequestHandler):
             "profile_source": profile_source,
             "scene_profiles": list(SCENE_PROFILES),
             "scene_profile_version": SCENE_PROFILE_VERSION,
+            "order_variant_version": VARIANT_VERSION,
             "transport_fleets": list(FLEET_MODES),
             "fleet_policy_version": FLEET_POLICY_VERSION,
+            "path_reuse_modes": ["off", *PATH_REUSE_MODES],
+            "default_path_reuse": self.default_path_reuse,
         }
 
     @staticmethod
@@ -349,9 +381,11 @@ class OrderApiServer:
     """本地订单 HTTP 服务; handler 只引用 OrderService."""
 
     def __init__(self, service: OrderService, *, host: str = "127.0.0.1",
-                 port: int = 8080) -> None:
+                 port: int = 8080,
+                 default_path_reuse: str = "off") -> None:
         handler = type("BoundOrderApiHandler", (OrderApiHandler,),
-                       {"service": service})
+                       {"service": service,
+                        "default_path_reuse": str(default_path_reuse or "off")})
         self._httpd = ThreadingHTTPServer((str(host), int(port)), handler)
         self._httpd.daemon_threads = True
         self.host = str(host)

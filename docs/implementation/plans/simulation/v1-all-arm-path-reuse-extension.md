@@ -5,7 +5,7 @@ tags:
   - 类别/实施计划
   - 类别/运动规划
 created: 2026-11-21
-updated: 2026-11-21
+updated: 2026-11-24
 status: implemented
 scope: v1 运动规划 P1 扩展（五臂 PLACING）
 ---
@@ -156,7 +156,9 @@ flexible-factory run --artifact v1/L5_UFLOW/v005_20261117_110924 \
 
 - B/D 的 AGV 托盘相对路径变换/局部修复；
 - `APPROACHING`/`LIFTING`/`TRANSFERRING`/`RETREATING` 段缓存；
-- 订单 runner/HTTP API 的路径复用配置；
+- 订单 runner/HTTP API 的路径复用配置（已由
+  [订单运行路径复用方案](../order-orchestration/v1-order-run-path-reuse.md)
+  另行接入，本文不重复）；
 - P2 热点优化、P3 Bézier、动态/故障回放。
 
 ## 9. 回滚

@@ -26,6 +26,13 @@ export type SceneProfile = (typeof SCENE_PROFILES)[number];
 export type ProfileSource = "manifest" | "default" | "unbound";
 export type OrderSource = "manual" | "planner" | "fixture";
 export type TransportFleet = "single" | "dual";
+export const PATH_REUSE_MODES = [
+  "off",
+  "PLAN_ONLY",
+  "CACHE_ONLY",
+  "CACHE_THEN_PLAN",
+] as const;
+export type PathReuseMode = (typeof PATH_REUSE_MODES)[number];
 export type OrderRunStatus =
   | "STARTING"
   | "RUNNING"
@@ -103,6 +110,85 @@ export interface TemplateCatalog {
   zones: SceneZoneSummary[];
   templates: TemplateSummary[];
   routes: RouteSummary[];
+}
+
+export type OrderVariantScope = "production" | "intermediate" | "transit";
+export type OrderVariantVerification =
+  | "real_run"
+  | "planner_test"
+  | "compiler_only";
+
+export interface OrderVariantStep {
+  template_id: string;
+  to_port: string;
+}
+
+export interface OrderVariantBranch {
+  branch_id: string;
+  entry_item_type: ItemType;
+  entry_zone: string;
+  steps: OrderVariantStep[];
+  template_ids: string[];
+  output_zone: string;
+  output_item_type: ItemType | null;
+}
+
+export interface OrderVariantDirectInput {
+  port_id: string;
+  item_type: ItemType;
+  zone: string;
+}
+
+export interface OrderVariantSummary {
+  variant_id: string;
+  display_name: string;
+  description: string;
+  scene_profile: SceneProfile;
+  scope: OrderVariantScope;
+  verification: OrderVariantVerification;
+  target: OrderTarget;
+  inputs: Array<{ item_type: ItemType; zone: string; quantity: number }>;
+  branches: OrderVariantBranch[];
+  direct_inputs: OrderVariantDirectInput[];
+  template_ids: string[];
+  route_ids: string[];
+  join_template_id: string;
+  join_ports: Array<{ branch_id: string; port_id: string }>;
+  output_zone: string;
+  used_arms: string[];
+  used_transports: string[];
+  difference_from: string;
+  difference_summary: string;
+  recommended_transport_fleet: TransportFleet | "";
+  route_complete: boolean;
+  available: boolean;
+  unavailable_reason: string;
+}
+
+export interface OrderVariantCatalog {
+  artifact_id: string;
+  scene_profile: SceneProfile | "";
+  profile_source: ProfileSource;
+  variant_version: string;
+  variants: OrderVariantSummary[];
+}
+
+export interface OrderVariantCreateBody {
+  order_id: string;
+  quantity: number;
+  note?: string;
+}
+
+export interface OrderVariantCreateResponse {
+  ok: boolean;
+  variant_id: string;
+  saved_order: {
+    order_id: string;
+    version: number;
+    dag_digest: string;
+  };
+  order: OrderHeader;
+  preview: CompilePreview;
 }
 
 export interface OrderTarget {
@@ -495,6 +581,7 @@ export interface StartRunBody {
   artifact_id: string;
   max_sim_time?: number;
   transport_fleet?: TransportFleet;
+  path_reuse?: PathReuseMode;
 }
 
 export interface PlannerDraftResponse {

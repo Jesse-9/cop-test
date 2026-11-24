@@ -50,7 +50,7 @@ npm run preview
 
 ```powershell
 npm test          # Vitest: API client 错误映射、订单草稿模型、状态映射
-npm run e2e       # Playwright: 手工订单、planner 草稿、运行失败视图
+npm run e2e       # Playwright: 手工订单、planner 草稿、订单方案目录、订单启动路径复用、运行失败视图
 ```
 
 首次运行浏览器测试前执行：
@@ -95,9 +95,9 @@ RUN_ID=<run_id> node e2e/real_acceptance.mjs verify  # 刷新前后状态恢复�
 
 | 路由 | 页面 |
 |---|---|
-| `/orders` | 订单列表、搜索/筛选、最近运行 |
+| `/orders` | 订单列表、订单方案目录（机械臂/运输/差异 chips 与一键创建）、搜索/筛选、最近运行 |
 | `/orders/new` | 新建空白订单、模板 palette、DAG 画布、检查器、预览/保存 |
-| `/orders/:orderId` | 订单版本、digest、planner 元数据、预览、启动、运行历史 |
+| `/orders/:orderId` | 订单版本、digest、planner 元数据、预览、启动（车队/路径复用）、运行历史 |
 | `/orders/:orderId/edit` | 从当前版本创建新版本 |
 | `/planner` | 目标/投料/约束表单、候选与 explain、保存草稿 |
 | `/runs/:runId` | 只读运行快照、节点表、失败详情、事件时间线、受控停止请求 |
@@ -105,6 +105,11 @@ RUN_ID=<run_id> node e2e/real_acceptance.mjs verify  # 刷新前后状态恢复�
 ## 边界
 
 - 浏览器只做即时编辑提示；服务端 `POST /api/orders/preview` 是校验权威。
+- 订单方案目录来自 `GET /api/order-variants`，创建只保存普通订单版本，
+  不自动启动；前缀/运输变体标 compiler-only/transit，不冒充生产实机能力。
+- 订单启动对话框默认 `CACHE_THEN_PLAN`；路径复用只覆盖五臂 `PLACING`，
+  v005 已有记录，v002/MVP 没有记录时会回退在线规划。`CACHE_ONLY` 缺记录
+  会使运行失败，适合固定动作回归而不适合日常启动。
 - 物料/模板/区域下拉来自 `/api/templates` 的 `scene_profile` 能力；页面不再
   假定固定物料集合。切换“场景工件”后，跨 profile 草稿会显示诊断并阻止保存，
   可手动清理不兼容节点/投料。`profile_source=unbound` 只表示 API 未绑定工件。

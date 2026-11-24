@@ -1,0 +1,350 @@
+{
+  "evidence_id": "v1_order_variant_catalog_20261122",
+  "phase": "order-variant-catalog",
+  "kind": "pure_logic_api_frontend",
+  "executed_at": "2026-11-22T12:30:00+08:00",
+  "environment": {
+    "source_revision": "cc22b61",
+    "source_revision_note": "implementation + docs changes in working tree; no CoppeliaSim used for this evidence",
+    "simulator": "not used",
+    "note": "validator/compiler, service/API and mocked frontend only; transit/compiler_only variants are not physical acceptance"
+  },
+  "versions": {
+    "order_variant": "v1_order_variants_20261122",
+    "order_contract": "v1_order_20261106",
+    "catalog": "v1_process_20261117a",
+    "scene_profile": "v1_scene_profile_20261121",
+    "planner_policy": "v1_planner_20261121b",
+    "fleet_policy": "v1_fleet_20261119"
+  },
+  "variant_count": 15,
+  "variants": [
+    {
+      "variant_id": "final_alt_kit",
+      "display_name": "壳体绕行 + 支架齐套 → FINAL",
+      "target": "FINAL",
+      "scope": "production",
+      "verification": "real_run",
+      "route_complete": true,
+      "used_arms": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "used_transports": [
+        "transport_BA",
+        "transport_DE"
+      ],
+      "recommended_transport_fleet": "dual",
+      "template_ids": [
+        "housing_alt_B",
+        "transport_BA",
+        "housing_alt_A",
+        "housing_finish",
+        "housing_to_E_buffer",
+        "bracket_process",
+        "transport_DE",
+        "bracket_to_E",
+        "kit_join"
+      ]
+    },
+    {
+      "variant_id": "final_direct_kit",
+      "display_name": "壳体直达 + 支架齐套 → FINAL",
+      "target": "FINAL",
+      "scope": "production",
+      "verification": "real_run",
+      "route_complete": true,
+      "used_arms": [
+        "A",
+        "C",
+        "D",
+        "E"
+      ],
+      "used_transports": [
+        "transport_DE"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_direct_A",
+        "housing_finish",
+        "housing_to_E_buffer",
+        "bracket_process",
+        "transport_DE",
+        "bracket_to_E",
+        "kit_join"
+      ]
+    },
+    {
+      "variant_id": "mvp_compressor_pair",
+      "display_name": "压缩机 + 底板 → 压缩机装配体",
+      "target": "COMPRESSOR_ASSY",
+      "scope": "production",
+      "verification": "real_run",
+      "route_complete": true,
+      "used_arms": [],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "mvp_compressor_assembly"
+      ]
+    },
+    {
+      "variant_id": "mvp_flange_pair",
+      "display_name": "前法兰 + 后法兰 → 法兰装配体",
+      "target": "FLANGE_ASSY",
+      "scope": "production",
+      "verification": "real_run",
+      "route_complete": true,
+      "used_arms": [],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "mvp_flange_assembly"
+      ]
+    },
+    {
+      "variant_id": "part_de_bracket",
+      "display_name": "支架完整 → PART_DE",
+      "target": "PART_DE",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": true,
+      "used_arms": [
+        "D",
+        "E"
+      ],
+      "used_transports": [
+        "transport_DE"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "bracket_process",
+        "transport_DE",
+        "bracket_to_E"
+      ]
+    },
+    {
+      "variant_id": "semi_ce_alt",
+      "display_name": "壳体绕行完整 → SEMI_CE",
+      "target": "SEMI_CE",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": true,
+      "used_arms": [
+        "A",
+        "B",
+        "C",
+        "E"
+      ],
+      "used_transports": [
+        "transport_BA"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_alt_B",
+        "transport_BA",
+        "housing_alt_A",
+        "housing_finish",
+        "housing_to_E_buffer"
+      ]
+    },
+    {
+      "variant_id": "semi_ce_direct",
+      "display_name": "壳体直达完整 → SEMI_CE",
+      "target": "SEMI_CE",
+      "scope": "intermediate",
+      "verification": "planner_test",
+      "route_complete": true,
+      "used_arms": [
+        "A",
+        "C",
+        "E"
+      ],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_direct_A",
+        "housing_finish",
+        "housing_to_E_buffer"
+      ]
+    },
+    {
+      "variant_id": "semi_ac_alt_a",
+      "display_name": "绕行 A 臂卸料 → SEMI_AC",
+      "target": "SEMI_AC",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "A",
+        "B"
+      ],
+      "used_transports": [
+        "transport_BA"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_alt_B",
+        "transport_BA",
+        "housing_alt_A"
+      ]
+    },
+    {
+      "variant_id": "semi_ac_direct_a",
+      "display_name": "A 臂上料 → SEMI_AC",
+      "target": "SEMI_AC",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "A"
+      ],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_direct_A"
+      ]
+    },
+    {
+      "variant_id": "semi_ce_alt_ac",
+      "display_name": "绕行 A+C → SEMI_CE",
+      "target": "SEMI_CE",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "A",
+        "B",
+        "C"
+      ],
+      "used_transports": [
+        "transport_BA"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_alt_B",
+        "transport_BA",
+        "housing_alt_A",
+        "housing_finish"
+      ]
+    },
+    {
+      "variant_id": "semi_ce_direct_ac",
+      "display_name": "A+C 汇入传送带 → SEMI_CE",
+      "target": "SEMI_CE",
+      "scope": "intermediate",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "A",
+        "C"
+      ],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_direct_A",
+        "housing_finish"
+      ]
+    },
+    {
+      "variant_id": "part_de_d",
+      "display_name": "D 臂上料 → PART_DE（AGV 在载）",
+      "target": "PART_DE",
+      "scope": "transit",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "D"
+      ],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "bracket_process"
+      ]
+    },
+    {
+      "variant_id": "part_de_de",
+      "display_name": "D 臂上料 + D→E → PART_DE（AGV 在载）",
+      "target": "PART_DE",
+      "scope": "transit",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "D"
+      ],
+      "used_transports": [
+        "transport_DE"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "bracket_process",
+        "transport_DE"
+      ]
+    },
+    {
+      "variant_id": "semi_ab_alt_b",
+      "display_name": "B 臂上料 → SEMI_AB（AGV 在载）",
+      "target": "SEMI_AB",
+      "scope": "transit",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "B"
+      ],
+      "used_transports": [],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_alt_B"
+      ]
+    },
+    {
+      "variant_id": "semi_ab_alt_ba",
+      "display_name": "B 臂上料 + B→A → SEMI_AB（AGV 在载）",
+      "target": "SEMI_AB",
+      "scope": "transit",
+      "verification": "compiler_only",
+      "route_complete": false,
+      "used_arms": [
+        "B"
+      ],
+      "used_transports": [
+        "transport_BA"
+      ],
+      "recommended_transport_fleet": "single",
+      "template_ids": [
+        "housing_alt_B",
+        "transport_BA"
+      ]
+    }
+  ],
+  "coverage": {
+    "route_complete": 7,
+    "prefix_or_transport": 8,
+    "production": 4,
+    "intermediate": 7,
+    "transit": 4,
+    "real_run": 4,
+    "planner_test": 1,
+    "compiler_only": 10,
+    "all_five_arms_variant": "final_alt_kit",
+    "both_carts_loaded_only_with": "final_alt_kit + v005 + dual",
+    "full_flow_artifact_variants": 13,
+    "assembly_mvp_artifact_variants": 15
+  },
+  "tests": {
+    "backend": "785 passed / 8 skipped",
+    "frontend": "16 passed",
+    "e2e": "5 passed",
+    "typecheck": "pass",
+    "build": "pass"
+  },
+  "boundaries": [
+    "前缀/运输/中间态变体仅 compiler-only，不等于实机验收",
+    "transit 变体目标停在 AGV 上，仅作演示",
+    "车队仅展示提示，不写入 OrderSpec；两车同时载货只在 final_alt_kit + v005 + dual",
+    "无 DB 迁移、无自动启动、无 DB 可编辑变体"
+  ]
+}

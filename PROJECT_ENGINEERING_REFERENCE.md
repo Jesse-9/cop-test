@@ -90,7 +90,7 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   `mark_resumed`/`mark_started`/`commit_success`/`mark_failed` 等）更新；
   `TaskQueue` 只服务非配方任务（空载调机/兼容路径），直接赋值会抛
   `TaskError`。
-- 自建订单 DAG（阶段 1–9）：
+- 自建订单 DAG（阶段 1–10）：
   - `domain/orders.py` 只保存声明式 `OrderSpec`/节点/边/投料/目标，严格拒绝
     未知字段、代码字段和运行时句柄；`canonical_json()`/`dag_digest()` 是
     版本不可变性和运行关联的稳定摘要。
@@ -179,6 +179,21 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
     full_flow 两例使用 `dual`（本次 single 在 E 臂 AGV 托盘对位出现既有
     `GOAL_CONFIG_INVALID`）；MVP 订单在 `v005` 上启动返回 422 且不建 run。
     证据见 `docs/implementation/evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json`。
+  - 阶段 10 增加 `domain/order_variants.py`：从已登记路线、路线前缀、
+    FINAL 合流和 MVP 直接来料派生 15 个内置 `OrderVariant`（7 个完整路线、
+    8 个工序前缀/运输变体），按 `production/intermediate/transit` 和
+    `real_run/planner_test/compiler_only` 分类；确定性 materializer 只支持
+    线性分支 + 可选 join + 直接来料 join，显式端口绑定，不使用任意
+    recipe/DAG 搜索，生成结果仍走现有 validator/compiler。`OrderService`
+    新增 `order_variants()` 和 `create_order_from_variant()`：订单保存为
+    `source=manual`，`note="variant:<id>"`，不写 planner 元数据、不自动
+    启动、不新增表/列/`OrderSource`；`GET /api/order-variants` 与
+    `POST /api/order-variants/{id}/orders` 已接入，OrdersPage 展示机械臂/
+    运输/差异/层级/验证/车队提示。`ORDER_VARIANT_VERSION=v1_order_variants_20261122`；
+    `ORDER_CONTRACT_VERSION`/DAG digest/compiler/validator/`PROCESS_MODEL_VERSION`
+    不变。生产变体复用阶段 7/9 实机证据，前缀/运输变体只标 compiler-only；
+    车队仍由启动对话框选择，只有 `final_alt_kit` + v005 + `dual` 同时使用
+    `agv_1`/`cart_2` 载货。测试见 `tests/test_v1_order_variants.py`。
 - `simulation/contract.py` 在 manifest `task_flow` 记录 process model 版本、
   recipe 和路线摘要；旧工件缺少这些字段时按存在才校验处理。
 
@@ -204,7 +219,11 @@ persistence。ORM 对象不越过 persistence 边界，仓储返回领域数据�
   JSON 存取（记录版本 `v1_path_record_20261121`）；`path_reuse.py` 提供
   可选 `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN` 策略
   （`v1_path_reuse_20261121`），五臂均只接入 `PLACING` 单目标段。
-  `run --path-reuse` 默认 `off`；启用时通过 `docs/path_library/` 精确匹配，
+  `run`、`order start` 和 `api serve` 均支持 `--path-reuse` /
+  `--path-library-root`；订单运行通过 `OrderRunCommand.path_reuse_mode`
+  和 `OrderRunnerConfig.path_library_root` 构造策略并传给 coordinator，
+  运行 summary 记录 `path_reuse` 统计。默认 `off`，前端启动对话框默认
+  `CACHE_THEN_PLAN`；启用时通过 `docs/path_library/` 精确匹配，
   A/C/E 为固定汇，B/D 为 AGV 实测托盘汇、托盘变化时回退在线规划。
   运行报告按臂记录 `lookup/replay/fallback/planner_calls` 和墙钟。
   不新增 `config*.py` 常量，不改 `config_digest()`/`layout_digest()`；
@@ -376,7 +395,9 @@ v1 保留迁移时的分层后缀，避免改动契约 ID 与已验收工件：
   `tests/test_v1_order_planner.py`（阶段 4 有界 planner、tie-break、
   无解/搜索上限、草稿保存与 API）、
   `tests/test_v1_scene_profile.py`（manifest profile 判定/能力过滤、跨
-  profile preview/start 拒绝、目录 HTTP 返回）。订单夹具见
+  profile preview/start 拒绝、目录 HTTP 返回）、
+  `tests/test_v1_order_variants.py`（15 个方案派生/物化/数量上限、
+  service 创建/版本化/跨 profile、方案 API）。订单夹具见
   `tests/order_fixtures.py`。
   这些结果不能替代真实 CoppeliaSim 订单/故障验收；阶段 6 已执行的部分和
   未覆盖边界见

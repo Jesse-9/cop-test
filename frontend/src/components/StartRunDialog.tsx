@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
-import type { FleetStatus, TransportFleet } from "../api/types";
+import type {
+  FleetStatus,
+  PathReuseMode,
+  TransportFleet,
+} from "../api/types";
 import { Field, InlineError, InlineNotice } from "./ui";
 
 export function StartRunDialog({
@@ -25,6 +29,8 @@ export function StartRunDialog({
   const setArtifact = onArtifactChange ?? setArtifactInternal;
   const [maxSimTime, setMaxSimTime] = useState(1200);
   const [fleetMode, setFleetMode] = useState<TransportFleet>("single");
+  const [pathReuse, setPathReuse] =
+    useState<PathReuseMode>("CACHE_THEN_PLAN");
   const [fleetInfo, setFleetInfo] = useState<FleetStatus | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -73,6 +79,7 @@ export function StartRunDialog({
         artifact_id: artifact.trim(),
         max_sim_time: maxSimTime,
         transport_fleet: fleetMode,
+        path_reuse: pathReuse,
       });
       navigate(`/runs/${encodeURIComponent(payload.run.run_id)}`);
     } catch (exc) {
@@ -161,6 +168,25 @@ export function StartRunDialog({
               双车
             </button>
           </div>
+        </Field>
+        <Field
+          label="路径复用"
+          htmlFor="start-path-reuse"
+          hint="仅作用于五臂 PLACING；CACHE_THEN_PLAN 未命中自动在线规划。v005 已有记录，v002/MVP 需先 PLAN_ONLY 生成。"
+        >
+          <select
+            id="start-path-reuse"
+            value={pathReuse}
+            disabled={busy}
+            onChange={(event) =>
+              setPathReuse(event.target.value as PathReuseMode)
+            }
+          >
+            <option value="CACHE_THEN_PLAN">缓存优先（推荐）</option>
+            <option value="off">关闭</option>
+            <option value="CACHE_ONLY">仅缓存（缺记录会失败）</option>
+            <option value="PLAN_ONLY">只规划并记录（生成缓存）</option>
+          </select>
         </Field>
       </div>
       {!dualAvailable && dualReason ? (

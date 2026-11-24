@@ -4,6 +4,7 @@ import type {
   OrderHeader,
   OrderSpec,
   OrderSummary,
+  OrderVariantCatalog,
   OrderVersionDetail,
   PlannerResult,
   RunDetail,
@@ -80,6 +81,88 @@ export const catalog: TemplateCatalog = {
       operation_ids: ["a", "c"],
       entry_zone: "line_s1a",
       exit_zone: "output_e",
+    },
+  ],
+};
+
+export const variantCatalog: OrderVariantCatalog = {
+  artifact_id: "v1/L5_UFLOW/mock",
+  scene_profile: "full_flow",
+  profile_source: "manifest",
+  variant_version: "v1_order_variants_mock",
+  variants: [
+    {
+      variant_id: "final_direct_kit",
+      display_name: "壳体直达 + 支架齐套 → FINAL",
+      description: "A/C/D/E 臂 + D→E 运输 + kit_join",
+      scene_profile: "full_flow",
+      scope: "production",
+      verification: "real_run",
+      target: { item_type: "FINAL", quantity: 1 },
+      inputs: [
+        { item_type: "RAW_A", zone: "line_s1a", quantity: 1 },
+        { item_type: "RAW_D", zone: "line_s2d", quantity: 1 },
+      ],
+      branches: [
+        {
+          branch_id: "housing_direct",
+          entry_item_type: "RAW_A",
+          entry_zone: "line_s1a",
+          steps: [{ template_id: "a", to_port: "input-0" }],
+          template_ids: ["a", "c"],
+          output_zone: "output_e",
+          output_item_type: "FINAL",
+        },
+      ],
+      direct_inputs: [],
+      template_ids: ["a", "c"],
+      route_ids: ["route_a"],
+      join_template_id: "kit_join",
+      join_ports: [],
+      output_zone: "output_e",
+      used_arms: ["A", "C", "D", "E"],
+      used_transports: ["transport_DE"],
+      difference_from: "",
+      difference_summary: "",
+      recommended_transport_fleet: "single",
+      route_complete: true,
+      available: true,
+      unavailable_reason: "",
+    },
+    {
+      variant_id: "semi_ac_direct_a",
+      display_name: "A 臂上料 → SEMI_AC",
+      description: "仅 A 臂从 S1 来料搬运到 handoff_ac",
+      scene_profile: "full_flow",
+      scope: "intermediate",
+      verification: "compiler_only",
+      target: { item_type: "SEMI_AC", quantity: 1 },
+      inputs: [{ item_type: "RAW_A", zone: "line_s1a", quantity: 1 }],
+      branches: [
+        {
+          branch_id: "housing_direct",
+          entry_item_type: "RAW_A",
+          entry_zone: "line_s1a",
+          steps: [{ template_id: "a", to_port: "input-0" }],
+          template_ids: ["a"],
+          output_zone: "handoff_ac",
+          output_item_type: "SEMI_AC",
+        },
+      ],
+      direct_inputs: [],
+      template_ids: ["a"],
+      route_ids: ["route_a"],
+      join_template_id: "",
+      join_ports: [],
+      output_zone: "handoff_ac",
+      used_arms: ["A"],
+      used_transports: [],
+      difference_from: "semi_ce_direct",
+      difference_summary: "比完整直达少 C 臂、E 臂",
+      recommended_transport_fleet: "single",
+      route_complete: false,
+      available: true,
+      unavailable_reason: "",
     },
   ],
 };
@@ -403,7 +486,7 @@ export const runEvents: Record<string, unknown[]> = {
 
 export async function installMocks(page: Page): Promise<void> {
   await page.route(
-    /\/api\/(?:health|templates|fleet|orders|planner|runs)(?:\/|\?|$)/,
+    /\/api\/(?:health|templates|order-variants|fleet|orders|planner|runs)(?:\/|\?|$)/,
     async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -428,6 +511,27 @@ export async function installMocks(page: Page): Promise<void> {
     }
     if (path === "/api/templates") {
       return fulfill({ ok: true, ...catalog });
+    }
+    if (path === "/api/order-variants" && method === "GET") {
+      return fulfill({ ok: true, ...variantCatalog });
+    }
+    const variantOrderMatch = path.match(
+      /^\/api\/order-variants\/([^/]+)\/orders$/,
+    );
+    if (variantOrderMatch && method === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}");
+      const orderId = String(body.order_id ?? "variant-order");
+      return fulfill({
+        ok: true,
+        variant_id: decodeURIComponent(variantOrderMatch[1]),
+        saved_order: {
+          order_id: orderId,
+          version: 1,
+          dag_digest: DIGEST,
+        },
+        order: orderHeader(orderId),
+        preview: { ...preview, order_id: orderId },
+      });
     }
     if (path === "/api/fleet") {
       return fulfill({

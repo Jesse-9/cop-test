@@ -40,6 +40,8 @@ class OrderRunnerConfig:
     catalog_source: str = "code"
     log: str = spec.DEFAULT_LOG_FILE
     out_dir: Path = spec.REPORT_DIR
+    #: 路径库根目录; None 时使用 spec.PATH_LIBRARY_ROOT (docs/path_library).
+    path_library_root: Optional[Path] = None
 
 
 def required_arm_units(compiled) -> tuple[str, ...]:
@@ -69,20 +71,37 @@ def make_order_runner(config: OrderRunnerConfig,
     return run
 
 
+def build_order_path_reuse(config: OrderRunnerConfig,
+                           command: "OrderRunCommand"):
+    """构造订单运行级路径复用策略; ``off`` 返回 None."""
+    from .run import build_path_reuse_policy
+    return build_path_reuse_policy(
+        command.path_reuse_mode, config.path_library_root,
+        command.artifact_id)
+
+
 def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                    stop_event, *,
                    catalog: Optional[ProcessCatalog] = None) -> dict:
     from ..simulation.component_builder import (connect, start_stepping,
                                                 stop_simulation)
     from .lifecycle import LifecycleManager
-    from .run import build_components_v1, setup_logger
+    from .run import (build_components_v1, path_reuse_info, setup_logger)
     from .coordinator import Stage4Coordinator
 
     logger = setup_logger(config.log)
-    logger.info("[ORDER] start run=%s order=%s@%s artifact=%s fleet=%s",
+    logger.info("[ORDER] start run=%s order=%s@%s artifact=%s fleet=%s "
+                "path_reuse=%s",
                 command.run_id, command.order.order_id,
                 command.order.version, command.artifact_id,
-                command.transport_fleet)
+                command.transport_fleet, command.path_reuse_mode)
+    reuse = build_order_path_reuse(config, command)
+    reuse_info = path_reuse_info(reuse, config.path_library_root)
+    if reuse is not None:
+        logger.info(
+            "[PATH_REUSE] mode=%s root=%s scene=%s records=%s units=all",
+            reuse.mode, reuse_info["library_root"],
+            reuse.scene_artifact_id, reuse_info["record_count"])
     _client, sim, simIK = connect(config.host, config.port)
     manager = LifecycleManager(
         sim, simIK, host=config.host, port=config.port, actor="order",
@@ -120,7 +139,8 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
         coordinator = Stage4Coordinator(
             sim, manager.scene, comp, scenario=cfg.SCENARIO_FULL_FLOW,
             catalog=catalog, order_plan=command.compiled,
-            fleet_mode=command.transport_fleet, logger=logger)
+            fleet_mode=command.transport_fleet, path_reuse=reuse,
+            logger=logger)
         coordinator.start(float(sim.getSimulationTime()))
         task_start = float(sim.getSimulationTime())
         wall_deadline = time.time() + max(
@@ -158,6 +178,14 @@ def run_order_once(config: OrderRunnerConfig, command: "OrderRunCommand",
                     abort=True)
                 break
         summary = coordinator.summary()
+        if reuse is not None:
+            reuse_summary = dict(reuse_info)
+            reuse_summary.update(reuse.stats())
+            reuse_summary["record_count_after"] = \
+                reuse.library.count_records(reuse.scene_artifact_id)
+        else:
+            reuse_summary = None
+        summary["path_reuse"] = reuse_summary
         assumption = str(command.planner_transport_fleet or "")
         summary["planner_fleet_assumption"] = assumption
         fleet_summary = summary.setdefault("fleet", {})

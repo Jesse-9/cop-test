@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from flexible_factory.application.order_runner import required_arm_units
+import pytest
+
+from flexible_factory.application.order_runner import (
+    OrderRunnerConfig, build_order_path_reuse, required_arm_units)
+
+
+def _command(mode: str, artifact: str = "v1/L5_UFLOW/test-artifact"):
+    return SimpleNamespace(path_reuse_mode=mode, artifact_id=artifact)
 
 
 def _compiled(*rows):
@@ -38,3 +45,29 @@ def test_required_arm_units_empty_for_logic_only_order():
 def test_required_arm_units_stable_unit_order():
     compiled = _compiled(_instance(["arm_E", "arm_B", "arm_D"]))
     assert required_arm_units(compiled) == ("B", "D", "E")
+
+
+def test_build_order_path_reuse_off_returns_none(tmp_path):
+    config = OrderRunnerConfig(path_library_root=tmp_path)
+    assert build_order_path_reuse(config, _command("off")) is None
+
+
+def test_build_order_path_reuse_builds_scoped_policy(tmp_path):
+    config = OrderRunnerConfig(path_library_root=tmp_path)
+    policy = build_order_path_reuse(config, _command("CACHE_THEN_PLAN"))
+    assert policy is not None
+    assert policy.mode == "CACHE_THEN_PLAN"
+    assert policy.scene_artifact_id == "v1/L5_UFLOW/test-artifact"
+    assert policy.enabled_phases == ("PLACING",)
+
+
+def test_build_order_path_reuse_rejects_unknown_mode(tmp_path):
+    config = OrderRunnerConfig(path_library_root=tmp_path)
+    with pytest.raises(ValueError, match="未知路径复用模式"):
+        build_order_path_reuse(config, _command("BOGUS"))
+
+
+def test_build_order_path_reuse_cache_only_requires_records(tmp_path):
+    config = OrderRunnerConfig(path_library_root=tmp_path)
+    with pytest.raises(ValueError, match="CACHE_ONLY"):
+        build_order_path_reuse(config, _command("CACHE_ONLY"))
