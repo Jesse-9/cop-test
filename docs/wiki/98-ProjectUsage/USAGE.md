@@ -584,6 +584,38 @@ lookup/replay/fallback/planner 墙钟和按臂统计，`off` 时为 `null`。
 - 路径库不参与 `config_digest()`/`layout_digest()`；根目录不得位于
   `docs/scene_artifacts/`。删除记录即可回退在线规划。
 
+## 运行录像（仿真视频）
+
+`run`、`order start`、`api serve` 和前端启动对话框支持可选录制 MP4。默认
+关闭；开启后录制从启动点校验通过、stepping 开始到运行结束/失败的整段动作，
+输出 `var/recordings/<run_id>.mp4` 和同名 `.json`（状态、帧数、仿真/视频
+时长、机位、抽帧间隔）。录制是运行旁路：相机对象不写入场景工件；编码、
+写盘或相机失败只把 `recording.status` 标记为 `failed`/`partial`，不改变
+运行结果、退出码或运行记录。
+
+命令行（三个入口共用参数）：
+
+    flexible-factory run --scenario full_flow --record on
+    flexible-factory order start --order-id mvp-compressor-001 --version 1 --record on
+    flexible-factory api serve --record-default off
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--record {on,off}` | `off` | 本次运行是否录像；`api serve` 用 `--record-default` |
+| `--record-dir` | `var/recordings` | 输出目录；不得位于场景工件目录内 |
+| `--record-size` | `1280x720` | 分辨率，宽高必须为偶数 |
+| `--record-sample-dt` | `0.1` | 每帧对应的仿真时间；20 fps 视频下 0.1 s 为 2× 播放 |
+
+- 显式 `--record on` 但 ffmpeg 不可用时，命令在连接仿真前报错退出，不会白跑。
+- 前端：启动对话框勾选“录制本次运行”；运行页显示播放器、下载链接；运行中
+  显示已采集帧数。API 启动 body 使用 `record: true`，视频地址为
+  `GET /api/runs/{run_id}/video`（支持 Range，可拖动进度条）。
+- 只对真实仿真运行有效：`planner_test`/`compiler_only` 不产生视频。v1 用户
+  场景是 `full_flow`，CLI 的 5 个内部回归场景同样可以录像。
+- 录制会增加每步渲染开销，日常验收和无演示需求的批量运行保持默认关闭。
+- 版本 `v1_recording_20261124`；详见
+  [运行录像报告](../../implementation/reports/simulation/v1-simulation-recording.md)。
+
 ## 启动阶段计时（性能诊断）
 
 `run` 从 ZMQ 连接、加载工件、启动点校验、组件构建到 `start_stepping` 的耗时

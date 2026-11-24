@@ -39,6 +39,7 @@ from ..simulation import config as cfg
 from .. import spec
 from .batch import (BatchError, DEFAULT_BATCH_PROFILE, resolve_batch,
                     validate_batch)
+from .recording import RecordingOptions, make_recorder
 from .coordinator import Stage4Coordinator
 from ..persistence.db import CatalogDatabase
 from ..persistence.runs import RunRecorder
@@ -267,6 +268,7 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
                         fleet_mode: str = "single",
                         catalog=None, run_recorder=None,
                         path_reuse: Optional[PathReusePolicy] = None,
+                        video_recorder=None,
                         stop_event=None, pause_event=None,
                         pause_ack_event=None, on_start=None) -> dict:
     """在已加载/已建组件的 v1 场景上运行一个验收场景."""
@@ -319,6 +321,8 @@ def run_scenario_v1(sim, scene, comp, *, scenario: str,
                 pause_ack_event.clear()
             coordinator.step()
             steps += 1
+            if video_recorder is not None:
+                video_recorder.capture_if_due()
             if float(sim.getSimulationTime()) - task_start > max_sim_time:
                 coordinator._freeze(f"SIM_TIME_LIMIT: {max_sim_time:.1f}s",
                                     coordinator._sim_time(), abort=True)
@@ -386,7 +390,8 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                             run_id: str | None = None,
                             artifact_id: str | None = None,
                             path_reuse_mode: str = "off",
-                            path_library_root: Path | str | None = None
+                            path_library_root: Path | str | None = None,
+                            recording: Optional[RecordingOptions] = None
                             ) -> dict:
     """v1生命周期 runner; 不 build、不清场."""
     if keep_running:
@@ -439,6 +444,12 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             logger.error("[RUN_RECORD] 启动运行记录失败, 运行继续: %s",
                          started.get("error"))
 
+    video = make_recorder(sim, run_id or "run", recording,
+                          layout=getattr(scene, "stage4_layout", None),
+                          logger=logger)
+    video_error = ""
+    video_info = None
+
     try:
         comp = build_components_v1(
             sim, simIK, scene, logger, unit_ids=effective_unit_ids)
@@ -475,10 +486,14 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
                     sim.getSimulationTime(), run_id)
         drive_probe = probe_conveyor_drive(sim, scene, comp)
         logger.info("[CONVEYOR][v1] S1→A 驱动探测: %s", drive_probe)
+        if video is not None:
+            video.start()
     except Exception as exc:
         if recorder is not None:
             recorder.finish(
                 None, None, error=f"{type(exc).__name__}: {exc}")
+        if video is not None:
+            video_error = f"{type(exc).__name__}: {exc}"
         raise
 
     results = []
@@ -490,13 +505,14 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             batch=effective_batch, batch_profile=profile_name,
             fleet_mode=fleet_mode,
             catalog=catalog, run_recorder=recorder,
-            path_reuse=path_reuse,
+            path_reuse=path_reuse, video_recorder=video,
             stop_event=stop_event, pause_event=pause_event,
             pause_ack_event=pause_ack_event, on_start=on_start)
         evidence["conveyor_drive_probe"] = drive_probe
         results.append(evidence)
     except Exception as exc:
         logger.exception("[TASK][v1] 运行异常: %s", exc)
+        video_error = f"{type(exc).__name__}: {exc}"
         results.append({"scenario": scenario, "error": str(exc),
                         "ok": False,
                         "run_record": (None if recorder is None
@@ -510,6 +526,8 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
             except Exception as exc:
                 logger.exception("[V1] runtime 清理失败: %s", exc)
                 runtime_destroy = {"error": f"{type(exc).__name__}: {exc}"}
+            if video is not None:
+                video_info = video.close(error=video_error)
 
     reuse_summary = None
     if path_reuse is not None:
@@ -534,6 +552,7 @@ def run_loaded_scene_v1(sim, simIK, scene, *,
         "layout": scene.stage4_layout.name,
         "catalog_source": "database" if catalog is not None else "code",
         "catalog_version": None if catalog is None else catalog.version,
+        "recording": video_info,
         "run_record": results[0].get("run_record") if results else None,
         "results": results,
         "runtime_destroy": runtime_destroy,

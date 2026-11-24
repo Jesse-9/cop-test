@@ -31,6 +31,7 @@ export function StartRunDialog({
   const [fleetMode, setFleetMode] = useState<TransportFleet>("single");
   const [pathReuse, setPathReuse] =
     useState<PathReuseMode>("CACHE_THEN_PLAN");
+  const [record, setRecord] = useState(false);
   const [fleetInfo, setFleetInfo] = useState<FleetStatus | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,6 +81,7 @@ export function StartRunDialog({
         max_sim_time: maxSimTime,
         transport_fleet: fleetMode,
         path_reuse: pathReuse,
+        record,
       });
       navigate(`/runs/${encodeURIComponent(payload.run.run_id)}`);
     } catch (exc) {
@@ -189,6 +191,15 @@ export function StartRunDialog({
           </select>
         </Field>
       </div>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={record}
+          disabled={busy}
+          onChange={(event) => setRecord(event.target.checked)}
+        />
+        录制本次运行（可选，MP4 写入服务端 var/recordings）
+      </label>
       {!dualAvailable && dualReason ? (
         <InlineNotice tone="warning">
           双车不可用：{dualReason}

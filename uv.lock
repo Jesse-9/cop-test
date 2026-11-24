@@ -127,12 +127,12 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "coppeliasim-zmqremoteapi-client" },
+    { name = "imageio-ffmpeg" },
     { name = "sqlalchemy" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "imageio-ffmpeg" },
     { name = "neo4j" },
     { name = "pytest" },
     { name = "pywinpty" },
@@ -142,12 +142,12 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.14,<2" },
     { name = "coppeliasim-zmqremoteapi-client", specifier = ">=2.0.4" },
+    { name = "imageio-ffmpeg", specifier = ">=0.7.0" },
     { name = "sqlalchemy", specifier = ">=2.0.36,<3" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "imageio-ffmpeg", specifier = ">=0.7.0" },
     { name = "neo4j", specifier = ">=5.13,<6" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pywinpty", specifier = ">=3.1.0" },

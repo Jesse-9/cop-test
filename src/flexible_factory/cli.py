@@ -32,6 +32,9 @@ from .application.report import (report_genealogy, report_run, report_runs,
 from .application.lifecycle import (LifecycleError, LifecycleManager,
                                     ValidationFailedError)
 from .application.orders import OrderService
+from .application.recording import (DEFAULT_SAMPLE_DT, DEFAULT_SIZE,
+                                    RecordingError, ensure_available,
+                                    options_from_cli)
 from .application.run import (PATH_REUSE_MODES, REPORT_DIR,
                               run_loaded_scene_v1, setup_logger)
 from .api.server import OrderApiServer
@@ -43,6 +46,32 @@ from .domain.orders import OrderCompileError, OrderSpecError, \
 from .persistence.db import CatalogDatabase, initialize_database
 from .persistence.errors import CatalogPersistenceError
 from .simulation.component_builder import connect
+
+
+def _add_record_options(parser: argparse.ArgumentParser, *,
+                        flag: str = "--record",
+                        dest: str = "record") -> None:
+    """运行录像开关; run/order start/api serve 共用同一组参数."""
+    parser.add_argument(
+        flag, choices=["on", "off"], default="off", dest=dest,
+        help="运行录像: on 时写入 MP4; 录制失败不改变运行结果")
+    parser.add_argument("--record-dir", default=str(spec.RECORDING_DIR),
+                        help="录像输出目录; 不得位于场景工件目录内")
+    parser.add_argument("--record-size", default=DEFAULT_SIZE,
+                        help="录像分辨率, 必须为偶数 (默认 1280x720)")
+    parser.add_argument("--record-sample-dt", type=float,
+                        default=DEFAULT_SAMPLE_DT,
+                        help="每帧对应的仿真时间 (s); 20 fps 下 0.1=2x")
+
+
+def _recording_options(ns, flag: str = "record"):
+    """构造本次运行录制选项; 显式请求但 ffmpeg 不可用时快速失败."""
+    options = options_from_cli(
+        record=getattr(ns, flag), out_dir=ns.record_dir,
+        size=ns.record_size, sample_dt=ns.record_sample_dt)
+    if options.enabled:
+        ensure_available()
+    return options
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -337,6 +366,10 @@ def _order_runner(ns):
         catalog_source=ns.catalog_source,
         path_library_root=(Path(path_library_root)
                            if path_library_root else None),
+        record_dir=Path(getattr(ns, "record_dir", spec.RECORDING_DIR)),
+        record_size=str(getattr(ns, "record_size", DEFAULT_SIZE)),
+        record_sample_dt=float(getattr(ns, "record_sample_dt",
+                                       DEFAULT_SAMPLE_DT)),
         log=ns.log, out_dir=Path(ns.out_dir)), catalog=_order_catalog(ns))
 
 
@@ -405,11 +438,18 @@ def cmd_order_plan(ns) -> int:
 
 
 def cmd_order_start(ns) -> int:
+    if ns.record == "on":
+        try:
+            _recording_options(ns)
+        except (RecordingError, ValueError) as exc:
+            print(f"[ERROR] 录制配置无效: {exc}", file=sys.stderr)
+            return 2
     service = _order_service(ns)
     result = service.run_sync(
         ns.order_id, ns.version, _order_runner(ns),
         artifact_id=ns.artifact_id, max_sim_time=ns.max_time,
-        transport_fleet=ns.transport_fleet, path_reuse=ns.path_reuse)
+        transport_fleet=ns.transport_fleet, path_reuse=ns.path_reuse,
+        record=(ns.record == "on"))
     _print(result)
     return 0 if result.get("status") == "SUCCEEDED" else 1
 
@@ -446,9 +486,17 @@ def cmd_order_stop(ns) -> int:
 
 
 def cmd_api_serve(ns) -> int:
+    record_default = ns.record_default == "on"
+    # 无论默认开关如何都校验录像参数, 避免请求开启时才发现配置非法.
+    try:
+        _recording_options(ns, "record_default")
+    except (RecordingError, ValueError) as exc:
+        print(f"[ERROR] 录制配置无效: {exc}", file=sys.stderr)
+        return 2
     service = _order_service(ns, runner=_order_runner(ns))
     server = OrderApiServer(service, host=ns.host, port=ns.port,
-                            default_path_reuse=ns.path_reuse)
+                            default_path_reuse=ns.path_reuse,
+                            default_record=record_default)
     logger = setup_logger(ns.log)
     logger.info("[API] order service listening on %s", server.base_url)
     print(json.dumps({"ok": True, "base_url": server.base_url},
@@ -467,6 +515,11 @@ def cmd_api_serve(ns) -> int:
 def cmd_run(ns) -> int:
     # 批次输入在连接仿真/取得运行锁之前校验; 非法值不进入生命周期.
     resolve_batch(ns.scenario, profile=ns.batch_profile)
+    try:
+        recording = _recording_options(ns)
+    except (RecordingError, ValueError) as exc:
+        print(f"[ERROR] 录制配置无效: {exc}", file=sys.stderr)
+        return 2
     catalog = None
     if ns.catalog_source == "db":
         # 显式选库: 必须与当前代码目录完全等价, 否则在连接仿真前拒绝.
@@ -501,7 +554,8 @@ def cmd_run(ns) -> int:
             run_id=prepared["run_id"],
             artifact_id=manager.session.artifact_id,
             path_reuse_mode=ns.path_reuse,
-            path_library_root=ns.path_library_root)
+            path_library_root=ns.path_library_root,
+            recording=recording)
     except Exception as exc:
         logger.exception("[TASK][v1] 运行异常: %s", exc)
         error = f"{type(exc).__name__}: {exc}"
@@ -753,6 +807,7 @@ def build_parser() -> argparse.ArgumentParser:
                    default=str(spec.PATH_LIBRARY_ROOT),
                    help="路径记录根目录; 不得位于场景工件目录内")
     p.add_argument("--run-records", choices=["on", "off"], default="on")
+    _add_record_options(p)
     _add_common(p)
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
@@ -803,6 +858,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--path-library-root",
                    default=str(spec.PATH_LIBRARY_ROOT),
                    help="路径记录根目录; 不得位于场景工件目录内")
+    _add_record_options(p, flag="--record-default", dest="record_default")
     p.add_argument("--log", default=spec.DEFAULT_LOG_FILE)
     p.add_argument("--out-dir", default=str(spec.REPORT_DIR))
     p.set_defaults(func=cmd_api_serve)
@@ -866,6 +922,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="目录/运行记录数据库路径")
     p.add_argument("--run-records", choices=["on", "off"], default="on",
                    help="运行结束批量写运行记录 (默认 on; 写失败不影响运行)")
+    _add_record_options(p)
     p.set_defaults(func=cmd_run)
 
     return parser
