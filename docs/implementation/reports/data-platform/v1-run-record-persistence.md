@@ -6,14 +6,14 @@ created: 2026-11-05
 updated: 2026-11-06
 scope: 资源目录数据库化方案阶段 4 / production_run / 运行查询
 related:
-  - docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md
   - docs/implementation/reports/data-platform/v1-catalog-persistence.md
 ---
 
 # v1 运行记录实施报告：Q1–Q4 查询与批量写入
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](../../plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
+[资源目录数据库化与知识图谱实施方案](../../archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
 阶段 4 的实施结果。实施范围按用户确认的查询口径执行：
 
 - Q1 运行汇总与验收；

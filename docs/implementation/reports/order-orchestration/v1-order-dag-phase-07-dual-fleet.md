@@ -6,10 +6,10 @@ created: 2026-11-20
 updated: 2026-11-20
 scope: v1 UFLOW / dual transport fleet / order runner
 related:
-  - ../../plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
-  - ../../plans/order-orchestration/v1-self-built-order-dag-orchestration.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
+  - ../../archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md
   - ../../evidence/order-orchestration/v1_order_dag_phase7_dual_20261120_004442.json
   - ../../evidence/order-orchestration/v1_order_dag_phase7_single_regression_20261120_005619.json
   - ../../evidence/order-orchestration/v1_order_dag_phase7_dual_planner_20261120_010820.json
@@ -20,7 +20,7 @@ related:
 # 自建订单 DAG 阶段 7 实施报告
 
 本报告记录
-[阶段 7 方案](../../plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)
+[阶段 7 方案](../../archive-plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md)
 的执行结果。改动把 `single/dual` 车队作为**订单运行选项**接入
 `OrderSpec → compiler → OrderService → order runner → Stage4Coordinator`
 链路，并统一运输工序的设备选择、实际执行车辆、运行事件、资源 owner 和

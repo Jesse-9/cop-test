@@ -6,8 +6,8 @@ created: 2026-11-22
 updated: 2026-11-22
 scope: v1 UFLOW / order workbench / order variants / planner / scene profile / fleet config
 related:
-  - ../../plans/order-orchestration/v1-order-variant-catalog-workbench.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md
+  - ../../archive-plans/order-orchestration/v1-order-variant-catalog-workbench.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md
   - ../../evidence/order-orchestration/v1_order_variant_catalog_20261122.json
   - v1-order-dag-phase-09-scene-profile-order-catalog.md
   - v1-order-dag-phase-07-dual-fleet.md
@@ -16,7 +16,7 @@ related:
 # 订单方案目录实施报告
 
 本报告记录
-[订单方案目录方案](../../plans/order-orchestration/v1-order-variant-catalog-workbench.md)
+[订单方案目录方案](../../archive-plans/order-orchestration/v1-order-variant-catalog-workbench.md)
 的实施结果：把已登记路线、路线前缀、FINAL 合流和 MVP 直接来料包装成
 15 个命名 `OrderVariant`，在订单列表页直观展示并一键创建普通订单。
 

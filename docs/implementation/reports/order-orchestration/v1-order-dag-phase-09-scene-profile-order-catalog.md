@@ -6,8 +6,8 @@ created: 2026-11-21
 updated: 2026-11-21
 scope: v1 UFLOW / full_flow / assembly_mvp / order workbench / planner
 related:
-  - ../../plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md
   - ../../reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
   - ../../evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json
 ---
@@ -15,7 +15,7 @@ related:
 # 自建订单 DAG 阶段 9 实施报告
 
 本报告记录
-[阶段 9 方案](../../plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md)
+[阶段 9 方案](../../archive-plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md)
 的实施结果。改动把 `full_flow` 与 `assembly_mvp` 两种工件能力纳入同一订单
 工作台和 planner：目录查询按实际工件 manifest 过滤，手工订单可表达两种
 MVP 直接来料装配，planner 可生成两种单节点 MVP 订单，运行启动前按工件

@@ -10,9 +10,9 @@ related:
   - docs/implementation/reference/production-flow/assembly-mvp/README.md
   - docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
   - docs/implementation/evidence/production-flow/v1_assembly_mvp_acceptance_20261114.json
-  - docs/wiki/06-工业案例/柔性车间/当前规划/06-24-混线生产术语与对象模型.md
-  - docs/wiki/06-工业案例/柔性车间/当前规划/06-25-混线生产工艺流程与设备映射.md
-  - docs/implementation/plans/production-flow/v1-mixed-production-flexibility-demo.md
+  - docs/wiki/06-工业案例/柔性车间/领域参考/06-24-混线生产术语与对象模型.md
+  - docs/wiki/06-工业案例/柔性车间/领域参考/06-25-混线生产工艺流程与设备映射.md
+  - docs/implementation/archive-plans/production-flow/v1-mixed-production-flexibility-demo.md
 ---
 
 # Neo4j 图谱驱动的混线装配 MVP 实施方案

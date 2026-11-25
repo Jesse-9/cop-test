@@ -6,17 +6,17 @@ created: 2026-11-08
 updated: 2026-11-08
 scope: v1 UFLOW / CoppeliaSim 4.10
 related:
-  - ../../plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md
-  - ../../plans/order-orchestration/v1-self-built-order-dag-orchestration.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md
+  - ../../archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md
   - v1-order-dag-phase-05-frontend.md
   - ../../evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json
-  - ../../plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md
 ---
 
 # 自建订单 DAG 阶段 6 实施报告
 
 本报告记录
-[阶段 6 仿真验收方案](../../plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)
+[阶段 6 仿真验收方案](../../archive-plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md)
 的执行结果。验收对象是受保护的 `L5_UFLOW` v1 工件
 `v1/L5_UFLOW/v001_20261103_004317`，验证手工订单、planner 订单、物理动作
 前 NODE 局部拒绝和真实安全锁存 GLOBAL 停止。

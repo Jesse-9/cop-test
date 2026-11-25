@@ -13,8 +13,8 @@ related:
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../reports/production-flow/v1-stage-03-operation-dag.md
   - ../../reports/production-flow/v1-stage-04-capability-scheduling.md
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-24-混线生产术语与对象模型.md
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-25-混线生产工艺流程与设备映射.md
+  - ../../../wiki/06-工业案例/柔性车间/领域参考/06-24-混线生产术语与对象模型.md
+  - ../../../wiki/06-工业案例/柔性车间/领域参考/06-25-混线生产工艺流程与设备映射.md
 ---
 
 # v1 自建订单与工序 DAG 自主编排总体方案

@@ -6,14 +6,14 @@ created: 2026-11-05
 updated: 2026-11-05
 scope: flexible_factory persistence / SQLAlchemy + Alembic / 静态目录
 related:
-  - docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md
   - ../../../../PROJECT_ENGINEERING_REFERENCE.md
 ---
 
 # v1 资源目录数据库化实施报告：静态目录持久化
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](../../plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
+[资源目录数据库化与知识图谱实施方案](../../archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
 阶段 0–3 在 v1 代码上的实施结果。阶段 0 的字段盘点与术语对照见
 [静态目录字段盘点](../../reference/data-platform/static-catalog-field-inventory.md)。本阶段只把
 **静态资源与工艺目录**持久化到 SQLite，并增加显式选库能力；运行记录和

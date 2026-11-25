@@ -1,6 +1,6 @@
 # assembly_mvp 混线装配 MVP 输入与复现资料
 
-本目录保存 [Neo4j 图谱混线装配 MVP 方案](../../../plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)
+本目录保存 [Neo4j 图谱混线装配 MVP 方案](../../../archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)
 WP0–WP3 的订单 fixture 和复现说明。图谱来源见
 [Neo4j 图数据导出](../../data-platform/neo4j-graph-export/README.md) 的
 `fmpmm_graph.json`；本目录不复制图谱全文，只记录被采用的最小子图事实。

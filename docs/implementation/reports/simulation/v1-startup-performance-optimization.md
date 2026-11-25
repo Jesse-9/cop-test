@@ -10,7 +10,7 @@ scope: v1 启动路径（lifecycle 校验、simulation runtime）
 # v1 启动性能优化实施报告
 
 本报告记录
-[启动性能优化方案](../../plans/simulation/v1-startup-performance-optimization.md)
+[启动性能优化方案](../../archive-plans/simulation/v1-startup-performance-optimization.md)
 P1/P2 的代码实施结果、pytest 回归、2026-11-12 的三次启动计时和后续步骤。
 本轮已完成纯逻辑回归和启动计时；**未运行场景、未完成 `full_flow` 验收**，
 因此不能把本报告当作功能验收或性能收益的最终结论。

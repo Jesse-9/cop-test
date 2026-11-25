@@ -10,7 +10,7 @@ scope: v1 运动规划（P0 计时字段、P1 路径回放）
 # 仿真与运动规划效率提升实施报告
 
 本报告记录
-[仿真与运动规划效率提升方案](../../plans/simulation/simulation-motion-planning-performance.md)
+[仿真与运动规划效率提升方案](../../archive-plans/simulation/simulation-motion-planning-performance.md)
 P0 与 P1 的代码实施结果、离线测试和 2026-11-20 的一次 focused
 CoppeliaSim 对照。该对照只覆盖一个固定 A 臂 `PLACING` 段：同一
 `housing_direct_A` 任务先用 `PLAN_ONLY` 在线规划并导出，再重载场景用
@@ -214,7 +214,7 @@ focused 实机回放通过；不能声明全流程提速、抓取/转运段回�
 
 ## 6. 相关文件
 
-- [仿真与运动规划效率提升方案](../../plans/simulation/simulation-motion-planning-performance.md)
+- [仿真与运动规划效率提升方案](../../archive-plans/simulation/simulation-motion-planning-performance.md)
 - [仿真模块清单](../../reference/simulation/simulation-module-inventory.md)
 - [工程参考](../../../../PROJECT_ENGINEERING_REFERENCE.md)
 - [路径复用测试](../../../../tests/test_v1_motion_path_reuse.py) ·

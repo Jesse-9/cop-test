@@ -6,9 +6,9 @@ created: 2026-11-05
 updated: 2026-11-06
 scope: v1 UFLOW / full_flow / WP1-WP2
 related:
-  - docs/implementation/plans/production-flow/v1-mixed-production-flexibility-demo.md
+  - docs/implementation/archive-plans/production-flow/v1-mixed-production-flexibility-demo.md
   - ../../../wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明.md
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
+  - ../../../wiki/06-工业案例/柔性车间/历史与待评估规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
   - docs/implementation/reports/production-flow/v1-stage-04-capability-scheduling.md
   - docs/implementation/evidence/production-flow/v1_full_flow_default_20261105_225825.json
   - docs/implementation/evidence/production-flow/v1_full_flow_direct_heavy_20261105_233212.json
@@ -19,7 +19,7 @@ related:
 # v1 混线生产灵活性扩展示范实施报告：有限批次配比
 
 本报告记录
-[混线生产灵活性扩展示范方案](../../plans/production-flow/v1-mixed-production-flexibility-demo.md)
+[混线生产灵活性扩展示范方案](../../archive-plans/production-flow/v1-mixed-production-flexibility-demo.md)
 WP1（有限批次输入）与 WP2（批次灵活性验证）的实施结果。WP3（等价设备
 替代）和 WP4（同一物料动态选路）仍是条件工作包，未立项、未实施。
 

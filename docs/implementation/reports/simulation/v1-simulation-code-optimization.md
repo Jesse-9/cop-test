@@ -10,7 +10,7 @@ scope: src/flexible_factory/simulation
 # 仿真模块代码优化实施报告：控制器、运行时与规划模块
 
 本报告记录
-[仿真模块代码优化实施计划](../../plans/simulation/simulation-code-optimization-plan.md)
+[仿真模块代码优化实施计划](../../archive-plans/simulation/simulation-code-optimization-plan.md)
 P1、P2、P3 5.1/5.3 与第 6 节的实施结果。目标是减少控制器与运行时装配中
 有证据的重复实现、收敛相邻阶段入口、按职责拆分规划模块并清理无消费者
 代码；不改变场景工件、配置/布局摘要、控制器 ID、碰撞与运动安全判据。

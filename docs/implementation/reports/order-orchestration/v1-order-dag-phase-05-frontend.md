@@ -6,10 +6,10 @@ created: 2026-11-07
 updated: 2026-11-07
 scope: v1 UFLOW / order UI
 related:
-  - ../../plans/order-orchestration/v1-order-dag-phase-05-frontend.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-05-frontend.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
   - v1-order-dag-phase-01-03.md
   - v1-order-dag-phase-04-auto-planner.md
 ---
@@ -17,8 +17,8 @@ related:
 # 自建订单 DAG 阶段 5 实施报告
 
 本报告记录
-[阶段 5 前端方案](../../plans/order-orchestration/v1-order-dag-phase-05-frontend.md) 与
-[UI 设计规格](../../plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) 的实施结果。
+[阶段 5 前端方案](../../archive-plans/order-orchestration/v1-order-dag-phase-05-frontend.md) 与
+[UI 设计规格](../../archive-plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) 的实施结果。
 阶段 5 新增独立 `frontend/` workspace，只消费阶段 3/4 的本机订单 HTTP API，
 不访问 CoppeliaSim、executor、设备句柄或物料账本。
 

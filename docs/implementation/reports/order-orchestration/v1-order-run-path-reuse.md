@@ -6,8 +6,8 @@ created: 2026-11-24
 updated: 2026-11-24
 scope: v1 UFLOW / order run / motion path reuse / API / CLI / frontend start dialog
 related:
-  - ../../plans/order-orchestration/v1-order-run-path-reuse.md
-  - ../../plans/order-orchestration/v1-order-variant-catalog-workbench.md
+  - ../../archive-plans/order-orchestration/v1-order-run-path-reuse.md
+  - ../../archive-plans/order-orchestration/v1-order-variant-catalog-workbench.md
   - ../../reports/simulation/v1-all-arm-path-reuse.md
   - ../../evidence/order-orchestration/v1_order_run_path_reuse_20261124.json
   - ../../../wiki/98-ProjectUsage/USAGE.md
@@ -16,7 +16,7 @@ related:
 # 订单运行路径复用接入实施报告
 
 本报告记录
-[订单运行路径复用接入方案](../../plans/order-orchestration/v1-order-run-path-reuse.md)
+[订单运行路径复用接入方案](../../archive-plans/order-orchestration/v1-order-run-path-reuse.md)
 的实施结果：把已有的五臂 `PLACING` 固定路径复用从 `run` 生命周期接入
 订单 DAG 运行链路，使前端订单启动、订单 HTTP API 和 `order start` CLI
 都能选择 `off` / `PLAN_ONLY` / `CACHE_ONLY` / `CACHE_THEN_PLAN`。

@@ -8,7 +8,7 @@ created: 2026-11-14
 updated: 2026-11-14
 status: published
 related:
-  - docs/implementation/plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
+  - docs/implementation/archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
   - docs/implementation/reference/production-flow/assembly-mvp/README.md
   - docs/implementation/evidence/production-flow/v1_assembly_mvp_acceptance_20261114.json
 ---

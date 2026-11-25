@@ -13,9 +13,10 @@
   `selected_candidate_index`，
   `summary()["metrics"]["order"]` 输出订单级指标。基线由 2026-11-20 归档
   运行事件重算，未启动 CoppeliaSim；WP2–WP6（设备状态、改派、现场停止/
-  恢复、规则代价）未实施，真实故障仍按 GLOBAL 处理。后端 820 passed /
-  8 skipped。见
-  `docs/implementation/plans/production-flow/v1-stage-05-finite-recovery-implementation.md`、
+  恢复、规则代价）未实施，真实故障仍按 GLOBAL 处理，剩余工作见
+  `docs/implementation/plans/production-flow/v1-stage-05-remaining-work.md`；
+  后端 820 passed / 8 skipped。见
+  `docs/implementation/archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md`、
   `docs/implementation/reports/production-flow/v1-stage-05-finite-recovery.md`
   和
   `docs/implementation/evidence/production-flow/v1_stage5_baseline_20261124.json`。
@@ -177,7 +178,7 @@
   通过保存后重载校验；独立 CoppeliaSim 4.10 进程上“压缩机 → 法兰 →
   压缩机”三笔订单均 `SUCCEEDED`、`ok=true`；受保护 v1 工件
   `full_flow` 回归 `all_ok=true`（337.15 s、1 FINAL、0 failure）。方案/报告/复现资料见
-  `docs/implementation/plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md`、
+  `docs/implementation/archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md`、
   `docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md`、
   `docs/implementation/reference/production-flow/assembly-mvp/README.md`；
   证据见 `docs/implementation/evidence/production-flow/v1_assembly_mvp_acceptance_20261114.json`。
@@ -190,7 +191,7 @@
   仿真刚启动时截断，不执行场景循环；方法见
   [项目使用指南](docs/wiki/98-ProjectUsage/USAGE.md)的“启动阶段计时”一节。
   优化步骤、验收与回退条件见
-  [v1 启动性能优化方案](docs/implementation/plans/simulation/v1-startup-performance-optimization.md)。
+  [v1 启动性能优化方案](docs/implementation/archive-plans/simulation/v1-startup-performance-optimization.md)。
 - 启动性能优化 P1/P2 代码落地并完成 3 次启动计时：新增只读校验上下文，
   复用全场景 alias 索引与一次 `scene.verify()`；删除碰撞构建死代码
   `inventory`；集合成员优先批量加入并带成员校验/逐项回退；共享传送带与

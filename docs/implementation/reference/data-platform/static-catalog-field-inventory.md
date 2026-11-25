@@ -6,14 +6,14 @@ created: 2026-11-05
 updated: 2026-11-05
 scope: 资源目录数据库化方案阶段 0 交付物
 related:
-  - docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md
   - docs/implementation/reports/data-platform/v1-catalog-persistence.md
 ---
 
 # v1 静态目录字段盘点与术语对照
 
 本文是
-[资源目录数据库化与知识图谱实施方案](../../plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
+[资源目录数据库化与知识图谱实施方案](../../archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
 阶段 0 的交付物：记录哪些字段进入静态目录数据库、来源模块、业务顺序和
 消费者，并明确不进入数据库的运行时状态。字段的权威定义仍以
 `domain/process_model.py`、`domain/rules.py` 和

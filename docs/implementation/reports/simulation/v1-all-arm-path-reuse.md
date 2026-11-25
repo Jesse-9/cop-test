@@ -10,7 +10,7 @@ scope: v1 运动规划（五臂 PLACING 路径回放）
 # 五臂固定路径回放扩展实施报告
 
 本报告记录
-[五臂固定路径回放扩展方案](../../plans/simulation/v1-all-arm-path-reuse-extension.md)
+[五臂固定路径回放扩展方案](../../archive-plans/simulation/v1-all-arm-path-reuse-extension.md)
 的代码、CLI、路径库和真实 `full_flow` 验收。上一轮 A 臂 focused 结果见
 [P0/P1 实施报告](v1-motion-planning-performance.md)；本报告不回写旧数字。
 

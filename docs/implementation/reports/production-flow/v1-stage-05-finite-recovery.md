@@ -6,7 +6,8 @@ created: 2026-11-24
 updated: 2026-11-24
 scope: v1 UFLOW / 业务阶段 5 / 双车运输 / 订单级调度观测
 related:
-  - ../../plans/production-flow/v1-stage-05-finite-recovery-implementation.md
+  - ../../plans/production-flow/v1-stage-05-remaining-work.md
+  - ../../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md
   - ../../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../evidence/production-flow/v1_stage5_baseline_20261124.json
@@ -15,8 +16,9 @@ related:
 # 阶段 5 业务用例与基线实施报告 — WP0/WP1
 
 本报告记录
-[阶段 5 有限恢复实施方案](../../plans/production-flow/v1-stage-05-finite-recovery-implementation.md)
-WP0（业务用例与冻结基线）和 WP1（订单级调度观测）的实施结果。
+[阶段 5 完整方案（归档）](../../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md)
+WP0（业务用例与冻结基线）和 WP1（订单级调度观测）的实施结果；WP2–WP6
+剩余工作见[阶段 5 剩余工作](../../plans/production-flow/v1-stage-05-remaining-work.md)。
 
 结论：**WP0/WP1 已实施并通过纯测试；WP2–WP6 未实施**。本轮没有启动
 CoppeliaSim，基线来自 2026-11-20 归档 dual 运行的事件重算；`bound=False`

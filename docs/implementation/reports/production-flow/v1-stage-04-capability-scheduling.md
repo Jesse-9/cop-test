@@ -6,16 +6,16 @@ created: 2026-11-04
 updated: 2026-11-04
 scope: v1 UFLOW / 阶段 4
 related:
-  - docs/implementation/plans/production-flow/v1-stage-04-capability-scheduling-implementation.md
+  - docs/implementation/archive-plans/production-flow/v1-stage-04-capability-scheduling-implementation.md
   - docs/implementation/reports/production-flow/v1-stage-03-operation-dag.md
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
+  - ../../../wiki/06-工业案例/柔性车间/历史与待评估规划/06-22-混线生产阶段4产品变体与能力匹配调度.md
 ---
 
 # v1 混线阶段 4 实施报告：产品变体与能力匹配调度
 
 本报告记录
-[阶段 4 实施方案](../../plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) 与
-[06-22 阶段 4 规划](../../../wiki/06-工业案例/柔性车间/当前规划/06-22-混线生产阶段4产品变体与能力匹配调度.md)
+[阶段 4 实施方案](../../archive-plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) 与
+[06-22 阶段 4 规划](../../../wiki/06-工业案例/柔性车间/历史与待评估规划/06-22-混线生产阶段4产品变体与能力匹配调度.md)
 在 v1 代码（`src/flexible_factory/`）上的实施结果。阶段目标是：把已有
 ready 工序、静态 capability/device 目录、资源表和执行适配器接入确定性
 派工；默认 `full_flow` 仍按阶段 3 的固定路线与固定设备运行。

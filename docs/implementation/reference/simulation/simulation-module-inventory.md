@@ -6,8 +6,8 @@ created: 2026-11-06
 updated: 2026-11-21
 scope: src/flexible_factory/simulation
 related:
-  - docs/implementation/plans/simulation/simulation-code-optimization-plan.md
-  - docs/implementation/plans/simulation/v1-startup-performance-optimization.md
+  - docs/implementation/archive-plans/simulation/simulation-code-optimization-plan.md
+  - docs/implementation/archive-plans/simulation/v1-startup-performance-optimization.md
   - docs/implementation/reports/simulation/v1-simulation-code-optimization.md
   - docs/implementation/reports/simulation/v1-startup-performance-optimization.md
   - docs/implementation/reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md
@@ -16,7 +16,7 @@ related:
 # 仿真模块清单与命名边界
 
 本文是
-[仿真模块代码优化实施计划](../../plans/simulation/simulation-code-optimization-plan.md)
+[仿真模块代码优化实施计划](../../archive-plans/simulation/simulation-code-optimization-plan.md)
 第 6 节的模块盘点。它记录当前 `src/flexible_factory/simulation/` 的职责、
 消费者类别和命名处置；不复制实现，也不改变任何契约。模块的权威定义仍以
 代码和 [工程参考](../../../../PROJECT_ENGINEERING_REFERENCE.md) 为准。

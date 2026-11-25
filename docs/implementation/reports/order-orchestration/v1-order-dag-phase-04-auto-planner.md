@@ -6,17 +6,17 @@ created: 2026-11-07
 updated: 2026-11-07
 scope: v1 UFLOW / order planner
 related:
-  - ../../plans/order-orchestration/v1-self-built-order-dag-orchestration.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-01-foundation.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
+  - ../../archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-01-foundation.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
   - v1-order-dag-phase-01-03.md
 ---
 
 # 自建订单 DAG 阶段 4 实施报告
 
 本报告记录
-[阶段 4 自主编排方案](../../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 的实施结果。
+[阶段 4 自主编排方案](../../archive-plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) 的实施结果。
 范围是确定性、有界的订单草稿 planner，以及通过阶段 3 订单服务保存 planner
 草稿、API/CLI 查询和解释。
 

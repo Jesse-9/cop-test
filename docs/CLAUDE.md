@@ -20,8 +20,10 @@ docs/
 ├── implementation/            # v1 方案、基线、实施报告与验收证据
 │   ├── README.md              # 实施资料索引
 │   ├── governance/            # 项目范围、基线与文档登记规则
-│   ├── plans/                 # 阶段实施方案与跨阶段技术提案
+│   ├── plans/                 # 仅未实施的活动规划（按主题）
+│   ├── archive-plans/         # 已完成/部分实施的规划原文（只供追溯）
 │   ├── reports/               # 产品、阶段和专项实施报告
+│   ├── archive-reports/       # 被完整取代的报告副本
 │   ├── reference/             # 字段盘点等实施参考资料
 │   ├── evidence/              # 报告引用的正式精简证据
 │   └── runs/                  # 被 Git 忽略的临时运行输出
@@ -30,7 +32,7 @@ docs/
 └── raw/                       # 本地官方手册来源材料，不纳入版本控制
 ```
 
-仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`；柔性车间业务目标、工艺路线和阶段规划保留在 `wiki/06-工业案例/柔性车间/`。v1 代码实施方案、基线、实施报告和证据分别归入 `implementation/plans/`、`governance/`、`reports/` 和 `evidence/`，具体对应见 `implementation/governance/project-document-register.md`。运行输出不得当作正式证据；临时输出归入被 Git 忽略的 `implementation/runs/`。`path_library/` 保存固定动作关节路径记录，独立于场景工件，不参与 manifest/config_digest 校验。
+仓库根目录 `README.md` 维护项目状态；`PROJECT_ENGINEERING_REFERENCE.md` 维护当前实现和工程不变量。通用 CoppeliaSim 案例放在 `wiki/06-工业案例/`；柔性车间业务目标、工艺路线和阶段规划保留在 `wiki/06-工业案例/柔性车间/`。v1 代码活动规划、基线、实施报告和证据分别归入 `implementation/plans/`、`governance/`、`reports/` 和 `evidence/`；已完成规划原文件归入 `implementation/archive-plans/`，被取代报告副本归入 `implementation/archive-reports/`，具体对应见 `implementation/governance/project-document-register.md`。运行输出不得当作正式证据；临时输出归入被 Git 忽略的 `implementation/runs/`。`path_library/` 保存固定动作关节路径记录，独立于场景工件，不参与 manifest/config_digest 校验。
 
 ## 文件命名规范
 
@@ -40,8 +42,10 @@ docs/
 | API条目 | `api-{功能名}.md` | `api-simSetJointPosition.md` |
 | 工业案例 | `{编号}-{案例名}.md` | `06-02-岛式车间柔性生产案例.md` |
 | 项目治理 | `governance/{主题}.md` | `governance/v1-baseline-m0.md` |
-| 实施方案 | `plans/{阶段}-{主题}-implementation.md` | `plans/v1-stage-04-capability-scheduling-implementation.md` |
-| 实施报告 | `reports/{阶段或主题}.md` | `reports/v1-stage-04-capability-scheduling.md` |
+| 活动规划 | `plans/{主题}/{名称}.md` | `plans/simulation/v1-startup-performance-optimization-remaining.md` |
+| 归档规划 | `archive-plans/{主题}/{原文件名}.md` | `archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md` |
+| 实施报告 | `reports/{主题}/{名称}.md` | `reports/production-flow/v1-stage-05-finite-recovery.md` |
+| 归档报告 | `archive-reports/{原文件名}.md` | `archive-reports/v1-stage-03-operation-dag.md` |
 | 实施证据 | `v1_{场景}_{日期}_{时间}.json` | `v1_full_flow_acceptance_20261103_010923.json` |
 | 原始材料 | 存于 `raw/`，不纳入版本控制 | `regularApi/simStartSimulation.htm` |
 

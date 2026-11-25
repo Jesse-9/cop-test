@@ -6,16 +6,16 @@ created: 2026-11-21
 updated: 2026-11-21
 scope: v1 UFLOW / planner / fleet context
 related:
-  - ../../plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md
   - ../../evidence/order-orchestration/v1_order_dag_phase8_fleet_planner_20261121_074317.json
 ---
 
 # 自建订单 DAG 阶段 8 实施报告
 
 本报告记录
-[阶段 8 方案](../../plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md)
+[阶段 8 方案](../../archive-plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md)
 的实施结果。改动让 planner 在**规划阶段**使用 `single/dual` 车队假设、
 固定分工和静态车辆可用性做路线可行性、候选降权/排序与 explain，同时保持
 订单 DAG、`OrderSpec` 和运行时派工边界不变。

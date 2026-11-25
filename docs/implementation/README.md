@@ -7,11 +7,26 @@
 | 目录 | 职责 |
 |---|---|
 | [governance/](governance/) | 范围、基线、文档规则和当前阶段总表 |
-| [plans/](plans/) | 按业务主题归档实施方案及技术提案 |
-| [reports/](reports/) | 按业务主题归档实施事实、测试结果和未覆盖边界 |
+| [plans/](plans/README.md) | **仅未实施**的活动规划及技术提案 |
+| [archive-plans/](archive-plans/README.md) | 已完成规划原文，供历史追溯；不再作为活动计划维护 |
+| [reports/](reports/README.md) | 按业务主题归档实施事实、测试结果和未覆盖边界 |
+| [archive-reports/](archive-reports/README.md) | 被完整取代的报告副本，不作为验收依据 |
 | [reference/](reference/) | 方案输入、字段盘点和技术操作参考，不单独作为验收结论 |
 | [evidence/](evidence/) | 随版本维护、由报告引用的精简正式证据 |
 | [runs/](runs/) | Git 忽略的临时运行输出，不作为正式归档证据 |
+
+## 活动规划（仅未实施）
+
+| 主题 | 活动规划 |
+|---|---|
+| 业务阶段 5 | [设备状态、未启动工序改派与有限恢复](plans/production-flow/v1-stage-05-remaining-work.md) |
+| 仿真模块维护 | [异常路径回滚、性能与命名](plans/simulation/simulation-code-optimization-remaining.md) |
+| 运动规划效率 | [P2/P3 与未覆盖运动段](plans/simulation/simulation-motion-planning-performance-remaining.md) |
+| 启动性能 | [P4 与计时归因](plans/simulation/v1-startup-performance-optimization-remaining.md) |
+| 数据平台 | [资源目录与知识图谱语义融合](plans/data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
+
+已完成的规划原文统一在 [archive-plans/](archive-plans/README.md)；活动规划
+索引和归档规则见 [plans/README.md](plans/README.md)。
 
 ## 治理与产品基线
 
@@ -27,11 +42,12 @@
 
 ### 生产流程
 
-业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 已实施 WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测），WP2–WP6（设备状态、改派、故障停止/恢复、规则代价）未实施，见[阶段 5 实施方案](plans/production-flow/v1-stage-05-finite-recovery-implementation.md) · [阶段 5 实施报告](reports/production-flow/v1-stage-05-finite-recovery.md) · [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
+业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 已实施 WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测），WP2–WP6（设备状态、改派、故障停止/恢复、规则代价）未实施，见[阶段 5 剩余工作](plans/production-flow/v1-stage-05-remaining-work.md) · [阶段 5 实施报告](reports/production-flow/v1-stage-05-finite-recovery.md) · [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [阶段 2 设备执行适配](plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 有限恢复](plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
+| 活动方案 | [阶段 5 剩余工作（WP2–WP6）](plans/production-flow/v1-stage-05-remaining-work.md) |
+| 归档方案 | [阶段 2 设备执行适配](archive-plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](archive-plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](archive-plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 完整方案](archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
 | 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 有限恢复](reports/production-flow/v1-stage-05-finite-recovery.md) |
 | 参考 | [assembly_mvp 订单 fixture 与复现](reference/production-flow/assembly-mvp/README.md) |
 | 证据 | [生产流程验收证据目录](evidence/README.md) · [阶段 5 基线证据](evidence/production-flow/v1_stage5_baseline_20261124.json) |
@@ -42,7 +58,8 @@
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [总体路线图](plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) · [阶段 8 车队感知 planner](plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md) · [阶段 9 场景 profile 目录](plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md) · [订单方案目录](plans/order-orchestration/v1-order-variant-catalog-workbench.md) · [订单运行路径复用](plans/order-orchestration/v1-order-run-path-reuse.md) |
+| 活动方案 | 无；阶段 1–10、方案目录和路径复用均已实施，后续扩展需重新立项 |
+| 归档方案 | [总体路线图](archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md) · [阶段 1 契约与编译](archive-plans/order-orchestration/v1-order-dag-phase-01-foundation.md) · [阶段 2 失败隔离](archive-plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md) · [阶段 3 API 与持久化](archive-plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md) · [阶段 4 planner](archive-plans/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](archive-plans/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 5 UI 规格](archive-plans/order-orchestration/v1-order-dag-phase-05-ui-design-spec.md) · [阶段 6 仿真验收](archive-plans/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](archive-plans/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) · [阶段 8 车队感知 planner](archive-plans/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md) · [阶段 9 场景 profile 目录](archive-plans/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md) · [订单方案目录](archive-plans/order-orchestration/v1-order-variant-catalog-workbench.md) · [订单运行路径复用](archive-plans/order-orchestration/v1-order-run-path-reuse.md) |
 | 报告 | [阶段 1–3](reports/order-orchestration/v1-order-dag-phase-01-03.md) · [阶段 4](reports/order-orchestration/v1-order-dag-phase-04-auto-planner.md) · [阶段 5 前端](reports/order-orchestration/v1-order-dag-phase-05-frontend.md) · [阶段 6 仿真验收](reports/order-orchestration/v1-order-dag-phase-06-simulation-acceptance.md) · [阶段 7 双车](reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md) · [阶段 8 车队感知 planner](reports/order-orchestration/v1-order-dag-phase-08-fleet-aware-planner.md) · [阶段 9 场景 profile 目录](reports/order-orchestration/v1-order-dag-phase-09-scene-profile-order-catalog.md) · [订单方案目录](reports/order-orchestration/v1-order-variant-catalog-workbench.md) · [订单运行路径复用](reports/order-orchestration/v1-order-run-path-reuse.md) |
 | 证据 | [订单编排阶段 6 验收证据](evidence/order-orchestration/v1_order_dag_phase6_acceptance_20261108.json) · [阶段 9 场景 profile 验收证据](evidence/order-orchestration/v1_order_dag_phase9_scene_profile_20261121_153000.json) · [订单方案目录逻辑/API/E2E 证据](evidence/order-orchestration/v1_order_variant_catalog_20261122.json) · [订单运行路径复用逻辑/API/E2E 证据](evidence/order-orchestration/v1_order_run_path_reuse_20261124.json) |
 
@@ -52,7 +69,8 @@
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [资源目录数据库化与知识图谱](plans/data-platform/resource-catalog-database-and-knowledge-graph.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
+| 活动方案 | [资源目录与知识图谱剩余工作](plans/data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
+| 归档方案 | [资源目录数据库化与知识图谱完整方案](archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md) |
 | 报告 | [目录持久化](reports/data-platform/v1-catalog-persistence.md) · [运行记录持久化](reports/data-platform/v1-run-record-persistence.md) · [知识图谱导入](reports/data-platform/v1-knowledge-graph-import.md) |
 | 参考 | [静态目录字段盘点](reference/data-platform/static-catalog-field-inventory.md) · [数据库查看指南](reference/data-platform/database-inspection-guide.md) · [Neo4j 图数据导出](reference/data-platform/neo4j-graph-export/README.md) |
 | 证据 | [数据平台验收证据目录](evidence/README.md) |
@@ -63,7 +81,8 @@
 
 | 类型 | 文档 |
 |---|---|
-| 方案 | [仿真模块代码优化](plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能与路径回放](plans/simulation/simulation-motion-planning-performance.md) · [五臂路径回放扩展](plans/simulation/v1-all-arm-path-reuse-extension.md) · [启动性能优化](plans/simulation/v1-startup-performance-optimization.md) |
+| 活动方案 | [仿真模块代码优化剩余工作](plans/simulation/simulation-code-optimization-remaining.md) · [运动规划效率剩余工作](plans/simulation/simulation-motion-planning-performance-remaining.md) · [启动性能剩余工作](plans/simulation/v1-startup-performance-optimization-remaining.md) |
+| 归档方案 | [仿真模块代码优化完整方案](archive-plans/simulation/simulation-code-optimization-plan.md) · [运动规划性能与路径回放完整方案](archive-plans/simulation/simulation-motion-planning-performance.md) · [五臂路径回放扩展](archive-plans/simulation/v1-all-arm-path-reuse-extension.md) · [启动性能完整方案](archive-plans/simulation/v1-startup-performance-optimization.md) |
 | 报告 | [仿真模块代码优化报告](reports/simulation/v1-simulation-code-optimization.md) · [运动规划性能报告](reports/simulation/v1-motion-planning-performance.md) · [五臂路径回放扩展报告](reports/simulation/v1-all-arm-path-reuse.md) · [运行录像报告](reports/simulation/v1-simulation-recording.md) · [启动性能优化报告](reports/simulation/v1-startup-performance-optimization.md) |
 | 参考 | [仿真模块清单](reference/simulation/simulation-module-inventory.md) |
 | 证据 | [仿真工程证据](evidence/simulation/) |
@@ -71,6 +90,8 @@
 ## 归档与维护规则
 
 - 业务规划回答“建设什么”；实施方案回答“准备如何实现”；报告回答“实际完成什么”；证据保存可核验的验收摘要。各类文件按主题放入对应目录。
+- **活动规划只保留未实施工作**：已完成的规划原文移动到 `archive-plans/{主题}/`；部分实施的规划只把剩余工作包写入 `plans/`，已完成步骤留在归档原文件和报告中。
+- 报告按主题保留在 `reports/{theme}/`，不随规划归档移动；只有报告本身被完整取代时才放入 `archive-reports/`。
 - 文件状态以 frontmatter 为准；跨主题当前状态只在 v2 准备度盘点维护。报告保留其执行时点的测试和验收事实，不把旧计数解释为当前测试结果。
 - 方案与报告有不同职责，不因内容引用相同而视为重复。只有内容、用途和证据来源均被另一个权威文档完整取代时，才合并或移除旧文档。
-- 新增或迁移文档时，更新本索引、[文档登记表](governance/project-document-register.md)和所有受影响的相对链接；正式证据同时更新[evidence 目录](evidence/README.md)。
+- 新增或迁移文档时，更新本索引、[活动规划索引](plans/README.md)、[归档索引](archive-plans/README.md)、[报告索引](reports/README.md)、[文档登记表](governance/project-document-register.md)和所有受影响的相对链接；正式证据同时更新[evidence 目录](evidence/README.md)。

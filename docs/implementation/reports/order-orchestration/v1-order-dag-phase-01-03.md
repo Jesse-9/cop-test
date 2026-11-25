@@ -6,10 +6,10 @@ created: 2026-11-06
 updated: 2026-11-06
 scope: v1 UFLOW / order DAG / failure policy / order service
 related:
-  - ../../plans/order-orchestration/v1-self-built-order-dag-orchestration.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-01-foundation.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md
-  - ../../plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
+  - ../../archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-01-foundation.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-02-failure-isolation.md
+  - ../../archive-plans/order-orchestration/v1-order-dag-phase-03-api-persistence.md
   - ../production-flow/v1-stage-03-operation-dag.md
   - ../production-flow/v1-stage-04-capability-scheduling.md
   - ../data-platform/v1-run-record-persistence.md
@@ -18,7 +18,7 @@ related:
 # 自建订单 DAG 阶段 1–3 实施报告
 
 本报告记录
-[自建订单与工序 DAG 总体方案](../../plans/order-orchestration/v1-self-built-order-dag-orchestration.md)
+[自建订单与工序 DAG 总体方案](../../archive-plans/order-orchestration/v1-self-built-order-dag-orchestration.md)
 阶段 1–3 在 `src/flexible_factory/` 上的实施结果。范围是声明式订单契约、
 结构校验与编译、局部失败隔离、版本化持久化、订单应用服务和本地 HTTP API。
 

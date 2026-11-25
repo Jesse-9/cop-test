@@ -6,7 +6,7 @@ created: 2026-11-05
 updated: 2026-11-05
 scope: 资源目录数据库化方案阶段 5 / Neo4j 导出 / 知识表
 related:
-  - docs/implementation/plans/data-platform/resource-catalog-database-and-knowledge-graph.md
+  - docs/implementation/archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md
   - docs/implementation/reports/data-platform/v1-catalog-persistence.md
   - ../../../../tools/neo4j/README.md
 ---
@@ -14,7 +14,7 @@ related:
 # v1 知识图谱导入实施报告：Neo4j dump 导出与 staging
 
 本报告记录
-[资源目录数据库化与知识图谱实施方案](../../plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
+[资源目录数据库化与知识图谱实施方案](../../archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md)
 阶段 5 的实施结果。来源门槛已由用户提供的
 `ref/scripts/` 和 `ref/fmpmm.dump` 满足：
 
