@@ -1,0 +1,4 @@
+interface:
+  display_name: "cop-test project"
+  short_description: "Operate and maintain Flexible Factory v1"
+  default_prompt: "Use $flexible-factory-project to operate, test, or troubleshoot this repository."
