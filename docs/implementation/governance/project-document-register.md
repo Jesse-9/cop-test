@@ -20,7 +20,7 @@ status: published
 |---|---|---|
 | 项目治理 | `implementation/governance/` | 产品范围、决策、冻结基线和文档规则 |
 | 业务域规划 | `wiki/06-工业案例/柔性车间/` | 场景背景、工艺路线、领域对象、阶段目标和业务验收意图 |
-| 技术实施方案 | `implementation/plans/{production-flow,data-platform,simulation}/`（仅未实施）；`implementation/archive-plans/{主题}/`（已完成/部分实施原文件） | 活动规划只写剩余工作包、代码落点、测试门槛和回退条件；归档原文件只供追溯 |
+| 技术实施方案 | `implementation/plans/{architecture,production-flow,data-platform,simulation}/`（仅未实施）；`implementation/archive-plans/{主题}/`（已完成/部分实施原文件） | 活动规划只写剩余工作包、代码落点、测试门槛和回退条件；归档原文件只供追溯 |
 | 实施报告 | `implementation/reports/{product,production-flow,order-orchestration,data-platform,simulation}/` | 按产品或业务主题归档实际改动、测试/仿真结果、证据和未覆盖限制；不随规划移动 |
 | 归档报告 | `implementation/archive-reports/` | 被完整取代的报告副本，不作为验收依据 |
 | 技术参考 | `implementation/reference/{data-platform,simulation}/` | 字段盘点、数据库查看与模块职责等实施输入，不作为验收结论 |
@@ -43,7 +43,7 @@ status: published
 | `06-20` 阶段 2 设备目录与执行适配器 | [阶段 2 实施方案](../archive-plans/production-flow/v1-stage-02-device-executor-implementation.md)、[阶段 2 报告](../reports/production-flow/v1-stage-02-device-executor.md) | 实施与报告完成 |
 | `06-21` 阶段 3 配方实例化与工序 DAG | [阶段 3 报告](../reports/production-flow/v1-stage-03-operation-dag.md) | 实施与报告完成 |
 | `06-22` 阶段 4 产品变体与能力匹配调度 | [阶段 4 实施方案](../archive-plans/production-flow/v1-stage-04-capability-scheduling-implementation.md)、[阶段 4 报告](../reports/production-flow/v1-stage-04-capability-scheduling.md) | 已实施；默认工艺仍使用固定设备候选 |
-| `06-23` 业务阶段 5 调度优化与有限恢复 | [阶段 5 剩余工作](../plans/production-flow/v1-stage-05-remaining-work.md)、[阶段 5 完整方案（归档）](../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md)、[阶段 5 实施报告](../reports/production-flow/v1-stage-05-finite-recovery.md) | WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测）已实施并通过纯测试；活动规划只保留 WP2–WP6（设备状态、未启动工序改派、故障停止/恢复、规则代价），实机故障复现未执行 |
+| `06-23` 业务阶段 5 调度优化与设备状态 | [阶段 5 剩余工作](../plans/production-flow/v1-stage-05-remaining-work.md)、[阶段 5 完整方案（归档）](../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md)、[阶段 5 实施报告](../reports/production-flow/v1-stage-05-finite-recovery.md) | WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测）已实施并通过纯测试；活动规划只保留 WP2/WP3/WP6（设备状态、未启动工序改派、规则代价）；WP4/WP5 异常恢复规划已移除，实机故障复现未执行 |
 | `06-24` 术语与对象模型、`06-25` 工艺流程映射 | [混线生产业务与代码运行说明](../../wiki/06-工业案例/柔性车间/混线生产业务与代码运行说明.md)、相关阶段报告 | 参考资料，不单独作为验收证据 |
 
 ## 产品能力提案（归档与活动）
@@ -61,13 +61,14 @@ status: published
 
 | 技术方案 | 实施记录 | 当前状态 |
 |---|---|---|
+| [应用编排模块边界整理](../plans/architecture/application-module-boundaries.md) · [扩展场景与设备拓扑边界](../plans/architecture/scenario-extension-boundaries.md) | 前者以 `application/coordinator.py` 为首要候选，按职责分批迁移并保持运行契约；后者定义场景拓扑扩展与核心调度循环的协作边界 | proposed；均未实施，planner 拆分已有报告记录，不重复立项 |
 | [资源目录数据库化与知识图谱（归档）](../archive-plans/data-platform/resource-catalog-database-and-knowledge-graph.md) · [剩余工作](../plans/data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) | [字段盘点](../reference/data-platform/static-catalog-field-inventory.md)、[目录持久化](../reports/data-platform/v1-catalog-persistence.md)、[运行记录](../reports/data-platform/v1-run-record-persistence.md)、[知识图谱导入](../reports/data-platform/v1-knowledge-graph-import.md) | 阶段 0–5 已有实施记录；阶段 6 部分实施；活动规划只保留语义融合、运维、Q5/Q6 |
 | [混线生产灵活性扩展示范](../archive-plans/production-flow/v1-mixed-production-flexibility-demo.md) | [有限批次配比实施报告](../reports/production-flow/v1-mixed-production-flexibility-demo.md) | WP1/WP2 已实施并实机验收；WP3/WP4 为条件包 |
 | Neo4j 图谱混线装配 MVP | [实施方案](../archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)、[实施报告](../reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md)、[订单 fixture 与复现](../reference/production-flow/assembly-mvp/README.md) | WP0–WP3 已实施；两产品在同一实验场景交替实机通过；多订单并发与真实装配未实现 |
 | [仿真与运动规划性能（归档）](../archive-plans/simulation/simulation-motion-planning-performance.md) · [剩余工作](../plans/simulation/simulation-motion-planning-performance-remaining.md) | [实施报告](../reports/simulation/v1-motion-planning-performance.md)、[focused 证据](../evidence/simulation/v1_motion_path_reuse_20261120.json) | partially-implemented；P0 计时字段与 P1 固定路径回放已落地；固定 A 臂 `PLACING` 段 focused 实机对照通过；抓取/转运段、第二个动作、P2/P3 未执行 |
 | [五臂固定路径回放扩展（归档）](../archive-plans/simulation/v1-all-arm-path-reuse-extension.md) | [实施报告](../reports/simulation/v1-all-arm-path-reuse.md)、[full_flow 证据](../evidence/simulation/v1_full_flow_path_reuse_20261121.json) | implemented；五臂 `PLACING`、`run --path-reuse`、`docs/path_library`；v005 full_flow 9 次查找/7 次回放/2 次 B/D 回退，A/C/E `planner_calls=0`，两次 acceptance 均通过；其他运动段、订单 runner、P2/P3 未纳入 |
 | [v1 启动性能优化（归档）](../archive-plans/simulation/v1-startup-performance-optimization.md) · [剩余工作](../plans/simulation/v1-startup-performance-optimization-remaining.md) | [启动阶段计时工具](../../../tools/measure_startup_stages.py)、[实施报告](../reports/simulation/v1-startup-performance-optimization.md)、[计时证据](../evidence/simulation/)、[使用指南](../../wiki/98-ProjectUsage/USAGE.md) | partially-implemented；P1/P2、P3 子集臂已实施；P4 长驻 worker 复用与计时归因仍为活动规划 |
-| [仿真模块代码优化（归档）](../archive-plans/simulation/simulation-code-optimization-plan.md) · [剩余工作](../plans/simulation/simulation-code-optimization-remaining.md) | [实施报告](../reports/simulation/v1-simulation-code-optimization.md)、[模块清单](../reference/simulation/simulation-module-inventory.md) | P1/P2、P3 5.1/5.3 与第 6 节已实施并离线验证；5.2、5.3 性能优化和模块命名为活动规划 |
+| [仿真模块代码优化（归档）](../archive-plans/simulation/simulation-code-optimization-plan.md) · [剩余工作](../plans/simulation/simulation-code-optimization-remaining.md) | [实施报告](../reports/simulation/v1-simulation-code-optimization.md)、[模块清单](../reference/simulation/simulation-module-inventory.md) | P1/P2、P3 5.1/5.3 与第 6 节已实施并离线验证；5.2 异常路径回滚已移出规划，5.3 性能优化和模块命名为活动规划 |
 | [v1 运行录像](../reports/simulation/v1-simulation-recording.md) | [使用指南](../../wiki/98-ProjectUsage/USAGE.md) | implemented（离线）；`run`/`order start`/`api serve` 的 `--record*` 与前端启动开关、Range 视频接口；后端 813 passed / 8 skipped，前端 16 passed；已完成 20 s 实机短片验证，完整 full_flow 录像未执行 |
 
 ## 命名约定

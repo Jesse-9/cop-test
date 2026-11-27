@@ -12,8 +12,9 @@
   `snapshot_digest`、`snapshot_summary`、`wait_s`、`sort_key`、
   `selected_candidate_index`，
   `summary()["metrics"]["order"]` 输出订单级指标。基线由 2026-11-20 归档
-  运行事件重算，未启动 CoppeliaSim；WP2–WP6（设备状态、改派、现场停止/
-  恢复、规则代价）未实施，真实故障仍按 GLOBAL 处理，剩余工作见
+  运行事件重算，未启动 CoppeliaSim；WP2/WP3/WP6（设备状态、改派、规则
+  代价）未实施；WP4/WP5 异常恢复规划已移除，真实故障仍按 GLOBAL 处理。
+  剩余工作见
   `docs/implementation/plans/production-flow/v1-stage-05-remaining-work.md`；
   后端 820 passed / 8 skipped。见
   `docs/implementation/archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md`、

@@ -16,11 +16,12 @@ updated: 2026-11-25
 
 | 主题 | 规划 | 范围 |
 |---|---|---|
-| 业务阶段 5 | [设备状态、未启动工序改派与有限恢复](production-flow/v1-stage-05-remaining-work.md) | WP2–WP6；WP0/WP1 已实施，见报告 |
-| 仿真模块维护 | [异常路径回滚、性能与命名](simulation/simulation-code-optimization-remaining.md) | P3 5.2、5.3 性能、模块重命名 |
-| 运动规划效率 | [P2/P3 与未覆盖运动段](simulation/simulation-motion-planning-performance-remaining.md) | 抓取/抬升/转运段、热点优化、贝塞尔后处理 |
-| 启动性能 | [P4 与计时归因](simulation/v1-startup-performance-optimization-remaining.md) | 长驻 worker 复用、子阶段计时、同机 A/B |
-| 数据平台 | [资源目录与知识图谱语义融合](data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) | 阶段 5.1 语义映射、阶段 6 运维/Q5/Q6 |
+| 架构整理 | [应用编排模块边界整理](architecture/application-module-boundaries.md) · [扩展场景与设备拓扑边界](architecture/scenario-extension-boundaries.md) | coordinator 按证据逐个迁移职责；场景拓扑扩展不复制核心调度循环 |
+| 业务阶段 5 | [设备状态、未启动工序改派与规则调度](production-flow/v1-stage-05-remaining-work.md) | WP2/WP3/WP6；WP0/WP1 已实施；WP4/WP5 异常恢复规划已移除 |
+| 仿真模块维护 | [性能与命名](simulation/simulation-code-optimization-remaining.md) | P3 5.3 性能、模块重命名 |
+| 运动规划效率 | [全阶段路径缓存、P2/P3 与未覆盖运动段](simulation/simulation-motion-planning-performance-remaining.md) | 路径缓存从 `PLACING` 扩展到其余执行阶段；多目标/多段、默认值、写回与观测；P2/P3 |
+| 启动性能 | [P4 与剩余计时归因](simulation/v1-startup-performance-optimization-remaining.md) | 长驻 worker 复用；loadScene/layout digest 与同机 A/B；子阶段计时已具备 |
+| 数据平台 | [资源目录与知识图谱剩余工作](data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) | 阶段 5.1 语义映射与候选发布（运行记录版本钉住/Q1–Q4 已具备）、阶段 6 运维/Q5/Q6 |
 | 数据平台 | [数据库仪表盘前端优化](data-platform/db-dashboard-frontend-optimization.md) | 提案，未实施 |
 | 数据平台 | [数据库仪表盘 UI 蓝图](data-platform/db-dashboard-ui-blueprint.md) | 提案，未实施 |
 

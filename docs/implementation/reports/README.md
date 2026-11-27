@@ -29,7 +29,7 @@ updated: 2026-11-25
 | [阶段 4 能力调度](production-flow/v1-stage-04-capability-scheduling.md) | 产品变体与能力匹配调度 |
 | [混线灵活性示范](production-flow/v1-mixed-production-flexibility-demo.md) | 有限批次配比 |
 | [Neo4j 装配 MVP](production-flow/v1-neo4j-assembly-mixed-line-mvp.md) | 图谱驱动混线装配实验 |
-| [阶段 5 业务用例与基线](production-flow/v1-stage-05-finite-recovery.md) | WP0/WP1 离线基线；WP2–WP6 未实施 |
+| [阶段 5 业务用例与基线](production-flow/v1-stage-05-finite-recovery.md) | WP0/WP1 离线基线；WP2/WP3/WP6 未实施；WP4/WP5 异常恢复规划已移除 |
 
 ## 订单编排
 

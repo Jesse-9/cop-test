@@ -19,11 +19,12 @@
 
 | 主题 | 活动规划 |
 |---|---|
-| 业务阶段 5 | [设备状态、未启动工序改派与有限恢复](plans/production-flow/v1-stage-05-remaining-work.md) |
-| 仿真模块维护 | [异常路径回滚、性能与命名](plans/simulation/simulation-code-optimization-remaining.md) |
-| 运动规划效率 | [P2/P3 与未覆盖运动段](plans/simulation/simulation-motion-planning-performance-remaining.md) |
-| 启动性能 | [P4 与计时归因](plans/simulation/v1-startup-performance-optimization-remaining.md) |
-| 数据平台 | [资源目录与知识图谱语义融合](plans/data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
+| 架构整理 | [应用编排模块边界整理](plans/architecture/application-module-boundaries.md) · [扩展场景与设备拓扑边界](plans/architecture/scenario-extension-boundaries.md) |
+| 业务阶段 5 | [设备状态、未启动工序改派与规则调度](plans/production-flow/v1-stage-05-remaining-work.md) |
+| 仿真模块维护 | [性能与命名](plans/simulation/simulation-code-optimization-remaining.md) |
+| 运动规划效率 | [全阶段路径缓存、P2/P3 与未覆盖运动段](plans/simulation/simulation-motion-planning-performance-remaining.md) |
+| 启动性能 | [P4 与剩余计时归因](plans/simulation/v1-startup-performance-optimization-remaining.md) |
+| 数据平台 | [资源目录与知识图谱剩余工作](plans/data-platform/resource-catalog-database-and-knowledge-graph-remaining.md) · [数据库仪表盘优化](plans/data-platform/db-dashboard-frontend-optimization.md) · [仪表盘 UI 蓝图](plans/data-platform/db-dashboard-ui-blueprint.md) |
 
 已完成的规划原文统一在 [archive-plans/](archive-plans/README.md)；活动规划
 索引和归档规则见 [plans/README.md](plans/README.md)。
@@ -42,13 +43,13 @@
 
 ### 生产流程
 
-业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 已实施 WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测），WP2–WP6（设备状态、改派、故障停止/恢复、规则代价）未实施，见[阶段 5 剩余工作](plans/production-flow/v1-stage-05-remaining-work.md) · [阶段 5 实施报告](reports/production-flow/v1-stage-05-finite-recovery.md) · [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md)。
+业务阶段 0–4、设备执行、工序图、能力调度和有限批次示范。业务阶段 5 已实施 WP0（`cart_2` 不可用业务用例与冻结基线）和 WP1（订单级调度观测），WP2/WP3/WP6（设备状态、改派、规则代价）未实施；WP4/WP5 异常恢复规划已移除，见[阶段 5 剩余工作](plans/production-flow/v1-stage-05-remaining-work.md) · [阶段 5 实施报告](reports/production-flow/v1-stage-05-finite-recovery.md) · [业务规划](../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与设备状态.md)。
 
 | 类型 | 文档 |
 |---|---|
-| 活动方案 | [阶段 5 剩余工作（WP2–WP6）](plans/production-flow/v1-stage-05-remaining-work.md) |
+| 活动方案 | [阶段 5 剩余工作（WP2/WP3/WP6）](plans/production-flow/v1-stage-05-remaining-work.md) |
 | 归档方案 | [阶段 2 设备执行适配](archive-plans/production-flow/v1-stage-02-device-executor-implementation.md) · [阶段 4 能力调度](archive-plans/production-flow/v1-stage-04-capability-scheduling-implementation.md) · [混线生产灵活性示范](archive-plans/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](archive-plans/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 完整方案](archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
-| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 有限恢复](reports/production-flow/v1-stage-05-finite-recovery.md) |
+| 报告 | [阶段 0–1 静态工艺目录](reports/production-flow/v1-stage-00-01-static-process-catalog.md) · [阶段 2 设备执行](reports/production-flow/v1-stage-02-device-executor.md) · [阶段 3 工序 DAG](reports/production-flow/v1-stage-03-operation-dag.md) · [阶段 4 能力调度](reports/production-flow/v1-stage-04-capability-scheduling.md) · [混线灵活性示范](reports/production-flow/v1-mixed-production-flexibility-demo.md) · [Neo4j 图谱混线装配 MVP](reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) · [阶段 5 基线](reports/production-flow/v1-stage-05-finite-recovery.md) |
 | 参考 | [assembly_mvp 订单 fixture 与复现](reference/production-flow/assembly-mvp/README.md) |
 | 证据 | [生产流程验收证据目录](evidence/README.md) · [阶段 5 基线证据](evidence/production-flow/v1_stage5_baseline_20261124.json) |
 

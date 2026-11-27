@@ -8,7 +8,7 @@ scope: v1 UFLOW / 业务阶段 5 / 双车运输 / 订单级调度观测
 related:
   - ../../plans/production-flow/v1-stage-05-remaining-work.md
   - ../../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md
+  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与设备状态.md
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../evidence/production-flow/v1_stage5_baseline_20261124.json
 ---
@@ -17,13 +17,13 @@ related:
 
 本报告记录
 [阶段 5 完整方案（归档）](../../archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md)
-WP0（业务用例与冻结基线）和 WP1（订单级调度观测）的实施结果；WP2–WP6
+WP0（业务用例与冻结基线）和 WP1（订单级调度观测）的实施结果；WP2/WP3/WP6
 剩余工作见[阶段 5 剩余工作](../../plans/production-flow/v1-stage-05-remaining-work.md)。
 
-结论：**WP0/WP1 已实施并通过纯测试；WP2–WP6 未实施**。本轮没有启动
-CoppeliaSim，基线来自 2026-11-20 归档 dual 运行的事件重算；`bound=False`
-只是当前目录模型下“设备不可用”的静态代理。不能把本报告解释为设备健康、
-运行时改派、故障恢复或物理并行已具备。
+结论：**WP0/WP1 已实施并通过纯测试；WP2/WP3/WP6 未实施，WP4/WP5 异常
+恢复规划已移除**。本轮没有启动 CoppeliaSim，基线来自 2026-11-20 归档
+dual 运行的事件重算；`bound=False` 只是当前目录模型下“设备不可用”的静态
+代理。不能把本报告解释为设备健康、运行时改派或物理并行已具备。
 
 ## 1. 业务用例
 
@@ -112,11 +112,12 @@ CoppeliaSim，基线来自 2026-11-20 归档 dual 运行的事件重算；`bound
 - **未实机**：没有重新启动 CoppeliaSim；基线是归档运行事件重算，不是新
   实机结果；故障基线是纯调度快照，不是故障注入。
 - **无设备健康源**：`bound=False` 是静态代理；未知/过期状态阻止派工、
-  可接单→故障→恢复可接单序列仍未实现。
+  可接单→故障/停用→可接单序列仍未实现。
 - **未改派**：没有 `SCHEDULE_REASSIGN`、撤销/重选生命周期、车辆选择变更
   或资源 owner 变更；`running` 工序改派仍禁止。
-- **未恢复**：没有安全停止、现场核验、checkpoint 续作、自动重试或人工
-  恢复协议；真实 Arm/AGV 运动故障与 ZMQ/step 断连仍按 GLOBAL 处理。
+- **异常恢复（不在当前规划范围）**：没有安全停止、现场核验、checkpoint
+  续作、自动重试或人工恢复协议；真实 Arm/AGV 运动故障与 ZMQ/step 断连
+  仍按 GLOBAL 处理。
 - **单订单口径**：指标过滤允许未标记物料事件进入当前订单；多订单并发、
   跨订单对比、Q5/Q6 查询未实现。
 - **物理可行性**：`agv_1`/`cart_2` 各自验收不等于“`cart_2` 故障时改派

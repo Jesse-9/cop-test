@@ -17,7 +17,7 @@ updated: 2026-11-25
 | 规划 | 状态 | 未完成范围 | 实施/技术资料 |
 |---|---|---|---|
 | [06-18 混线生产工序与设备调度演进规划](06-18-柔性车间混线生产工序与设备调度演进规划.md) | 未来路线图 | 长期演进方向、跨阶段约束；阶段 0–4 已归档 | [实施资料索引](../../../../implementation/README.md) |
-| [06-23 阶段 5 调度优化与有限恢复](06-23-混线生产阶段5调度优化与有限恢复.md) | 部分实施 | WP2–WP6：设备状态、未启动工序改派、安全停止/人工恢复、规则代价 | [阶段 5 报告](../../../../implementation/reports/production-flow/v1-stage-05-finite-recovery.md) · [剩余工作](../../../../implementation/plans/production-flow/v1-stage-05-remaining-work.md) · [完整方案（归档）](../../../../implementation/archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
+| [06-23 阶段 5 调度优化与设备状态](06-23-混线生产阶段5调度优化与设备状态.md) | 部分实施 | WP2/WP3/WP6：设备状态、未启动工序改派、规则代价；WP4/WP5 异常恢复规划已移除 | [阶段 5 报告](../../../../implementation/reports/production-flow/v1-stage-05-finite-recovery.md) · [剩余工作](../../../../implementation/plans/production-flow/v1-stage-05-remaining-work.md) · [完整方案（归档）](../../../../implementation/archive-plans/production-flow/v1-stage-05-finite-recovery-implementation.md) |
 
 ## 归档与分类
 
@@ -27,7 +27,7 @@ updated: 2026-11-25
   [领域参考](../领域参考/README.md)，它们不是阶段规划。
 - **06-18 路线图**：只保留未实施/未来部分；阶段 0–4 的详细工作包已从本页移除，
   其业务规划在历史目录、实施事实在报告目录。
-- **06-23 阶段 5**：只保留 WP2–WP6；WP0/WP1 已实施，记录见报告和归档完整方案。
+- **06-23 阶段 5**：只保留 WP2/WP3/WP6；WP0/WP1 已实施，记录见报告和归档完整方案；WP4/WP5 异常恢复规划已移除。
 
 状态以 `docs/implementation/governance/v2-readiness-assessment.md` 和对应报告
 为准；本索引只负责导航，不把“规划存在”当作“能力已具备”。

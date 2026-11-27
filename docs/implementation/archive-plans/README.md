@@ -24,7 +24,7 @@ updated: 2026-11-25
 | [阶段 4 产品变体与能力匹配调度](production-flow/v1-stage-04-capability-scheduling-implementation.md) | implemented | [阶段 4 报告](../reports/production-flow/v1-stage-04-capability-scheduling.md) | — |
 | [混线生产灵活性示范](production-flow/v1-mixed-production-flexibility-demo.md) | implemented（WP1/WP2） | [实施报告](../reports/production-flow/v1-mixed-production-flexibility-demo.md) | WP3/WP4 为条件包，未立项 |
 | [Neo4j 图谱混线装配 MVP](production-flow/v1-neo4j-assembly-mixed-line-mvp.md) | implemented（WP0–WP3） | [实施报告](../reports/production-flow/v1-neo4j-assembly-mixed-line-mvp.md) | 多订单并发/真实装配未实现 |
-| [阶段 5 有限恢复完整方案](production-flow/v1-stage-05-finite-recovery-implementation.md) | partially-implemented（WP0/WP1） | [阶段 5 报告](../reports/production-flow/v1-stage-05-finite-recovery.md) | [WP2–WP6](../plans/production-flow/v1-stage-05-remaining-work.md) |
+| [阶段 5 历史完整方案（含已移除的 WP4/WP5）](production-flow/v1-stage-05-finite-recovery-implementation.md) | partially-implemented（WP0/WP1） | [阶段 5 报告](../reports/production-flow/v1-stage-05-finite-recovery.md) | [当前剩余 WP2/WP3/WP6](../plans/production-flow/v1-stage-05-remaining-work.md) |
 
 ## 订单编排
 
@@ -52,7 +52,7 @@ updated: 2026-11-25
 | 归档规划 | 状态 | 报告 | 剩余工作 |
 |---|---|---|---|
 | [五臂固定路径回放扩展](simulation/v1-all-arm-path-reuse-extension.md) | implemented | [五臂报告](../reports/simulation/v1-all-arm-path-reuse.md) | — |
-| [仿真模块代码优化完整方案](simulation/simulation-code-optimization-plan.md) | partially-implemented | [代码优化报告](../reports/simulation/v1-simulation-code-optimization.md) | [5.2/5.3/命名](../plans/simulation/simulation-code-optimization-remaining.md) |
+| [仿真模块代码优化完整方案](simulation/simulation-code-optimization-plan.md) | partially-implemented | [代码优化报告](../reports/simulation/v1-simulation-code-optimization.md) | [5.3/命名（5.2 已移出规划）](../plans/simulation/simulation-code-optimization-remaining.md) |
 | [运动规划效率完整方案](simulation/simulation-motion-planning-performance.md) | partially-implemented | [运动规划报告](../reports/simulation/v1-motion-planning-performance.md) | [P2/P3/未覆盖段](../plans/simulation/simulation-motion-planning-performance-remaining.md) |
 | [启动性能完整方案](simulation/v1-startup-performance-optimization.md) | partially-implemented | [启动性能报告](../reports/simulation/v1-startup-performance-optimization.md) | [P4/计时归因](../plans/simulation/v1-startup-performance-optimization-remaining.md) |
 

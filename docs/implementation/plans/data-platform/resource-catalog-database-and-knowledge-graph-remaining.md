@@ -39,6 +39,11 @@ related:
 work-step 的映射、Capability 到设备候选。参数驱动控制、动态夹具更换、在线
 工艺推荐、自动生成可执行 Python、跨运行优化不纳入首批。
 
+**已有基础：**运行记录已保存 `artifact_id`、`catalog_version`、
+`scene_contract_version`、`recipe_id`/`recipe_version` 和 `route_id`；
+Q1–Q4 查询已实现；知识发布与目录发布已分离。以下步骤只保留尚未实现的
+语义映射、候选生成和运维缺口，不重复这些已有能力。
+
 **工作步骤：**
 
 1. 建立语义映射清单：源标签/谓词、目标对象、是否自动、人工责任人和缺失
@@ -54,11 +59,9 @@ work-step 的映射、Capability 到设备候选。参数驱动控制、动态�
 5. 设备匹配与场景契约检查：capability/install 只生成候选；再用
    `ProcessCatalog.validate()`、`device_binding`、required aliases、布局/
    IK/碰撞和资源规则逐层筛选。
-6. 双重发布：知识抽取发布与可执行目录发布是两个独立动作；任一步失败保留
-   旧 current release，不自动切换。
-7. 运行时钉住 recipe/catalog version、route、artifact ID 和 contract
-   version；运行中目录不可变更。
-8. 用 Q1–Q4 查询复核运行结果并反馈修订；不回写已发布运行事实。
+6. 接入双重发布：把语义映射产物生成 catalog staging release；知识抽取发布
+   与可执行目录发布保持两个独立动作，任一步失败保留旧 current release，不
+   自动切换。
 
 **通过门槛：**映射清单可审计；catalog 候选通过结构、绑定和 allowlist
 校验；未映射项阻止发布；旧 release 在失败时保持不变。

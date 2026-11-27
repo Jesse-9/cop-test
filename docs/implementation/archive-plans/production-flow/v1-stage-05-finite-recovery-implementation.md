@@ -6,7 +6,7 @@ created: 2026-11-24
 updated: 2026-11-24
 scope: v1 UFLOW / 业务阶段 5 / 双车运输 / 调度观测
 related:
-  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与有限恢复.md
+  - ../../../wiki/06-工业案例/柔性车间/当前规划/06-23-混线生产阶段5调度优化与设备状态.md
   - ../../reports/production-flow/v1-stage-05-finite-recovery.md
   - ../../reports/order-orchestration/v1-order-dag-phase-07-dual-fleet.md
   - ../../reports/production-flow/v1-stage-04-capability-scheduling.md
